@@ -29,6 +29,8 @@ final class LayoutContext
         public readonly Backend $backend,
         public readonly OverflowMode $overflow,
         private readonly ?\Closure $onWarning,
+        /** @var list<string> */
+        private readonly array $fallbackFamilies = [],
     ) {
     }
 
@@ -36,7 +38,7 @@ final class LayoutContext
     {
         return $this->itemizer ??= new Itemizer($this->fonts, function (string $msg): void {
             $this->warn($msg);
-        });
+        }, $this->fallbackFamilies);
     }
 
     /** $withPath false: the message already names its node. */

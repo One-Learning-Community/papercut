@@ -11,12 +11,14 @@ use Papercut\Text\FontRegistry;
 
 final readonly class RenderOptions
 {
+    /** @param list<string> $fallbackFamilies families tried, in order, for glyphs the primary font lacks */
     public function __construct(
         private ?Backend $backend = null,
         private ?FontRegistry $fonts = null,
         private ?Theme $theme = null,
         public OverflowMode $overflow = OverflowMode::Throw,
         public ?\Closure $onWarning = null,
+        public array $fallbackFamilies = [],
     ) {
     }
 

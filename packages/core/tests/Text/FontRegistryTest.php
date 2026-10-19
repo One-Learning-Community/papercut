@@ -24,6 +24,16 @@ final class FontRegistryTest extends TestCase
             ->register('Test', self::DIR . '/Inter-BoldItalic.ttf', 900);
     }
 
+    public function test_faces_lists_registered_faces(): void
+    {
+        $faces = FontRegistry::withDefaults(new PhpPdfBackend())->faces();
+        $this->assertCount(4, $faces);
+        $this->assertSame('Inter', $faces[0]['family']);
+        $this->assertSame(400, $faces[0]['weight']);
+        $this->assertSame(FontStyle::Normal, $faces[0]['style']);
+        $this->assertFileExists($faces[0]['path']);
+    }
+
     /** @return iterable<string, array{int, string}> */
     public static function weights(): iterable
     {
