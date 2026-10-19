@@ -39,12 +39,13 @@ final class LayoutContext
         });
     }
 
-    public function warn(string $msg): void
+    /** $withPath false: the message already names its node. */
+    public function warn(string $msg, bool $withPath = true): void
     {
         if ($this->onWarning === null) {
             return;
         }
-        $path = $this->path();
+        $path = $withPath ? $this->path() : '';
         ($this->onWarning)($path === '' ? $msg : sprintf('[%s] %s', $path, $msg));
     }
 

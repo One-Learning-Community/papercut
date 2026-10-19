@@ -13,6 +13,10 @@ use Papercut\Style\Theme;
 use Papercut\Tests\Support\FakeBackend;
 use Papercut\Text\FontRegistry;
 use PHPUnit\Framework\TestCase;
+use Papercut\Layout\{BreakToken, Constraints, Fragment, LayoutResult, Layouter};
+use Papercut\Node;
+use Papercut\Paint\Clip;
+use Papercut\Style\{ComputedStyle, Style};
 
 use function Papercut\pt;
 
@@ -22,11 +26,31 @@ final class PaginatorTest extends TestCase
     private array $warnings = [];
 
     /** @return list<\Papercut\Paint\PageDisplayList> */
-    private function paginate(Document $doc, OverflowMode $mode = OverflowMode::Throw): array
+    private function paginate(Document $doc, OverflowMode $mode = OverflowMode::Throw, ?\Closure $setup = null): array
     {
         $b = new FakeBackend();
         $ctx = new LayoutContext(FontRegistry::withDefaults($b), Theme::default(), $b, $mode, function (string $w): void { $this->warnings[] = $w; });
-        return Painter::paint((new Paginator(new LayoutEngine($ctx), $ctx))->paginate($doc));
+        $engine = new LayoutEngine($ctx);
+        if ($setup !== null) {
+            $setup($engine);
+        }
+        return Painter::paint((new Paginator($engine, $ctx))->paginate($doc));
+    }
+
+    private static function stuck(LayoutEngine $engine): void
+    {
+        // Always Partial with the same token: never makes progress.
+        $engine->register(StuckNode::class, new class implements Layouter {
+            public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
+            {
+                return LayoutResult::partial(new Fragment($c->width, 10.0), new BreakToken(index: 0));
+            }
+
+            public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
+            {
+                return ['min' => 0.0, 'max' => 0.0];
+            }
+        });
     }
 
     /** @return list<string> */
@@ -63,6 +87,57 @@ final class PaginatorTest extends TestCase
         $this->expectException(LayoutOverflow::class);
         $this->expectExceptionMessageMatches('/image/');
         $this->paginate(Document::make($this->small()->body(Image::bytes('x')->height(pt(500)))));
+    }
+
+    public function test_overflow_path_starts_at_page(): void
+    {
+        try {
+            $this->paginate(Document::make($this->small()->body('A', Image::bytes('x')->height(pt(500)))));
+            self::fail('expected LayoutOverflow');
+        } catch (LayoutOverflow $e) {
+            self::assertSame('page > column > image[1]', $e->path);
+        }
+        try {
+            $this->paginate(Document::make($this->small()->body('A'), $this->small()->body(Image::bytes('x')->height(pt(500)))));
+            self::fail('expected LayoutOverflow');
+        } catch (LayoutOverflow $e) {
+            self::assertSame('page[1] > column > image[0]', $e->path);
+        }
+    }
+
+    public function test_clip_mode_clips_only_the_overflowing_node(): void
+    {
+        $lines = array_map(fn (int $i) => Text::make("L$i"), range(1, 20));
+        $pages = $this->paginate(Document::make($this->small()->body('A', Image::bytes('x')->height(pt(500)), ...$lines)), OverflowMode::Clip);
+        // page 1: A; page 2: the image clipped to the 180x80 body; then 5 lines (70pt) per page
+        self::assertCount(6, $pages);
+        self::assertSame(['A'], $this->texts($pages[0]));
+        self::assertSame([], $this->texts($pages[1]));
+        $clips = array_values(array_filter($pages[1]->ops, fn ($o) => $o instanceof Clip));
+        self::assertCount(1, $clips);
+        self::assertEqualsWithDelta([10.0, 10.0, 180.0, 80.0], [$clips[0]->x, $clips[0]->y, $clips[0]->width, $clips[0]->height], 1e-9);
+        $rest = array_merge(...array_map(fn ($p) => $this->texts($p), array_slice($pages, 2)));
+        self::assertSame(array_map(fn (int $i) => "L$i", range(1, 20)), $rest);
+        self::assertSame(['Content clipped: "page > column > image[1]" is taller than the available space.'], $this->warnings);
+    }
+
+    public function test_no_progress_is_overflow(): void
+    {
+        try {
+            $this->paginate(Document::make($this->small()->body(new StuckNode())), OverflowMode::Throw, self::stuck(...));
+            self::fail('expected LayoutOverflow');
+        } catch (LayoutOverflow $e) {
+            self::assertSame('page > body', $e->path);
+        }
+    }
+
+    public function test_no_progress_in_clip_mode_drops_the_rest(): void
+    {
+        $pages = $this->paginate(Document::make($this->small()->body(new StuckNode())), OverflowMode::Clip, self::stuck(...));
+        self::assertCount(2, $pages);
+        self::assertCount(1, $this->warnings);
+        self::assertStringContainsString('page > body', $this->warnings[0]);
+        self::assertStringContainsString('dropped', $this->warnings[0]);
     }
 
     public function test_overflow_clips_in_clip_mode(): void
@@ -106,5 +181,18 @@ final class PaginatorTest extends TestCase
     {
         $pages = $this->paginate(Document::make(Page::a4()->body('x')));
         self::assertEqualsWithDelta([595.28, 841.89], [$pages[0]->width, $pages[0]->height], 0.01);
+    }
+}
+
+final class StuckNode implements Node
+{
+    public function debugName(): string
+    {
+        return 'stuck';
+    }
+
+    public function style(): Style
+    {
+        return new Style();
     }
 }

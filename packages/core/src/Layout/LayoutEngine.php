@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Component, Image, Link, Node, PageBreak, PageNumber, Spacer, Table, TableCell, Text, View};
+use Papercut\{Component, Image, Link, Node, OverflowMode, PageBreak, PageNumber, Spacer, Table, TableCell, Text, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Style\{ComputedStyle, Direction};
 
@@ -50,14 +50,45 @@ final class LayoutEngine
         $this->ctx->pushPath(self::pathName($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index);
-            $result = $this->layouterFor($node, $style)->layout($node, $style, $c, $token, $this);
+            $layouter = $this->layouterFor($node, $style);
+            $result = $layouter->layout($node, $style, $c, $token, $this);
             if ($result->status === Status::DoesNotFit && $c->fresh) {
+                if ($c->height !== null && $this->ctx->overflow === OverflowMode::Clip) {
+                    return $this->clipped($layouter, $node, $style, $c, $token) ?? $result;
+                }
                 $this->recordFailure();
             }
             return $result;
         } finally {
             $this->ctx->popPath();
         }
+    }
+
+    /**
+     * Test seam and extension point: lays out $class nodes with $layouter.
+     *
+     * @param class-string<Node> $class
+     */
+    public function register(string $class, Layouter $layouter): void
+    {
+        $this->layouters[$class] = $layouter;
+    }
+
+    /**
+     * Clip overflow: a node too tall for an empty page is laid out unbounded
+     * and clipped to the space it was offered, so its siblings still flow.
+     */
+    private function clipped(Layouter $layouter, Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token): ?LayoutResult
+    {
+        $res = $layouter->layout($node, $style, $c->unbounded(), $token, $this);
+        if ($res->status !== Status::Complete || $res->fragment === null || $c->height === null) {
+            return null;
+        }
+        $f = new Fragment($c->width, min($res->fragment->height, $c->height));
+        $f->clip = [0.0, 0.0, $c->width, $c->height];
+        $f->addChild(0.0, 0.0, $res->fragment);
+        $this->ctx->warn(sprintf('Content clipped: "%s" is taller than the available space.', $this->ctx->path()), withPath: false);
+        return LayoutResult::complete($f);
     }
 
     /** Keeps an already recorded descendant failure: the deepest node is the useful one. */

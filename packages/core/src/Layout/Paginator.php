@@ -25,14 +25,22 @@ final class Paginator
     public function paginate(Document $doc): array
     {
         $out = [];
-        foreach ($doc->pages() as $page) {
-            $this->paginatePage($page, $out);
+        $templates = $doc->pages();
+        foreach ($templates as $i => $page) {
+            // Overflow paths start at the template: "page > column > image[1]", or "page[2] > ..." with several.
+            $name = count($templates) > 1 ? sprintf('page[%d]', $i) : 'page';
+            $this->ctx->pushPath($name);
+            try {
+                $this->paginatePage($page, $name, $out);
+            } finally {
+                $this->ctx->popPath();
+            }
         }
         return $out;
     }
 
     /** @param list<PlacedPage> $out */
-    private function paginatePage(Page $page, array &$out): void
+    private function paginatePage(Page $page, string $name, array &$out): void
     {
         $root = ComputedStyle::root($this->ctx->theme);
         $w = $page->width();
@@ -51,7 +59,7 @@ final class Paginator
         $bodyY = $top + $headerSpace;
         $bodyHeight = $contentHeight - $headerSpace - $footerSpace;
         if ($bodyHeight <= 0.0) {
-            throw new LayoutOverflow('page', 'header and footer leave no room for content');
+            throw new LayoutOverflow($name, 'header and footer leave no room for content');
         }
 
         $background = null;
@@ -80,21 +88,25 @@ final class Paginator
         while (true) {
             $this->ctx->setLastFailurePath(null);
             $res = $this->engine->layout($body, $root, new Constraints($contentWidth, $bodyHeight, true), $token);
-            $progressed = $res->status !== Status::Partial || $res->token === null || $res->token != $token;
-            if ($res->fragment !== null && $progressed) {
+            if ($res->status === Status::Complete && $res->fragment !== null) {
                 $emit($res->fragment);
-                if ($res->status === Status::Complete || $res->token === null) {
-                    return;
-                }
+                return;
+            }
+            if ($res->status === Status::Partial) {
+                assert($res->token !== null, 'LayoutResult::partial() always carries a token');
+            }
+            if ($res->status === Status::Partial && $res->fragment !== null && $res->token != $token) {
+                $emit($res->fragment);
                 $token = $res->token;
                 continue;
             }
 
             // DoesNotFit on a fresh page, or a Partial that made no progress.
-            $path = $this->ctx->lastFailurePath ?? 'body';
+            $path = $this->ctx->lastFailurePath ?? $name . ' > body';
             if ($this->ctx->overflow === OverflowMode::Throw) {
                 throw new LayoutOverflow($path, 'content is taller than the page body');
             }
+            // Last resort: the engine clips single overflowing nodes, so this is only reached when the body itself cannot progress.
             $res = $this->engine->layout($body, $root, new Constraints($contentWidth, null, true), $token);
             if ($res->fragment !== null) {
                 $clip = new Fragment($contentWidth, $bodyHeight);
@@ -102,7 +114,7 @@ final class Paginator
                 $clip->addChild(0.0, 0.0, $res->fragment);
                 $emit($clip);
             }
-            $this->ctx->warn(sprintf('Content clipped: "%s" is taller than the page body.', $path));
+            $this->ctx->warn(sprintf('Content clipped: "%s" made no progress; the rest of this page template was clipped and any remaining content dropped.', $path), withPath: false);
             return;
         }
     }
