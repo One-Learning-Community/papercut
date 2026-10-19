@@ -35,7 +35,7 @@ final class Text implements Node
 
     public static function markup(string $markup): self
     {
-        throw new \LogicException('Text::markup() is not wired yet.');
+        return self::spans(...Text\InlineMarkup::parse($markup));
     }
 
     public static function h1(string $text): self
