@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+  - package-ecosystem: composer
+    directories:
+      - /packages/core
+      - /packages/laravel
+    schedule:
+      interval: weekly
+    groups:
+      composer:
+        patterns: ['*']

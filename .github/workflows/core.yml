@@ -1,0 +1,82 @@
+name: core
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-${{ github.workflow_ref }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: test (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4', '8.5']
+    defaults:
+      run:
+        working-directory: packages/core
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, zlib, dom, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install qpdf and poppler
+        run: sudo apt-get update && sudo apt-get install -y qpdf poppler-utils
+      - name: Cache Composer downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer/files
+          key: composer-core-${{ matrix.php }}-${{ hashFiles('packages/core/composer.json') }}
+          restore-keys: composer-core-${{ matrix.php }}-
+      - run: composer install --no-interaction --no-progress
+      - run: vendor/bin/phpunit
+      - run: vendor/bin/phpstan analyse --memory-limit=1G
+      - name: Upload visual diff images
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-output-php${{ matrix.php }}
+          path: packages/core/tests/Visual/output/
+          if-no-files-found: ignore
+
+  bench:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/core
+    env:
+      PAPERCUT_BENCH_MACHINE: ci-ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, zlib, dom, opcache
+          ini-values: opcache.enable_cli=1
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --no-progress --no-dev --classmap-authoritative
+      - name: Benchmark (10-page table document, median of 5 runs after 1 warm-up)
+        run: php -d opcache.enable_cli=1 bench/run.php | tee bench-result.json
+      - name: Compare with the committed baseline (fails if > 20% slower)
+        run: php bench/check.php bench-result.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bench
+          path: |
+            packages/core/bench-result.json
+            packages/core/bench/baseline.json

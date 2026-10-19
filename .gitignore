@@ -1,0 +1,7 @@
+/packages/*/vendor/
+/packages/*/composer.lock
+/packages/*/.phpunit.cache/
+/.superpowers/
+*.pdf
+!packages/*/tests/fixtures/**/*.pdf
+/packages/*/tests/Visual/output/

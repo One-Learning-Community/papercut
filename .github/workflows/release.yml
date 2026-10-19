@@ -1,0 +1,72 @@
+# Push a tag like v0.1.0 from main to release: runs both test suites, checks the
+# CHANGELOG has a dated section for the version, splits and tags both packages
+# (Packagist picks the tags up from the split repos), then creates the GitHub release.
+name: release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  core:
+    uses: ./.github/workflows/core.yml
+  laravel:
+    uses: ./.github/workflows/laravel.yml
+
+  notes:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Extract release notes from CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { found=1; head=$0; next }
+            found && /^## \[/ { exit }
+            found { print }
+            END {
+              if (!found) { print "No \"## [" v "]\" section in CHANGELOG.md" > "/dev/stderr"; exit 1 }
+              if (head ~ /unreleased/) { print "CHANGELOG section for " v " is still marked unreleased" > "/dev/stderr"; exit 1 }
+            }
+          ' CHANGELOG.md > release-notes.md
+          cat release-notes.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  split:
+    needs: [core, laravel, notes]
+    uses: ./.github/workflows/split-packages.yml
+    with:
+      branch: main
+      tag: ${{ github.ref_name }}
+      require_token: true
+    secrets: inherit
+
+  github-release:
+    needs: [split, notes]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: Papercut ${{ needs.notes.outputs.version }}
+          body_path: release-notes.md
+          prerelease: ${{ startsWith(needs.notes.outputs.version, '0.') }}
