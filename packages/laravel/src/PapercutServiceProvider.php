@@ -16,7 +16,7 @@ final class PapercutServiceProvider extends ServiceProvider
 
         $this->app->singleton(NodeRegistry::class);
 
-        // The scoped PdfManager binding is added in Task 6, when the class exists.
+        $this->app->scoped(PdfManager::class);
     }
 
     public function boot(): void
