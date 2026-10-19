@@ -1,0 +1,34 @@
+name: laravel
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        laravel: ['13', '12']
+    defaults:
+      run:
+        working-directory: packages/laravel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, zlib, dom, gd
+          coverage: none
+      - run: sudo apt-get update && sudo apt-get install -y qpdf poppler-utils
+      - name: Pin Laravel 12 line
+        if: matrix.laravel == '12'
+        run: composer require laravel/framework:^12.0 orchestra/testbench:^10.16 phpunit/phpunit:^12.5 -W --dev --no-interaction --no-progress
+      - name: Install dependencies
+        if: matrix.laravel != '12'
+        run: composer install --no-interaction --no-progress
+      - run: vendor/bin/phpunit
+      - name: PHPStan
+        if: matrix.laravel != '12'
+        run: vendor/bin/phpstan analyse --memory-limit=1G
