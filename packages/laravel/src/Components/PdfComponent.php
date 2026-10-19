@@ -73,7 +73,7 @@ abstract class PdfComponent extends Component
     /**
      * Applies style attributes and a named style (string) or Style object, tagging errors with the tag.
      *
-     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image
+     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
      * @param T $node
      * @param array<string, mixed> $style
      * @return T
@@ -112,7 +112,7 @@ abstract class PdfComponent extends Component
     }
 
     /**
-     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image
+     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
      * @param T $node
      * @param array<string, mixed> $data
      * @return T
@@ -153,9 +153,19 @@ abstract class PdfComponent extends Component
     protected function children(array $data): array
     {
         /** @var list<\Papercut\Node> $nodes */
-        $nodes = Segments::nodes(app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')), $this->tag());
+        $nodes = $this->rawChildren($data, []);
 
         return $nodes;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param list<class-string> $allow table-structure classes this parent accepts
+     * @return list<object>
+     */
+    protected function rawChildren(array $data, array $allow): array
+    {
+        return Segments::nodes(app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')), $this->tag(), $allow);
     }
 
     /** @param array<string, mixed> $data */
