@@ -15,7 +15,7 @@ final class FakeFont implements FontHandle
     public int $metricCalls = 0;
 
     /** $kerning: the pair "o A" is 1pt (at 10pt) tighter than its glyphs, like a real kerned font. */
-    public function __construct(private readonly string $id = 'fake', private readonly bool $kerning = false)
+    public function __construct(private readonly string $id = 'fake', private readonly bool $kerning = false, private readonly bool $coversAll = false)
     {
     }
 
@@ -47,6 +47,9 @@ final class FakeFont implements FontHandle
 
     public function covers(string $text): bool
     {
+        if ($this->coversAll) {
+            return true;
+        }
         foreach (mb_str_split($text, 1, 'UTF-8') as $ch) {
             if (mb_ord($ch, 'UTF-8') >= 0x3000) {
                 return false;

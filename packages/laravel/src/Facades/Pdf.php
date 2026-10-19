@@ -9,8 +9,10 @@ use Papercut\Laravel\PdfManager;
 
 /**
  * @method static \Papercut\Laravel\PendingPdf view(string $view, array<string, mixed> $data = [])
+ * @method static \Papercut\RenderOptions options()
  * @method static \Papercut\Laravel\PendingPdf make(\Papercut\Document $doc)
  * @method static \Papercut\RenderOptions options()
+ * @method static void preview(string $view, \Closure|array<string, mixed> $data = [])
  *
  * @see PdfManager
  */

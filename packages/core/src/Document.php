@@ -95,7 +95,7 @@ final class Document
     {
         $options ??= new RenderOptions();
         $backend = $options->backend();
-        $ctx = new LayoutContext($options->fonts($backend), $options->theme(), $backend, $options->overflow, $options->onWarning);
+        $ctx = new LayoutContext($options->fonts($backend), $options->theme(), $backend, $options->overflow, $options->onWarning, $options->fallbackFamilies);
         $placed = (new Paginator(new LayoutEngine($ctx), $ctx))->paginate($this);
 
         return $backend->render($this->meta(), Painter::paint($placed));

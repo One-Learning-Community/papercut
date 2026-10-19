@@ -7,19 +7,26 @@ namespace Papercut\Laravel;
 use Papercut\Backend\PhpPdf\PhpPdfBackend;
 use Papercut\Document;
 use Papercut\Laravel\Exception\InvalidStructure;
+use Papercut\Laravel\Preview\PreviewRegistry;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
 use Papercut\RenderOptions;
 use Papercut\Style\{Style, Theme};
-use Papercut\Text\{FontRegistry, FontStyle};
+use Papercut\Text\FontRegistry;
 use Papercut\Value\Color;
 
 final class PdfManager
 {
     private ?RenderOptions $options = null;
 
-    public function __construct(private readonly NodeRegistry $registry)
+    public function __construct(private readonly NodeRegistry $registry, private readonly PreviewRegistry $previews)
     {
+    }
+
+    /** @param \Closure|array<string, mixed> $data */
+    public function preview(string $view, \Closure|array $data = []): void
+    {
+        $this->previews->register($view, $data);
     }
 
     /** @param array<string, mixed> $data */
@@ -60,14 +67,8 @@ final class PdfManager
     {
         $backend = new PhpPdfBackend();
         $fonts = FontRegistry::withDefaults($backend);
-        /** @var array<string, array<int|string, array<string, string>>> $families */
-        $families = (array) config('papercut.fonts', []);
-        foreach ($families as $family => $weights) {
-            foreach ($weights as $weight => $faces) {
-                foreach ($faces as $style => $path) {
-                    $fonts->register((string) $family, $path, (int) $weight, $style === 'italic' ? FontStyle::Italic : FontStyle::Normal);
-                }
-            }
+        foreach (FontConfig::faces() as $face) {
+            $fonts->register($face['family'], $face['path'], $face['weight'], $face['style']);
         }
 
         $cfg = (array) config('papercut.theme', []);
@@ -95,6 +96,7 @@ final class PdfManager
             fonts: $fonts,
             theme: $theme,
             overflow: $mode,
+            fallbackFamilies: FontConfig::fallbacks(),
             onWarning: static function (string $msg): void {
                 logger()->warning('[papercut] ' . $msg);
             },

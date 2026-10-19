@@ -48,6 +48,19 @@ final class FontRegistry
         return isset($this->families[strtolower($family)]);
     }
 
+    /** @return list<array{family: string, weight: int, style: FontStyle, path: string}> */
+    public function faces(): array
+    {
+        $out = [];
+        foreach ($this->families as $entry) {
+            foreach ($entry['faces'] as $key => $path) {
+                [$weight, $style] = explode('|', $key);
+                $out[] = ['family' => $entry['name'], 'weight' => (int) $weight, 'style' => FontStyle::from($style), 'path' => $path];
+            }
+        }
+        return $out;
+    }
+
     /** @return list<string> */
     public function families(): array
     {

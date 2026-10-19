@@ -15,16 +15,39 @@ final class LayoutHarness
     public array $warnings = [];
     public LayoutEngine $engine;
 
-    public function __construct(?Theme $theme = null, OverflowMode $overflow = OverflowMode::Throw, ?FakeBackend $backend = null)
+    /** @param list<string> $fallbackFamilies */
+    public function __construct(?Theme $theme = null, OverflowMode $overflow = OverflowMode::Throw, ?FakeBackend $backend = null, ?FontRegistry $fonts = null, array $fallbackFamilies = [])
     {
         $backend ??= new FakeBackend();
-        $ctx = new LayoutContext(FontRegistry::withDefaults($backend), $theme ?? Theme::default(), $backend, $overflow, function (string $w): void { $this->warnings[] = $w; });
+        $ctx = new LayoutContext($fonts ?? FontRegistry::withDefaults($backend), $theme ?? Theme::default(), $backend, $overflow, function (string $w): void { $this->warnings[] = $w; }, $fallbackFamilies);
         $this->engine = new LayoutEngine($ctx);
     }
 
     public function layout(Node|Component $node, float $width, ?float $height = null, ?BreakToken $token = null, bool $fresh = true): LayoutResult
     {
         return $this->engine->layout($node, ComputedStyle::root(Theme::default()), new Constraints($width, $height, $fresh), $token);
+    }
+
+    /**
+     * Font id and text of every TextRun in a fragment tree, depth-first.
+     *
+     * @return list<array{font: string, text: string}>
+     */
+    public static function fontRuns(?\Papercut\Layout\Fragment $f): array
+    {
+        if ($f === null) {
+            return [];
+        }
+        $out = [];
+        foreach ($f->ops() as $op) {
+            if ($op instanceof \Papercut\Paint\TextRun) {
+                $out[] = ['font' => $op->font->id(), 'text' => $op->text];
+            }
+        }
+        foreach ($f->children() as $c) {
+            array_push($out, ...self::fontRuns($c['fragment']));
+        }
+        return $out;
     }
 
     /**

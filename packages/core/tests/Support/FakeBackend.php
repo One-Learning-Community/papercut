@@ -12,13 +12,14 @@ final class FakeBackend implements Backend
     /** @var array<string, FakeFont> */
     private array $fonts = [];
 
-    public function __construct(private readonly bool $kerning = false)
+    /** @param list<string> $coverAll basenames of font files whose fake font covers every glyph */
+    public function __construct(private readonly bool $kerning = false, private readonly array $coverAll = [])
     {
     }
 
     public function loadFont(string $path): FontHandle
     {
-        return $this->fonts[$path] ??= new FakeFont('fake:' . basename($path), $this->kerning);
+        return $this->fonts[$path] ??= new FakeFont('fake:' . basename($path), $this->kerning, in_array(basename($path), $this->coverAll, true));
     }
 
     public function loadImageFile(string $path): ImageHandle
