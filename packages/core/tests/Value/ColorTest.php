@@ -83,6 +83,22 @@ final class ColorTest extends TestCase
         }
     }
 
+    public function test_named_is_case_insensitive(): void
+    {
+        self::assertSame('#334155', (string) Color::named('Slate-700'));
+    }
+
+    public function test_eight_digit_hex_round_trips(): void
+    {
+        self::assertSame('#33415580', (string) Color::parse('#33415580'));
+    }
+
+    public function test_hex_direct(): void
+    {
+        $c = Color::hex('#fff');
+        self::assertSame([255, 255, 255], [$c->r, $c->g, $c->b]);
+    }
+
     public function test_helpers(): void
     {
         self::assertSame('#334155', (string) Color::rgb(51, 65, 85));

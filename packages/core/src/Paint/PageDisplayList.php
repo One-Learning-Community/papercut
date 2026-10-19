@@ -15,7 +15,10 @@ final readonly class PageDisplayList
         /** @var list<Op> */
         public array $ops,
     ) {
-        if ($width <= 0 || $height <= 0) {
+        if (!is_finite($width) || !is_finite($height)) {
+            throw new \InvalidArgumentException('PageDisplayList received a non-finite number.');
+        }
+        if (!($width > 0) || !($height > 0)) {
             throw new \InvalidArgumentException('Page width and height must be positive.');
         }
     }

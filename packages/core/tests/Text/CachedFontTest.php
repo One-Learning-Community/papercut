@@ -29,6 +29,25 @@ final class CachedFontTest extends TestCase
         self::assertSame(1, $inner->advanceCalls);
     }
 
+    public function test_spaced_cache_distinguishes_size_and_spacing(): void
+    {
+        $inner = new FakeFont();
+        $f = new CachedFont($inner);
+        $f->advance('ab', 12, 1.0);
+        $f->advance('ab', 12, 2.0);
+        $f->advance('ab', 14, 1.0);
+        self::assertSame(3, $inner->advanceCalls);
+    }
+
+    public function test_zero_and_nonzero_spacing_do_not_share_an_entry(): void
+    {
+        $inner = new FakeFont();
+        $f = new CachedFont($inner);
+        self::assertSame(12.0, $f->advance('ab', 12));
+        self::assertSame(14.0, $f->advance('ab', 12, 1.0));
+        self::assertSame(2, $inner->advanceCalls);
+    }
+
     public function test_delegates(): void
     {
         $inner = new FakeFont();

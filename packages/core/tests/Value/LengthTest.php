@@ -46,6 +46,10 @@ final class LengthTest extends TestCase
         yield 'garbage' => ['wide', null];
         yield 'exponent' => ['1e3pt', null];
         yield 'percent is not a length' => ['50%', null];
+        yield 'uppercase unit with space' => ['20 MM', '20mm'];
+        yield 'bare negative number' => ['-5', '-5pt'];
+        yield 'double space before unit' => ['20  mm', '20mm'];
+        yield 'overflow to infinity' => ['1' . str_repeat('0', 400) . 'pt', null];
     }
 
     #[DataProvider('invalidInputs')]
@@ -59,6 +63,33 @@ final class LengthTest extends TestCase
             self::assertSame($input, $e->input);
             self::assertSame($suggestion, $e->suggestion);
         }
+    }
+
+    /** @return iterable<string, array{float}> */
+    public static function nonFinite(): iterable
+    {
+        yield 'nan' => [NAN];
+        yield 'inf' => [INF];
+        yield '-inf' => [-INF];
+    }
+
+    #[DataProvider('nonFinite')]
+    public function test_of_and_points_reject_non_finite(float $v): void
+    {
+        foreach ([fn () => Length::of($v, Unit::Pt), fn () => Length::points($v)] as $fn) {
+            try {
+                $fn();
+                self::fail('Expected InvalidValue');
+            } catch (InvalidValue $e) {
+                self::assertSame('length', $e->kind);
+                self::assertNull($e->suggestion);
+            }
+        }
+    }
+
+    public function test_negative_zero_prints_as_zero(): void
+    {
+        self::assertSame('0pt', (string) Length::parse('-0pt'));
     }
 
     public function test_helpers_and_units(): void

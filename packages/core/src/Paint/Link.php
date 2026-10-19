@@ -13,5 +13,8 @@ final readonly class Link implements Op
         public float $height,
         public string $uri,
     ) {
+        if (!is_finite($x) || !is_finite($y) || !is_finite($width) || !is_finite($height)) {
+            throw new \InvalidArgumentException('Link received a non-finite number.');
+        }
     }
 }

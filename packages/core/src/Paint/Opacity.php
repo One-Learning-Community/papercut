@@ -14,7 +14,10 @@ final readonly class Opacity implements Op
         /** @var list<Op> */
         public array $ops,
     ) {
-        if ($alpha < 0 || $alpha > 1) {
+        if (!is_finite($alpha)) {
+            throw new \InvalidArgumentException('Opacity received a non-finite number.');
+        }
+        if (!($alpha >= 0 && $alpha <= 1)) {
             throw new \InvalidArgumentException('Opacity alpha must be between 0 and 1.');
         }
     }

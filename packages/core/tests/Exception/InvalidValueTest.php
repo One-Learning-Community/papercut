@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Exception;
 
-use Papercut\Exception\InvalidValue;
+use Papercut\Exception\{FontNotFound, ImageUnreadable, InvalidValue};
 use Papercut\PapercutException;
 use PHPUnit\Framework\TestCase;
 
 final class InvalidValueTest extends TestCase
 {
+    public function test_other_exceptions_are_library_exceptions(): void
+    {
+        self::assertInstanceOf(PapercutException::class, new FontNotFound('x'));
+        self::assertInstanceOf(PapercutException::class, new ImageUnreadable('x'));
+    }
+
     public function test_message_without_suggestion(): void
     {
         $e = InvalidValue::for('length', '20px!');

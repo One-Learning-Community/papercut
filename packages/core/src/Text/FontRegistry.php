@@ -36,6 +36,7 @@ final class FontRegistry
         if (!is_file($path) || !is_readable($path)) {
             throw new FontNotFound('Font file not found: ' . $path);
         }
+        $path = realpath($path) ?: $path;
         $key = strtolower($family);
         $this->families[$key] ??= ['name' => $family, 'faces' => []];
         $this->families[$key]['faces'][$weight . '|' . $style->value] = $path;

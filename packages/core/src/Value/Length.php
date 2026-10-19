@@ -16,11 +16,18 @@ final readonly class Length implements \Stringable
 
     public static function of(float $value, Unit $unit): self
     {
-        return new self($value * $unit->points());
+        $points = $value * $unit->points();
+        if (!is_finite($value) || !is_finite($points)) {
+            throw InvalidValue::for('length', (string) $value);
+        }
+        return new self($points);
     }
 
     public static function points(float $pt): self
     {
+        if (!is_finite($pt)) {
+            throw InvalidValue::for('length', (string) $pt);
+        }
         return new self($pt);
     }
 
@@ -33,7 +40,11 @@ final readonly class Length implements \Stringable
     {
         $s = trim($input);
         if (preg_match('/^(' . self::NUMBER . ')(pt|px|mm|cm|in)$/', $s, $m)) {
-            return self::of((float) $m[1], Unit::from($m[2]));
+            $number = (float) $m[1];
+            if (!is_finite($number) || !is_finite($number * Unit::from($m[2])->points())) {
+                throw InvalidValue::for('length', $input);
+            }
+            return self::of($number, Unit::from($m[2]));
         }
         if (preg_match('/^' . self::NUMBER . '$/', $s)) {
             if ((float) $s === 0.0) {

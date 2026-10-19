@@ -48,6 +48,16 @@ final class EdgesTest extends TestCase
         }
     }
 
+    public function test_empty_is_invalid(): void
+    {
+        try {
+            Edges::parse('');
+            self::fail('Expected InvalidValue');
+        } catch (InvalidValue $e) {
+            self::assertSame('edges', $e->kind);
+        }
+    }
+
     private function assertEdges(Edges $e, float $t, float $r, float $b, float $l): void
     {
         self::assertEqualsWithDelta([$t, $r, $b, $l], [$e->top->points, $e->right->points, $e->bottom->points, $e->left->points], 1e-9);

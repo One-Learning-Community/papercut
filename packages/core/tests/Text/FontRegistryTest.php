@@ -84,6 +84,40 @@ final class FontRegistryTest extends TestCase
         (new FontRegistry(new PhpPdfBackend()))->register('X', '/nope.ttf');
     }
 
+    public function test_same_file_via_different_paths_shares_one_handle(): void
+    {
+        $r = (new FontRegistry(new PhpPdfBackend()))
+            ->register('A', self::DIR . '/../Inter/Inter-Regular.ttf', 400)
+            ->register('B', self::DIR . '/Inter-Regular.ttf', 400);
+        self::assertSame($r->resolve('A'), $r->resolve('B'));
+    }
+
+    public function test_exact_500_wins_over_400(): void
+    {
+        $r = (new FontRegistry(new PhpPdfBackend()))
+            ->register('M', self::DIR . '/Inter-Regular.ttf', 400)
+            ->register('M', self::DIR . '/Inter-Bold.ttf', 500);
+        $expected = (new PhpPdfBackend())->loadFont(self::DIR . '/Inter-Bold.ttf')->id();
+        self::assertSame($expected, $r->resolve('M', 500)->id());
+    }
+
+    public function test_reregistering_replaces_the_path(): void
+    {
+        $r = (new FontRegistry(new PhpPdfBackend()))
+            ->register('R', self::DIR . '/Inter-Regular.ttf')
+            ->register('R', self::DIR . '/Inter-Bold.ttf');
+        $expected = (new PhpPdfBackend())->loadFont(self::DIR . '/Inter-Bold.ttf')->id();
+        self::assertSame($expected, $r->resolve('R')->id());
+    }
+
+    public function test_weight_bounds(): void
+    {
+        $r = new FontRegistry(new PhpPdfBackend());
+        self::assertTrue($r->register('X', self::DIR . '/Inter-Regular.ttf', 1000)->has('X'));
+        $this->expectException(\InvalidArgumentException::class);
+        $r->register('Y', self::DIR . '/Inter-Regular.ttf', 1001);
+    }
+
     public function test_register_rejects_bad_weight(): void
     {
         $this->expectException(\InvalidArgumentException::class);

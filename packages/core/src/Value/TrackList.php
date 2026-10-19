@@ -29,7 +29,7 @@ final readonly class TrackList
         foreach ($tokens as $i => $tok) {
             try {
                 $tracks[] = match (true) {
-                    $tok === 'auto' => Auto::instance(),
+                    strtolower($tok) === 'auto' => Auto::instance(),
                     str_ends_with(strtolower($tok), 'fr') => Fr::parse($tok),
                     str_ends_with($tok, '%') => Percent::parse($tok),
                     default => Length::parse($tok),
