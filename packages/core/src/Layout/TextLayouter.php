@@ -8,10 +8,13 @@ use Papercut\{Node, Text};
 use Papercut\Paint\{Line as LineOp, Link as LinkOp, TextRun};
 use Papercut\Style\{ComputedStyle, TextAlign};
 use Papercut\Text\{FontStyle, InlineItem, Line, LineBreaker};
+use Papercut\Value\Length;
 
 /**
  * Lays out a Text node as a stack of line boxes and fragments it between
- * lines, honouring min-lines as both orphans and widows.
+ * lines, honouring min-lines as both orphans and widows. Box styles
+ * (width, padding, border, background, opacity) apply via BoxGeometry with
+ * sliced semantics; margins are the parent's job.
  */
 final class TextLayouter implements Layouter
 {
@@ -25,11 +28,16 @@ final class TextLayouter implements Layouter
 
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
-        $lines = $this->lines(self::text($node), $style, $c->width, $engine);
+        $box = [
+            'width' => BoxGeometry::borderBoxWidth($style, $c->width),
+            'content' => BoxGeometry::contentWidth($style, $c->width),
+            'first' => ($token->index ?? 0) <= 0,
+        ];
+        $lines = $this->lines(self::text($node), $style, $box['content'], $engine);
         $total = count($lines);
         $start = min(max(0, $token->index ?? 0), $total);
         if ($start >= $total) {
-            return LayoutResult::complete(new Fragment($c->width, 0.0));
+            return LayoutResult::complete($this->fragment($lines, [], $start, $start, $style, $box, true));
         }
 
         /** @var array<int, array{baseline: float, height: float}> $boxes */
@@ -38,9 +46,12 @@ final class TextLayouter implements Layouter
             $boxes[$i] = $this->lineBox($lines[$i], $style, $engine);
         }
 
-        $n = self::fittingLines($boxes, $start, $total, $c->height);
+        $available = $c->height === null
+            ? null
+            : $c->height - ($box['first'] ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
+        $n = self::fittingLines($boxes, $start, $total, $available);
         if ($n >= $total - $start) {
-            return LayoutResult::complete($this->fragment($lines, $boxes, $start, $total, $style, $c->width));
+            return LayoutResult::complete($this->fragment($lines, $boxes, $start, $total, $style, $box, true));
         }
 
         $m = max(1, min($style->minLines, $total));
@@ -65,13 +76,17 @@ final class TextLayouter implements Layouter
 
         $end = $start + $n;
         return LayoutResult::partial(
-            $this->fragment($lines, $boxes, $start, $end, $style, $c->width),
+            $this->fragment($lines, $boxes, $start, $end, $style, $box, false),
             new BreakToken(index: $end),
         );
     }
 
     public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
     {
+        if ($style->width instanceof Length) {
+            return ['min' => $style->width->points, 'max' => $style->width->points];
+        }
+        $edges = $style->padding->horizontal() + $style->borderWidth->horizontal();
         $items = $engine->context()->itemizer()->itemize(self::text($node)->spanList(), $style);
         $min = 0.0;
         $max = 0.0;
@@ -95,7 +110,7 @@ final class TextLayouter implements Layouter
                 $chunk = 0.0;
             }
         }
-        return ['min' => $min, 'max' => max($max, $line)];
+        return ['min' => $min + $edges, 'max' => max($max, $line) + $edges];
     }
 
     private static function text(Node $node): Text
@@ -169,26 +184,32 @@ final class TextLayouter implements Layouter
     }
 
     /**
+     * One slice of the text's box: lines $start..$end-1 in the content box,
+     * top padding/border only on the first slice, bottom only on the last.
+     *
      * @param list<Line> $lines
      * @param array<int, array{baseline: float, height: float}> $boxes
+     * @param array{width: float, content: float, first: bool} $box
      */
-    private function fragment(array $lines, array $boxes, int $start, int $end, ComputedStyle $style, float $width): Fragment
+    private function fragment(array $lines, array $boxes, int $start, int $end, ComputedStyle $style, array $box, bool $last): Fragment
     {
         $height = 0.0;
         for ($i = $start; $i < $end; $i++) {
             $height += $boxes[$i]['height'];
         }
-        $f = new Fragment($width, $height);
-        $top = 0.0;
+        $f = new Fragment($box['width'], BoxGeometry::outerHeight($style, $height, $box['first'], $last));
+        BoxGeometry::decorate($f, $style, $box['first'], $last);
+        $ox = $style->borderWidth->left->points + $style->padding->left->points;
+        $top = $box['first'] ? BoxGeometry::topEdge($style) : 0.0;
         for ($i = $start; $i < $end; $i++) {
-            $this->paintLine($f, $lines[$i], $top, $boxes[$i], $style->textAlign, $width);
+            $this->paintLine($f, $lines[$i], $ox, $top, $boxes[$i], $style->textAlign, $box['content']);
             $top += $boxes[$i]['height'];
         }
         return $f;
     }
 
     /** @param array{baseline: float, height: float} $box */
-    private function paintLine(Fragment $f, Line $line, float $top, array $box, TextAlign $align, float $width): void
+    private function paintLine(Fragment $f, Line $line, float $ox, float $top, array $box, TextAlign $align, float $width): void
     {
         $justified = $align === TextAlign::Justify && !$line->isLast && !$line->endsWithBreak;
         $perSpace = 0.0;
@@ -198,7 +219,7 @@ final class TextLayouter implements Layouter
                 $perSpace = max(0.0, $width - $line->width) / $spaces;
             }
         }
-        $x = match ($align) {
+        $x = $ox + match ($align) {
             TextAlign::Right => $width - $line->width,
             TextAlign::Center => ($width - $line->width) / 2,
             TextAlign::Left, TextAlign::Justify => 0.0,

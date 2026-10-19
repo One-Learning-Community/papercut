@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Layout;
 
-use Papercut\{Component, Node, Span, Spacer, Text, View};
+use Papercut\{Component, Node, Span, Text, View};
 use Papercut\Exception\LayoutOverflow;
 use Papercut\Layout\{BreakToken, Constraints, Fragment, LayoutResult, Status};
 use Papercut\Paint\{Line as LineOp, Link as LinkOp, Rect, TextRun};
@@ -277,16 +277,16 @@ final class TextLayouterTest extends TestCase
     {
         $h = new LayoutHarness();
         try {
-            $h->layout(View::make()->attributes(['direction' => 'row']), 100);
+            $h->layout(View::make(\Papercut\Table::make())->attributes(['direction' => 'row']), 100);
             self::fail('Expected LogicException');
         } catch (\LogicException $e) {
-            self::assertStringContainsString('"row"', $e->getMessage());
+            self::assertStringContainsString('"row > table[0]"', $e->getMessage());
         }
         try {
-            $h->layout(Spacer::flex(), 100);
+            $h->layout(\Papercut\Table::make(), 100);
             self::fail('Expected LogicException');
         } catch (\LogicException $e) {
-            self::assertStringContainsString('"spacer"', $e->getMessage());
+            self::assertStringContainsString('"table"', $e->getMessage());
         }
     }
 
@@ -378,5 +378,54 @@ final class TextLayouterTest extends TestCase
         $s = $ctx->resolveStyle(Text::h2('x'), ComputedStyle::root(Theme::default()));
         self::assertSame(18.0, $s->fontSize);
         self::assertSame(700, $s->fontWeight);
+    }
+
+    public function test_box_styles_pad_and_decorate_text(): void
+    {
+        $r = (new LayoutHarness())->layout(Text::make('ab')->padding(pt(5))->background(Color::white()), 100);
+        $f = $r->fragment;
+        self::assertNotNull($f);
+        self::assertSame([100.0, 24.0], [$f->width, $f->height]);
+        $runs = LayoutHarness::runs($f);
+        self::assertSame([5.0, 15.0], [$runs[0]['x'], $runs[0]['baseline']]);
+        $rects = array_values(array_filter($f->ops(), fn ($o) => $o instanceof Rect));
+        self::assertCount(1, $rects);
+        self::assertSame([0.0, 0.0, 100.0, 24.0], [$rects[0]->x, $rects[0]->y, $rects[0]->width, $rects[0]->height]);
+    }
+
+    public function test_split_padded_text_slices_padding(): void
+    {
+        $t = Text::make('a b c d')->minLines(1)->padding(pt(5));
+        $h = new LayoutHarness();
+        $r = $h->layout($t, 15, 33);
+        self::assertSame(Status::Partial, $r->status);
+        self::assertSame(1, $r->token?->index);
+        self::assertSame(19.0, $r->fragment?->height); // top padding + 1 line; bottom padding reserved but not drawn
+        $rest = $h->layout($t, 15, null, $r->token);
+        self::assertSame(47.0, $rest->fragment?->height); // 3 lines + bottom padding
+        self::assertSame(10.0, LayoutHarness::runs($rest->fragment)[0]['baseline']);
+    }
+
+    public function test_text_width_border_and_intrinsic_box(): void
+    {
+        $h = new LayoutHarness();
+        $f = $h->layout(Text::make('ab')->width(pt(50))->border(pt(1), Color::black()), 100)->fragment;
+        self::assertSame(50.0, $f?->width);
+        self::assertSame(16.0, $f->height);
+        self::assertSame(1.0, LayoutHarness::runs($f)[0]['x']);
+        self::assertCount(1, array_filter($f->ops(), fn ($o) => $o instanceof Rect && $o->stroke !== null));
+        $root = ComputedStyle::root(Theme::default());
+        self::assertSame(['min' => 20.0, 'max' => 20.0], $h->engine->intrinsic(Text::make('ab')->padding(pt(5)), $root));
+        self::assertSame(['min' => 80.0, 'max' => 80.0], $h->engine->intrinsic(Text::make('ab')->width(pt(80)), $root));
+    }
+
+    public function test_unknown_named_style_reports_node_path(): void
+    {
+        try {
+            (new LayoutHarness())->layout(\Papercut\Column::make(Text::make('a'), Text::make('b')->apply('nope')), 100);
+            self::fail('Expected UnknownAttribute');
+        } catch (\Papercut\Exception\UnknownAttribute $e) {
+            self::assertStringContainsString('at column > text[1]', $e->getMessage());
+        }
     }
 }
