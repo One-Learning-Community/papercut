@@ -9,8 +9,6 @@ use Papercut\Exception\UnknownAttribute;
 use Papercut\Style\{ComputedStyle, Style, Theme};
 use Papercut\Value\{Auto, Fr, Length, Percent};
 
-use function Papercut\pt;
-
 /**
  * Tables: a grid of columns sized from the track list, rows stacked top to
  * bottom, every cell stretched to its row's height. Cells (TableCell) are
@@ -125,7 +123,7 @@ final class TableLayouter implements Layouter
             $placed[] = ['y' => $cursor, 'fragment' => $split['fragment']];
             $cursor += $split['height'];
             $rowsOnPage++;
-            if (array_filter($split['tokens'], static fn (?BreakToken $t): bool => $t !== null) !== []) {
+            if (ParallelSplit::pending($split['tokens'])) {
                 $breakAt = new BreakToken(index: $k, parallel: $split['tokens']);
                 break;
             }
@@ -378,14 +376,14 @@ final class TableLayouter implements Layouter
     {
         return $this->inRow($row, $r, $style, $engine, function (ComputedStyle $rowStyle) use ($row, $grid, $fresh, $engine): array {
             $slots = self::slots($row, $grid);
-            $frags = [];
-            $height = 0.0;
-            foreach ($row->cells() as $j => $cell) {
-                $w = $slots[$j]['width'];
-                $frags[$j] = $this->layoutCell($cell, $j, $w, $rowStyle, new Constraints($w, null, $fresh), null, $engine)->fragment
-                    ?? new Fragment($w, 0.0);
-                $height = max($height, $frags[$j]->height);
-            }
+            $cellsOf = $row->cells();
+            ['height' => $height, 'fragments' => $frags] = ParallelSplit::measure(
+                array_keys($cellsOf),
+                0.0,
+                fn (int $j): Fragment => $this->layoutCell($cellsOf[$j], $j, $slots[$j]['width'], $rowStyle, new Constraints($slots[$j]['width'], null, $fresh), null, $engine)->fragment
+                    ?? new Fragment($slots[$j]['width'], 0.0),
+                static fn (int $j, Fragment $f): float => $f->height,
+            );
             $cells = [];
             foreach ($row->cells() as $j => $cell) {
                 $f = $frags[$j];
@@ -417,27 +415,18 @@ final class TableLayouter implements Layouter
                 ? null
                 : max(0.0, $height - ($first ? BoxGeometry::topEdge($rowStyle) : 0.0) - BoxGeometry::bottomEdge($rowStyle));
             $slots = self::slots($row, $grid);
-            $next = [];
-            $cells = [];
-            $content = 0.0;
-            foreach ($row->cells() as $j => $cell) {
-                $next[$j] = null;
-                $resume = $tokens[$j] ?? null;
-                if ($tokens !== null && $resume === null) {
-                    continue;
-                }
-                $w = $slots[$j]['width'];
-                $res = $this->layoutCell($cell, $j, $w, $rowStyle, new Constraints($w, $room, $fresh), $resume, $engine);
-                if ($res->status === Status::DoesNotFit || $res->fragment === null) {
-                    return null;
-                }
-                $next[$j] = $res->status === Status::Partial ? $res->token : null;
-                $cells[] = ['x' => $slots[$j]['x'], 'fragment' => $res->fragment];
-                $content = max($content, $res->fragment->height);
+            $cellsOf = $row->cells();
+            $split = ParallelSplit::split(
+                array_map(static fn (array $s): array => ['x' => $s['x'], 'top' => 0.0, 'bottom' => 0.0], $slots),
+                $room,
+                $tokens,
+                fn (int $j, ?float $h, ?BreakToken $resume): LayoutResult => $this->layoutCell($cellsOf[$j], $j, $slots[$j]['width'], $rowStyle, new Constraints($slots[$j]['width'], $h, $fresh), $resume, $engine),
+            );
+            if ($split === null) {
+                return null;
             }
-            $last = array_filter($next, static fn (?BreakToken $t): bool => $t !== null) === [];
-            $fragment = self::rowFragment($rowStyle, $grid['width'], $content, $cells, $first, $last);
-            return ['height' => $fragment->height, 'tokens' => $next, 'fragment' => $fragment];
+            $fragment = self::rowFragment($rowStyle, $grid['width'], $split['height'], $split['cells'], $first, !ParallelSplit::pending($split['tokens']));
+            return ['height' => $fragment->height, 'tokens' => $split['tokens'], 'fragment' => $fragment];
         });
     }
 
@@ -445,7 +434,7 @@ final class TableLayouter implements Layouter
      * A row box (one slice of it for split rows) with its cells placed inside
      * the row's border and padding.
      *
-     * @param list<array{x: float, fragment: Fragment}> $cells
+     * @param list<array{x: float, y?: float, fragment: Fragment}> $cells
      */
     private static function rowFragment(ComputedStyle $rowStyle, float $width, float $contentHeight, array $cells, bool $first, bool $last): Fragment
     {
@@ -462,8 +451,7 @@ final class TableLayouter implements Layouter
     /** Lays a cell out at exactly $width, with the theme's cell defaults. */
     private function layoutCell(TableCell $cell, int $j, float $width, ComputedStyle $rowStyle, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
-        $cell = self::prepare($cell, $engine->context()->theme)->width(pt($width))->minWidth(pt($width))->maxWidth(pt($width));
-        return $engine->layout($cell, $rowStyle, $c, $token, $j);
+        return ExactWidth::layout(self::prepare($cell, $engine->context()->theme), $width, $rowStyle, $c, $token, $engine, $j);
     }
 
     /**

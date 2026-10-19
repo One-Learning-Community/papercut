@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Layout;
 
 use Papercut\{Link, Node, PageBreak, Spacer, View};
-use Papercut\Style\{Align, ComputedStyle, Direction, Justify};
+use Papercut\Style\{Align, ComputedStyle, Direction};
 use Papercut\Value\Length;
 
 /**
@@ -29,8 +29,8 @@ final class BlockLayouter implements Layouter
         $borderWidth = BoxGeometry::borderBoxWidth($style, $c->width);
         $contentWidth = BoxGeometry::contentWidth($style, $c->width);
 
-        $fixed = $first ? self::explicitHeight($style, $c) : null;
-        $stretch = $first && $fixed === null ? self::clampHeight($style, $c, $c->definiteHeight) : null;
+        $fixed = $first ? BoxGeometry::explicitHeight($style, $c) : null;
+        $stretch = $first && $fixed === null ? BoxGeometry::clampHeight($style, $c, $c->definiteHeight) : null;
         if ($fixed !== null && $c->height !== null && $fixed > $c->height + self::EPSILON) {
             return LayoutResult::doesNotFit();
         }
@@ -207,12 +207,6 @@ final class BlockLayouter implements Layouter
         throw new \LogicException(sprintf('BlockLayouter cannot lay out %s.', $node::class));
     }
 
-    /** Border-box height from an explicit Length, or a Percent of definiteHeight. */
-    private static function explicitHeight(ComputedStyle $style, Constraints $c): ?float
-    {
-        return self::clampHeight($style, $c, BoxGeometry::resolve($style->height, $c->definiteHeight));
-    }
-
     /**
      * True when laying out $node ends with a forced break: its own breakAfter,
      * or (recursively) a trailing PageBreak / breakAfter as its last child.
@@ -269,22 +263,6 @@ final class BlockLayouter implements Layouter
         return $wrapper;
     }
 
-    private static function clampHeight(ComputedStyle $style, Constraints $c, ?float $h): ?float
-    {
-        if ($h === null) {
-            return null;
-        }
-        $max = BoxGeometry::resolve($style->maxHeight, $c->definiteHeight);
-        if ($max !== null) {
-            $h = min($h, $max);
-        }
-        $min = BoxGeometry::resolve($style->minHeight, $c->definiteHeight);
-        if ($min !== null) {
-            $h = max($h, $min);
-        }
-        return max(0.0, $h);
-    }
-
     private static function alignX(Align $align, float $marginLeft, float $slot, float $width): float
     {
         return $marginLeft + match ($align) {
@@ -327,14 +305,7 @@ final class BlockLayouter implements Layouter
             return $placed;
         }
 
-        [$lead, $between] = match ($style->justify) {
-            Justify::Start => [0.0, 0.0],
-            Justify::End => [$free, 0.0],
-            Justify::Center => [$free / 2, 0.0],
-            Justify::SpaceBetween => $n > 1 ? [0.0, $free / ($n - 1)] : [0.0, 0.0],
-            Justify::SpaceAround => [$free / $n / 2, $free / $n],
-            Justify::SpaceEvenly => [$free / ($n + 1), $free / ($n + 1)],
-        };
+        [$lead, $between] = BoxGeometry::justify($style->justify, $free, $n);
         foreach ($placed as $k => $p) {
             $placed[$k]['y'] += $lead + $between * $k;
         }
