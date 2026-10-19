@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Component, Link, Node, PageBreak, Spacer, Text, View};
+use Papercut\{Component, Image, Link, Node, PageBreak, Spacer, Text, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Style\{ComputedStyle, Direction};
 
@@ -29,6 +29,7 @@ final class LayoutEngine
         $leaf = new LeafLayouter();
         $this->layouters[Text::class] = new TextLayouter();
         $this->layouters[Link::class] = new LinkLayouter($this->block);
+        $this->layouters[Image::class] = new ImageLayouter();
         $this->layouters[Spacer::class] = $leaf;
         $this->layouters[PageBreak::class] = $leaf;
     }
