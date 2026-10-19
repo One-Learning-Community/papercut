@@ -1,0 +1,57 @@
+# Reusable: pushes packages/core and packages/laravel to their split repositories,
+# optionally tagging them. Called by split.yml (main) and release.yml (tags).
+name: split-packages
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        type: string
+        default: main
+      tag:
+        type: string
+        default: ''
+      require_token:
+        description: Fail (rather than skip) when SPLIT_TOKEN is missing.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  split:
+    name: split ${{ matrix.package.dir }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { dir: core, repo: papercut-core }
+          - { dir: laravel, repo: papercut-laravel }
+    env:
+      HAS_TOKEN: ${{ secrets.SPLIT_TOKEN != '' }}
+    steps:
+      - name: Check for SPLIT_TOKEN
+        if: env.HAS_TOKEN != 'true'
+        run: |
+          msg="SPLIT_TOKEN secret is not set; skipping the split to One-Learning-Community/${{ matrix.package.repo }}. See CONTRIBUTING.md#releasing."
+          if [ "${{ inputs.require_token }}" = "true" ]; then echo "::error::$msg"; exit 1; fi
+          echo "::notice::$msg"
+      - uses: actions/checkout@v7
+        if: env.HAS_TOKEN == 'true'
+        with:
+          fetch-depth: 0
+      - name: Split packages/${{ matrix.package.dir }}
+        if: env.HAS_TOKEN == 'true'
+        uses: danharrin/monorepo-split-github-action@v2.4.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+        with:
+          package_directory: packages/${{ matrix.package.dir }}
+          repository_organization: One-Learning-Community
+          repository_name: ${{ matrix.package.repo }}
+          branch: ${{ inputs.branch }}
+          tag: ${{ inputs.tag }}
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com

@@ -1,5 +1,8 @@
 # Papercut
 
+[![core](https://github.com/One-Learning-Community/papercut/actions/workflows/core.yml/badge.svg)](https://github.com/One-Learning-Community/papercut/actions/workflows/core.yml)
+[![laravel](https://github.com/One-Learning-Community/papercut/actions/workflows/laravel.yml/badge.svg)](https://github.com/One-Learning-Community/papercut/actions/workflows/laravel.yml)
+
 Blade components that compile to a real layout engine, not HTML.
 
 Papercut is a PDF library for modern PHP. You write `<x-pdf::*>` tags in Blade; they become a tree of
@@ -77,7 +80,7 @@ Install, configuration, tag and attribute reference: [`packages/laravel/README.m
 ## Status
 
 v0.1, pre-release, not yet published to Packagist. No performance or compatibility benchmarks have been
-published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (the CI workflow is set up to run the Laravel package's tests against both; it has not run yet).
+published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (CI tests against both).
 
 Not in v0.1: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning and ligatures within runs), right-to-left and bidirectional paragraph layout, hyphenation,
 Knuth-Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption,
