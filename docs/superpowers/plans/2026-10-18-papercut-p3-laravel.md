@@ -445,7 +445,7 @@ final class TextComponentsTest extends TestCase
 **Files:** `src/Components/{Table,Thead,Tr,Th,Td}.php`; Test: `tests/Feature/TableComponentsTest.php`
 
 **Rules:**
-- `Td`/`Th`: children → `TableCell::make(...children)` / `TableCell::header(...)`. Own `colspan` (int ≥ 1) and `align` (text-align). Other style attributes are allowed.
+- `Td`/`Th`: children → `TableCell::make(...children)` / `TableCell::th(...)` (core: static creator is `th()`; `header(): bool` is the instance getter). Own `colspan` (int ≥ 1) and `align` (text-align). Other style attributes are allowed.
 - `Tr`: children must all be `TableCell` nodes (from td/th). Any other non-whitespace content → `InvalidStructure('<x-pdf::tr> can only contain <x-pdf::td> or <x-pdf::th>')`. Returns `TableRow`.
 - `Thead`: children are either all `TableCell`s (→ one header row) or all `TableRow`s (→ several header rows). Anything else → InvalidStructure. It returns an internal value object `Papercut\Laravel\Components\HeaderRows` (list<TableRow>) that only `Table` accepts.
 - `Table`: own `columns` (string → `TrackList::parse`, or a bound TrackList/array of tracks), `repeat-header` (bool). Children: `HeaderRows` (at most one, and before body rows), `TableRow`s. Anything else → InvalidStructure naming the offending tag (use the node's `debugName()`).
