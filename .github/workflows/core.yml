@@ -24,3 +24,31 @@ jobs:
       - run: composer install --no-interaction --no-progress
       - run: vendor/bin/phpunit
       - run: vendor/bin/phpstan analyse --memory-limit=1G
+
+  bench:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/core
+    env:
+      PAPERCUT_BENCH_MACHINE: ci-ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, zlib, dom, opcache
+          ini-values: opcache.enable_cli=1
+          coverage: none
+      - run: composer install --no-interaction --no-progress --no-dev --classmap-authoritative
+      - name: Benchmark (10-page table document, median of 5 runs after 1 warm-up)
+        run: php -d opcache.enable_cli=1 bench/run.php | tee bench-result.json
+      - name: Compare with the committed baseline (fails if > 20% slower)
+        run: php bench/check.php bench-result.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench
+          path: |
+            packages/core/bench-result.json
+            packages/core/bench/baseline.json
