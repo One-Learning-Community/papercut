@@ -12,6 +12,7 @@ use Papercut\Value\Color;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 
+/** Duplicated in tests/Contract/BackendContractTestCase; pending removal. */
 #[RequiresPhpExtension('gd')]
 final class PhpPdfBackendRenderTest extends TestCase
 {
