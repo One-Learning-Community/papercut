@@ -18,6 +18,10 @@ interface Backend
     /** @throws \Papercut\Exception\ImageUnreadable */
     public function loadImageBytes(string $bytes): ImageHandle;
 
-    /** @param list<PageDisplayList> $pages */
+    /**
+     * @param list<PageDisplayList> $pages
+     * @throws \InvalidArgumentException when $pages is empty
+     * @throws \LogicException for a font/image handle from another backend or an unknown op type
+     */
     public function render(DocumentMeta $meta, array $pages): string;
 }

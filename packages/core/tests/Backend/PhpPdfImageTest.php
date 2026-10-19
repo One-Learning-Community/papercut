@@ -6,30 +6,13 @@ namespace Papercut\Tests\Backend;
 
 use Papercut\Backend\PhpPdf\PhpPdfBackend;
 use Papercut\Exception\ImageUnreadable;
+use Papercut\Tests\Support\TestImages;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 
 #[RequiresPhpExtension('gd')]
 final class PhpPdfImageTest extends TestCase
 {
-    /**
-     * @param int<1, max> $w
-     * @param int<1, max> $h
-     */
-    public static function pngBytes(int $w = 40, int $h = 20, bool $alpha = false): string
-    {
-        $im = imagecreatetruecolor($w, $h) ?: throw new \RuntimeException('gd failure');
-        if ($alpha) {
-            imagesavealpha($im, true);
-            imagefill($im, 0, 0, (int) imagecolorallocatealpha($im, 255, 0, 0, 64));
-        } else {
-            imagefill($im, 0, 0, (int) imagecolorallocate($im, 30, 90, 200));
-        }
-        ob_start();
-        imagepng($im);
-        return (string) ob_get_clean();
-    }
-
     /**
      * @param int<1, max> $w
      * @param int<1, max> $h
@@ -45,7 +28,7 @@ final class PhpPdfImageTest extends TestCase
     public function test_png_and_jpeg_dimensions(): void
     {
         $b = new PhpPdfBackend();
-        $png = $b->loadImageBytes(self::pngBytes(40, 20, alpha: true));
+        $png = $b->loadImageBytes(TestImages::png(40, 20, alpha: true));
         self::assertSame([40, 20], [$png->widthPx(), $png->heightPx()]);
         $jpg = $b->loadImageBytes(self::jpegBytes(30, 60));
         self::assertSame([30, 60], [$jpg->widthPx(), $jpg->heightPx()]);
@@ -54,7 +37,7 @@ final class PhpPdfImageTest extends TestCase
     public function test_load_file(): void
     {
         $tmp = tempnam(sys_get_temp_dir(), 'pc') . '.png';
-        file_put_contents($tmp, self::pngBytes());
+        file_put_contents($tmp, TestImages::png());
         try {
             self::assertSame(40, (new PhpPdfBackend())->loadImageFile($tmp)->widthPx());
         } finally {

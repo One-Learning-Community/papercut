@@ -4,3 +4,4 @@
 /.superpowers/
 *.pdf
 !packages/*/tests/fixtures/**/*.pdf
+/packages/*/tests/Visual/output/

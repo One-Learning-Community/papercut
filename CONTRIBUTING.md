@@ -48,8 +48,10 @@ vendor/bin/phpstan analyse --memory-limit=1G
 If Xdebug is loaded, prefix with `php -d xdebug.mode=off` for speed. CI is configured to run the same commands on PHP 8.4 and 8.5
 (`.github/workflows`); it has not run yet.
 
-Snapshot updates: visual-regression snapshots will be refreshed with `UPDATE_SNAPSHOTS=1 vendor/bin/phpunit`
-(coming in the visual-regression task; no snapshot suite exists yet). Review snapshot diffs before committing.
+Snapshot updates: visual-regression snapshots (`packages/core/tests/Visual/snapshots`, rasterised with `pdftoppm -r 72`)
+are refreshed with `cd packages/core && UPDATE_SNAPSHOTS=1 php -d xdebug.mode=off vendor/bin/phpunit tests/Visual`.
+Open every changed PNG and review it before committing. Failures write the actual and diff images to
+`packages/core/tests/Visual/output/` (git-ignored).
 
 Tests come first: write the failing test, watch it fail, then implement. `packages/core/README.md` is tested too:
 `tests/Feature/ReadmeTest.php` executes every fenced `php` block in it (each block must leave a `$document`, and
