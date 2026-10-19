@@ -20,6 +20,10 @@ final class KerningCache
 {
     private const int FORMAT = 1;
     private const string MARKER = 'papercut-kern';
+    private const int MAX_AGE = 30 * 86400;
+
+    /** @var array<string, true> directories already pruned in this process */
+    private static array $pruned = [];
 
     /** $dir null disables the cache. */
     public function __construct(private readonly ?string $dir)
@@ -28,7 +32,8 @@ final class KerningCache
 
     public static function defaultDir(): string
     {
-        return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'papercut-cache';
+        // per user, so one account's cache never blocks or feeds another's
+        return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'papercut-cache' . (function_exists('posix_geteuid') ? '-' . posix_geteuid() : '');
     }
 
     /** Fills $ttf's kerning table from the cache, or parses it and stores it. Never throws. */
@@ -43,6 +48,7 @@ final class KerningCache
             if ($file === null) {
                 return;
             }
+            $this->prune();
             $pairs = $this->read($file);
             if ($pairs !== null) {
                 self::inject($ttf, $pairs);
@@ -70,7 +76,7 @@ final class KerningCache
     /** @return ?array<int, array<int, int>> */
     private function read(string $file): ?array
     {
-        if (!is_file($file) || !$this->trustedDir()) {
+        if (!is_file($file) || !$this->trustedDir() || !self::ownedByMe($file)) {
             return null;
         }
         $bytes = @file_get_contents($file);
@@ -78,11 +84,43 @@ final class KerningCache
             return null;
         }
         $payload = @unserialize($bytes, ['allowed_classes' => false]);
+        unset($bytes); // the serialized form is ~6 MB; free it before validating
         if (!is_array($payload) || ($payload[self::MARKER] ?? null) !== self::FORMAT || !is_array($payload['pairs'] ?? null)) {
             return null;
         }
-        /** @var array<int, array<int, int>> */
-        return $payload['pairs'];
+        $pairs = $payload['pairs'];
+        unset($payload);
+        // ints only: anything else means a foreign or damaged file (costs ~8 ms per face)
+        foreach ($pairs as $left => $row) {
+            if (!is_int($left) || !is_array($row)) {
+                return null;
+            }
+            foreach ($row as $right => $value) {
+                if (!is_int($right) || !is_int($value)) {
+                    return null;
+                }
+            }
+        }
+        @touch($file); // keeps entries in use clear of pruning
+        /** @var array<int, array<int, int>> $pairs */
+        return $pairs;
+    }
+
+    /** Removes cache entries untouched for 30 days; at most once per directory and process. */
+    private function prune(): void
+    {
+        $dir = (string) $this->dir;
+        if (isset(self::$pruned[$dir]) || !is_dir($dir) || !$this->trustedDir()) {
+            return;
+        }
+        self::$pruned[$dir] = true;
+        $cutoff = time() - self::MAX_AGE;
+        foreach (glob($dir . DIRECTORY_SEPARATOR . 'kern-*.ser') ?: [] as $entry) {
+            $mtime = @filemtime($entry);
+            if ($mtime !== false && $mtime < $cutoff) {
+                @unlink($entry);
+            }
+        }
     }
 
     /** @param array<int, array<int, int>> $pairs */
@@ -105,13 +143,31 @@ final class KerningCache
         }
     }
 
-    /** A directory owned by someone else (e.g. planted in a shared temp dir) is never read or written. */
+    /**
+     * A symlink, a directory owned by someone else, or one writable by group or others (e.g. planted
+     * in a shared temp dir), is never read, written or pruned.
+     */
     private function trustedDir(): bool
+    {
+        $dir = (string) $this->dir;
+        clearstatcache(true, $dir);
+        if (is_link($dir)) {
+            return false;
+        }
+        $mode = @fileperms($dir);
+        if ($mode !== false && ($mode & 0022) !== 0) {
+            return false;
+        }
+        return self::ownedByMe($dir);
+    }
+
+    /** True when $path is missing, owned by the effective user, or ownership cannot be checked (no posix). */
+    private static function ownedByMe(string $path): bool
     {
         if (!function_exists('posix_geteuid')) {
             return true;
         }
-        $owner = @fileowner((string) $this->dir);
+        $owner = @fileowner($path);
         return $owner === false || $owner === posix_geteuid();
     }
 

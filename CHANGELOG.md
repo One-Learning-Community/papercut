@@ -20,6 +20,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - PDF backend adapter over `dskripchenko/php-pdf`; deterministic output.
 - Strict errors with suggestions: `UnknownAttribute`, `InvalidValue`, `FontNotFound`, `ImageUnreadable`,
   `LayoutOverflow`; `OverflowMode::Throw` and `Clip`.
+- On-disk font kerning cache (`RenderOptions(cacheDir: ...)`, `false` disables); default `sys_get_temp_dir()/papercut-cache-<uid>`, 30-day prune.
 - Plain-PHP usage guide whose code blocks are executed by the test suite.
 
 #### papercut/laravel
@@ -27,6 +28,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - `<x-pdf::*>` Blade components that compile to the core tree through per-render node markers.
 - `Pdf` facade: `view()` returning a `PendingPdf` (`download()`, `inline()`, `save()`, `toString()`) and `preview()` routes.
 - Config file `papercut.php` (page size and margin, font families, theme, named styles, overflow, preview route).
+- Config key `cache_dir` for the kerning cache (`null` default location, `false` disabled, or a path).
 - Blade error reporting with template file and line.
 - Support for Laravel 12 and 13.
 

@@ -208,6 +208,20 @@ final class HardeningTest extends TestCase
         self::assertSame(OverflowMode::Clip, Pdf::options()->overflow);
     }
 
+    public function test_cache_dir_config_reaches_render_options(): void
+    {
+        $options = static function (mixed $value): \Papercut\RenderOptions {
+            config(['papercut.cache_dir' => $value]);
+            app()->forgetInstance(PdfManager::class);
+            Pdf::clearResolvedInstances();
+
+            return Pdf::options();
+        };
+        self::assertNull($options(null)->cacheDir);
+        self::assertFalse($options(false)->cacheDir);
+        self::assertSame('/tmp/pc-x', $options('/tmp/pc-x')->cacheDir);
+    }
+
     public function test_invalid_overflow_throws(): void
     {
         config(['papercut.overflow' => 'bogus']);

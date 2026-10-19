@@ -265,6 +265,23 @@ The backend shapes and reorders text within a single drawn run (kerning, ligatur
 paragraph layout (direction, reordering across line breaks, direction-aware alignment) is unsupported and untested
 in v0.1, and so is HarfBuzz shaping.
 
+## Kerning cache
+
+Parsing a font's GPOS pair-kerning table costs tens of milliseconds, so the default backend stores it on disk and
+reads it back in later processes. Each font face gets one file of roughly 5-6 MB (the pair table, serialised) in
+`sys_get_temp_dir()/papercut-cache-<uid>`. The key covers the font's path, mtime and size plus the php-pdf version,
+so an updated font or library simply gets a new entry. Entries unused for 30 days are pruned. Any problem (an
+unwritable directory, a symlinked or foreign-owned one, a corrupt file) falls back silently to an in-memory parse;
+output is identical either way.
+
+```php
+use Papercut\{Document, Page, RenderOptions, Text};
+
+$document = Document::make(Page::a4()->body(Text::make('Hello')));
+$options = new RenderOptions(cacheDir: '/var/cache/myapp/papercut'); // your own directory
+$options = new RenderOptions(cacheDir: false);                       // no disk cache
+```
+
 ## Errors
 
 Every error extends `Papercut\PapercutException` and says what is wrong and where.

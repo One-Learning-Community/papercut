@@ -14,7 +14,7 @@ final readonly class RenderOptions
     /**
      * @param list<string> $fallbackFamilies families tried, in order, for glyphs the primary font lacks
      * @param string|false|null $cacheDir directory for the default backend's font kerning cache
-     *        (null = sys_get_temp_dir()/papercut-cache, false = no disk cache); ignored when $backend is given
+     *        (null = sys_get_temp_dir()/papercut-cache-<uid>, false = no disk cache); ignored when $backend is given
      */
     public function __construct(
         private ?Backend $backend = null,

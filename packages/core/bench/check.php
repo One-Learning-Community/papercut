@@ -13,6 +13,9 @@ declare(strict_types=1);
  * machine class with no baseline yet gets one written from this run (commit
  * it to arm the gate).
  *
+ * The baseline file is bench/baseline.json unless env PAPERCUT_BASELINE names
+ * another. Exit codes: 0 pass, 1 gate failed, 2 unreadable input.
+ *
  *   php -d xdebug.mode=off -d opcache.enable_cli=1 bench/run.php | php bench/check.php
  */
 
@@ -27,7 +30,7 @@ if (!is_array($result) || !is_numeric($result['median_ms'] ?? null)) {
 }
 $median = (float) $result['median_ms'];
 $machine = getenv('PAPERCUT_BENCH_MACHINE') ?: 'local';
-$path = __DIR__ . '/baseline.json';
+$path = getenv('PAPERCUT_BASELINE') ?: __DIR__ . '/baseline.json';
 $baseline = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
 $baseline = is_array($baseline) ? $baseline : ['machines' => []];
 
@@ -50,6 +53,9 @@ if (!is_array($entry) || !is_numeric($entry['median_ms'] ?? null)) {
     ksort($baseline['machines']);
     file_put_contents($path, json_encode($baseline, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
     printf("check: no baseline for machine \"%s\"; wrote %.2f ms to %s\n", $machine, $median, $path);
+    if (getenv('CI') !== false && getenv('CI') !== '') {
+        printf("::warning title=Benchmark gate unarmed::No committed baseline for machine \"%s\", so the 20%% regression gate did not run. Commit the baseline.json from this job's \"bench\" artifact to arm it.\n", $machine);
+    }
 } else {
     $limit = (float) $entry['median_ms'] * TOLERANCE;
     printf("check: median %.2f ms, baseline %.2f ms (%s), limit %.2f ms\n", $median, $entry['median_ms'], $machine, $limit);

@@ -15,6 +15,8 @@ return [
     'overflow' => null,
     // Base directory for relative <x-pdf::image src>
     'image_path' => null, // null = public_path()
+    // Kerning cache directory: null = sys_get_temp_dir()/papercut-cache-<uid>, false = disabled, string = path
+    'cache_dir' => null,
     'preview' => [
         'enabled' => env('PAPERCUT_PREVIEW', false),
         'path' => '_papercut',

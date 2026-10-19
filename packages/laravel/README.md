@@ -66,6 +66,7 @@ This publishes `config/papercut.php`:
 | `styles` | `[]` | [Named styles](#named-styles) |
 | `overflow` | `null` | `'throw'`, `'clip'`, or `null` = throw in `local`/`testing`, clip elsewhere |
 | `image_path` | `null` | Base directory for relative `<x-pdf::image src>`; `null` = `public_path()` |
+| `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
 | `preview.path` | `'_papercut'` | URL prefix for preview routes |
 

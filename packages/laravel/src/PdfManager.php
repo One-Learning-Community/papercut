@@ -69,7 +69,7 @@ final class PdfManager
 
     private function buildOptions(): RenderOptions
     {
-        $backend = new PhpPdfBackend();
+        $backend = new PhpPdfBackend(self::cacheDir());
         $fonts = FontRegistry::withDefaults($backend);
         foreach (FontConfig::faces() as $face) {
             $fonts->register($face['family'], $face['path'], $face['weight'], $face['style']);
@@ -114,10 +114,20 @@ final class PdfManager
             theme: $theme,
             overflow: $mode,
             fallbackFamilies: FontConfig::fallbacks(),
+            cacheDir: self::cacheDir(),
             onWarning: static function (string $msg): void {
                 logger()->warning('[papercut] ' . $msg);
             },
         );
+    }
+
+    private static function cacheDir(): string|false|null
+    {
+        $dir = config('papercut.cache_dir');
+        if ($dir === null || $dir === false || (is_string($dir) && $dir !== '')) {
+            return $dir;
+        }
+        throw new \InvalidArgumentException('Invalid papercut.cache_dir: ' . (is_scalar($dir) ? var_export($dir, true) : get_debug_type($dir)) . '; expected a directory path, false or null');
     }
 
     /** @param array<mixed> $cfg */
