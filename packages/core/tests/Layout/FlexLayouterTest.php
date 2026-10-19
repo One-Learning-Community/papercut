@@ -151,4 +151,15 @@ final class FlexLayouterTest extends TestCase
         self::assertSame(['a', 'b'], array_column(LayoutHarness::runs($split->fragment), 'text'));
         self::assertSame(Status::DoesNotFit, $h->layout($row->height(pt(60)), 100, 30)->status);
     }
+
+    // --- Task 13 ---------------------------------------------------------
+
+    public function test_split_row_truncates_trailing_margin_at_the_available_height(): void
+    {
+        $row = Row::make(View::make('a')->margin(pt(0), pt(0), pt(20), pt(0)));
+        $r = (new LayoutHarness())->layout($row, 200, 20);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertNotNull($r->fragment);
+        self::assertLessThanOrEqual(20.0, $r->fragment->height);
+    }
 }

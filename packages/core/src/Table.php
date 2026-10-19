@@ -70,15 +70,22 @@ final class Table implements Node
         return $clone;
     }
 
-    /** A single TableRow is added as is (keeping its row style); anything else becomes the row's cells. */
-    public function row(TableRow|TableCell|Node|Component|string ...$cells): self
+    /** Adds a body row made of these cells; use bodyRow() for a styled TableRow. */
+    public function row(TableCell|Node|Component|string ...$cells): self
+    {
+        foreach ($cells as $cell) {
+            if ($cell instanceof TableRow) {
+                throw new \InvalidArgumentException('Use Table::bodyRow() to add a TableRow.');
+            }
+        }
+        return $this->bodyRow(TableRow::make(...$cells));
+    }
+
+    /** Adds a body row as is, keeping its row style (mirrors headerRow()). */
+    public function bodyRow(TableRow $r): self
     {
         $clone = clone $this;
-        if (count($cells) === 1 && $cells[0] instanceof TableRow) {
-            $clone->bodyRows[] = $cells[0];
-            return $clone;
-        }
-        $clone->bodyRows[] = TableRow::make(...$cells);
+        $clone->bodyRows[] = $r;
         return $clone;
     }
 

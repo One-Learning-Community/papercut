@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Text;
 
 use Papercut\Exception\InvalidValue;
+use Papercut\Paint\Link as LinkOp;
 use Papercut\Span;
 use Papercut\Style\Style;
 
@@ -96,6 +97,9 @@ final class InlineMarkup
             if ($name === 'a') {
                 if (!isset($attrs['href'])) {
                     throw InvalidValue::for('inline markup', $markup)->because('<a> needs an href');
+                }
+                if (!LinkOp::allowed($attrs['href'])) {
+                    throw InvalidValue::for('inline markup', $markup)->because('<a href> must use http, https, mailto, tel or a #fragment');
                 }
                 $href = $attrs['href'];
             }

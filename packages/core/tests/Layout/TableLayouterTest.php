@@ -145,7 +145,7 @@ final class TableLayouterTest extends TestCase
 
     public function test_row_background_spans_the_table_width(): void
     {
-        $t = Table::make()->columns('1fr 1fr')->row('x')->row(TableRow::make('a', 'b')->background('slate-100'));
+        $t = Table::make()->columns('1fr 1fr')->row('x')->bodyRow(TableRow::make('a', 'b')->background('slate-100'));
         $f = (new LayoutHarness())->layout($t, 200)->fragment;
         self::assertNotNull($f);
         $row = $f->children()[1];
@@ -157,7 +157,7 @@ final class TableLayouterTest extends TestCase
 
     public function test_row_border_draws_a_bottom_line(): void
     {
-        $t = Table::make()->columns('1fr')->row(TableRow::make('a')->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0))));
+        $t = Table::make()->columns('1fr')->bodyRow(TableRow::make('a')->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0))));
         $f = (new LayoutHarness())->layout($t, 100)->fragment;
         self::assertSame(22.5, $f?->height);
         $row = $f->children()[0]['fragment'];
@@ -170,7 +170,7 @@ final class TableLayouterTest extends TestCase
     {
         $h = new LayoutHarness();
         $plain = LayoutHarness::runs($h->layout(Table::make()->columns('1fr')->row('a'), 100)->fragment)[0];
-        $t = Table::make()->columns('1fr')->row(TableRow::make('a')->padding(pt(3)));
+        $t = Table::make()->columns('1fr')->bodyRow(TableRow::make('a')->padding(pt(3)));
         $r = $h->layout($t, 100);
         self::assertSame(28.0, $r->fragment?->height);
         self::assertSame(9.0, LayoutHarness::runs($r->fragment)[0]['x']);
@@ -231,12 +231,15 @@ final class TableLayouterTest extends TestCase
 
     public function test_fr_columns_never_shrink_below_min_content(): void
     {
-        // 1fr of 100 = 25 < min-content 20+12 = 32
+        // 1fr of 100 = 25 < min-content 20+12 = 32: frozen at 32, the 3fr column takes the remaining 68
         $h = new LayoutHarness();
         $t = Table::make()->columns('1fr 3fr')->row('aaaa', 'b');
-        $runs = LayoutHarness::runs($h->layout($t, 100)->fragment);
+        $f = $h->layout($t, 100)->fragment;
+        $runs = LayoutHarness::runs($f);
         self::assertSame([6.0, 38.0], array_column($runs, 'x'));
-        self::assertSame(['[table] Table columns need 107.00pt but only 100.00pt is available'], $h->warnings);
+        self::assertNotNull($f);
+        self::assertSame([32.0, 68.0], array_map(fn (Fragment $c) => $c->width, self::cellFragments($f)));
+        self::assertSame([], $h->warnings);
     }
 
     public function test_header_that_does_not_fit_a_non_fresh_fragment_does_not_fit(): void
@@ -259,6 +262,55 @@ final class TableLayouterTest extends TestCase
         self::assertCount(1, $h->warnings);
         $roomy = $h->layout($t, 100, 100, $first->token);
         self::assertSame(['H1', 'H2', 'H3', 'r3', 'r4'], array_column(LayoutHarness::runs($roomy->fragment), 'text'));
+    }
+
+    // --- Task 13 ---------------------------------------------------------
+
+    public function test_row_side_edges_keep_cells_inside_the_row_box(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row('x', 'y')->bodyRow(TableRow::make('a', 'b')->padding(pt(10)));
+        $f = (new LayoutHarness())->layout($t, 200)->fragment;
+        self::assertNotNull($f);
+        foreach ($f->children() as $row) {
+            self::assertSame(200.0, $row['fragment']->width);
+            foreach ($row['fragment']->children() as $cell) {
+                self::assertLessThanOrEqual(190.0 + 1e-9, $cell['x'] + $cell['fragment']->width);
+            }
+        }
+        $padded = $f->children()[1]['fragment']->children();
+        self::assertSame([10.0, 100.0], array_column($padded, 'x'));
+    }
+
+    public function test_body_row_adds_a_table_row_and_row_rejects_one(): void
+    {
+        $t = Table::make()->bodyRow(TableRow::make('a', 'b')->background('slate-100'));
+        self::assertCount(1, $t->bodyRows());
+        self::assertCount(2, $t->bodyRows()[0]->cells());
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Use Table::bodyRow() to add a TableRow.');
+        Table::make()->row(TableRow::make('a'));
+    }
+
+    public function test_column_measures_are_shared_across_styles_that_do_not_change_text_metrics(): void
+    {
+        $counter = new class () implements Component {
+            public int $renders = 0;
+
+            public function render(): Node|Component
+            {
+                $this->renders++;
+                return Text::make('c');
+            }
+        };
+        $t = Table::make()->columns('auto')->row(TableCell::make($counter));
+        $h = new LayoutHarness();
+        $root = ComputedStyle::root(Theme::default());
+        $h->engine->intrinsic($t, $root);
+        $before = $counter->renders;
+        $h->engine->intrinsic($t, $root->child(\Papercut\Style\Style::make(color: \Papercut\Value\Color::parse('red-500'), background: \Papercut\Value\Color::white())));
+        self::assertSame($before, $counter->renders);
+        $h->engine->intrinsic($t, $root->child(\Papercut\Style\Style::make(fontSize: pt(20))));
+        self::assertGreaterThan($before, $counter->renders);
     }
 
     /** @return list<Fragment> cell fragments in paint order */

@@ -18,7 +18,7 @@ use Papercut\Value\Length;
  */
 final class TextLayouter implements Layouter
 {
-    /** @var \WeakMap<Node, array<string, array{style: ComputedStyle, lines: list<Line>}>> */
+    /** @var \WeakMap<Node, array<string, array{style: ComputedStyle, lines: list<Line>, boxes: list<array{baseline: float, height: float}>}>> */
     private \WeakMap $lineCache;
 
     public function __construct()
@@ -33,17 +33,11 @@ final class TextLayouter implements Layouter
             'content' => BoxGeometry::contentWidth($style, $c->width),
             'first' => ($token->index ?? 0) <= 0,
         ];
-        $lines = $this->lines(self::text($node), $style, $box['content'], $engine);
+        ['lines' => $lines, 'boxes' => $boxes] = $this->lines(self::text($node), $style, $box['content'], $engine);
         $total = count($lines);
         $start = min(max(0, $token->index ?? 0), $total);
         if ($start >= $total) {
-            return LayoutResult::complete($this->fragment($lines, [], $start, $start, $style, $box, true));
-        }
-
-        /** @var array<int, array{baseline: float, height: float}> $boxes */
-        $boxes = [];
-        for ($i = $start; $i < $total; $i++) {
-            $boxes[$i] = $this->lineBox($lines[$i], $style, $engine);
+            return LayoutResult::complete($this->fragment($lines, $boxes, $start, $start, $style, $box, true));
         }
 
         $available = $c->height === null
@@ -121,20 +115,25 @@ final class TextLayouter implements Layouter
         return $node;
     }
 
-    /** @return list<Line> */
+    /**
+     * Broken lines and their line boxes, cached per node, width and style.
+     *
+     * @return array{lines: list<Line>, boxes: list<array{baseline: float, height: float}>}
+     */
     private function lines(Text $node, ComputedStyle $style, float $width, LayoutEngine $engine): array
     {
         $key = "w$width";
         $entries = $this->lineCache[$node] ?? [];
         $hit = $entries[$key] ?? null;
         if ($hit !== null && $hit['style'] == $style) {
-            return $hit['lines'];
+            return ['lines' => $hit['lines'], 'boxes' => $hit['boxes']];
         }
         $items = $engine->context()->itemizer()->itemize($node->spanList(), $style);
         $lines = $items === [] ? [] : LineBreaker::break($items, $width);
-        $entries[$key] = ['style' => $style, 'lines' => $lines];
+        $boxes = array_map(fn (Line $line): array => $this->lineBox($line, $style, $engine), $lines);
+        $entries[$key] = ['style' => $style, 'lines' => $lines, 'boxes' => $boxes];
         $this->lineCache[$node] = $entries;
-        return $lines;
+        return ['lines' => $lines, 'boxes' => $boxes];
     }
 
     /** @return array{baseline: float, height: float} */
@@ -235,6 +234,9 @@ final class TextLayouter implements Layouter
         $baseline = $top + $box['baseline'];
 
         // Text runs: one per word on justified lines, otherwise merged by identical style.
+        if (!$justified) {
+            $placed = self::measureMerged($placed);
+        }
         $runs = $justified
             ? array_map(static fn (array $p): array => [$p], array_values(array_filter($placed, static fn (array $p): bool => $p['item']->kind === 'word')))
             : self::group($placed, self::styleKey(...));
@@ -271,6 +273,39 @@ final class TextLayouter implements Layouter
             }
             $f->addOp(new LinkOp($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], $href));
         }
+    }
+
+    /**
+     * A merged run is drawn as one string, so it is as wide as the font says
+     * that string is (kerning across item boundaries included), not the sum of
+     * its items. The difference goes to the run's last item and shifts every
+     * later item on the line, so decorations and links match the drawn text.
+     *
+     * @param list<array{item: InlineItem, x: float, w: float}> $placed
+     * @return list<array{item: InlineItem, x: float, w: float}>
+     */
+    private static function measureMerged(array $placed): array
+    {
+        $out = [];
+        $shift = 0.0;
+        foreach (self::group($placed, self::styleKey(...)) as $group) {
+            $delta = 0.0;
+            if (count($group) > 1) {
+                $first = $group[0]['item'];
+                $text = implode('', array_map(static fn (array $p): string => $p['item']->text, $group));
+                $delta = $first->font->advance($text, $first->size, $first->style->letterSpacing) - array_sum(array_column($group, 'w'));
+            }
+            $last = count($group) - 1;
+            foreach ($group as $k => $p) {
+                $p['x'] += $shift;
+                if ($k === $last) {
+                    $p['w'] += $delta;
+                }
+                $out[] = $p;
+            }
+            $shift += $delta;
+        }
+        return $out;
     }
 
     /**

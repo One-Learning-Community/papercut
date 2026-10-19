@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Papercut\Tests\Layout;
 
 use Papercut\{Column, Link, PageBreak, Spacer, Text, View};
-use Papercut\Layout\{BreakToken, Status};
+use Papercut\Node;
+use Papercut\Layout\{BreakToken, Constraints, Fragment, LayoutEngine, LayoutResult, Layouter, Status};
+use Papercut\Style\ComputedStyle;
 use Papercut\Paint\{Line, Link as LinkOp, Rect};
 use Papercut\Style\Align;
 use Papercut\Tests\Support\LayoutHarness;
@@ -343,5 +345,62 @@ final class BlockLayouterTest extends TestCase
         $box = Column::make(Column::make(Text::make('a'), PageBreak::make(), Text::make('b')))->height(pt(100))->gap(pt(10));
         $runs = LayoutHarness::runs((new LayoutHarness())->layout($box, 100, 500)->fragment);
         self::assertSame([10.0, 24.0], array_column($runs, 'baseline'));
+    }
+
+    // --- Task 13 ---------------------------------------------------------
+
+    private static function scripted(LayoutResult ...$results): LayoutHarness
+    {
+        $h = new LayoutHarness();
+        $h->engine->register(ScriptedNode::class, new class ($results) implements Layouter {
+            private int $calls = 0;
+
+            /** @param array<LayoutResult> $results */
+            public function __construct(private readonly array $results)
+            {
+            }
+
+            public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
+            {
+                $results = array_values($this->results);
+                return $results[min($this->calls++, count($results) - 1)];
+            }
+
+            public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
+            {
+                return ['min' => 0.0, 'max' => 0.0];
+            }
+        });
+        return $h;
+    }
+
+    public function test_in_place_continuation_drops_a_slice_that_makes_no_progress(): void
+    {
+        // Partial with the same token every time: the repeated slice is not appended.
+        $h = self::scripted(LayoutResult::partial(new Fragment(100, 10.0), new BreakToken(index: 1)));
+        $r = $h->layout(Column::make(new ScriptedNode())->height(pt(100)), 100);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertSame(10.0, $r->fragment?->children()[0]['fragment']->height);
+    }
+
+    public function test_child_that_does_not_fit_inside_a_fixed_height_box_warns(): void
+    {
+        $h = self::scripted(LayoutResult::doesNotFit());
+        $r = $h->layout(Column::make(Text::make('a'), new ScriptedNode())->height(pt(100)), 100);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertSame(['[column] Content dropped inside fixed-height box: scripted[1]'], $h->warnings);
+    }
+}
+
+final class ScriptedNode implements Node
+{
+    public function debugName(): string
+    {
+        return 'scripted';
+    }
+
+    public function style(): \Papercut\Style\Style
+    {
+        return new \Papercut\Style\Style();
     }
 }

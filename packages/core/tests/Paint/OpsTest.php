@@ -145,7 +145,7 @@ final class OpsTest extends TestCase
     #[DataProvider('goodUris')]
     public function test_link_accepts_allowed_uri(string $uri): void
     {
-        self::assertSame($uri, (new Link(0, 0, 1, 1, $uri))->uri);
+        self::assertSame(ltrim($uri), (new Link(0, 0, 1, 1, $uri))->uri);
     }
 
     private static function image(): ImageHandle
@@ -164,5 +164,15 @@ final class OpsTest extends TestCase
         self::assertSame(14.0, $f->advance('ab', 12, 1.0));
         self::assertSame(2, $f->advanceCalls);
         self::assertFalse($f->covers('漢'));
+    }
+
+    public function test_link_rejection_explains_the_allowed_schemes(): void
+    {
+        try {
+            new Link(0, 0, 1, 1, 'ftp://x.test');
+            self::fail('accepted');
+        } catch (\Papercut\Exception\InvalidValue $e) {
+            self::assertSame('Invalid link "ftp://x.test": only http, https, mailto, tel and #fragment links are allowed.', $e->getMessage());
+        }
     }
 }

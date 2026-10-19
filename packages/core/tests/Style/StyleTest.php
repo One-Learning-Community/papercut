@@ -147,4 +147,19 @@ final class StyleTest extends TestCase
             self::assertStringContainsString('for ' . $key . '.', $e->getMessage());
         }
     }
+
+    public function test_constructor_rejects_font_weight_out_of_range(): void
+    {
+        foreach ([0, -100, 1001] as $w) {
+            try {
+                new Style(fontWeight: $w);
+                self::fail("accepted $w");
+            } catch (\Papercut\Exception\InvalidValue $e) {
+                self::assertSame('font weight', $e->kind);
+                self::assertSame((string) $w, $e->input);
+            }
+        }
+        self::assertSame(1, (new Style(fontWeight: 1))->fontWeight);
+        self::assertSame(1000, (new Style(fontWeight: 1000))->fontWeight);
+    }
 }

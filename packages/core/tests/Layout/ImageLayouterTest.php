@@ -78,4 +78,58 @@ final class ImageLayouterTest extends TestCase
         self::assertSame(['min' => 75.0, 'max' => 75.0], $h->engine->intrinsic(Image::bytes('x'), $root));
         self::assertSame(['min' => 40.0, 'max' => 40.0], $h->engine->intrinsic(Image::bytes('x')->width(pt(40)), $root));
     }
+
+    // --- Task 13 ---------------------------------------------------------
+
+    public function test_explicit_width_wider_than_the_container_scales_down(): void
+    {
+        $h = new LayoutHarness();
+        $f = $h->layout(Image::bytes('x')->width(pt(300)), 100)->fragment;
+        self::assertSame([100.0, 50.0], [$f?->width, $f?->height]);
+        // both given: both scale by the same factor
+        $both = $h->layout(Image::bytes('x')->width(pt(300))->height(pt(60)), 100)->fragment;
+        self::assertSame([100.0, 20.0], [$both?->width, $both?->height]);
+    }
+
+    public function test_min_and_max_sizes_clamp_keeping_the_aspect_ratio(): void
+    {
+        $h = new LayoutHarness();
+        $max = $h->layout(Image::bytes('x')->maxWidth(pt(30)), 500)->fragment;
+        self::assertSame([30.0, 15.0], [$max?->width, $max?->height]);
+        $min = $h->layout(Image::bytes('x')->minWidth(pt(150)), 500)->fragment;
+        self::assertSame([150.0, 75.0], [$min?->width, $min?->height]);
+        $maxH = $h->layout(Image::bytes('x')->maxHeight(pt(10)), 500)->fragment;
+        self::assertSame([20.0, 10.0], [$maxH?->width, $maxH?->height]);
+        $minH = $h->layout(Image::bytes('x')->width(pt(20))->minHeight(pt(20)), 500)->fragment;
+        self::assertSame([40.0, 20.0], [$minH?->width, $minH?->height]);
+        // both explicit: clamping one dimension does not touch the other
+        $fixed = $h->layout(Image::bytes('x')->width(pt(40))->height(pt(40))->maxWidth(pt(30)), 500)->fragment;
+        self::assertSame([30.0, 40.0], [$fixed?->width, $fixed?->height]);
+    }
+
+    public function test_padding_with_an_explicit_size(): void
+    {
+        $h = new LayoutHarness();
+        $f = $h->layout(Image::bytes('x')->width(pt(40))->height(pt(40))->padding(pt(5)), 500)->fragment;
+        self::assertSame([40.0, 40.0], [$f?->width, $f?->height]);
+        $d = $this->draw($f);
+        self::assertSame([5.0, 12.5, 30.0, 15.0], [$d->x, $d->y, $d->width, $d->height]);
+        // only the width given: the derived height follows the content box, then scales to the container
+        $w = $h->layout(Image::bytes('x')->width(pt(300))->padding(pt(10)), 100)->fragment;
+        self::assertSame([100.0, 60.0], [$w?->width, $w?->height]);
+    }
+
+    public function test_percent_height_without_a_definite_height_is_auto(): void
+    {
+        $f = (new LayoutHarness())->layout(Image::bytes('x')->height(\Papercut\percent(50)), 500)->fragment;
+        self::assertSame([75.0, 37.5], [$f?->width, $f?->height]);
+    }
+
+    public function test_intrinsic_includes_padding_and_border(): void
+    {
+        $h = new LayoutHarness();
+        $root = \Papercut\Style\ComputedStyle::root(\Papercut\Style\Theme::default());
+        $s = $h->engine->intrinsic(Image::bytes('x')->padding(pt(5))->border(pt(1)), $root);
+        self::assertSame(['min' => 87.0, 'max' => 87.0], $s);
+    }
 }

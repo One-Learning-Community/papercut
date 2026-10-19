@@ -113,8 +113,11 @@ final class Document
             throw new \RuntimeException("Directory does not exist: $dir");
         }
         $bytes = $this->render($options);
-        if (file_put_contents($path, $bytes) === false) {
-            throw new \RuntimeException("Could not write file: $path");
+        error_clear_last();
+        $written = @file_put_contents($path, $bytes);
+        if ($written === false || $written < strlen($bytes)) {
+            $error = error_get_last()['message'] ?? sprintf('wrote %d of %d bytes', (int) $written, strlen($bytes));
+            throw new \RuntimeException(sprintf('Could not write PDF to "%s": %s', $path, $error));
         }
     }
 
@@ -128,7 +131,10 @@ final class Document
         }
         $written = fwrite($out, $bytes);
         fclose($out);
+        if ($written === false || $written < strlen($bytes)) {
+            throw new \RuntimeException(sprintf('Could not write PDF to php://output: wrote %d of %d bytes', (int) $written, strlen($bytes)));
+        }
 
-        return $written === false ? 0 : $written;
+        return $written;
     }
 }

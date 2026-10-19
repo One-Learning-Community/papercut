@@ -47,7 +47,8 @@ final class LineBreaker
                     $w = $dw;
                 }
             } else {
-                if ($sw > 0.0 && $space !== null) {
+                // Presence, not width: a space can measure <= 0 (negative letter spacing) and still separates words.
+                if ($cur !== [] && $space !== null) {
                     $cur[] = $space;
                     $w += $sw;
                 }
@@ -91,8 +92,10 @@ final class LineBreaker
     }
 
     /**
-     * Splits an over-wide chunk character by character. Returns lines as
-     * [items, width]; the last entry is the unfinished remainder line.
+     * Splits an over-wide chunk character by character. Each character is
+     * measured once and widths are accumulated (linear in the chunk length);
+     * each finished piece is then measured once for its exact width. Returns
+     * lines as [items, width]; the last entry is the unfinished remainder line.
      *
      * @param list<InlineItem> $chunk
      * @return list<array{list<InlineItem>, float}>
@@ -102,29 +105,36 @@ final class LineBreaker
         $lines = [];
         $cur = [];
         $w = 0.0;
+        $piece = static fn (InlineItem $item, string $text, bool $breakAfter): InlineItem => $item->withText(
+            $text,
+            $item->font->advance($text, $item->size, $item->style->letterSpacing),
+            $breakAfter,
+        );
         foreach ($chunk as $item) {
             $buf = '';
             $bufW = 0.0;
             foreach (mb_str_split($item->text, 1, 'UTF-8') as $ch) {
-                $tryW = $item->font->advance($buf . $ch, $item->size, $item->style->letterSpacing);
-                if ($w + $tryW > $max + self::EPS && ($buf !== '' || $cur !== [])) {
+                $chW = $item->font->advance($ch, $item->size, $item->style->letterSpacing);
+                if ($w + $bufW + $chW > $max + self::EPS && ($buf !== '' || $cur !== [])) {
                     if ($buf !== '') {
-                        $cur[] = $item->withText($buf, $bufW, false);
-                        $w += $bufW;
+                        $done = $piece($item, $buf, false);
+                        $cur[] = $done;
+                        $w += $done->width;
                     }
                     $lines[] = [$cur, $w];
                     $cur = [];
                     $w = 0.0;
                     $buf = $ch;
-                    $bufW = $item->font->advance($ch, $item->size, $item->style->letterSpacing);
+                    $bufW = $chW;
                 } else {
                     $buf .= $ch;
-                    $bufW = $tryW;
+                    $bufW += $chW;
                 }
             }
             if ($buf !== '') {
-                $cur[] = $item->withText($buf, $bufW, $item->breakAfter);
-                $w += $bufW;
+                $done = $piece($item, $buf, $item->breakAfter);
+                $cur[] = $done;
+                $w += $done->width;
             }
         }
         $lines[] = [$cur, $w];

@@ -428,4 +428,53 @@ final class TextLayouterTest extends TestCase
             self::assertStringContainsString('at column > text[1]', $e->getMessage());
         }
     }
+
+    // --- Task 13 ---------------------------------------------------------
+
+    public function test_merged_runs_are_measured_as_drawn(): void
+    {
+        $h = new LayoutHarness(backend: new \Papercut\Tests\Support\FakeBackend(kerning: true));
+        // items: "To" 10 + " " 5 + "Avoid" 25 = 40; the merged run kerns "o A" by -1pt
+        $t = Text::spans(Span::text('To Avoid'), new Span('x', Style::make(fontWeight: 700)));
+        $runs = LayoutHarness::runs($h->layout($t, 200)->fragment);
+        self::assertSame(['To Avoid', 'x'], array_column($runs, 'text'));
+        self::assertSame([0.0, 39.0], array_column($runs, 'x'));
+
+        $ops = $h->layout(Text::spans(new Span('To Avoid', Style::make(underline: true), href: 'https://x.test')), 200)->fragment?->ops() ?? [];
+        $lines = array_values(array_filter($ops, fn ($o) => $o instanceof LineOp));
+        self::assertSame(39.0, $lines[0]->x2);
+        $links = array_values(array_filter($ops, fn ($o) => $o instanceof LinkOp));
+        self::assertSame(39.0, $links[0]->width);
+    }
+
+    public function test_line_cache_respects_the_parent_style(): void
+    {
+        $h = new LayoutHarness();
+        $t = Text::make('aaa');
+        $root = ComputedStyle::root(Theme::default());
+        $big = $root->child(Style::make(fontSize: pt(20)));
+        $height = fn (ComputedStyle $parent): ?float => $h->engine->layout($t, $parent, new Constraints(100, null))->fragment?->height;
+        self::assertSame([14.0, 28.0, 14.0], [$height($root), $height($big), $height($root)]);
+    }
+
+    public function test_heading_lines_fill_an_exact_height(): void
+    {
+        $r = (new LayoutHarness())->layout(Text::h1('a b c'), 12, 100.8);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertSame(['a', 'b', 'c'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+    }
+
+    public function test_line_boxes_are_cached_across_continuations(): void
+    {
+        $h = new LayoutHarness();
+        $t = Text::make('a b c d e f g h i j');
+        $first = $h->layout($t, 5, 28);
+        self::assertSame(Status::Partial, $first->status);
+        $font = $h->engine->context()->fonts->resolve('Inter')->inner();
+        self::assertInstanceOf(\Papercut\Tests\Support\FakeFont::class, $font);
+        $font->metricCalls = 0;
+        $rest = $h->layout($t, 5, null, $first->token);
+        self::assertSame(Status::Complete, $rest->status);
+        self::assertSame(0, $font->metricCalls);
+    }
 }

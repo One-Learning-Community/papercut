@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, Text};
+use Papercut\{Column, Document, Page, PageNumber, RenderOptions, Row, Spacer, Table, Text};
+use Papercut\Backend\PhpPdf\PhpPdfBackend;
+use Papercut\Style\Theme;
+use Papercut\Text\FontRegistry;
 use Papercut\Tests\Support\PdfInspector;
 use PHPUnit\Framework\TestCase;
 
@@ -51,10 +54,13 @@ final class EndToEndTest extends TestCase
     public function test_save(): void
     {
         $path = sys_get_temp_dir() . '/papercut-e2e-' . getmypid() . '.pdf';
-        $this->transcript(5)->save($path);
-        self::assertFileExists($path);
-        PdfInspector::check((string) file_get_contents($path));
-        unlink($path);
+        try {
+            $this->transcript(5)->save($path);
+            self::assertFileExists($path);
+            PdfInspector::check((string) file_get_contents($path));
+        } finally {
+            @unlink($path);
+        }
     }
 
     public function test_save_missing_directory_throws(): void
@@ -79,5 +85,31 @@ final class EndToEndTest extends TestCase
     {
         $doc = $this->transcript(3);
         self::assertSame($doc->render(), $doc->toString());
+    }
+
+    public function test_save_failure_names_the_path_and_the_error(): void
+    {
+        $path = sys_get_temp_dir(); // a directory: the write itself fails
+        try {
+            $this->transcript(1)->save($path);
+            self::fail('saved');
+        } catch (\RuntimeException $e) {
+            self::assertStringStartsWith(sprintf('Could not write PDF to "%s": ', $path), $e->getMessage());
+            self::assertGreaterThan(strlen(sprintf('Could not write PDF to "%s": ', $path)), strlen($e->getMessage()));
+        }
+    }
+
+    public function test_render_with_custom_options(): void
+    {
+        $doc = Document::make(Page::a5()->body(Text::make('Hello options')))->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z'));
+        $default = $doc->render();
+        $themed = $doc->render(new RenderOptions(theme: Theme::default()->with(fontSize: 20.0)));
+        PdfInspector::check($themed);
+        self::assertNotSame($default, $themed);
+
+        $backend = new PhpPdfBackend();
+        $pdf = $doc->render(new RenderOptions(backend: $backend, fonts: FontRegistry::withDefaults($backend)));
+        PdfInspector::check($pdf);
+        self::assertStringContainsString('Hello options', PdfInspector::text($pdf));
     }
 }

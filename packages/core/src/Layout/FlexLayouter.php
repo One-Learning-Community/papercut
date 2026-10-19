@@ -342,7 +342,12 @@ final class FlexLayouter implements Layouter
             $done = $res->status !== Status::Partial || $res->token === null;
             $next[$j] = $done ? null : $res->token;
             $cells[] = ['x' => $item['x'], 'y' => $top, 'fragment' => $res->fragment];
-            $lineHeight = max($lineHeight, $top + $res->fragment->height + ($done ? $m->bottom->points : 0.0));
+            $bottom = $top + $res->fragment->height;
+            if ($done) {
+                // Margin-bottom is truncated at the page end, never pushing the line past $height.
+                $bottom = $height === null ? $bottom + $m->bottom->points : max($bottom, min($bottom + $m->bottom->points, $height));
+            }
+            $lineHeight = max($lineHeight, $bottom);
         }
         return ['height' => $lineHeight, 'tokens' => $next, 'cells' => $cells];
     }
