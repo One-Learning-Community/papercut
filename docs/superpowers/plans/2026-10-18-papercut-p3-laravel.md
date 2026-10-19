@@ -256,7 +256,7 @@ final class NodeRegistryTest extends TestCase
   - `protected function tag(): string` → kebab-case of the short class name (`PageNumber` → `page-number`).
   - `/** @return list<string> */ protected function ownAttributes(): array` → `[]`. These are tag-specific keys; all other keys must be style keys (`Style::fromAttributes` validates them).
   - `protected function attrs(array $data): array{own: array<string, mixed>, style: array<string, mixed>}`: splits `$data['attributes']->getAttributes()`. The `style` attribute (a named theme style) goes into `own` for every component.
-  - `protected function styled(object $node, array $data): object`: applies the `style` attributes via `$node->attributes($style)` and the named style via `$node->apply($name)`. Rethrows `UnknownAttribute`/`InvalidValue` as `->withContext("on <x-pdf::{tag}>")`. (`UnknownAttribute` needs a `withContext()` too; add it in core: `public function withContext(string $context): self`. Message format: `Unknown attribute "x" on <x-pdf::page>. Did you mean "y"?`.)
+  - `protected function styled(object $node, array $data): object`: applies the `style` attributes via `$node->attributes($style)` and the named style via `$node->apply($name)`. Rethrows `UnknownAttribute`/`InvalidValue` as `->withContext("on <x-pdf::{tag}>")`. (`UnknownAttribute::withContext()` exists in core from Plan 2 Task 1; pass `"on <x-pdf::{tag}>"`. `withContext()` REPLACES the context, and an `InvalidValue` from `Style::fromAttributes` already carries the attribute key as its context, so append: `$e->withContext($e->context === null ? "on <x-pdf::{tag}>" : $e->context . " on <x-pdf::{tag}>")`. Own attributes parsed by the component itself (e.g. `size` on page) use context `"<attr> on <x-pdf::{tag}>"`.)
   - `protected function children(array $data): list<object>` → `Segments::nodes(registry->segments((string) $data['slot']), tag)`.
   - `protected function text(array $data): string` → `Segments::text(...)`.
   - `/** @return array<string, string> */ protected function namedSlots(array $data): array`: slot name → html (the `$data` values that are `ComponentSlot`, excluding `slot`).
@@ -344,7 +344,7 @@ final class BlockComponentsTest extends TestCase
 ```
 (`<x-pdf::text>` comes in Task 4. Until then, write this fixture with `<x-pdf::column>{{ $name }}</x-pdf::column>` and switch it to `<x-pdf::text bold>` in Task 4.)
 
-- [ ] **Step 2–4:** FAIL → implement (including `UnknownAttribute::withContext` in core, with its own core unit test) → PASS. PHPStan clean in both packages.
+- [ ] **Step 2–4:** FAIL → implement → PASS. PHPStan clean in both packages.
 - [ ] **Step 5: Commit** `feat(laravel): add component base and block components`
 
 ---
