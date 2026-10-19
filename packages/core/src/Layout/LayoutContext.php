@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Image, Node, OverflowMode, Text};
+use Papercut\{Image, Node, OverflowMode, Styled, Text};
 use Papercut\Backend\{Backend, ImageHandle};
 use Papercut\Style\{ComputedStyle, Style, Theme};
 use Papercut\Text\{FontRegistry, Itemizer};
@@ -96,7 +96,7 @@ final class LayoutContext
             $preset = $node->preset();
             $style = $style->merge($preset === 'p' ? $this->theme->paragraph() : $this->theme->heading((int) substr($preset, 1)));
         }
-        if (method_exists($node, 'styleName')) {
+        if ($node instanceof Styled) {
             $name = $node->styleName();
             if (is_string($name)) {
                 $style = $style->merge($this->theme->named($name));

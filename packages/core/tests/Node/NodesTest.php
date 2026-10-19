@@ -94,4 +94,26 @@ final class NodesTest extends TestCase
         self::assertInstanceOf(Length::class, $w);
         self::assertEqualsWithDelta(mm(10)->points, $w->points, 1e-9);
     }
+
+    // --- Final review ---
+
+    public function test_every_color_parameter_accepts_a_string(): void
+    {
+        $v = View::make()->borderColor('slate-200');
+        self::assertEquals(Color::parse('slate-200'), $v->style()->borderColor);
+        $b = View::make()->border(pt(1), 'red-500');
+        self::assertEquals(Color::parse('red-500'), $b->style()->borderColor);
+        self::assertSame(1.0, $b->style()->borderWidth?->top->points);
+        self::assertEquals(Color::parse('#fff'), Text::make('x')->background('#fff')->color('#fff')->style()->color);
+    }
+
+    public function test_styled_nodes_implement_the_styled_interface(): void
+    {
+        $nodes = [View::make(), Text::make('x'), Image::bytes('x'), Spacer::size(pt(1)), PageBreak::make(), PageNumber::make('{page}'),
+            Link::to('https://x.test', 'x'), \Papercut\Table::make(), \Papercut\TableRow::make(), \Papercut\TableCell::make('x')];
+        foreach ($nodes as $n) {
+            self::assertInstanceOf(\Papercut\Styled::class, $n, $n::class);
+        }
+        self::assertSame('card', Text::make('x')->apply('card')->styleName());
+    }
 }

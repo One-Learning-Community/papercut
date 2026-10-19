@@ -6,7 +6,7 @@ namespace Papercut;
 
 use Papercut\Concerns\HasStyle;
 
-final class TableRow implements Node
+final class TableRow implements Styled
 {
     use HasStyle;
 

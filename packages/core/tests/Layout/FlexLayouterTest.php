@@ -162,4 +162,15 @@ final class FlexLayouterTest extends TestCase
         self::assertNotNull($r->fragment);
         self::assertLessThanOrEqual(20.0, $r->fragment->height);
     }
+
+    // --- Final review ---
+
+    public function test_page_break_inside_a_row_is_ignored_with_a_warning(): void
+    {
+        $h = new LayoutHarness();
+        $r = $h->layout(Row::make(Text::make('a'), \Papercut\PageBreak::make(), Text::make('b')), 100, 100);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertSame(['a', 'b'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+        self::assertSame(['[row] PageBreak inside a row is ignored'], $h->warnings);
+    }
 }

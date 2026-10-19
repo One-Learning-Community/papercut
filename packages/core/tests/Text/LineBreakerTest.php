@@ -101,4 +101,15 @@ final class LineBreakerTest extends TestCase
             self::assertEqualsWithDelta(5.0 * mb_strlen($line->items[0]->text), $line->items[0]->width, 1e-9);
         }
     }
+
+    // --- Final review ---
+
+    public function test_zero_width_spaces_are_kept(): void
+    {
+        $style = ComputedStyle::root(Theme::default())->child(new Style(letterSpacing: pt(-5)));
+        $items = (new Itemizer(FontRegistry::withDefaults(new FakeBackend())))->itemize([Span::text('ab cd')], $style);
+        self::assertSame('space', $items[1]->kind);
+        self::assertSame(0.0, $items[1]->width);
+        self::assertSame(['ab cd'], $this->texts(LineBreaker::break($items, 100)));
+    }
 }

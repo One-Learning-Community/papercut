@@ -48,4 +48,18 @@ final class TableTest extends TestCase
         $r = TableRow::make('a', TableCell::make('b'));
         self::assertCount(2, $r->cells());
     }
+
+    // --- Final review ---
+
+    public function test_head_without_cells_throws(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Table::make()->head();
+    }
+
+    public function test_columns_without_tracks_throws(): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
+        Table::make()->columns();
+    }
 }

@@ -7,7 +7,7 @@ namespace Papercut;
 use Papercut\Concerns\HasStyle;
 use Papercut\Style\Style;
 
-final class Text implements Node
+final class Text implements Styled
 {
     use HasStyle;
 

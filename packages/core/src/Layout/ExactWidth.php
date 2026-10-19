@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Node, Spacer};
-use Papercut\Concerns\HasStyle;
+use Papercut\{Node, Spacer, Styled};
 use Papercut\Style\{ComputedStyle, Style};
 
 use function Papercut\pt;
@@ -19,9 +18,6 @@ use function Papercut\pt;
 final class ExactWidth
 {
     private const float EPSILON = 1e-9;
-
-    /** @var array<class-string, bool> */
-    private static array $styleable = [];
 
     private function __construct()
     {
@@ -39,24 +35,16 @@ final class ExactWidth
     /** $node with width, min-width and max-width set to $width, unless its style already resolves to it. */
     public static function pin(Node $node, float $width, ComputedStyle $style): Node
     {
-        if (abs(BoxGeometry::borderBoxWidth($style, $width) - $width) <= self::EPSILON || !self::styleable($node) || !method_exists($node, 'apply')) {
+        if (abs(BoxGeometry::borderBoxWidth($style, $width) - $width) <= self::EPSILON || !$node instanceof Styled) {
             return $node;
         }
         $w = pt($width);
-        $pinned = $node->apply(new Style(width: $w, minWidth: $w, maxWidth: $w));
-        return $pinned instanceof Node ? $pinned : $node;
+        return $node->apply(new Style(width: $w, minWidth: $w, maxWidth: $w));
     }
 
-    /** True for nodes whose class (or a parent class) uses the HasStyle trait. */
+    /** True for nodes with the HasStyle modifiers. */
     public static function styleable(Node $node): bool
     {
-        return self::$styleable[$node::class] ??= (static function (Node $node): bool {
-            foreach ([$node::class, ...array_values(class_parents($node))] as $class) {
-                if (in_array(HasStyle::class, class_uses($class), true)) {
-                    return true;
-                }
-            }
-            return false;
-        })($node);
+        return $node instanceof Styled;
     }
 }

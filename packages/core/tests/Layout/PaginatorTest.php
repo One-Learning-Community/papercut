@@ -95,13 +95,13 @@ final class PaginatorTest extends TestCase
             $this->paginate(Document::make($this->small()->body('A', Image::bytes('x')->height(pt(500)))));
             self::fail('expected LayoutOverflow');
         } catch (LayoutOverflow $e) {
-            self::assertSame('page > column > image[1]', $e->path);
+            self::assertSame('page > body > image[1]', $e->path);
         }
         try {
             $this->paginate(Document::make($this->small()->body('A'), $this->small()->body(Image::bytes('x')->height(pt(500)))));
             self::fail('expected LayoutOverflow');
         } catch (LayoutOverflow $e) {
-            self::assertSame('page[1] > column > image[0]', $e->path);
+            self::assertSame('page[1] > body > image[0]', $e->path);
         }
     }
 
@@ -118,7 +118,7 @@ final class PaginatorTest extends TestCase
         self::assertEqualsWithDelta([10.0, 10.0, 180.0, 80.0], [$clips[0]->x, $clips[0]->y, $clips[0]->width, $clips[0]->height], 1e-9);
         $rest = array_merge(...array_map(fn ($p) => $this->texts($p), array_slice($pages, 2)));
         self::assertSame(array_map(fn (int $i) => "L$i", range(1, 20)), $rest);
-        self::assertSame(['Content clipped: "page > column > image[1]" is taller than the available space.'], $this->warnings);
+        self::assertSame(['Content clipped: "page > body > image[1]" is taller than the available space.'], $this->warnings);
     }
 
     public function test_no_progress_is_overflow(): void
@@ -181,6 +181,36 @@ final class PaginatorTest extends TestCase
     {
         $pages = $this->paginate(Document::make(Page::a4()->body('x')));
         self::assertEqualsWithDelta([595.28, 841.89], [$pages[0]->width, $pages[0]->height], 0.01);
+    }
+
+    // --- Final review ---
+
+    public function test_clip_mode_records_the_failure_path_when_clipping_fails(): void
+    {
+        $h = new \Papercut\Tests\Support\LayoutHarness(overflow: OverflowMode::Clip);
+        $h->engine->register(StuckNode::class, new class implements Layouter {
+            public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
+            {
+                return LayoutResult::doesNotFit();
+            }
+
+            public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
+            {
+                return ['min' => 0.0, 'max' => 0.0];
+            }
+        });
+        self::assertSame(\Papercut\Layout\Status::DoesNotFit, $h->layout(new StuckNode(), 100, 50)->status);
+        self::assertSame('stuck', $h->engine->context()->lastFailurePath);
+    }
+
+    public function test_header_and_footer_without_room_are_clipped_in_clip_mode(): void
+    {
+        $tall = Text::make("a\nb")->size(pt(40));
+        $pages = $this->paginate(Document::make($this->small()->header($tall)->footer($tall)->body('x')), OverflowMode::Clip);
+        self::assertCount(1, $pages);
+        self::assertContains('x', $this->texts($pages[0]));
+        self::assertCount(1, $this->warnings);
+        self::assertStringContainsString('header and footer leave no room', $this->warnings[0]);
     }
 }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Style;
 
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
+use Papercut\Support\Suggest;
 use Papercut\Value\{Auto, Color, Edges, Length, Percent};
 
 /**
@@ -210,7 +211,7 @@ final readonly class Style
         foreach ($attrs as $key => $value) {
             $key = (string) $key;
             if (!isset(self::ATTRIBUTES[$key])) {
-                throw UnknownAttribute::for($key, self::suggest($key, array_keys(self::ATTRIBUTES)));
+                throw UnknownAttribute::for($key, Suggest::closest($key, array_keys(self::ATTRIBUTES)));
             }
             [$property, $parser] = self::ATTRIBUTES[$key];
             try {
@@ -347,23 +348,6 @@ final readonly class Style
             return $case;
         }
         $values = array_map(static fn (\BackedEnum $c): string => (string) $c->value, $enum::cases());
-        throw InvalidValue::for('value', $s, self::suggest($normalized, $values));
-    }
-
-    /**
-     * @param list<string> $candidates
-     */
-    private static function suggest(string $input, array $candidates): ?string
-    {
-        $best = null;
-        $bestDistance = 3;
-        foreach ($candidates as $candidate) {
-            $d = levenshtein($input, $candidate);
-            if ($d < $bestDistance) {
-                $best = $candidate;
-                $bestDistance = $d;
-            }
-        }
-        return $best;
+        throw InvalidValue::for('value', $s, Suggest::closest($normalized, $values));
     }
 }

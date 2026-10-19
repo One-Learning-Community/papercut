@@ -43,18 +43,25 @@ final class LayoutEngine
         return $this->ctx;
     }
 
-    /** $index is the node's position among its siblings; it is shown in the path, e.g. "column[2]". */
-    public function layout(Node|Component $node, ComputedStyle $parent, Constraints $c, ?BreakToken $token = null, ?int $index = null): LayoutResult
+    /**
+     * $index is the node's position among its siblings; it is shown in the
+     * path, e.g. "column[2]". $pathName replaces the node's path segment
+     * (the paginator names the page body "body").
+     */
+    public function layout(Node|Component $node, ComputedStyle $parent, Constraints $c, ?BreakToken $token = null, ?int $index = null, ?string $pathName = null): LayoutResult
     {
         $node = self::expand($node);
-        $this->ctx->pushPath(self::pathName($node, null, $index));
+        $this->ctx->pushPath($pathName ?? self::pathName($node, null, $index));
         try {
-            $style = $this->enter($node, $parent, $index);
+            $style = $this->enter($node, $parent, $index, $pathName);
             $layouter = $this->layouterFor($node, $style);
             $result = $layouter->layout($node, $style, $c, $token, $this);
             if ($result->status === Status::DoesNotFit && $c->fresh) {
-                if ($c->height !== null && $this->ctx->overflow === OverflowMode::Clip) {
-                    return $this->clipped($layouter, $node, $style, $c, $token) ?? $result;
+                $clipped = $c->height !== null && $this->ctx->overflow === OverflowMode::Clip
+                    ? $this->clipped($layouter, $node, $style, $c, $token)
+                    : null;
+                if ($clipped !== null) {
+                    return $clipped;
                 }
                 $this->recordFailure();
             }
@@ -130,7 +137,7 @@ final class LayoutEngine
      * Resolves the node's style while a provisional path entry is pushed, so
      * style errors name the node, then renames the entry by computed direction.
      */
-    private function enter(Node $node, ComputedStyle $parent, ?int $index): ComputedStyle
+    private function enter(Node $node, ComputedStyle $parent, ?int $index, ?string $pathName = null): ComputedStyle
     {
         try {
             $style = $this->ctx->resolveStyle($node, $parent);
@@ -138,7 +145,7 @@ final class LayoutEngine
             throw $e->within('at ' . $this->ctx->path());
         }
         $this->ctx->popPath();
-        $this->ctx->pushPath(self::pathName($node, $style, $index));
+        $this->ctx->pushPath($pathName ?? self::pathName($node, $style, $index));
         return $style;
     }
 

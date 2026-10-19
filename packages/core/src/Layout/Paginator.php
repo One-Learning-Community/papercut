@@ -27,7 +27,7 @@ final class Paginator
         $out = [];
         $templates = $doc->pages();
         foreach ($templates as $i => $page) {
-            // Overflow paths start at the template: "page > column > image[1]", or "page[2] > ..." with several.
+            // Overflow paths start at the template: "page > body > image[1]", or "page[2] > ..." with several.
             $name = count($templates) > 1 ? sprintf('page[%d]', $i) : 'page';
             $this->ctx->pushPath($name);
             try {
@@ -56,11 +56,24 @@ final class Paginator
         $headerSpace = $header === null ? 0.0 : $header->height + $page->headerGapLength()->points;
         $footerSpace = $footer === null ? 0.0 : $footer->height + $page->footerGapLength()->points;
 
+        if ($contentHeight - $headerSpace - $footerSpace <= 0.0) {
+            if ($this->ctx->overflow === OverflowMode::Throw || $contentHeight <= 0.0) {
+                throw new LayoutOverflow($name, 'header and footer leave no room for content');
+            }
+            // Clip mode: header and footer (with their gaps) each keep at most a third of the page body.
+            $limit = $contentHeight / 3;
+            if ($header !== null && $headerSpace > $limit) {
+                $header = self::clipTo($header, max(0.0, $limit - $page->headerGapLength()->points));
+                $headerSpace = $limit;
+            }
+            if ($footer !== null && $footerSpace > $limit) {
+                $footer = self::clipTo($footer, max(0.0, $limit - $page->footerGapLength()->points));
+                $footerSpace = $limit;
+            }
+            $this->ctx->warn(sprintf('Content clipped: header and footer leave no room for content on "%s"; each was clipped to a third of the page body.', $name), withPath: false);
+        }
         $bodyY = $top + $headerSpace;
         $bodyHeight = $contentHeight - $headerSpace - $footerSpace;
-        if ($bodyHeight <= 0.0) {
-            throw new LayoutOverflow($name, 'header and footer leave no room for content');
-        }
 
         $background = null;
         if ($page->backgroundNodes() !== []) {
@@ -87,7 +100,7 @@ final class Paginator
         $token = null;
         while (true) {
             $this->ctx->setLastFailurePath(null);
-            $res = $this->engine->layout($body, $root, new Constraints($contentWidth, $bodyHeight, true), $token);
+            $res = $this->engine->layout($body, $root, new Constraints($contentWidth, $bodyHeight, true), $token, pathName: 'body');
             if ($res->status === Status::Complete && $res->fragment !== null) {
                 $emit($res->fragment);
                 return;
@@ -107,7 +120,7 @@ final class Paginator
                 throw new LayoutOverflow($path, 'content is taller than the page body');
             }
             // Last resort: the engine clips single overflowing nodes, so this is only reached when the body itself cannot progress.
-            $res = $this->engine->layout($body, $root, new Constraints($contentWidth, null, true), $token);
+            $res = $this->engine->layout($body, $root, new Constraints($contentWidth, null, true), $token, pathName: 'body');
             if ($res->fragment !== null) {
                 $clip = new Fragment($contentWidth, $bodyHeight);
                 $clip->clip = [0.0, 0.0, $contentWidth, $bodyHeight];
@@ -117,6 +130,14 @@ final class Paginator
             $this->ctx->warn(sprintf('Content clipped: "%s" made no progress; the rest of this page template was clipped and any remaining content dropped.', $path), withPath: false);
             return;
         }
+    }
+
+    private static function clipTo(Fragment $f, float $height): Fragment
+    {
+        $clip = new Fragment($f->width, $height);
+        $clip->clip = [0.0, 0.0, $f->width, $height];
+        $clip->addChild(0.0, 0.0, $f);
+        return $clip;
     }
 
     /** @param list<\Papercut\Node|\Papercut\Component> $nodes */

@@ -218,14 +218,9 @@ final class TextLayouter implements Layouter
                 $perSpace = max(0.0, $width - $line->width) / $spaces;
             }
         }
-        $x = $ox + match ($align) {
-            TextAlign::Right => $width - $line->width,
-            TextAlign::Center => ($width - $line->width) / 2,
-            TextAlign::Left, TextAlign::Justify => 0.0,
-        };
-
         /** @var list<array{item: InlineItem, x: float, w: float}> $placed */
         $placed = [];
+        $x = $ox;
         foreach ($line->items as $item) {
             $w = $item->width + ($item->kind === 'space' ? $perSpace : 0.0);
             $placed[] = ['item' => $item, 'x' => $x, 'w' => $w];
@@ -234,8 +229,20 @@ final class TextLayouter implements Layouter
         $baseline = $top + $box['baseline'];
 
         // Text runs: one per word on justified lines, otherwise merged by identical style.
+        $lineWidth = $line->width;
         if (!$justified) {
-            $placed = self::measureMerged($placed);
+            $merged = self::measureMerged($placed);
+            $lineWidth += array_sum(array_column($merged, 'w')) - array_sum(array_column($placed, 'w'));
+            $placed = $merged;
+        }
+        // Right and center use the width as drawn (merged runs kern across items), so text ends at the edge.
+        $offset = match ($align) {
+            TextAlign::Right => $width - $lineWidth,
+            TextAlign::Center => ($width - $lineWidth) / 2,
+            TextAlign::Left, TextAlign::Justify => 0.0,
+        };
+        if ($offset !== 0.0) {
+            $placed = array_map(static fn (array $p): array => ['item' => $p['item'], 'x' => $p['x'] + $offset, 'w' => $p['w']], $placed);
         }
         $runs = $justified
             ? array_map(static fn (array $p): array => [$p], array_values(array_filter($placed, static fn (array $p): bool => $p['item']->kind === 'word')))

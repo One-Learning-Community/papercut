@@ -7,7 +7,7 @@ namespace Papercut;
 use Papercut\Concerns\HasStyle;
 use Papercut\Value\Length;
 
-final class Spacer implements Node
+final class Spacer implements Styled
 {
     use HasStyle;
 

@@ -7,7 +7,7 @@ namespace Papercut;
 use Papercut\Concerns\HasStyle;
 use Papercut\Value\{Auto, Fr, Length, Percent, TrackList};
 
-final class Table implements Node
+final class Table implements Styled
 {
     use HasStyle;
 
@@ -54,6 +54,9 @@ final class Table implements Node
 
     public function head(TableCell|Node|Component|string ...$cells): self
     {
+        if ($cells === []) {
+            throw new \InvalidArgumentException('Table::head() needs at least one cell.');
+        }
         $header = [];
         foreach ($cells as $cell) {
             $header[] = $cell instanceof TableCell

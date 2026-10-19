@@ -8,7 +8,7 @@ use Papercut\Concerns\HasStyle;
 use Papercut\Style\{Align, Direction, Justify, Style};
 use Papercut\Value\Length;
 
-final class View implements Node
+final class View implements Styled
 {
     use HasStyle;
 
@@ -29,6 +29,9 @@ final class View implements Node
     }
 
     /**
+     * Wraps string children in Text nodes.
+     *
+     * @internal
      * @param array<Node|Component|string> $children
      * @return list<Node|Component>
      */

@@ -132,4 +132,16 @@ final class ImageLayouterTest extends TestCase
         $s = $h->engine->intrinsic(Image::bytes('x')->padding(pt(5))->border(pt(1)), $root);
         self::assertSame(['min' => 87.0, 'max' => 87.0], $s);
     }
+
+    // --- Final review ---
+
+    public function test_max_width_still_holds_after_min_height_grows_the_image(): void
+    {
+        // minHeight(50) would widen the image to 100pt; maxWidth wins and the aspect ratio is given up
+        $f = (new LayoutHarness())->layout(Image::bytes('x')->maxWidth(pt(30))->minHeight(pt(50)), 500)->fragment;
+        self::assertSame([30.0, 50.0], [$f?->width, $f?->height]);
+        // the height clamp runs last and keeps the aspect: a conflicting minWidth loses to maxHeight
+        $g = (new LayoutHarness())->layout(Image::bytes('x')->maxHeight(pt(20))->minWidth(pt(100)), 500)->fragment;
+        self::assertSame([40.0, 20.0], [$g?->width, $g?->height]);
+    }
 }
