@@ -7,8 +7,10 @@ namespace Papercut\Layout;
 use Papercut\Paint\{Op, PageNumberSlot};
 
 /**
- * A laid-out box in local coordinates (top-left origin). Mutable while its
- * layouter builds it, then treated as immutable.
+ * A laid-out box in local coordinates (top-left origin). Mutable only while
+ * the layouter that created it builds it: once returned from layout() it is
+ * immutable. Never mutate a fragment you did not create; the paginator
+ * reuses header and footer fragments across pages.
  */
 final class Fragment
 {
