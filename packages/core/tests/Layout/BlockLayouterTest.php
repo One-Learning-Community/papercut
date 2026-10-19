@@ -317,4 +317,31 @@ final class BlockLayouterTest extends TestCase
         self::assertSame(Status::Complete, $r->status);
         self::assertSame(['a', 'b'], array_column(LayoutHarness::runs($r->fragment), 'text'));
     }
+
+    // --- Fix round 2: forced breaks inside explicit-height boxes are satisfied in place ---
+
+    /** @return iterable<string, array{\Papercut\View, list<string>}> */
+    public static function inPlaceBoxes(): iterable
+    {
+        yield 'nested breakBefore' => [Column::make(Column::make(Text::make('a'), Text::make('b')->breakBefore()))->height(pt(100)), ['a', 'b']];
+        yield 'double page break' => [Column::make(Column::make(Text::make('a'), PageBreak::make(), PageBreak::make(), Text::make('b')))->height(pt(100)), ['a', 'b']];
+        yield 'not first in parent' => [Column::make(Text::make('x'), Column::make(Column::make(Text::make('a'), Text::make('b')->breakBefore()))->height(pt(100))), ['x', 'a', 'b']];
+        yield 'nested breakAfter' => [Column::make(Column::make(Text::make('a')->breakAfter(), Text::make('b')))->height(pt(100)), ['a', 'b']];
+    }
+
+    /** @param list<string> $texts */
+    #[\PHPUnit\Framework\Attributes\DataProvider('inPlaceBoxes')]
+    public function test_fixed_height_box_satisfies_nested_breaks_in_place(\Papercut\View $box, array $texts): void
+    {
+        $r = (new LayoutHarness())->layout($box, 100, 500);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertSame($texts, array_column(LayoutHarness::runs($r->fragment), 'text'));
+    }
+
+    public function test_in_place_slices_are_not_separated_by_gap(): void
+    {
+        $box = Column::make(Column::make(Text::make('a'), PageBreak::make(), Text::make('b')))->height(pt(100))->gap(pt(10));
+        $runs = LayoutHarness::runs((new LayoutHarness())->layout($box, 100, 500)->fragment);
+        self::assertSame([10.0, 24.0], array_column($runs, 'baseline'));
+    }
 }

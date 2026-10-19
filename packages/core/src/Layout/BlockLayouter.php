@@ -87,11 +87,18 @@ final class BlockLayouter implements Layouter
             if ($align !== Align::Stretch && !$child instanceof Spacer) {
                 $width = min($engine->intrinsic($child, $style, $i)['max'], $slot);
             }
-            $fresh = $c->fresh && $placed === [];
+            // Inside a monolithic box every child is laid out as if on a fresh page, so leading forced breaks are ignored.
+            $fresh = $monolithic || ($c->fresh && $placed === []);
             $height = $available === null ? null : max(0.0, $available - $cursor - $gap - $mt);
 
             $res = $engine->layout($child, $style, new Constraints($width, $height, $fresh), $resuming ? $resumeToken : null, $i);
+            if ($monolithic && $res->status === Status::Partial && $res->fragment !== null && $res->token !== null) {
+                $res = LayoutResult::complete(self::continueInPlace($res->fragment, $res->token, $child, $width, $i, $style, $engine));
+            }
             if ($res->status === Status::DoesNotFit || $res->fragment === null) {
+                if ($monolithic) {
+                    continue; // unbounded and fresh: cannot happen for well-behaved layouters
+                }
                 if ($placed === []) {
                     return LayoutResult::doesNotFit();
                 }
@@ -133,12 +140,6 @@ final class BlockLayouter implements Layouter
             $cursor = $y + $f->height;
 
             if ($res->status === Status::Partial && $res->token !== null) {
-                if ($monolithic && !($resuming && $res->token == $resumeToken)) {
-                    // A monolithic box never splits: continue the child's forced-break slices in place.
-                    $resumeToken = $res->token;
-                    $start = $i--;
-                    continue;
-                }
                 $breakAt = new BreakToken(index: $i, child: $res->token);
                 break;
             }
@@ -234,6 +235,34 @@ final class BlockLayouter implements Layouter
         return self::forcesBreakAfter($last, $engine->styleOf($last, $style, $i), $engine);
     }
 
+    /**
+     * A monolithic box never splits: a child's forced-break slices are laid
+     * out one after another (fresh, unbounded, no gap) into one wrapper.
+     */
+    private static function continueInPlace(Fragment $firstSlice, BreakToken $token, Node $child, float $width, int $index, ComputedStyle $style, LayoutEngine $engine): Fragment
+    {
+        $slices = [$firstSlice];
+        for ($guard = 0; $guard < 10_000; $guard++) {
+            $res = $engine->layout($child, $style, new Constraints($width, null, true), $token, $index);
+            if ($res->fragment === null) {
+                break;
+            }
+            $slices[] = $res->fragment;
+            if ($res->status !== Status::Partial || $res->token === null || $res->token == $token) {
+                break;
+            }
+            $token = $res->token;
+        }
+        $wrapper = new Fragment(max(array_map(static fn (Fragment $f): float => $f->width, $slices)), 0.0);
+        $y = 0.0;
+        foreach ($slices as $slice) {
+            $wrapper->addChild(0.0, $y, $slice);
+            $y += $slice->height;
+        }
+        $wrapper->height = $y;
+        return $wrapper;
+    }
+
     private static function clampHeight(ComputedStyle $style, Constraints $c, ?float $h): ?float
     {
         if ($h === null) {
@@ -281,7 +310,7 @@ final class BlockLayouter implements Layouter
                     $extra = $free * $p['style']->grow / $totalGrow;
                     $target = $p['height'] + $extra;
                     $res = $engine->layout($p['node'], $style, new Constraints($p['width'], null, $p['fresh'], $target), null, $p['index']);
-                    if ($res->fragment !== null) {
+                    if ($res->status === Status::Complete && $res->fragment !== null) {
                         $p['fragment'] = $res->fragment;
                     }
                     $p['height'] = $target;
