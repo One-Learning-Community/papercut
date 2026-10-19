@@ -25,20 +25,28 @@ final class UnknownAttributeTest extends TestCase
     public function test_message_with_context_and_suggestion(): void
     {
         $base = UnknownAttribute::for('paddng', 'padding');
-        $e = $base->withContext('on <x-pdf::column>');
+        $e = $base->within('on <x-pdf::column>');
         self::assertSame(
             'Unknown attribute "paddng" on <x-pdf::column>. Did you mean "padding"?',
             $e->getMessage(),
         );
         self::assertSame($base, $e->getPrevious());
-        self::assertSame('on <x-pdf::column>', $e->context);
+        self::assertSame(['on <x-pdf::column>'], $e->locations);
+    }
+
+    public function test_repeated_within_appends_left_to_right(): void
+    {
+        $e = UnknownAttribute::for('x')->within('on <a>')->within('in <b>');
+        self::assertSame('Unknown attribute "x" on <a> in <b>.', $e->getMessage());
+        self::assertSame(['on <a>', 'in <b>'], $e->locations);
+        self::assertNotNull($e->getPrevious());
     }
 
     public function test_context_without_suggestion_and_custom_noun(): void
     {
         self::assertSame(
             'Unknown style "x" in theme.',
-            UnknownAttribute::for('x', null, 'style')->withContext('in theme')->getMessage(),
+            UnknownAttribute::for('x', null, 'style')->within('in theme')->getMessage(),
         );
     }
 }

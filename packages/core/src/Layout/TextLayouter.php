@@ -1,0 +1,295 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Papercut\Layout;
+
+use Papercut\{Node, Text};
+use Papercut\Paint\{Line as LineOp, Link as LinkOp, TextRun};
+use Papercut\Style\{ComputedStyle, TextAlign};
+use Papercut\Text\{FontStyle, InlineItem, Line, LineBreaker};
+
+/**
+ * Lays out a Text node as a stack of line boxes and fragments it between
+ * lines, honouring min-lines as both orphans and widows.
+ */
+final class TextLayouter implements Layouter
+{
+    /** @var \WeakMap<Node, array<string, array{style: ComputedStyle, lines: list<Line>}>> */
+    private \WeakMap $lineCache;
+
+    public function __construct()
+    {
+        $this->lineCache = new \WeakMap();
+    }
+
+    public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
+    {
+        $lines = $this->lines(self::text($node), $style, $c->width, $engine);
+        $total = count($lines);
+        $start = min(max(0, $token->index ?? 0), $total);
+        if ($start >= $total) {
+            return LayoutResult::complete(new Fragment($c->width, 0.0));
+        }
+
+        /** @var array<int, array{baseline: float, height: float}> $boxes */
+        $boxes = [];
+        for ($i = $start; $i < $total; $i++) {
+            $boxes[$i] = $this->lineBox($lines[$i], $style, $engine);
+        }
+
+        $n = self::fittingLines($boxes, $start, $total, $c->height);
+        if ($n >= $total - $start) {
+            return LayoutResult::complete($this->fragment($lines, $boxes, $start, $total, $style, $c->width));
+        }
+
+        $m = max(1, min($style->minLines, $total));
+        if ($n < $m) {
+            if (!$c->fresh) {
+                return LayoutResult::doesNotFit();
+            }
+            // Orphans cannot be honoured on an empty page; with nothing fitting, one line overflows by design.
+            $n = max(1, $n);
+        } else {
+            $remaining = $total - ($start + $n);
+            if ($remaining < $m) {
+                $n -= $m - $remaining;
+                if ($n < $m) {
+                    if (!$c->fresh) {
+                        return LayoutResult::doesNotFit();
+                    }
+                    $n = max(1, $n);
+                }
+            }
+        }
+
+        $end = $start + $n;
+        return LayoutResult::partial(
+            $this->fragment($lines, $boxes, $start, $end, $style, $c->width),
+            new BreakToken(index: $end),
+        );
+    }
+
+    public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
+    {
+        $items = $engine->context()->itemizer()->itemize(self::text($node)->spanList(), $style);
+        $min = 0.0;
+        $max = 0.0;
+        $chunk = 0.0;
+        $line = 0.0;
+        foreach ($items as $item) {
+            if ($item->kind === 'break') {
+                $max = max($max, $line);
+                $line = 0.0;
+                $chunk = 0.0;
+                continue;
+            }
+            $line += $item->width;
+            if ($item->kind === 'space') {
+                $chunk = 0.0;
+                continue;
+            }
+            $chunk += $item->width;
+            $min = max($min, $chunk);
+            if ($item->breakAfter) {
+                $chunk = 0.0;
+            }
+        }
+        return ['min' => $min, 'max' => max($max, $line)];
+    }
+
+    private static function text(Node $node): Text
+    {
+        if (!$node instanceof Text) {
+            throw new \LogicException(sprintf('TextLayouter cannot lay out %s.', $node::class));
+        }
+        return $node;
+    }
+
+    /** @return list<Line> */
+    private function lines(Text $node, ComputedStyle $style, float $width, LayoutEngine $engine): array
+    {
+        $key = "w$width";
+        $entries = $this->lineCache[$node] ?? [];
+        $hit = $entries[$key] ?? null;
+        if ($hit !== null && $hit['style'] == $style) {
+            return $hit['lines'];
+        }
+        $items = $engine->context()->itemizer()->itemize($node->spanList(), $style);
+        $lines = $items === [] ? [] : LineBreaker::break($items, $width);
+        $entries[$key] = ['style' => $style, 'lines' => $lines];
+        $this->lineCache[$node] = $entries;
+        return $lines;
+    }
+
+    /** @return array{baseline: float, height: float} */
+    private function lineBox(Line $line, ComputedStyle $paragraph, LayoutEngine $engine): array
+    {
+        /** @var list<array{float, float, float}> $metrics half-leading, ascent, descent */
+        $metrics = [];
+        foreach ($line->items as $item) {
+            $metrics[] = self::metrics($item->font->ascent($item->size), $item->font->descent($item->size), $item->style->lineHeight * $item->size);
+        }
+        if ($metrics === []) {
+            $font = $engine->context()->fonts->resolve(
+                $paragraph->fontFamily,
+                $paragraph->fontWeight,
+                $paragraph->italic ? FontStyle::Italic : FontStyle::Normal,
+            );
+            $size = $paragraph->fontSize;
+            $metrics[] = self::metrics($font->ascent($size), $font->descent($size), $paragraph->lineHeightPoints());
+        }
+        $baseline = max(array_map(static fn (array $m): float => $m[0] + $m[1], $metrics));
+        $height = max(array_map(static fn (array $m): float => $baseline + $m[2] + $m[0], $metrics));
+        return ['baseline' => $baseline, 'height' => $height];
+    }
+
+    /** @return array{float, float, float} */
+    private static function metrics(float $ascent, float $descent, float $lineHeight): array
+    {
+        return [($lineHeight - ($ascent + $descent)) / 2, $ascent, $descent];
+    }
+
+    /** @param array<int, array{baseline: float, height: float}> $boxes */
+    private static function fittingLines(array $boxes, int $start, int $total, ?float $height): int
+    {
+        if ($height === null) {
+            return $total - $start;
+        }
+        $sum = 0.0;
+        $n = 0;
+        for ($i = $start; $i < $total; $i++) {
+            $sum += $boxes[$i]['height'];
+            if ($sum > $height + 1e-9) {
+                break;
+            }
+            $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * @param list<Line> $lines
+     * @param array<int, array{baseline: float, height: float}> $boxes
+     */
+    private function fragment(array $lines, array $boxes, int $start, int $end, ComputedStyle $style, float $width): Fragment
+    {
+        $height = 0.0;
+        for ($i = $start; $i < $end; $i++) {
+            $height += $boxes[$i]['height'];
+        }
+        $f = new Fragment($width, $height);
+        $top = 0.0;
+        for ($i = $start; $i < $end; $i++) {
+            $this->paintLine($f, $lines[$i], $top, $boxes[$i], $style->textAlign, $width);
+            $top += $boxes[$i]['height'];
+        }
+        return $f;
+    }
+
+    /** @param array{baseline: float, height: float} $box */
+    private function paintLine(Fragment $f, Line $line, float $top, array $box, TextAlign $align, float $width): void
+    {
+        $justified = $align === TextAlign::Justify && !$line->isLast && !$line->endsWithBreak;
+        $perSpace = 0.0;
+        if ($justified) {
+            $spaces = count(array_filter($line->items, static fn (InlineItem $i): bool => $i->kind === 'space'));
+            if ($spaces > 0) {
+                $perSpace = max(0.0, $width - $line->width) / $spaces;
+            }
+        }
+        $x = match ($align) {
+            TextAlign::Right => $width - $line->width,
+            TextAlign::Center => ($width - $line->width) / 2,
+            TextAlign::Left, TextAlign::Justify => 0.0,
+        };
+
+        /** @var list<array{item: InlineItem, x: float, w: float}> $placed */
+        $placed = [];
+        foreach ($line->items as $item) {
+            $w = $item->width + ($item->kind === 'space' ? $perSpace : 0.0);
+            $placed[] = ['item' => $item, 'x' => $x, 'w' => $w];
+            $x += $w;
+        }
+        $baseline = $top + $box['baseline'];
+
+        // Text runs: one per word on justified lines, otherwise merged by identical style.
+        $runs = $justified
+            ? array_map(static fn (array $p): array => [$p], array_values(array_filter($placed, static fn (array $p): bool => $p['item']->kind === 'word')))
+            : self::group($placed, self::styleKey(...));
+        foreach ($runs as $group) {
+            $text = implode('', array_map(static fn (array $p): string => $p['item']->text, $group));
+            if (trim($text) === '') {
+                continue;
+            }
+            $first = $group[0]['item'];
+            $f->addOp(new TextRun($group[0]['x'], $baseline, $text, $first->font, $first->size, $first->style->color, $first->style->letterSpacing));
+        }
+
+        // Decorations span contiguous same-style items, including stretched spaces.
+        foreach (self::group($placed, self::styleKey(...)) as $group) {
+            $s = $group[0]['item']->style;
+            $size = $group[0]['item']->size;
+            $x1 = $group[0]['x'];
+            $x2 = $x1 + array_sum(array_column($group, 'w'));
+            $thickness = max(0.5, 0.06 * $size);
+            if ($s->underline) {
+                $y = $baseline + 0.12 * $size;
+                $f->addOp(new LineOp($x1, $y, $x2, $y, $s->color, $thickness));
+            }
+            if ($s->strike) {
+                $y = $baseline - 0.3 * $size;
+                $f->addOp(new LineOp($x1, $y, $x2, $y, $s->color, $thickness));
+            }
+        }
+
+        foreach (self::group($placed, static fn (InlineItem $i): string => $i->href ?? '') as $group) {
+            $href = $group[0]['item']->href;
+            if ($href === null) {
+                continue;
+            }
+            $f->addOp(new LinkOp($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], $href));
+        }
+    }
+
+    /**
+     * Splits placed items into runs of consecutive items sharing a key.
+     *
+     * @param list<array{item: InlineItem, x: float, w: float}> $placed
+     * @param \Closure(InlineItem): string $key
+     * @return list<non-empty-list<array{item: InlineItem, x: float, w: float}>>
+     */
+    private static function group(array $placed, \Closure $key): array
+    {
+        $groups = [];
+        $current = [];
+        $currentKey = null;
+        foreach ($placed as $p) {
+            $k = $key($p['item']);
+            if ($current !== [] && $k !== $currentKey) {
+                $groups[] = $current;
+                $current = [];
+            }
+            $current[] = $p;
+            $currentKey = $k;
+        }
+        if ($current !== []) {
+            $groups[] = $current;
+        }
+        return $groups;
+    }
+
+    private static function styleKey(InlineItem $i): string
+    {
+        $s = $i->style;
+        return implode("\0", [
+            $i->font->id(),
+            (string) $i->size,
+            (string) $s->color,
+            (string) $s->letterSpacing,
+            $s->underline ? 'u' : '',
+            $s->strike ? 's' : '',
+            $i->href ?? '',
+        ]);
+    }
+}

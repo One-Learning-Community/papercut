@@ -36,11 +36,11 @@ final readonly class TrackList
                 };
             } catch (InvalidValue $e) {
                 if ($e->suggestion === null) {
-                    throw InvalidValue::for('column list', $input);
+                    throw InvalidValue::for('column list', $input, null, $e);
                 }
                 $fixed = $tokens;
                 $fixed[$i] = $e->suggestion;
-                throw InvalidValue::for('column list', $input, implode(' ', $fixed));
+                throw InvalidValue::for('column list', $input, implode(' ', $fixed), $e);
             }
         }
         return new self($tracks);

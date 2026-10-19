@@ -114,13 +114,13 @@ final class FontRegistryTest extends TestCase
     {
         $r = new FontRegistry(new PhpPdfBackend());
         self::assertTrue($r->register('X', self::DIR . '/Inter-Regular.ttf', 1000)->has('X'));
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
         $r->register('Y', self::DIR . '/Inter-Regular.ttf', 1001);
     }
 
     public function test_register_rejects_bad_weight(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
         (new FontRegistry(new PhpPdfBackend()))->register('X', self::DIR . '/Inter-Regular.ttf', 0);
     }
 }

@@ -10,9 +10,13 @@ final class FakeFont implements FontHandle
 {
     public int $advanceCalls = 0;
 
+    public function __construct(private readonly string $id = 'fake')
+    {
+    }
+
     public function id(): string
     {
-        return 'fake';
+        return $this->id;
     }
 
     public function advance(string $text, float $size, float $letterSpacing = 0.0): float

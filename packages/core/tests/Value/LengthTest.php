@@ -118,6 +118,24 @@ final class LengthTest extends TestCase
         self::assertSame(0.0, Length::zero()->points);
     }
 
+    public function test_arithmetic_rejects_non_finite_results(): void
+    {
+        $big = Length::points(1e308);
+        foreach ([
+            static fn () => $big->plus($big),
+            static fn () => Length::points(-1e308)->minus($big),
+            static fn () => $big->scale(10.0),
+            static fn () => Length::points(1.0)->scale(NAN),
+        ] as $op) {
+            try {
+                $op();
+                self::fail('accepted non-finite result');
+            } catch (InvalidValue $e) {
+                self::assertSame('length', $e->kind);
+            }
+        }
+    }
+
     public function test_canonical_string(): void
     {
         self::assertSame('12pt', (string) pt(12));

@@ -12,6 +12,23 @@ use function Papercut\pt;
 
 final class EdgesTest extends TestCase
 {
+    public function test_rethrown_error_keeps_inner_as_previous(): void
+    {
+        try {
+            Edges::parse('1pt 20');
+            self::fail('accepted');
+        } catch (InvalidValue $e) {
+            self::assertInstanceOf(InvalidValue::class, $e->getPrevious());
+        }
+        try {
+            Edges::parse('1pt zzz');
+            self::fail('accepted');
+        } catch (InvalidValue $e) {
+            self::assertInstanceOf(InvalidValue::class, $e->getPrevious());
+            self::assertSame('length', $e->getPrevious()->kind);
+        }
+    }
+
     public function test_css_shorthand(): void
     {
         $this->assertEdges(Edges::parse('10pt'), 10, 10, 10, 10);

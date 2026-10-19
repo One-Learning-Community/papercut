@@ -20,9 +20,23 @@ final class PhpPdfFontTest extends TestCase
         return $f;
     }
 
+    public function test_text_state_guard_throws_when_internals_missing(): void
+    {
+        $o = new class { public float $a = 0.0; };
+        PhpPdfBackend::guardTextStateProperties($o, ['a']);
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('dskripchenko/php-pdf internals changed');
+        PhpPdfBackend::guardTextStateProperties($o, ['a', 'missing']);
+    }
+
     public function test_empty_string_has_zero_advance(): void
     {
         self::assertSame(0.0, $this->font()->advance('', 12));
+    }
+
+    public function test_notdef_glyph_counts_as_1000_units(): void
+    {
+        self::assertSame(10.0, $this->font()->advance('中', 10));
     }
 
     public function test_whitespace_has_positive_advance(): void

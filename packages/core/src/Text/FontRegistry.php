@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Text;
 
 use Papercut\Backend\Backend;
-use Papercut\Exception\FontNotFound;
+use Papercut\Exception\{FontNotFound, InvalidValue};
 
 final class FontRegistry
 {
@@ -31,7 +31,7 @@ final class FontRegistry
     public function register(string $family, string $path, int $weight = 400, FontStyle $style = FontStyle::Normal): self
     {
         if ($weight < 1 || $weight > 1000) {
-            throw new \InvalidArgumentException("Font weight must be between 1 and 1000, got $weight.");
+            throw InvalidValue::for('font weight', (string) $weight);
         }
         if (!is_file($path) || !is_readable($path)) {
             throw new FontNotFound('Font file not found: ' . $path);

@@ -20,6 +20,8 @@ use Papercut\Value\Color;
 
 final class PhpPdfBackend implements Backend
 {
+    private const array TEXT_STATE_PROPERTIES = ['lastFillR', 'lastFillG', 'lastFillB', 'lastCharSpacing'];
+
     /** @var array<string, PhpPdfFont> */
     private array $fonts = [];
 
@@ -180,10 +182,24 @@ final class PhpPdfBackend implements Backend
     private function invalidateTextState(PdfPage $p): void
     {
         $stream = $p->rawContentStream();
+        self::guardTextStateProperties($stream, self::TEXT_STATE_PROPERTIES);
         \Closure::bind(function (): void {
             $this->lastFillR = $this->lastFillG = $this->lastFillB = NAN;
             $this->lastCharSpacing = NAN;
         }, $stream, $stream::class)();
+    }
+
+    /**
+     * @internal public only so tests can exercise it against a fake object.
+     * @param list<string> $properties
+     */
+    public static function guardTextStateProperties(object $stream, array $properties): void
+    {
+        foreach ($properties as $property) {
+            if (!property_exists($stream, $property)) {
+                throw new \LogicException('papercut/core: dskripchenko/php-pdf internals changed (ContentStream text-state cache); pin dskripchenko/php-pdf to a compatible 1.x version or upgrade papercut/core.');
+            }
+        }
     }
 
     private function pdfFont(FontHandle $font): PdfFont

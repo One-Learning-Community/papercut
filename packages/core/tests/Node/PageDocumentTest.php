@@ -12,6 +12,18 @@ use function Papercut\{mm, pt};
 
 final class PageDocumentTest extends TestCase
 {
+    public function test_size_rejects_non_positive_or_non_finite(): void
+    {
+        foreach ([[0, 100], [100, 0], [-1, 100], [100, -5]] as [$w, $h]) {
+            try {
+                Page::size(pt($w), pt($h));
+                self::fail('accepted');
+            } catch (InvalidValue $e) {
+                self::assertSame('page size', $e->kind);
+            }
+        }
+    }
+
     public function test_page_sizes_and_orientation(): void
     {
         self::assertEqualsWithDelta([595.28, 841.89], [Page::a4()->width(), Page::a4()->height()], 0.01);

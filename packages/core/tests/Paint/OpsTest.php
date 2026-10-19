@@ -113,6 +113,41 @@ final class OpsTest extends TestCase
         self::assertSame('https://x.test', (new Link(0, 0, 10, 10, 'https://x.test'))->uri);
     }
 
+    /** @return iterable<string, array{string}> */
+    public static function badUris(): iterable
+    {
+        yield 'javascript' => ['javascript:alert(1)'];
+        yield 'file' => ['file:///etc/passwd'];
+        yield 'data' => ['data:text/html,x'];
+        yield 'relative' => ['docs/a.pdf'];
+        yield 'empty' => [''];
+        yield 'ftp' => ['ftp://x.test'];
+    }
+
+    #[DataProvider('badUris')]
+    public function test_link_rejects_disallowed_uri(string $uri): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
+        new Link(0, 0, 1, 1, $uri);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function goodUris(): iterable
+    {
+        yield 'http' => ['http://x.test'];
+        yield 'https upper' => ['HTTPS://x.test'];
+        yield 'mailto' => ['mailto:a@x.test'];
+        yield 'tel' => ['tel:+123'];
+        yield 'fragment' => ['#top'];
+        yield 'leading space' => ['  https://x.test'];
+    }
+
+    #[DataProvider('goodUris')]
+    public function test_link_accepts_allowed_uri(string $uri): void
+    {
+        self::assertSame($uri, (new Link(0, 0, 1, 1, $uri))->uri);
+    }
+
     private static function image(): ImageHandle
     {
         return new class implements ImageHandle {
