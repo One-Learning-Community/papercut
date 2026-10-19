@@ -47,11 +47,11 @@ final readonly class Edges
                 $lengths[] = Length::parse($tok);
             } catch (InvalidValue $e) {
                 if ($e->suggestion === null) {
-                    throw InvalidValue::for('edges', $input);
+                    throw InvalidValue::for('edges', $input, null, $e);
                 }
                 $fixed = $tokens;
                 $fixed[$i] = $e->suggestion;
-                throw InvalidValue::for('edges', $input, implode(' ', $fixed));
+                throw InvalidValue::for('edges', $input, implode(' ', $fixed), $e);
             }
         }
         return self::of(...$lengths);

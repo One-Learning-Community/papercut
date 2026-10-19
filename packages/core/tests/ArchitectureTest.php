@@ -22,7 +22,7 @@ final class ArchitectureTest extends TestCase
             if (str_starts_with($path, $src . '/Backend/PhpPdf/')) {
                 continue;
             }
-            if (str_contains((string) file_get_contents($path), 'Dskripchenko')) {
+            if (stripos((string) file_get_contents($path), 'Dskripchenko') !== false) {
                 $offenders[] = substr($path, strlen($src) + 1);
             }
         }

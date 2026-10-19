@@ -35,7 +35,8 @@ final class PhpPdfFont implements FontHandle
         $prev = null;
         foreach ($this->font->shapedGlyphs($text) as $glyph) {
             $gid = $glyph['gid'];
-            $units += $this->font->widthOfGlyphPdfUnits($gid);
+            // php-pdf writes no /W or /DW entry for .notdef (gid 0), so viewers draw it 1000 units wide.
+            $units += $gid === 0 ? 1000 : $this->font->widthOfGlyphPdfUnits($gid);
             if ($letterSpacing === 0.0 && $prev !== null) {
                 $units -= $this->font->kerningPdfUnits($prev, $gid);
             }

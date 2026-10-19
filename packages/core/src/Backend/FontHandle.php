@@ -18,6 +18,10 @@ interface FontHandle
     /** Distance below the baseline in points at $size (positive). */
     public function descent(float $size): float;
 
-    /** True when every non-whitespace character has a glyph. */
+    /**
+     * True when every non-whitespace character has a glyph. Whitespace and control characters
+     * (<= U+0020) are always reported as covered; layout must normalise tabs and control
+     * characters before drawing.
+     */
     public function covers(string $text): bool;
 }

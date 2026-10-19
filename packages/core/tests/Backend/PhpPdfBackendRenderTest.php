@@ -35,6 +35,17 @@ final class PhpPdfBackendRenderTest extends TestCase
         return $this->backend->render($this->meta(), [new PageDisplayList($w, $h, $ops)]);
     }
 
+    public function test_notdef_advance_matches_drawn_width(): void
+    {
+        $font = $this->fonts->resolve('Inter');
+        $text = 'AA中中中中AA';
+        $w = $font->advance($text, 24);
+        $pdf = $this->render([new TextRun(500 - $w, 100, $text, $font, 24, Color::black())]);
+        // pdftotext splits the run at the .notdef glyphs; the last word carries the right edge.
+        $words = PdfInspector::words($pdf);
+        self::assertEqualsWithDelta(500.0, max(0.0, ...array_column($words, 'xMax')), 1.5);
+    }
+
     public function test_text_lands_at_top_left_coordinates(): void
     {
         $font = $this->fonts->resolve('Inter');

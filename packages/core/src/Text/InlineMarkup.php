@@ -54,7 +54,10 @@ final class InlineMarkup
 
             if ($closing === '/') {
                 $top = $stack === [] ? null : $stack[count($stack) - 1];
-                if ($top === null || $top['tag'] !== $name || trim($rawAttrs) !== '') {
+                if ($top === null || $top['tag'] !== $name) {
+                    throw InvalidValue::for('inline markup', $markup)->because('unexpected ' . $display);
+                }
+                if (trim($rawAttrs) !== '') {
                     throw self::notAllowed($markup, $display);
                 }
                 self::flush($text, $spans, $style, $href);
@@ -92,14 +95,14 @@ final class InlineMarkup
             $style = $style->merge($add);
             if ($name === 'a') {
                 if (!isset($attrs['href'])) {
-                    throw self::notAllowed($markup, '<a> without href');
+                    throw InvalidValue::for('inline markup', $markup)->because('<a> needs an href');
                 }
                 $href = $attrs['href'];
             }
         }
 
         if ($stack !== []) {
-            throw self::notAllowed($markup, '<' . $stack[count($stack) - 1]['tag'] . '> (unclosed)');
+            throw InvalidValue::for('inline markup', $markup)->because('<' . $stack[count($stack) - 1]['tag'] . '> is not closed');
         }
         self::flush($text, $spans, $style, $href);
         return $spans;
@@ -158,9 +161,8 @@ final class InlineMarkup
         return html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
-    /** @todo attach the offending $tag as detail once InvalidValue gains a because() API */
     private static function notAllowed(string $markup, string $tag): InvalidValue
     {
-        return InvalidValue::for('inline markup', $markup);
+        return InvalidValue::for('inline markup', $markup)->because($tag . ' is not allowed');
     }
 }

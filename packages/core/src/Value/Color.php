@@ -23,7 +23,7 @@ final readonly class Color implements \Stringable
                 throw InvalidValue::for('color', sprintf('rgb(%d, %d, %d)', $r, $g, $b));
             }
         }
-        if ($alpha < 0 || $alpha > 1) {
+        if (!is_finite($alpha) || $alpha < 0 || $alpha > 1) {
             throw InvalidValue::for('color', sprintf('rgba(%d, %d, %d, %s)', $r, $g, $b, $alpha));
         }
         return new self($r, $g, $b, round($alpha, 4));
@@ -117,6 +117,10 @@ final readonly class Color implements \Stringable
     {
         if (preg_match('/^([a-z]+)(\d+)$/', $key, $m) && isset($palette[$m[1] . '-' . $m[2]])) {
             return $m[1] . '-' . $m[2];
+        }
+        // A bare family name ("red") suggests its middle shade.
+        if (isset($palette[$key . '-500'])) {
+            return $key . '-500';
         }
         // A known family with an unknown shade ("slate-550") is not a typo: no suggestion.
         if (preg_match('/^([a-z]+)-\d+$/', $key, $m) && isset($palette[$m[1] . '-500'])) {

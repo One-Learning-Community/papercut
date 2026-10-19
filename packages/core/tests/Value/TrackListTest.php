@@ -12,6 +12,18 @@ use function Papercut\{fr, mm};
 
 final class TrackListTest extends TestCase
 {
+    public function test_rethrown_error_keeps_inner_as_previous(): void
+    {
+        foreach (['1fr zzz', '1fr 20'] as $in) {
+            try {
+                TrackList::parse($in);
+                self::fail('accepted');
+            } catch (InvalidValue $e) {
+                self::assertInstanceOf(InvalidValue::class, $e->getPrevious(), $in);
+            }
+        }
+    }
+
     public function test_parse_mixed_tracks(): void
     {
         $t = TrackList::parse('3fr 25mm auto 10%');

@@ -55,6 +55,24 @@ final class InlineMarkupTest extends TestCase
         }
     }
 
+    public function test_rejection_reasons(): void
+    {
+        $cases = [
+            '<script>x</script>' => 'Invalid inline markup "<script>x</script>": <script> is not allowed.',
+            '<b>x' => 'Invalid inline markup "<b>x": <b> is not closed.',
+            'x</b>' => 'Invalid inline markup "x</b>": unexpected </b>.',
+            '<b><i>x</b></i>' => 'Invalid inline markup "<b><i>x</b></i>": unexpected </b>.',
+        ];
+        foreach ($cases as $markup => $message) {
+            try {
+                InlineMarkup::parse((string) $markup);
+                self::fail("accepted $markup");
+            } catch (InvalidValue $e) {
+                self::assertSame($message, $e->getMessage());
+            }
+        }
+    }
+
     public function test_lone_less_than_is_literal_and_markup_factory_works(): void
     {
         $s = InlineMarkup::parse('a < b <3');

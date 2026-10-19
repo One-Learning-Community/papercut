@@ -63,17 +63,17 @@ final readonly class Length implements \Stringable
 
     public function plus(Length $other): self
     {
-        return new self($this->points + $other->points);
+        return self::points($this->points + $other->points);
     }
 
     public function minus(Length $other): self
     {
-        return new self($this->points - $other->points);
+        return self::points($this->points - $other->points);
     }
 
     public function scale(float $factor): self
     {
-        return new self($this->points * $factor);
+        return self::points($this->points * $factor);
     }
 
     public function equals(Length $other, float $epsilon = 1e-6): bool

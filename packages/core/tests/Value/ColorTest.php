@@ -46,6 +46,8 @@ final class ColorTest extends TestCase
         yield 'bad hex length' => ['#12345', null];
         yield 'channel out of range' => ['rgb(300, 0, 0)', null];
         yield 'alpha out of range' => ['rgba(0, 0, 0, 2)', null];
+        yield 'bare family' => ['red', 'red-500'];
+        yield 'bare family slate' => ['slate', 'slate-500'];
         yield 'empty' => ['', null];
         yield 'rgb without separators' => ['rgb(100200100)', null];
         yield 'rgb mixed separators' => ['rgb(1,2 3)', null];
@@ -91,6 +93,31 @@ final class ColorTest extends TestCase
     public function test_eight_digit_hex_round_trips(): void
     {
         self::assertSame('#33415580', (string) Color::parse('#33415580'));
+    }
+
+    public function test_basic_names_still_parse(): void
+    {
+        self::assertSame('#000000', (string) Color::parse('black'));
+        self::assertSame('#ffffff', (string) Color::parse('white'));
+        self::assertTrue(Color::parse('transparent')->isTransparent());
+    }
+
+    public function test_non_finite_alpha_rejected(): void
+    {
+        foreach ([NAN, INF] as $a) {
+            try {
+                Color::rgb(0, 0, 0, $a);
+                self::fail('rgb accepted');
+            } catch (InvalidValue $e) {
+                self::assertSame('color', $e->kind);
+            }
+            try {
+                Color::black()->withAlpha($a);
+                self::fail('withAlpha accepted');
+            } catch (InvalidValue $e) {
+                self::assertSame('color', $e->kind);
+            }
+        }
     }
 
     public function test_hex_direct(): void
