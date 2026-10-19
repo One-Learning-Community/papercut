@@ -11,6 +11,17 @@ final class ExamplesTest extends TestCase
 {
     private const string EXAMPLES = __DIR__ . '/../../../../examples/laravel';
 
+    /** @var list<string> */
+    private array $temps = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->temps as $f) {
+            @unlink($f);
+        }
+        parent::tearDown();
+    }
+
     /**
      * @param \Illuminate\Foundation\Application $app
      */
@@ -33,7 +44,10 @@ final class ExamplesTest extends TestCase
     private function render(string $view): string
     {
         $pdf = Pdf::view($view, self::data($view))->toString();
-        $file = tempnam(sys_get_temp_dir(), 'pc-ex') . '.pdf';
+        $base = (string) tempnam(sys_get_temp_dir(), 'pc-ex');
+        $file = $base . '.pdf';
+        $this->temps[] = $base;
+        $this->temps[] = $file;
         file_put_contents($file, $pdf);
         exec('qpdf --check ' . escapeshellarg($file) . ' 2>&1', $out, $code);
         self::assertSame(0, $code, implode("\n", $out));

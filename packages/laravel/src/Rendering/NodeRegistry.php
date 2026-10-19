@@ -9,12 +9,12 @@ use Papercut\Laravel\Exception\InvalidStructure;
 
 final class NodeRegistry
 {
-    /** @var list<array{nonce: string, nodes: array<int, object>, taken: array<int, true>, next: int}> */
+    /** @var list<array{nonce: string, view: ?string, nodes: array<int, object>, taken: array<int, true>, next: int}> */
     private array $scopes = [];
 
-    public function scope(callable $fn): mixed
+    public function scope(callable $fn, ?string $view = null): mixed
     {
-        $this->scopes[] = ['nonce' => bin2hex(random_bytes(8)), 'nodes' => [], 'taken' => [], 'next' => 0];
+        $this->scopes[] = ['nonce' => bin2hex(random_bytes(8)), 'view' => $view, 'nodes' => [], 'taken' => [], 'next' => 0];
         try {
             return $fn();
         } finally {
@@ -38,7 +38,7 @@ final class NodeRegistry
     public function segments(string $html): array
     {
         $key = array_key_last($this->scopes);
-        $parts = preg_split('/(\[\[pc:[0-9a-f]{16}:\d+\]\])/', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $parts = preg_split('/(\[\[pc:[0-9a-f]{16}:\d+\]\])/i', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
         if ($parts === false) {
             return [$html];
         }
@@ -49,16 +49,19 @@ final class NodeRegistry
                 continue;
             }
             $node = null;
-            if ($key !== null && preg_match('/^\[\[pc:([0-9a-f]{16}):(\d+)\]\]$/', $part, $m) === 1
-                && $m[1] === $this->scopes[$key]['nonce']) {
+            if ($key !== null && preg_match('/^\[\[pc:([0-9a-f]{16}):(\d+)\]\]$/i', $part, $m) === 1
+                && strtolower($m[1]) === $this->scopes[$key]['nonce']) {
                 $id = (int) $m[2];
+                $exact = $m[1] === $this->scopes[$key]['nonce'] && str_starts_with($part, '[[pc:');
+                if (!$exact || !isset($this->scopes[$key]['nodes'][$id])) {
+                    $view = $this->scopes[$key]['view'];
+                    throw new InvalidStructure('A slot containing <x-pdf::*> tags was modified as a string (e.g. strtoupper($slot))' . ($view !== null ? " in view [$view]" : ''));
+                }
                 if (isset($this->scopes[$key]['taken'][$id])) {
-                    throw new InvalidStructure('Node rendered twice');
+                    throw new InvalidStructure('A <x-pdf::*> element was output twice (is {{ $slot }} echoed more than once?)');
                 }
-                if (isset($this->scopes[$key]['nodes'][$id])) {
-                    $this->scopes[$key]['taken'][$id] = true;
-                    $node = $this->scopes[$key]['nodes'][$id];
-                }
+                $this->scopes[$key]['taken'][$id] = true;
+                $node = $this->scopes[$key]['nodes'][$id];
             }
             if ($node !== null) {
                 $out[] = $node;

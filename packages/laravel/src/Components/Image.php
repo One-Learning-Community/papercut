@@ -28,7 +28,11 @@ final class Image extends PdfComponent
         }
 
         if ($src !== null) {
-            $node = \Papercut\Image::file(self::resolvePath($src));
+            try {
+                $node = \Papercut\Image::file(self::resolvePath($src));
+            } catch (ImageUnreadable $e) {
+                throw new ImageUnreadable($e->getMessage() . ' on <x-pdf::image src="' . $src . '">', 0, $e);
+            }
         } else {
             $node = \Papercut\Image::bytes((string) $bytes);
         }

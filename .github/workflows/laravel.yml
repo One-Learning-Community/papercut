@@ -2,7 +2,13 @@ name: laravel
 
 on:
   push:
+    paths: &paths
+      - 'packages/laravel/**'
+      - 'packages/core/**'
+      - 'examples/laravel/**'
+      - '.github/workflows/laravel.yml'
   pull_request:
+    paths: *paths
 
 jobs:
   test:

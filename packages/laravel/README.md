@@ -69,6 +69,8 @@ This publishes `config/papercut.php`:
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
 | `preview.path` | `'_papercut'` | URL prefix for preview routes |
 
+> Apps that also use barryvdh/laravel-dompdf (which claims the same `Pdf` alias) should import the facade explicitly: `use Papercut\Laravel\Facades\Pdf;`.
+
 ## Tags
 
 Style attributes (next section) work on every tag marked "style" below. Values are plain strings (`gap="8pt"`), or bound PHP values (`:gap="$gap"`). Boolean attributes can be written bare (`bold`) or bound.
@@ -83,7 +85,7 @@ Style attributes (next section) work on every tag marked "style" below. Values a
 | `<x-pdf::text>` | `align`, `size` | Style. Inline markup allowed: `<b>`, `<i>`, `<u>`, `<s>`, `<a href>`, `<br>`, `<span>`. |
 | `<x-pdf::h1>` ... `<x-pdf::h4>` | `align`, `size` | Style. Heading presets. |
 | `<x-pdf::p>` | `align`, `size` | Style. Paragraph preset. |
-| `<x-pdf::image>` | `src`, `data`, `fit` (`contain`/`cover`/`fill`) | Style. Exactly one of `src` (path; relative paths resolve against `papercut.image_path`) or `data` (raw bytes). |
+| `<x-pdf::image>` | `src`, `data`, `fit` (`contain`/`cover`/`fill`) | Style. Exactly one of `src` or `data` (raw bytes). Absolute and scheme paths (`/x.png`, `C:\x.png`, `file://`) are trusted as given; relative paths are contained to `papercut.image_path` (`..` cannot escape it). Remote URLs are not supported. Never pass untrusted input to `src`. |
 | `<x-pdf::link>` | `href` | Style. Required `href`. |
 | `<x-pdf::table>` | `columns`, `repeat-header` | Style. Children: one optional `<x-pdf::thead>` first, then `<x-pdf::tr>`. `columns` is a track list such as `"3fr 25mm 20mm"`. `repeat-header` defaults to on. |
 | `<x-pdf::thead>` | none | Contains `<x-pdf::th>`/`<x-pdf::td>` cells (one header row) or `<x-pdf::tr>` rows. |

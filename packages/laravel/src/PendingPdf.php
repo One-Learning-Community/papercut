@@ -26,7 +26,11 @@ final class PendingPdf implements Responsable
 
     public function save(string $path): self
     {
-        file_put_contents($path, $this->toString());
+        $bytes = $this->toString();
+        $written = @file_put_contents($path, $bytes);
+        if ($written === false || $written !== strlen($bytes)) {
+            throw new \RuntimeException('Could not write PDF to "' . $path . '"');
+        }
 
         return $this;
     }
