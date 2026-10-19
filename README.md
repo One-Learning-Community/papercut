@@ -79,13 +79,13 @@ Install, configuration, tag and attribute reference: [`packages/laravel/README.m
 v0.1, pre-release, not yet published to Packagist. No performance or compatibility benchmarks have been
 published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (the CI workflow is set up to run the Laravel package's tests against both; it has not run yet).
 
-Not in v0.1: right-to-left and bidirectional text, complex-script shaping without HarfBuzz, hyphenation,
+Not in v0.1: HarfBuzz shaping (the backend's built-in shaping covers kerning, ligatures, Arabic/Indic and bidi; HarfBuzz needs a glyph-level drawing path the backend does not expose), hyphenation,
 Knuth-Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption,
 editing or merging existing PDFs, table of contents and bookmarks. Bookmarks are first in line for v0.2.
 
 ## Licenses
 
-- Papercut: MIT.
+- Papercut: MIT (`LICENSE`). Third-party notices: [`NOTICE.md`](NOTICE.md).
 - Bundled Inter font: SIL Open Font License 1.1 (`packages/core/resources/fonts/Inter/LICENSE.txt`).
 - Color palette derived from Tailwind CSS: MIT.
 - PDF backend [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf): MIT.

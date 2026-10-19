@@ -36,7 +36,7 @@ It is not HTML-to-PDF. There is no CSS cascade, no browser and no HTML parser. T
 - Required extensions: `ext-zlib`, `ext-mbstring` and `ext-dom` (needed by the backend).
 - `papercut/core` has exactly one Composer runtime dependency: `dskripchenko/php-pdf: ^1.24` (MIT). It is used only through `Papercut\Backend\PhpPdf\*`, and no other namespace may import `Dskripchenko\*`.
 - `papercut/laravel` requires `papercut/core` and supports Laravel 12+.
-- Optional HarfBuzz shaping via `ext-ffi` is deferred to the polish stage. It needs a glyph-level drawing path in the backend (§7.5).
+- HarfBuzz shaping via `ext-ffi` is **out of v0.1** (ruling, 2026-10-19). The backend (`dskripchenko/php-pdf`) exposes no glyph-ID drawing path, so shaped glyph runs cannot be drawn, and its built-in shaping already covers kerning, ligatures, Arabic/Indic scripts and bidi. Revisit only if a glyph-level backend path appears (§7.5).
 
 ## 5. Repository layout
 
@@ -213,7 +213,7 @@ interface Layouter {
   7. Structural validation happens at the container: for example, a `td` outside a `tr` raises `InvalidStructure` naming both tags.
 - **`Pdf` facade / `PdfManager`:** `view()`, `make(Node)`, default options from config.
 - **`PdfResponse`** (Responsable): `download($name)`, `inline($name)`, with correct headers.
-- **Config `papercut.php`:** default page size and margin, font families (paths per weight and style), theme, named styles, overflow mode, the shaper preference (`auto`, `basic` or `harfbuzz`), and the preview route toggle.
+- **Config `papercut.php`:** default page size and margin, font families (paths per weight and style), theme, named styles, overflow mode, and the preview route toggle.
 - **Preview route (local env only, opt-in):** `/_papercut/{view}` renders a view with sample data from a registered provider and displays the PDF inline. Refreshing reloads it.
 - **Artisan:** `papercut:fonts` lists the resolved font families and checks the files.
 
@@ -222,7 +222,7 @@ interface Layouter {
 - `Backend` renders a list of `PageDisplayList`s plus `DocumentMeta` to PDF bytes. `FontHandle` exposes what layout needs from a font: `advance(string $text, float $size, float $letterSpacing = 0.0): float` (kerning included, matching drawing exactly, including `.notdef` glyphs at 1000 units), `ascent(float $size)`, `descent(float $size)` (points, positive) and `covers(string $text): bool`. Line gap is not used; line height comes from the `line-height` style.
 - The v0.1 implementation `PhpPdfBackend` maps ops onto `Dskripchenko\PhpPdf\Pdf\Page`. It flips coordinates (our top-left origin becomes PDF's bottom-left), converts `Color` to 0–1 RGB floats, and uses `showEmbeddedText`, `fillRoundedRect`, `strokeRoundedRect`, `strokeLine`, `drawImage`, `withClipRect`, `withOpacity` and `addExternalLink`.
 - **Measurement and drawing must agree.** `FontHandle::advance()` is computed from the same `PdfFont` shaping and kerning that `showEmbeddedText` uses.
-- The adapter is the only code that knows the dependency's API. Swapping backends (an in-house writer, or a glyph-level path for HarfBuzz) touches only `Papercut\Backend\*`.
+- The adapter is the only code that knows the dependency's API. Swapping backends (an in-house writer, or later a glyph-level path for HarfBuzz) touches only `Papercut\Backend\*`.
 - **Spike results (2026-10-18, v1.24.1, Inter 4.1, Xdebug off):** 10 pages × 40 text lines in about 54 ms (font load 4 ms, draw 45 ms, serialize 5 ms). `qpdf --check` passes, output is byte-deterministic with a fixed creation date, text extracts correctly via ToUnicode, and the font is subsetted (40 KB PDF from a 400 KB TTF).
 
 ### 7.6 Fonts
@@ -253,7 +253,7 @@ interface Layouter {
 
 ## 10. Out of scope for v0.1 (architecture leaves room)
 
-RTL and bidirectional text, complex-script shaping without HarfBuzz, hyphenation, Knuth–Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption, editing or merging existing PDFs, table of contents, and bookmarks (outlines). Bookmarks are first in line for v0.2.
+HarfBuzz shaping (ruling, 2026-10-19: see §4), hyphenation, Knuth–Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption, editing or merging existing PDFs, table of contents, and bookmarks (outlines). Bookmarks are first in line for v0.2.
 
 ## 11. Open risks
 
