@@ -7,6 +7,7 @@ namespace Papercut\Laravel;
 use Papercut\Backend\PhpPdf\PhpPdfBackend;
 use Papercut\Document;
 use Papercut\Laravel\Exception\InvalidStructure;
+use Papercut\Laravel\Preview\PreviewRegistry;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
 use Papercut\RenderOptions;
@@ -18,8 +19,14 @@ final class PdfManager
 {
     private ?RenderOptions $options = null;
 
-    public function __construct(private readonly NodeRegistry $registry)
+    public function __construct(private readonly NodeRegistry $registry, private readonly PreviewRegistry $previews)
     {
+    }
+
+    /** @param \Closure|array<string, mixed> $data */
+    public function preview(string $view, \Closure|array $data = []): void
+    {
+        $this->previews->register($view, $data);
     }
 
     /** @param array<string, mixed> $data */
