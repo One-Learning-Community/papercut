@@ -35,10 +35,10 @@ final readonly class Color implements \Stringable
 
     public static function hex(string $input): self
     {
-        $h = ltrim(trim($input), '#');
-        if (!preg_match('/^[0-9a-fA-F]+$/', $h) || !in_array(strlen($h), [3, 6, 8], true)) {
+        if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\z/', trim($input), $m)) {
             throw InvalidValue::for('color', $input);
         }
+        $h = $m[1];
         if (strlen($h) === 3) {
             $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2];
         }
@@ -68,7 +68,10 @@ final readonly class Color implements \Stringable
         if ($s[0] === '#') {
             return self::hex($s);
         }
-        if (preg_match('/^rgba?\(\s*(\d{1,3})\s*,?\s*(\d{1,3})\s*,?\s*(\d{1,3})\s*(?:[,\/]\s*(\d*\.?\d+)\s*)?\)$/i', $s, $m)) {
+        // Three accepted shapes, each with one separator style: rgb(r, g, b), rgba(r, g, b, a), rgb(r g b [/ a]).
+        if (preg_match('/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i', $s, $m)
+            || preg_match('/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d*\.?\d+)\s*\)$/i', $s, $m)
+            || preg_match('/^rgba?\(\s*(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s*\/\s*(\d*\.?\d+))?\s*\)$/i', $s, $m)) {
             try {
                 return self::rgb((int) $m[1], (int) $m[2], (int) $m[3], isset($m[4]) ? (float) $m[4] : 1.0);
             } catch (InvalidValue) {

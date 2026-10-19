@@ -47,6 +47,9 @@ final class ColorTest extends TestCase
         yield 'channel out of range' => ['rgb(300, 0, 0)', null];
         yield 'alpha out of range' => ['rgba(0, 0, 0, 2)', null];
         yield 'empty' => ['', null];
+        yield 'rgb without separators' => ['rgb(100200100)', null];
+        yield 'rgb mixed separators' => ['rgb(1,2 3)', null];
+        yield 'rgb alpha without rgba' => ['rgb(1 2 3, 0.5)', null];
     }
 
     #[DataProvider('invalid')]
@@ -58,6 +61,25 @@ final class ColorTest extends TestCase
         } catch (InvalidValue $e) {
             self::assertSame('color', $e->kind);
             self::assertSame($suggestion, $e->suggestion);
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function invalidHex(): iterable
+    {
+        yield 'double hash' => ['##fff'];
+        yield 'missing hash' => ['fff'];
+        yield 'missing hash long' => ['334155'];
+    }
+
+    #[DataProvider('invalidHex')]
+    public function test_hex_requires_exactly_one_hash(string $in): void
+    {
+        try {
+            Color::hex($in);
+            self::fail('Expected InvalidValue');
+        } catch (InvalidValue $e) {
+            self::assertSame('color', $e->kind);
         }
     }
 
