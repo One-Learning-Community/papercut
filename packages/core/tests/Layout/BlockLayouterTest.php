@@ -77,6 +77,97 @@ final class BlockLayouterTest extends TestCase
         self::assertSame(1, $r->token?->index);
     }
 
+    // --- Fix round 1 ---
+
+    public function test_trailing_margin_bottom_is_truncated_at_page_end(): void
+    {
+        $h = new LayoutHarness();
+        $one = $h->layout(Column::make(Text::make('a')->margin(pt(6), pt(0))), 100, 20);
+        self::assertSame(Status::Complete, $one->status);
+        self::assertSame(20.0, $one->fragment?->height);
+        $two = $h->layout(Column::make(Text::make('a')->margin(pt(6), pt(0)), Text::make('b')), 100, 20);
+        self::assertSame(Status::Partial, $two->status);
+        self::assertSame(20.0, $two->fragment?->height);
+        $bordered = Column::make(Text::make('a')->margin(pt(6), pt(0)), Text::make('b'))->border(pt(1), Color::black());
+        $r = $h->layout($bordered, 100, 22);
+        self::assertSame(Status::Partial, $r->status);
+        self::assertLessThanOrEqual(22.0, $r->fragment?->height);
+    }
+
+    public function test_partial_child_gets_no_margin_bottom(): void
+    {
+        $col = Column::make(Text::make('a b c d')->minLines(1)->margin(pt(0), pt(0), pt(6)));
+        $r = (new LayoutHarness())->layout($col, 5, 28);
+        self::assertSame(Status::Partial, $r->status);
+        self::assertSame(28.0, $r->fragment?->height);
+    }
+
+    public function test_keep_with_next_pop_restores_height(): void
+    {
+        $col = Column::make(Text::make('intro'), Text::make('Heading')->keepWithNext(), Spacer::size(pt(50)));
+        $r = (new LayoutHarness())->layout($col, 100, 40);
+        self::assertSame(1, $r->token?->index);
+        self::assertSame(14.0, $r->fragment?->height);
+        self::assertSame(['intro'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+    }
+
+    public function test_keep_with_next_chain_walks_back(): void
+    {
+        $h = new LayoutHarness();
+        $col = Column::make(Text::make('intro'), Text::make('H1')->keepWithNext(), Text::make('H2')->keepWithNext(), Spacer::size(pt(50)));
+        $r = $h->layout($col, 100, 50);
+        self::assertSame(1, $r->token?->index);
+        self::assertSame(14.0, $r->fragment?->height);
+
+        $headsOnly = Column::make(Text::make('H1')->keepWithNext(), Text::make('H2')->keepWithNext(), Spacer::size(pt(50)));
+        self::assertSame(Status::DoesNotFit, $h->layout($headsOnly, 100, 40, fresh: false)->status);
+        $fresh = $h->layout($headsOnly, 100, 40, fresh: true);
+        self::assertSame(Status::Partial, $fresh->status);
+        self::assertSame(2, $fresh->token?->index);
+    }
+
+    public function test_trailing_page_break_in_nested_block_breaks_parent(): void
+    {
+        $h = new LayoutHarness();
+        $col = Column::make(Column::make(Text::make('a'), PageBreak::make()), Text::make('b'));
+        $r = $h->layout($col, 100, 500);
+        self::assertSame(Status::Partial, $r->status);
+        self::assertSame(['a'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+        $rest = $h->layout($col, 100, 500, $r->token);
+        self::assertSame(['b'], array_column(LayoutHarness::runs($rest->fragment), 'text'));
+        self::assertSame(Status::Complete, $rest->status);
+    }
+
+    public function test_trailing_break_after_in_nested_block_breaks_parent(): void
+    {
+        $h = new LayoutHarness();
+        $col = Column::make(Column::make(Text::make('a'), Column::make(Text::make('b')->breakAfter())), Text::make('c'));
+        $r = $h->layout($col, 100, 500);
+        self::assertSame(Status::Partial, $r->status);
+        self::assertSame(1, $r->token?->index);
+        self::assertSame(['a', 'b'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+    }
+
+    public function test_resumed_child_drops_margin_top(): void
+    {
+        $col = Column::make(Text::make('a b c d')->minLines(1)->margin(pt(6), pt(0)));
+        $r = (new LayoutHarness())->layout($col, 5, null, new BreakToken(index: 0, child: new BreakToken(index: 2)));
+        self::assertSame(10.0, LayoutHarness::runs($r->fragment)[0]['baseline']);
+    }
+
+    public function test_stretched_auto_height_fills_but_stays_splittable(): void
+    {
+        $h = new LayoutHarness();
+        $root = \Papercut\Style\ComputedStyle::root(\Papercut\Style\Theme::default());
+        $col = Column::make(Text::make('a'), Text::make('b'), Text::make('c'));
+        $split = $h->engine->layout($col, $root, new \Papercut\Layout\Constraints(100, 30, true, 100));
+        self::assertSame(Status::Partial, $split->status);
+        $full = $h->engine->layout($col, $root, new \Papercut\Layout\Constraints(100, null, true, 100));
+        self::assertSame(100.0, $full->fragment?->height);
+        $tall = $h->engine->layout($col, $root, new \Papercut\Layout\Constraints(100, null, true, 20));
+        self::assertSame(42.0, $tall->fragment?->height); // at least definiteHeight, never less than content
+    }
+
     public function test_page_break_and_break_before(): void
     {
         $h = new LayoutHarness();
@@ -217,5 +308,13 @@ final class BlockLayouterTest extends TestCase
         $col = Column::make(Text::make('ab')->alignSelf(Align::End));
         $runs = LayoutHarness::runs((new LayoutHarness())->layout($col, 100)->fragment);
         self::assertSame(90.0, $runs[0]['x']);
+    }
+
+    public function test_fixed_height_box_never_returns_partial_for_nested_forced_break(): void
+    {
+        $col = Column::make(Column::make(Text::make('a'), PageBreak::make(), Text::make('b')))->height(pt(100));
+        $r = (new LayoutHarness())->layout($col, 100, 500);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertSame(['a', 'b'], array_column(LayoutHarness::runs($r->fragment), 'text'));
     }
 }

@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace Papercut\Layout;
 
 use Papercut\{Link, Node, PageBreak, Spacer, View};
-use Papercut\Style\{Align, ComputedStyle, Justify};
+use Papercut\Style\{Align, ComputedStyle, Direction, Justify};
 use Papercut\Value\Length;
 
 /**
  * Column-direction Views (and Links): children stacked top to bottom with
  * margins and gap, fragmented between children or inside a splitting child.
  *
- * A box with a definite height (explicit height, or a stretched
- * definiteHeight) is monolithic: it never splits, and its free space goes to
- * grow children, then to justify.
+ * A box with an explicit height is monolithic: it never splits, and its free
+ * space goes to grow children, then to justify. An Auto-height box laid out
+ * with a definiteHeight (flex stretch) stays splittable; when it completes in
+ * a single slice it fills at least that height the same way.
  */
 final class BlockLayouter implements Layouter
 {
@@ -28,7 +29,8 @@ final class BlockLayouter implements Layouter
         $borderWidth = BoxGeometry::borderBoxWidth($style, $c->width);
         $contentWidth = BoxGeometry::contentWidth($style, $c->width);
 
-        $fixed = $first ? self::definiteHeight($style, $c) : null;
+        $fixed = $first ? self::explicitHeight($style, $c) : null;
+        $stretch = $first && $fixed === null ? self::clampHeight($style, $c, $c->definiteHeight) : null;
         if ($fixed !== null && $c->height !== null && $fixed > $c->height + self::EPSILON) {
             return LayoutResult::doesNotFit();
         }
@@ -38,7 +40,7 @@ final class BlockLayouter implements Layouter
             $available = $c->height - ($first ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
         }
 
-        /** @var list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float}> $placed */
+        /** @var list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed */
         $placed = [];
         $cursor = 0.0;
         $start = min(max(0, $token->index ?? 0), $count);
@@ -76,7 +78,7 @@ final class BlockLayouter implements Layouter
             }
 
             $gap = $placed === [] ? 0.0 : $style->gap;
-            $mt = $cs->margin->top->points;
+            $mt = $resuming ? 0.0 : $cs->margin->top->points;
             $mb = $cs->margin->bottom->points;
             $ml = $cs->margin->left->points;
             $slot = max(0.0, $contentWidth - $cs->margin->horizontal());
@@ -93,22 +95,28 @@ final class BlockLayouter implements Layouter
                 if ($placed === []) {
                     return LayoutResult::doesNotFit();
                 }
-                $prev = $placed[count($placed) - 1];
-                if ($prev['index'] === $i - 1 && $prev['style']->keepWithNext) {
-                    if (count($placed) > 1) {
-                        array_pop($placed);
-                        $breakAt = new BreakToken(index: $i - 1);
-                        break;
-                    }
-                    if (!$c->fresh) {
-                        return LayoutResult::doesNotFit();
-                    }
+                // keep-with-next: walk back over a chain of keepWithNext children placed just before i.
+                $k = count($placed);
+                $next = $i;
+                while ($k > 0 && $placed[$k - 1]['index'] === $next - 1 && $placed[$k - 1]['style']->keepWithNext) {
+                    $k--;
+                    $next = $placed[$k]['index'];
+                }
+                if ($k === 0 && !$c->fresh) {
+                    return LayoutResult::doesNotFit();
+                }
+                if ($k > 0 && $k < count($placed)) {
+                    $cursor = $placed[$k]['before'];
+                    $breakAt = new BreakToken(index: $placed[$k]['index']);
+                    $placed = array_slice($placed, 0, $k);
+                    break;
                 }
                 $breakAt = new BreakToken(index: $i);
                 break;
             }
 
             $f = $res->fragment;
+            $before = $cursor;
             $y = $cursor + $gap + $mt;
             $placed[] = [
                 'node' => $child,
@@ -120,14 +128,23 @@ final class BlockLayouter implements Layouter
                 'x' => self::alignX($align, $ml, $slot, $f->width),
                 'y' => $y,
                 'height' => $f->height,
+                'before' => $before,
             ];
-            $cursor = $y + $f->height + $mb;
+            $cursor = $y + $f->height;
 
             if ($res->status === Status::Partial && $res->token !== null) {
+                if ($monolithic && !($resuming && $res->token == $resumeToken)) {
+                    // A monolithic box never splits: continue the child's forced-break slices in place.
+                    $resumeToken = $res->token;
+                    $start = $i--;
+                    continue;
+                }
                 $breakAt = new BreakToken(index: $i, child: $res->token);
                 break;
             }
-            if ($cs->breakAfter && !$monolithic && $i < $count - 1) {
+            // Margin-bottom is truncated at the page end, never pushing the box past c.height.
+            $cursor = $available === null ? $cursor + $mb : max($cursor, min($cursor + $mb, $available));
+            if (!$monolithic && $i < $count - 1 && self::forcesBreakAfter($child, $cs, $engine)) {
                 $breakAt = new BreakToken(index: $i + 1);
                 break;
             }
@@ -138,8 +155,10 @@ final class BlockLayouter implements Layouter
         }
 
         $contentHeight = $cursor;
-        if ($fixed !== null) {
-            $contentHeight = max(0.0, $fixed - BoxGeometry::topEdge($style) - BoxGeometry::bottomEdge($style));
+        $target = $fixed ?? ($breakAt === null ? $stretch : null);
+        if ($target !== null) {
+            $inner = max(0.0, $target - BoxGeometry::topEdge($style) - BoxGeometry::bottomEdge($style));
+            $contentHeight = $fixed !== null ? $inner : max($cursor, $inner);
             $placed = self::distribute($placed, $contentHeight - $cursor, $style, $engine);
         }
 
@@ -185,10 +204,38 @@ final class BlockLayouter implements Layouter
         throw new \LogicException(sprintf('BlockLayouter cannot lay out %s.', $node::class));
     }
 
-    /** Border-box height the box must have: explicit height, else a stretched definiteHeight. */
-    private static function definiteHeight(ComputedStyle $style, Constraints $c): ?float
+    /** Border-box height from an explicit Length, or a Percent of definiteHeight. */
+    private static function explicitHeight(ComputedStyle $style, Constraints $c): ?float
     {
-        $h = BoxGeometry::resolve($style->height, $c->definiteHeight) ?? $c->definiteHeight;
+        return self::clampHeight($style, $c, BoxGeometry::resolve($style->height, $c->definiteHeight));
+    }
+
+    /**
+     * True when laying out $node ends with a forced break: its own breakAfter,
+     * or (recursively) a trailing PageBreak / breakAfter as its last child.
+     */
+    private static function forcesBreakAfter(Node $node, ComputedStyle $style, LayoutEngine $engine): bool
+    {
+        if ($style->breakAfter) {
+            return true;
+        }
+        if (!($node instanceof View || $node instanceof Link) || $style->height instanceof Length) {
+            return false;
+        }
+        $children = $node->children();
+        if ($children === [] || $style->direction !== Direction::Column) {
+            return false;
+        }
+        $i = count($children) - 1;
+        $last = LayoutEngine::expand($children[$i]);
+        if ($last instanceof PageBreak) {
+            return true;
+        }
+        return self::forcesBreakAfter($last, $engine->styleOf($last, $style, $i), $engine);
+    }
+
+    private static function clampHeight(ComputedStyle $style, Constraints $c, ?float $h): ?float
+    {
         if ($h === null) {
             return null;
         }
@@ -216,8 +263,8 @@ final class BlockLayouter implements Layouter
      * Gives free space to grow children (re-laid out at their new definite
      * height), or else shifts children per justify.
      *
-     * @param list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float}> $placed
-     * @return list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float}>
+     * @param list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed
+     * @return list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float, before: float}>
      */
     private static function distribute(array $placed, float $free, ComputedStyle $style, LayoutEngine $engine): array
     {
