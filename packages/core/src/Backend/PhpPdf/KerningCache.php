@@ -144,13 +144,16 @@ final class KerningCache
     }
 
     /**
-     * A directory owned by someone else, or writable by group or others (e.g. planted
+     * A symlink, a directory owned by someone else, or one writable by group or others (e.g. planted
      * in a shared temp dir), is never read, written or pruned.
      */
     private function trustedDir(): bool
     {
         $dir = (string) $this->dir;
         clearstatcache(true, $dir);
+        if (is_link($dir)) {
+            return false;
+        }
         $mode = @fileperms($dir);
         if ($mode !== false && ($mode & 0022) !== 0) {
             return false;

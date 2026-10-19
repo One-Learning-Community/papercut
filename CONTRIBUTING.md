@@ -57,6 +57,21 @@ Tests come first: write the failing test, watch it fail, then implement. `packag
 `tests/Feature/ReadmeTest.php` executes every fenced `php` block in it (each block must leave a `$document`, and
 optionally `$options`), so a README example that stops working fails the build.
 
+## Benchmark
+
+`packages/core/bench` renders a 10-page transcript. `run.php` does one warm-up render, then times 5 renders in the same
+process and reports their median; run it with Xdebug off and OPcache on. This is a warm in-process figure: a cold
+process (first render after start, including autoload and font loading) is higher.
+
+```
+cd packages/core
+php -d xdebug.mode=off -d opcache.enable_cli=1 bench/run.php | php bench/check.php
+```
+
+`check.php` compares the median with `bench/baseline.json` for the machine class in `PAPERCUT_BENCH_MACHINE` (default
+`local`) and fails above 1.2x the baseline. CI runs as `ci-ubuntu-latest`; until a maintainer commits that entry
+(taken from the baseline the first CI run uploads as a build artifact), the gate checks only the page count.
+
 ## Examples
 
 ```
@@ -79,7 +94,9 @@ Publishing and tagging are maintainer actions; nothing here runs automatically. 
 every `https://github.com/OWNER/papercut` URL (the `homepage` and `support` fields of both `composer.json` files)
 must be replaced with the real repository URL.
 
-1. Make sure `main` is green: both suites and PHPStan on PHP 8.4 and 8.5, and the core README test passes.
+1. Make sure `main` is green: both suites and PHPStan on PHP 8.4 and 8.5, and the core README test passes. The visual
+   snapshots were generated with a local poppler, not the CI image: on the first CI run verify them, and regenerate
+   with `UPDATE_SNAPSHOTS=1` in CI (or in a Docker image matching it) if they differ, reviewing every changed PNG.
 2. Replace the `OWNER` placeholder (`grep -rn OWNER --include=composer.json .`).
 3. In `CHANGELOG.md` change `## [0.1.0] - unreleased` to the release date and add a fresh `Unreleased` section.
 4. Commit, then tag from `main`: `git tag -s v0.1.0 -m "Papercut 0.1.0" && git push origin main v0.1.0`.

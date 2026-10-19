@@ -192,6 +192,20 @@ final class KerningCacheTest extends TestCase
         self::assertLessThan($plain->advance('A', 12.0) + $plain->advance('V', 12.0), $font->advance('AV', 12.0));
     }
 
+    public function test_a_symlinked_cache_dir_is_not_trusted(): void
+    {
+        $real = $this->dir . '-real';
+        mkdir($real, 0700);
+        symlink($real, $this->dir);
+        try {
+            (new PhpPdfBackend(kerningCacheDir: $this->dir))->loadFont($this->font);
+            self::assertSame([], glob($real . '/kern-*.ser') ?: []);
+        } finally {
+            @unlink($this->dir);
+            @rmdir($real);
+        }
+    }
+
     public function test_entries_untouched_for_30_days_are_pruned_once_per_process_and_dir(): void
     {
         mkdir($this->dir, 0700);
