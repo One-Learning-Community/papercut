@@ -20,6 +20,8 @@ final class LayoutContext
     private ?Itemizer $itemizer = null;
     /** @var array<string, ImageHandle> */
     private array $images = [];
+    /** Path of the deepest node that returned DoesNotFit under fresh constraints; the paginator resets it. */
+    public private(set) ?string $lastFailurePath = null;
 
     public function __construct(
         public readonly FontRegistry $fonts,
@@ -37,12 +39,13 @@ final class LayoutContext
         });
     }
 
-    public function warn(string $msg): void
+    /** $withPath false: the message already names its node. */
+    public function warn(string $msg, bool $withPath = true): void
     {
         if ($this->onWarning === null) {
             return;
         }
-        $path = $this->path();
+        $path = $withPath ? $this->path() : '';
         ($this->onWarning)($path === '' ? $msg : sprintf('[%s] %s', $path, $msg));
     }
 
@@ -60,6 +63,11 @@ final class LayoutContext
     public function path(): string
     {
         return implode(' > ', $this->path);
+    }
+
+    public function setLastFailurePath(?string $path): void
+    {
+        $this->lastFailurePath = $path;
     }
 
     public function image(Image $node): ImageHandle

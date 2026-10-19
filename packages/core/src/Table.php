@@ -70,9 +70,14 @@ final class Table implements Node
         return $clone;
     }
 
-    public function row(TableCell|Node|Component|string ...$cells): self
+    /** A single TableRow is added as is (keeping its row style); anything else becomes the row's cells. */
+    public function row(TableRow|TableCell|Node|Component|string ...$cells): self
     {
         $clone = clone $this;
+        if (count($cells) === 1 && $cells[0] instanceof TableRow) {
+            $clone->bodyRows[] = $cells[0];
+            return $clone;
+        }
         $clone->bodyRows[] = TableRow::make(...$cells);
         return $clone;
     }
