@@ -10,6 +10,7 @@ use Illuminate\View\ComponentSlot;
 use Papercut\Exception\InvalidValue;
 use Papercut\Style\Style;
 use Papercut\Exception\UnknownAttribute;
+use Papercut\Laravel\PdfManager;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\Laravel\Rendering\Segments;
 
@@ -99,7 +100,10 @@ abstract class PdfComponent extends Component
             if ($plain !== []) {
                 $node = $node->attributes($plain);
             }
-            if ($styleName instanceof Style || is_string($styleName)) {
+            if (is_string($styleName)) {
+                app(PdfManager::class)->options()->theme()->named($styleName);
+                $node = $node->apply($styleName);
+            } elseif ($styleName instanceof Style) {
                 $node = $node->apply($styleName);
             } elseif ($styleName !== null) {
                 throw InvalidValue::for('style', is_scalar($styleName) ? (string) $styleName : get_debug_type($styleName))->withContext('style');

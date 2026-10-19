@@ -104,6 +104,7 @@ final class BlockComponentsTest extends TestCase
 
     public function test_named_style_and_style_object(): void
     {
+        config(['papercut.styles' => ['card' => ['padding' => '12pt']]]);
         self::assertSame('card', $this->nodeFrom('<x-pdf::view style="card" />')->styleName());
         $node = $this->nodeFrom('<x-pdf::view :style="$s" />', ['s' => \Papercut\Style\Style::fromAttributes(['padding' => '4pt'])]);
         self::assertSame(4.0, $node->style()->padding?->top->points);

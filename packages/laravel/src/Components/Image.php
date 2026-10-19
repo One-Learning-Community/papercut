@@ -23,18 +23,12 @@ final class Image extends PdfComponent
         if (($src === null) === ($bytes === null)) {
             throw new InvalidStructure('<x-pdf::image> requires exactly one of src or data');
         }
+        if (($src !== null && !is_string($src)) || ($bytes !== null && !is_string($bytes))) {
+            throw new InvalidStructure('<x-pdf::image> src must be a string path');
+        }
 
         if ($src !== null) {
-            $path = (string) $src;
-            if (!str_starts_with($path, '/')) {
-                $base = config('papercut.image_path');
-                $base = is_string($base) && $base !== '' ? $base : public_path();
-                $path = rtrim($base, '/') . '/' . $path;
-            }
-            if (!is_file($path)) {
-                throw new ImageUnreadable("Image not found: $path");
-            }
-            $node = \Papercut\Image::file($path);
+            $node = \Papercut\Image::file(self::resolvePath($src));
         } else {
             $node = \Papercut\Image::bytes((string) $bytes);
         }
@@ -46,5 +40,34 @@ final class Image extends PdfComponent
         }
 
         return $this->styled($node, $data);
+    }
+
+    /**
+     * Relative paths must stay inside the image base. Absolute paths (including stream wrappers and
+     * Windows drive paths) are trusted: never feed untrusted input to src.
+     */
+    private static function resolvePath(string $src): string
+    {
+        $absolute = $src !== '' && ($src[0] === '/' || $src[0] === '\\'
+            || preg_match('#^[A-Za-z][A-Za-z0-9+.-]*://#', $src) === 1
+            || preg_match('#^[A-Za-z]:[\\\\/]#', $src) === 1);
+        if ($absolute) {
+            $path = $src;
+        } else {
+            $base = config('papercut.image_path');
+            $base = is_string($base) && $base !== '' ? $base : public_path();
+            $path = rtrim($base, '/') . '/' . $src;
+            $realBase = realpath($base);
+            $real = realpath($path);
+            if ($realBase !== false && $real !== false
+                && !str_starts_with($real, rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
+                throw new ImageUnreadable("Image path escapes the image directory: $src");
+            }
+        }
+        if (!is_file($path)) {
+            throw new ImageUnreadable("Image not found: $path");
+        }
+
+        return $path;
     }
 }

@@ -67,7 +67,10 @@ final class Page extends PdfComponent
         $location = 'on <x-pdf::page>';
         try {
             $size = $own['size'] ?? config('papercut.paper', 'a4');
-            $page = \Papercut\Page::named(is_string($size) ? $size : 'a4');
+            if (!is_string($size)) {
+                throw InvalidValue::for('page size', is_scalar($size) ? (string) $size : get_debug_type($size));
+            }
+            $page = \Papercut\Page::named($size);
         } catch (InvalidValue $e) {
             throw $e->withContext('size')->within($location);
         }

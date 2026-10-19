@@ -40,10 +40,10 @@ final class PdfManager
             ));
 
             if (count($segments) !== 1 || !$segments[0] instanceof Document) {
-                throw new InvalidStructure('A Papercut view must have exactly one <x-pdf::document> root; found ' . $this->describe($segments));
+                throw new InvalidStructure('A Papercut view must have exactly one <x-pdf::document> root; found ' . $this->describe($segments) . " in view [$view]");
             }
             if ($this->registry->remaining() > 0) {
-                throw new InvalidStructure('Some <x-pdf::*> elements were rendered outside the document');
+                throw new InvalidStructure('Some <x-pdf::*> elements were rendered outside the document in view [$view]');
             }
 
             return $segments[0];
@@ -85,9 +85,13 @@ final class PdfManager
         }
 
         $overflow = config('papercut.overflow');
-        $mode = match (true) {
-            $overflow === 'throw' => OverflowMode::Throw,
-            $overflow === 'clip' => OverflowMode::Clip,
+        $key = is_string($overflow) ? strtolower($overflow) : $overflow;
+        if ($key !== null && $key !== 'throw' && $key !== 'clip') {
+            throw new \InvalidArgumentException('Invalid papercut.overflow: ' . (is_scalar($overflow) ? var_export($overflow, true) : get_debug_type($overflow)) . '; expected throw, clip or null');
+        }
+        $mode = match ($key) {
+            'throw' => OverflowMode::Throw,
+            'clip' => OverflowMode::Clip,
             default => app()->environment('local', 'testing') ? OverflowMode::Throw : OverflowMode::Clip,
         };
 

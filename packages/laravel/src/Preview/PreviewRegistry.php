@@ -33,6 +33,14 @@ final class PreviewRegistry
     {
         $data = $this->views[$view] ?? [];
 
-        return $data instanceof Closure ? $data() : $data;
+        if ($data instanceof Closure) {
+            $data = $data();
+            if (!is_array($data)) {
+                throw new \UnexpectedValueException("Preview data for $view must be an array");
+            }
+        }
+
+        /** @var array<string, mixed> $data */
+        return $data;
     }
 }

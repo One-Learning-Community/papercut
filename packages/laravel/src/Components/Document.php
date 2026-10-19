@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
-use Papercut\Exception\UnknownAttribute;
+use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Laravel\Exception\InvalidStructure;
 
 final class Document extends PdfComponent
@@ -38,7 +38,10 @@ final class Document extends PdfComponent
 
         $doc = \Papercut\Document::make(...$pages);
         foreach (['title', 'author', 'subject', 'keywords', 'lang'] as $key) {
-            if (isset($own[$key]) && is_scalar($own[$key])) {
+            if (isset($own[$key])) {
+                if (!is_scalar($own[$key])) {
+                    throw InvalidValue::for($key, get_debug_type($own[$key]))->withContext($key)->within('on <x-pdf::document>');
+                }
                 $doc = $doc->$key((string) $own[$key]);
             }
         }
