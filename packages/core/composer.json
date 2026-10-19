@@ -1,0 +1,30 @@
+{
+    "name": "papercut/core",
+    "description": "Component-based, page-aware PDF layout engine for modern PHP.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["pdf", "layout", "flexbox", "document", "generator"],
+    "require": {
+        "php": "^8.4",
+        "ext-dom": "*",
+        "ext-mbstring": "*",
+        "ext-zlib": "*",
+        "dskripchenko/php-pdf": "^1.24"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.3",
+        "phpunit/phpunit": "^13.4"
+    },
+    "autoload": {
+        "psr-4": { "Papercut\\": "src/" },
+        "files": ["src/functions.php"]
+    },
+    "autoload-dev": {
+        "psr-4": { "Papercut\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse --memory-limit=1G"
+    },
+    "config": { "sort-packages": true }
+}
