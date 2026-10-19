@@ -191,10 +191,15 @@ final readonly class Style
 
     public function merge(Style $over): self
     {
-        return new self(...array_merge(
-            get_object_vars($this),
-            array_filter(get_object_vars($over), static fn (mixed $v): bool => $v !== null),
-        ));
+        $set = array_filter(get_object_vars($over), static fn (mixed $v): bool => $v !== null);
+        if ($set === []) {
+            return $this;
+        }
+        $mine = get_object_vars($this);
+        if (array_filter($mine, static fn (mixed $v): bool => $v !== null) === []) {
+            return $over;
+        }
+        return new self(...array_merge($mine, $set));
     }
 
     public function isEmpty(): bool

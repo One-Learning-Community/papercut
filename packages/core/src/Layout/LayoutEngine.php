@@ -19,11 +19,21 @@ final class LayoutEngine
     /** @var array<class-string<Node>, Layouter> */
     private array $layouters = [];
 
+    /**
+     * Intrinsic sizes memoized per node and parent style (by identity) for this
+     * engine's layout run. Nodes are immutable and their computed style is a
+     * function of node and parent, so the sizes are too.
+     *
+     * @var \WeakMap<Node, \WeakMap<ComputedStyle, array{min: float, max: float}>>
+     */
+    private \WeakMap $intrinsics;
+
     private readonly BlockLayouter $block;
     private readonly FlexLayouter $flex;
 
     public function __construct(private readonly LayoutContext $ctx)
     {
+        $this->intrinsics = new \WeakMap();
         $this->block = new BlockLayouter();
         $this->flex = new FlexLayouter();
         $leaf = new LeafLayouter();
@@ -79,6 +89,7 @@ final class LayoutEngine
     public function register(string $class, Layouter $layouter): void
     {
         $this->layouters[$class] = $layouter;
+        $this->intrinsics = new \WeakMap();
     }
 
     /**
@@ -113,10 +124,21 @@ final class LayoutEngine
     public function intrinsic(Node|Component $node, ComputedStyle $parent, ?int $index = null): array
     {
         $node = self::expand($node);
+        $byParent = $this->intrinsics[$node] ?? null;
+        if ($byParent !== null && isset($byParent[$parent])) {
+            return $byParent[$parent];
+        }
         $this->ctx->pushPath(self::pathName($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index);
-            return $this->layouterFor($node, $style)->intrinsic($node, $style, $this);
+            $size = $this->layouterFor($node, $style)->intrinsic($node, $style, $this);
+            if ($byParent === null) {
+                /** @var \WeakMap<ComputedStyle, array{min: float, max: float}> $byParent */
+                $byParent = new \WeakMap();
+                $this->intrinsics[$node] = $byParent;
+            }
+            $byParent[$parent] = $size;
+            return $size;
         } finally {
             $this->ctx->popPath();
         }

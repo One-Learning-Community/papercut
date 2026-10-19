@@ -24,6 +24,16 @@ final class PhpPdfBackend implements Backend
 
     /** @var array<string, PhpPdfFont> */
     private array $fonts = [];
+    private readonly KerningCache $kerning;
+
+    /**
+     * $kerningCacheDir: where GPOS pair-kerning tables are cached across processes
+     * (null = KerningCache::defaultDir(), false = no disk cache).
+     */
+    public function __construct(string|false|null $kerningCacheDir = null)
+    {
+        $this->kerning = new KerningCache($kerningCacheDir === false ? null : ($kerningCacheDir ?? KerningCache::defaultDir()));
+    }
 
     public function loadFont(string $path): FontHandle
     {
@@ -40,6 +50,7 @@ final class PhpPdfBackend implements Backend
         } catch (\Throwable $e) {
             throw new FontNotFound('Font file is not a valid TrueType/OpenType font: ' . $path, 0, $e);
         }
+        $this->kerning->prime($font->ttf(), $real);
         return $this->fonts[$real] = new PhpPdfFont($font, sha1($real));
     }
 

@@ -489,4 +489,59 @@ final class TextLayouterTest extends TestCase
         $center = LayoutHarness::runs($h->layout(Text::make('To Avoid')->center(), 100)->fragment);
         self::assertSame(30.5, $center[0]['x']);
     }
+
+    /** A TextLayouter that counts intrinsic() calls. */
+    private static function countingTextLayouter(): \Papercut\Layout\Layouter
+    {
+        return new class () implements \Papercut\Layout\Layouter {
+            public int $intrinsics = 0;
+            private \Papercut\Layout\TextLayouter $inner;
+
+            public function __construct()
+            {
+                $this->inner = new \Papercut\Layout\TextLayouter();
+            }
+
+            public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, \Papercut\Layout\LayoutEngine $engine): LayoutResult
+            {
+                return $this->inner->layout($node, $style, $c, $token, $engine);
+            }
+
+            public function intrinsic(Node $node, ComputedStyle $style, \Papercut\Layout\LayoutEngine $engine): array
+            {
+                $this->intrinsics++;
+                return $this->inner->intrinsic($node, $style, $engine);
+            }
+        };
+    }
+
+    public function test_intrinsic_is_memoized_per_node_and_parent_style(): void
+    {
+        $h = new LayoutHarness();
+        $spy = self::countingTextLayouter();
+        $h->engine->register(Text::class, $spy);
+        $root = ComputedStyle::root(Theme::default());
+        $text = Text::make('hello world');
+        $first = $h->engine->intrinsic($text, $root);
+        self::assertSame($first, $h->engine->intrinsic($text, $root));
+        self::assertSame(1, $spy->intrinsics); // @phpstan-ignore property.notFound
+
+        $big = $root->child(new Style(fontSize: pt(20)));
+        self::assertSame(['min' => 50.0, 'max' => 110.0], $h->engine->intrinsic($text, $big)); // 0.5em per char
+        self::assertSame(2, $spy->intrinsics);
+        self::assertSame(['min' => 10.0, 'max' => 10.0], $h->engine->intrinsic(Text::make('hi'), $root));
+        self::assertSame(3, $spy->intrinsics);
+    }
+
+    public function test_intrinsic_memo_does_not_cross_engines(): void
+    {
+        $text = Text::make('hello');
+        $root = ComputedStyle::root(Theme::default());
+        foreach ([new LayoutHarness(), new LayoutHarness()] as $h) {
+            $spy = self::countingTextLayouter();
+            $h->engine->register(Text::class, $spy);
+            $h->engine->intrinsic($text, $root);
+            self::assertSame(1, $spy->intrinsics); // @phpstan-ignore property.notFound
+        }
+    }
 }

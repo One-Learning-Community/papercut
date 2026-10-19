@@ -11,7 +11,11 @@ use Papercut\Text\FontRegistry;
 
 final readonly class RenderOptions
 {
-    /** @param list<string> $fallbackFamilies families tried, in order, for glyphs the primary font lacks */
+    /**
+     * @param list<string> $fallbackFamilies families tried, in order, for glyphs the primary font lacks
+     * @param string|false|null $cacheDir directory for the default backend's font kerning cache
+     *        (null = sys_get_temp_dir()/papercut-cache, false = no disk cache); ignored when $backend is given
+     */
     public function __construct(
         private ?Backend $backend = null,
         private ?FontRegistry $fonts = null,
@@ -19,6 +23,7 @@ final readonly class RenderOptions
         public OverflowMode $overflow = OverflowMode::Throw,
         public ?\Closure $onWarning = null,
         public array $fallbackFamilies = [],
+        public string|false|null $cacheDir = null,
     ) {
     }
 
@@ -28,7 +33,7 @@ final readonly class RenderOptions
      */
     public function backend(): Backend
     {
-        return $this->backend ?? new PhpPdfBackend();
+        return $this->backend ?? new PhpPdfBackend($this->cacheDir);
     }
 
     public function fonts(Backend $backend): FontRegistry

@@ -22,6 +22,14 @@ final class LayoutContext
     private array $images = [];
     /** Path of the deepest node that returned DoesNotFit under fresh constraints; the paginator resets it. */
     public private(set) ?string $lastFailurePath = null;
+    private ?ComputedStyle $root = null;
+    /**
+     * Computed styles memoized per node and parent style (both by identity).
+     * Nodes are immutable, so a node under the same parent always resolves the same.
+     *
+     * @var \WeakMap<Node, \WeakMap<ComputedStyle, ComputedStyle>>
+     */
+    private \WeakMap $styles;
 
     public function __construct(
         public readonly FontRegistry $fonts,
@@ -32,6 +40,13 @@ final class LayoutContext
         /** @var list<string> */
         private readonly array $fallbackFamilies = [],
     ) {
+        $this->styles = new \WeakMap();
+    }
+
+    /** The theme's root style, computed once per layout run so memoized child styles are shared across pages. */
+    public function rootStyle(): ComputedStyle
+    {
+        return $this->root ??= ComputedStyle::root($this->theme);
     }
 
     public function itemizer(): Itemizer
@@ -90,6 +105,17 @@ final class LayoutContext
      * node's own style, all applied on top of the parent's computed style.
      */
     public function resolveStyle(Node $node, ComputedStyle $parent): ComputedStyle
+    {
+        $byParent = $this->styles[$node] ?? null;
+        if ($byParent === null) {
+            /** @var \WeakMap<ComputedStyle, ComputedStyle> $byParent */
+            $byParent = new \WeakMap();
+            $this->styles[$node] = $byParent;
+        }
+        return $byParent[$parent] ??= $this->computeStyle($node, $parent);
+    }
+
+    private function computeStyle(Node $node, ComputedStyle $parent): ComputedStyle
     {
         $style = new Style();
         if ($node instanceof Text && $node->preset() !== null) {

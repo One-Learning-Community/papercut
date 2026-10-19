@@ -313,6 +313,59 @@ final class TableLayouterTest extends TestCase
         self::assertGreaterThan($before, $counter->renders);
     }
 
+    private static function counter(): Component
+    {
+        return new class () implements Component {
+            public int $renders = 0;
+
+            public function render(): Node|Component
+            {
+                $this->renders++;
+                return Text::make('c');
+            }
+        };
+    }
+
+    public function test_cells_in_fixed_width_tracks_are_not_measured(): void
+    {
+        $fixed = self::counter();
+        $fr = self::counter();
+        $t = Table::make()->columns('50pt 1fr')->row(TableCell::make($fixed), TableCell::make($fr));
+        $size = (new LayoutHarness())->engine->intrinsic($t, ComputedStyle::root(Theme::default()));
+        self::assertSame(0, $fixed->renders); // @phpstan-ignore property.notFound
+        self::assertGreaterThan(0, $fr->renders); // @phpstan-ignore property.notFound
+        self::assertSame(50.0 + 5.0 + 12.0, $size['min']); // 50pt track + "c" (5) + cell padding (12)
+    }
+
+    public function test_short_undecorated_cells_are_laid_out_once_and_keep_the_row_height(): void
+    {
+        $short = self::counter();
+        $t = Table::make()->columns('50pt 20pt')->row(TableCell::make(\Papercut\View::make($short)), 'b c'); // "b c" wraps to 2 lines: 28 + 8
+        $f = (new LayoutHarness())->layout($t, 70)->fragment;
+        self::assertNotNull($f);
+        self::assertSame(1, $short->renders); // @phpstan-ignore property.notFound
+        self::assertSame(36.0, $f->height);
+        self::assertSame([36.0, 36.0], array_map(static fn (Fragment $c): float => $c->height, self::cellFragments($f)));
+    }
+
+    public function test_bottom_aligned_cells_are_stretched_before_aligning(): void
+    {
+        $t = Table::make()->columns('50pt 20pt')->row(TableCell::make('a')->apply(\Papercut\Style\Style::make(justify: \Papercut\Style\Justify::End)), 'b c');
+        $runs = LayoutHarness::runs((new LayoutHarness())->layout($t, 70)->fragment);
+        $top = LayoutHarness::runs((new LayoutHarness())->layout(Table::make()->columns('50pt 20pt')->row('a', 'b c'), 70)->fragment);
+        self::assertSame('a', $runs[0]['text']);
+        self::assertEqualsWithDelta($top[0]['baseline'] + 14.0, $runs[0]['baseline'], 1e-9); // one line lower
+    }
+
+    public function test_growing_cell_children_are_stretched(): void
+    {
+        $t = Table::make()->columns('50pt 20pt')->row(TableCell::make(\Papercut\View::make('a')->grow()->background('#ff0000')), 'b c');
+        $f = (new LayoutHarness())->layout($t, 70)->fragment;
+        self::assertNotNull($f);
+        $grown = self::cellFragments($f)[0]->children()[0]['fragment'];
+        self::assertSame(28.0, $grown->height); // row content 36 - cell padding 8
+    }
+
     /** @return list<Fragment> cell fragments in paint order */
     private static function cellFragments(Fragment $table): array
     {

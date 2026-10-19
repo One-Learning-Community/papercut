@@ -42,7 +42,7 @@ final class Paginator
     /** @param list<PlacedPage> $out */
     private function paginatePage(Page $page, string $name, array &$out): void
     {
-        $root = ComputedStyle::root($this->ctx->theme);
+        $root = $this->ctx->rootStyle();
         $w = $page->width();
         $h = $page->height();
         $m = $page->margins();

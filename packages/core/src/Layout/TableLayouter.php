@@ -6,7 +6,7 @@ namespace Papercut\Layout;
 
 use Papercut\{Node, Table, TableCell, TableRow, View};
 use Papercut\Exception\UnknownAttribute;
-use Papercut\Style\{ComputedStyle, Style, Theme};
+use Papercut\Style\{ComputedStyle, Justify, Style, Theme};
 use Papercut\Value\{Auto, Fr, Length, Percent};
 
 /**
@@ -35,18 +35,24 @@ final class TableLayouter implements Layouter
     private \WeakMap $grids;
     /** @var \WeakMap<Table, true> tables already warned about a dropped repeated header */
     private \WeakMap $headerWarned;
+    /** @var \WeakMap<TableCell, TableCell> cells with the theme's defaults applied; stable identities keep style memos hot */
+    private \WeakMap $prepared;
+    /** @var \WeakMap<TableCell, View> the block container each cell is laid out as */
+    private \WeakMap $columns;
 
     public function __construct(private readonly BlockLayouter $block)
     {
         $this->content = new \WeakMap();
         $this->grids = new \WeakMap();
         $this->headerWarned = new \WeakMap();
+        $this->prepared = new \WeakMap();
+        $this->columns = new \WeakMap();
     }
 
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
         if ($node instanceof TableCell) {
-            return $this->block->layout(self::column($node), $style, $c, $token, $engine);
+            return $this->block->layout($this->column($node), $style, $c, $token, $engine);
         }
         $table = self::table($node);
         $first = $token === null;
@@ -148,7 +154,7 @@ final class TableLayouter implements Layouter
     public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
     {
         if ($node instanceof TableCell) {
-            return $this->block->intrinsic(self::column($node), $style, $engine);
+            return $this->block->intrinsic($this->column($node), $style, $engine);
         }
         if ($style->width instanceof Length) {
             return ['min' => $style->width->points, 'max' => $style->width->points];
@@ -301,7 +307,8 @@ final class TableLayouter implements Layouter
     /**
      * Per-column min/max-content: the max over its span-1 cells, then each
      * spanning cell's shortfall spread evenly over the auto columns it covers.
-     * Cached per table and style.
+     * Span-1 cells in fixed (Length) tracks are not measured: nothing reads
+     * their column's content size. Cached per table and style.
      *
      * @return list<array{min: float, max: float}>
      */
@@ -323,10 +330,14 @@ final class TableLayouter implements Layouter
         /** @var list<array{col: int, span: int, min: float, max: float}> $spanning */
         $spanning = [];
         foreach ($rows as $r => $row) {
-            $this->inRow($row, $r, $style, $engine, function (ComputedStyle $rowStyle) use ($row, $engine, &$columns, &$spanning): void {
+            $this->inRow($row, $r, $style, $engine, function (ComputedStyle $rowStyle) use ($row, $engine, $tracks, &$columns, &$spanning): void {
                 $col = 0;
                 foreach ($row->cells() as $j => $cell) {
-                    $size = $engine->intrinsic(self::prepare($cell, $engine->context()->theme), $rowStyle, $j);
+                    if ($cell->span() === 1 && $tracks[$col] instanceof Length) {
+                        $col++;
+                        continue;
+                    }
+                    $size = $engine->intrinsic($this->prepare($cell, $engine->context()->theme), $rowStyle, $j);
                     if ($cell->span() === 1) {
                         $columns[$col] = [
                             'min' => max($columns[$col]['min'], $size['min']),
@@ -367,7 +378,10 @@ final class TableLayouter implements Layouter
 
     /**
      * Lays a row out at unbounded height, stretching every cell to the row's
-     * content height, inside a decorated row box.
+     * content height, inside a decorated row box. A shorter cell is laid out
+     * again at the row height only when that changes what it paints
+     * (decoration, vertical alignment, growing children); otherwise its
+     * fragment is boxed at the row height.
      *
      * @param array{width: float, widths: list<float>, offsets: list<float>} $grid
      * @return array{height: float, fragment: Fragment}
@@ -389,7 +403,13 @@ final class TableLayouter implements Layouter
                 $f = $frags[$j];
                 if ($f->height < $height - self::EPSILON) {
                     $w = $slots[$j]['width'];
-                    $f = $this->layoutCell($cell, $j, $w, $rowStyle, new Constraints($w, null, $fresh, $height), null, $engine)->fragment ?? $f;
+                    if ($this->paintsStretched($cell, $j, $rowStyle, $engine)) {
+                        $f = $this->layoutCell($cell, $j, $w, $rowStyle, new Constraints($w, null, $fresh, $height), null, $engine)->fragment ?? $f;
+                    } else {
+                        $box = new Fragment($f->width, $height);
+                        $box->addChild(0.0, 0.0, $f);
+                        $f = $box;
+                    }
                 }
                 $cells[] = ['x' => $slots[$j]['x'], 'fragment' => $f];
             }
@@ -451,7 +471,29 @@ final class TableLayouter implements Layouter
     /** Lays a cell out at exactly $width, with the theme's cell defaults. */
     private function layoutCell(TableCell $cell, int $j, float $width, ComputedStyle $rowStyle, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
-        return ExactWidth::layout(self::prepare($cell, $engine->context()->theme), $width, $rowStyle, $c, $token, $engine, $j);
+        return ExactWidth::layout($this->prepare($cell, $engine->context()->theme), $width, $rowStyle, $c, $token, $engine, $j);
+    }
+
+    /**
+     * True when stretching the cell to its row's height changes its painting:
+     * a background or border, a non-start justify, or a growing (or not yet
+     * rendered Component) child.
+     */
+    private function paintsStretched(TableCell $cell, int $j, ComputedStyle $rowStyle, LayoutEngine $engine): bool
+    {
+        $prepared = $this->prepare($cell, $engine->context()->theme);
+        $style = $engine->styleOf($prepared, $rowStyle, $j);
+        $b = $style->borderWidth;
+        if ($style->background !== null || $style->justify !== Justify::Start
+            || $b->top->points > 0.0 || $b->right->points > 0.0 || $b->bottom->points > 0.0 || $b->left->points > 0.0) {
+            return true;
+        }
+        foreach ($prepared->children() as $i => $child) {
+            if (!$child instanceof Node || $engine->styleOf($child, $style, $i)->grow > 0.0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -526,7 +568,12 @@ final class TableLayouter implements Layouter
      * Theme cell padding unless the cell (or its named style) sets padding;
      * th cells are bold unless they set a weight.
      */
-    private static function prepare(TableCell $cell, Theme $theme): TableCell
+    private function prepare(TableCell $cell, Theme $theme): TableCell
+    {
+        return $this->prepared[$cell] ??= self::withThemeDefaults($cell, $theme);
+    }
+
+    private static function withThemeDefaults(TableCell $cell, Theme $theme): TableCell
     {
         $own = $cell->style();
         $named = new Style();
@@ -553,9 +600,9 @@ final class TableLayouter implements Layouter
         return [...$table->headerRows(), ...$table->bodyRows()];
     }
 
-    private static function column(TableCell $cell): View
+    private function column(TableCell $cell): View
     {
-        return View::make(...$cell->children());
+        return $this->columns[$cell] ??= View::make(...$cell->children());
     }
 
     private static function table(Node $node): Table
