@@ -80,6 +80,15 @@ final class InvalidValueTest extends TestCase
         self::assertSame('Invalid edges "q" for margin on <p>: bad. Did you mean "q1"?', $e->getMessage());
     }
 
+    public function test_number_formats_non_finite_values_without_casting(): void
+    {
+        self::assertSame('NAN', InvalidValue::number(NAN));
+        self::assertSame('INF', InvalidValue::number(INF));
+        self::assertSame('-INF', InvalidValue::number(-INF));
+        self::assertSame('1.5', InvalidValue::number(1.5));
+        self::assertSame('-3', InvalidValue::number(-3));
+    }
+
     public function test_for_accepts_previous(): void
     {
         $inner = InvalidValue::for('length', 'x');

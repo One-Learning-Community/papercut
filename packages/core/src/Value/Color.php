@@ -25,7 +25,7 @@ final readonly class Color implements \Stringable
             }
         }
         if (!is_finite($alpha) || $alpha < 0 || $alpha > 1) {
-            throw InvalidValue::for('color', sprintf('rgba(%d, %d, %d, %s)', $r, $g, $b, $alpha));
+            throw InvalidValue::for('color', sprintf('rgba(%d, %d, %d, %s)', $r, $g, $b, InvalidValue::number($alpha)));
         }
         return new self($r, $g, $b, round($alpha, 4));
     }

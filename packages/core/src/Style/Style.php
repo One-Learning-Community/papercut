@@ -282,7 +282,7 @@ final readonly class Style
         }
         $n = (float) $v;
         if (!is_finite($n) || $n < $min || ($integer && $n !== floor($n))) {
-            throw InvalidValue::for($kind, (string) $v);
+            throw InvalidValue::for($kind, is_float($v) ? InvalidValue::number($v) : (string) $v);
         }
         return $n;
     }

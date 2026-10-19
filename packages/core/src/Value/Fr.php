@@ -15,7 +15,7 @@ final readonly class Fr implements \Stringable
     public static function of(float $value): self
     {
         if (!is_finite($value) || $value <= 0) {
-            throw InvalidValue::for('fraction', $value . 'fr');
+            throw InvalidValue::for('fraction', InvalidValue::number($value) . 'fr');
         }
         return new self($value);
     }
