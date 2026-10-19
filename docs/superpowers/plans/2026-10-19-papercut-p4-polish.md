@@ -15,7 +15,7 @@
 - Plans 1–3 constraints hold. No new runtime dependencies. GD and poppler are dev/CI-only.
 - Benchmark target (spec §3.5): a 10-page table document in < 150 ms on PHP 8.4 without FFI. Measured as the median of 5 runs after 1 warm-up, Xdebug off, OPcache on (CLI `opcache.enable_cli=1`).
 - CI regression gate: fail if the median is > 20% slower than the committed baseline (`packages/core/bench/baseline.json`).
-- HarfBuzz FFI is **out of v0.1** (ruling, 2026-10-19). php-pdf exposes no glyph-ID drawing path, and its built-in shaping covers kerning, ligatures, Arabic/Indic and bidi. Spec §4/§10 are updated accordingly.
+- HarfBuzz FFI is **out of v0.1** (ruling, 2026-10-19). php-pdf exposes no glyph-ID drawing path, and its built-in shaping covers kerning and ligatures within runs; RTL/bidi paragraph layout is out of v0.1. Spec §4/§10 are updated accordingly.
 
 ## Review Focus
 
