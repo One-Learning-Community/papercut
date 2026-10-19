@@ -79,7 +79,7 @@ Install, configuration, tag and attribute reference: [`packages/laravel/README.m
 v0.1, pre-release, not yet published to Packagist. No performance or compatibility benchmarks have been
 published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (the CI workflow is set up to run the Laravel package's tests against both; it has not run yet).
 
-Not in v0.1: HarfBuzz shaping (the backend's built-in shaping covers kerning, ligatures, Arabic/Indic and bidi; HarfBuzz needs a glyph-level drawing path the backend does not expose), hyphenation,
+Not in v0.1: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning and ligatures within runs), right-to-left and bidirectional paragraph layout, hyphenation,
 Knuth-Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption,
 editing or merging existing PDFs, table of contents and bookmarks. Bookmarks are first in line for v0.2.
 

@@ -45,8 +45,11 @@ vendor/bin/phpunit
 vendor/bin/phpstan analyse --memory-limit=1G
 ```
 
-If Xdebug is loaded, prefix with `php -d xdebug.mode=off` for speed. CI runs the same commands on PHP 8.4 and 8.5
-(`.github/workflows`).
+If Xdebug is loaded, prefix with `php -d xdebug.mode=off` for speed. CI is configured to run the same commands on PHP 8.4 and 8.5
+(`.github/workflows`); it has not run yet.
+
+Snapshot updates: visual-regression snapshots will be refreshed with `UPDATE_SNAPSHOTS=1 vendor/bin/phpunit`
+(coming in the visual-regression task; no snapshot suite exists yet). Review snapshot diffs before committing.
 
 Tests come first: write the failing test, watch it fail, then implement. `packages/core/README.md` is tested too:
 `tests/Feature/ReadmeTest.php` executes every fenced `php` block in it (each block must leave a `$document`, and
@@ -86,5 +89,7 @@ must be replaced with the real repository URL.
    `papercut/laravel`, and enable the GitHub webhook so new tags are picked up.
 7. Verify in a scratch project: `composer require papercut/core` and `composer require papercut/laravel`, then
    render one document with each.
-8. Before the Laravel package is installable from Packagist, remove its `repositories` path entry from the split
+8. Reconsider `minimum-stability: dev` in the split Laravel repo's `composer.json` (it exists for the monorepo path
+   repo; consumers should not need it).
+9. Before the Laravel package is installable from Packagist, remove its `repositories` path entry from the split
    copy's `composer.json` (the path repo only exists for monorepo development).

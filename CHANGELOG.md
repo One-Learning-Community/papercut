@@ -32,6 +32,6 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Not included in 0.1
 
-HarfBuzz shaping (ruled out of scope for 0.1: the backend has no glyph-level drawing path and its built-in
-shaping covers kerning, ligatures, Arabic/Indic and bidi), hyphenation, Knuth-Plass line breaking, multi-column text, SVG, AcroForms, signatures, PDF/A,
+Right-to-left and bidirectional paragraph layout, HarfBuzz shaping (ruled out of scope for 0.1: the backend has no
+glyph-level drawing API; its built-in shaping covers kerning and ligatures within runs), hyphenation, Knuth-Plass line breaking, multi-column text, SVG, AcroForms, signatures, PDF/A,
 encryption, editing existing PDFs, table of contents and bookmarks (bookmarks are planned for 0.2).

@@ -261,8 +261,9 @@ $options = new RenderOptions(backend: $backend, fonts: $fonts, fallbackFamilies:
 // $document->save('out.pdf', $options);
 ```
 
-Shaping (kerning, ligatures, Arabic/Indic, bidi) comes from the backend's built-in text shaper. Optional HarfBuzz
-shaping is not part of v0.1.
+The backend shapes and reorders text within a single drawn run (kerning, ligatures). Right-to-left and bidirectional
+paragraph layout (direction, reordering across line breaks, direction-aware alignment) is unsupported and untested
+in v0.1, and so is HarfBuzz shaping.
 
 ## Errors
 

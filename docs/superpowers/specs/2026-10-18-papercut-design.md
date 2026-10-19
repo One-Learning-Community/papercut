@@ -36,7 +36,7 @@ It is not HTML-to-PDF. There is no CSS cascade, no browser and no HTML parser. T
 - Required extensions: `ext-zlib`, `ext-mbstring` and `ext-dom` (needed by the backend).
 - `papercut/core` has exactly one Composer runtime dependency: `dskripchenko/php-pdf: ^1.24` (MIT). It is used only through `Papercut\Backend\PhpPdf\*`, and no other namespace may import `Dskripchenko\*`.
 - `papercut/laravel` requires `papercut/core` and supports Laravel 12+.
-- HarfBuzz shaping via `ext-ffi` is **out of v0.1** (ruling, 2026-10-19). The backend (`dskripchenko/php-pdf`) exposes no glyph-ID drawing path, so shaped glyph runs cannot be drawn, and its built-in shaping already covers kerning, ligatures, Arabic/Indic scripts and bidi. Revisit only if a glyph-level backend path appears (§7.5).
+- HarfBuzz shaping via `ext-ffi` is **out of v0.1** (ruling, 2026-10-19). The backend (`dskripchenko/php-pdf`) exposes no glyph-ID drawing path, so shaped glyph runs cannot be drawn, and its built-in shaping covers kerning and ligatures within runs. Revisit only if a glyph-level backend path appears (§7.5).
 
 ## 5. Repository layout
 
@@ -253,7 +253,7 @@ interface Layouter {
 
 ## 10. Out of scope for v0.1 (architecture leaves room)
 
-HarfBuzz shaping (ruling, 2026-10-19: see §4), hyphenation, Knuth–Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption, editing or merging existing PDFs, table of contents, and bookmarks (outlines). Bookmarks are first in line for v0.2.
+Right-to-left and bidirectional paragraph layout, HarfBuzz shaping (ruling, 2026-10-19: see §4), hyphenation, Knuth–Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption, editing or merging existing PDFs, table of contents, and bookmarks (outlines). Bookmarks are first in line for v0.2.
 
 ## 11. Open risks
 
