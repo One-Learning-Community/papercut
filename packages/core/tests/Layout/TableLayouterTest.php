@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Layout;
 
-use Papercut\{Table, TableCell};
+use Papercut\{Component, Node, Table, TableCell, TableRow, Text};
 use Papercut\Layout\{Fragment, Status};
-use Papercut\Paint\Rect;
+use Papercut\Paint\{Line, Rect};
 use Papercut\Style\{ComputedStyle, Theme};
+use Papercut\Value\Edges;
 use Papercut\Tests\Support\LayoutHarness;
 use PHPUnit\Framework\TestCase;
+
+use function Papercut\pt;
 
 final class TableLayouterTest extends TestCase
 {
@@ -140,9 +143,133 @@ final class TableLayouterTest extends TestCase
         self::assertSame(['min' => 82.0, 'max' => 82.0], $s);
     }
 
+    public function test_row_background_spans_the_table_width(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row('x')->row(TableRow::make('a', 'b')->background('slate-100'));
+        $f = (new LayoutHarness())->layout($t, 200)->fragment;
+        self::assertNotNull($f);
+        $row = $f->children()[1];
+        self::assertSame([22.0, 200.0, 22.0], [$row['y'], $row['fragment']->width, $row['fragment']->height]);
+        $rects = array_values(array_filter($row['fragment']->ops(), fn ($op) => $op instanceof Rect));
+        self::assertCount(1, $rects);
+        self::assertSame([0.0, 0.0, 200.0, 22.0], [$rects[0]->x, $rects[0]->y, $rects[0]->width, $rects[0]->height]);
+    }
+
+    public function test_row_border_draws_a_bottom_line(): void
+    {
+        $t = Table::make()->columns('1fr')->row(TableRow::make('a')->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0))));
+        $f = (new LayoutHarness())->layout($t, 100)->fragment;
+        self::assertSame(22.5, $f?->height);
+        $row = $f->children()[0]['fragment'];
+        $lines = array_values(array_filter($row->ops(), fn ($op) => $op instanceof Line));
+        self::assertCount(1, $lines);
+        self::assertSame([0.0, 22.25, 100.0, 22.25], [$lines[0]->x1, $lines[0]->y1, $lines[0]->x2, $lines[0]->y2]);
+    }
+
+    public function test_row_padding_offsets_cells(): void
+    {
+        $h = new LayoutHarness();
+        $plain = LayoutHarness::runs($h->layout(Table::make()->columns('1fr')->row('a'), 100)->fragment)[0];
+        $t = Table::make()->columns('1fr')->row(TableRow::make('a')->padding(pt(3)));
+        $r = $h->layout($t, 100);
+        self::assertSame(28.0, $r->fragment?->height);
+        self::assertSame(9.0, LayoutHarness::runs($r->fragment)[0]['x']);
+        self::assertSame($plain['baseline'] + 3.0, LayoutHarness::runs($r->fragment)[0]['baseline']);
+    }
+
+    public function test_warnings_fire_once_when_the_table_is_laid_out_again(): void
+    {
+        $h = new LayoutHarness();
+        $t = Table::make()->columns('1fr')->row('a', 'b');
+        self::assertSame(Status::DoesNotFit, $h->layout($t, 100, 10, fresh: false)->status);
+        self::assertSame(Status::Complete, $h->layout($t, 100)->status);
+        self::assertSame(['[table] Table has 2 columns but 1 tracks'], $h->warnings);
+    }
+
+    public function test_column_measures_are_cached_per_table(): void
+    {
+        $counter = new class () implements Component {
+            public int $renders = 0;
+
+            public function render(): Node|Component
+            {
+                $this->renders++;
+                return Text::make('c');
+            }
+        };
+        $t = Table::make()->columns('auto 1fr')->row(TableCell::make($counter), 'x');
+        $h = new LayoutHarness();
+        $root = ComputedStyle::root(Theme::default());
+        $h->engine->intrinsic($t, $root);
+        $before = $counter->renders;
+        $h->engine->intrinsic($t, $root);
+        self::assertSame($before, $counter->renders);
+
+        $fresh = new LayoutHarness(); // a new engine has nothing cached yet
+        $before = $counter->renders;
+        $fresh->layout($t, 200);
+        $firstLayout = $counter->renders - $before;
+        $fresh->layout($t, 200);
+        $secondLayout = $counter->renders - $before - $firstLayout;
+        // the grid for width 200 is reused: only the cell layout itself renders again
+        self::assertLessThan($firstLayout, $secondLayout);
+        $fresh->layout($t, 200);
+        self::assertSame($secondLayout, $counter->renders - $before - $firstLayout - $secondLayout);
+    }
+
+    public function test_spanning_cells_size_the_auto_columns_they_cover(): void
+    {
+        // span-1: 5+12 = 17 each; the spanning cell's max 45+12 = 57 adds (57-34)/2 to each => 28.5
+        $t = Table::make()->columns('auto auto')->row(TableCell::make('aaaa bbbb')->colspan(2))->row('x', 'y');
+        $runs = LayoutHarness::runs((new LayoutHarness())->layout($t, 200)->fragment);
+        self::assertSame(34.5, array_column($runs, 'x', 'text')['y']);
+
+        $only = Table::make()->columns('auto auto')->row(TableCell::make('aaaa bbbb')->colspan(2));
+        $s = (new LayoutHarness())->engine->intrinsic($only, ComputedStyle::root(Theme::default()));
+        self::assertSame(['min' => 32.0, 'max' => 57.0], $s);
+    }
+
+    public function test_fr_columns_never_shrink_below_min_content(): void
+    {
+        // 1fr of 100 = 25 < min-content 20+12 = 32
+        $h = new LayoutHarness();
+        $t = Table::make()->columns('1fr 3fr')->row('aaaa', 'b');
+        $runs = LayoutHarness::runs($h->layout($t, 100)->fragment);
+        self::assertSame([6.0, 38.0], array_column($runs, 'x'));
+        self::assertSame(['[table] Table columns need 107.00pt but only 100.00pt is available'], $h->warnings);
+    }
+
+    public function test_header_that_does_not_fit_a_non_fresh_fragment_does_not_fit(): void
+    {
+        $t = Table::make()->columns('1fr')->head('H');
+        self::assertSame(Status::DoesNotFit, (new LayoutHarness())->layout($t, 100, 10, fresh: false)->status);
+    }
+
+    public function test_repeated_header_is_dropped_when_it_leaves_no_room_for_a_row(): void
+    {
+        $t = Table::make()->columns('1fr')->head(TableCell::th('H1', 'H2', 'H3'))->rows(range(1, 6), fn (int $i) => ["r$i"]);
+        $h = new LayoutHarness();
+        $first = $h->layout($t, 100, 100); // header 50 + 2 rows
+        self::assertSame(['H1', 'H2', 'H3', 'r1', 'r2'], array_column(LayoutHarness::runs($first->fragment), 'text'));
+        $second = $h->layout($t, 100, 60, $first->token); // 50 + 22 > 60
+        self::assertSame(Status::Partial, $second->status);
+        self::assertSame(['r3', 'r4'], array_column(LayoutHarness::runs($second->fragment), 'text'));
+        $third = $h->layout($t, 100, 60, $second->token);
+        self::assertSame(['r5', 'r6'], array_column(LayoutHarness::runs($third->fragment), 'text'));
+        self::assertCount(1, $h->warnings);
+        $roomy = $h->layout($t, 100, 100, $first->token);
+        self::assertSame(['H1', 'H2', 'H3', 'r3', 'r4'], array_column(LayoutHarness::runs($roomy->fragment), 'text'));
+    }
+
     /** @return list<Fragment> cell fragments in paint order */
     private static function cellFragments(Fragment $table): array
     {
-        return array_map(fn (array $c): Fragment => $c['fragment'], $table->children());
+        $cells = [];
+        foreach ($table->children() as $row) {
+            foreach ($row['fragment']->children() as $cell) {
+                $cells[] = $cell['fragment'];
+            }
+        }
+        return $cells;
     }
 }

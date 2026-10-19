@@ -14,20 +14,35 @@ use function Papercut\pt;
 /**
  * Tables: a grid of columns sized from the track list, rows stacked top to
  * bottom, every cell stretched to its row's height. Cells (TableCell) are
- * block containers laid out like a Column.
+ * block containers laid out like a Column; each row is a box of the table's
+ * width painted with the row's own background, border and padding.
  *
  * Fragmentation is by row. Header rows open the first fragment and, when the
  * table repeats its header, every continuation. A body row too tall for a
  * fresh page splits its cells in parallel: the token then holds the row index
  * and one entry per cell (null = finished); on resume finished cells draw
  * nothing.
+ *
+ * Column measures and resolved grids are cached per Table instance (keyed by
+ * the inherited style and width), so continuations and retries neither
+ * re-measure cells nor repeat column warnings.
  */
 final class TableLayouter implements Layouter
 {
     private const float EPSILON = 1e-9;
 
+    /** @var \WeakMap<Table, array<string, list<array{min: float, max: float}>>> */
+    private \WeakMap $content;
+    /** @var \WeakMap<Table, array<string, array{width: float, widths: list<float>, offsets: list<float>}>> */
+    private \WeakMap $grids;
+    /** @var \WeakMap<Table, true> tables already warned about a dropped repeated header */
+    private \WeakMap $headerWarned;
+
     public function __construct(private readonly BlockLayouter $block)
     {
+        $this->content = new \WeakMap();
+        $this->grids = new \WeakMap();
+        $this->headerWarned = new \WeakMap();
     }
 
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
@@ -39,37 +54,56 @@ final class TableLayouter implements Layouter
         $first = $token === null;
         $borderWidth = BoxGeometry::borderBoxWidth($style, $c->width);
         $contentWidth = BoxGeometry::contentWidth($style, $c->width);
-        $grid = $this->grid($table, $style, $contentWidth, $engine, $first);
+        $grid = $this->grid($table, $style, $contentWidth, $engine);
 
         $available = $c->height === null
             ? null
             : $c->height - ($first ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
 
-        /** @var list<array{x: float, y: float, fragment: Fragment}> $placed */
-        $placed = [];
-        $cursor = 0.0;
-        $headers = $table->headerRows();
-        if ($first || $table->repeatsHeader()) {
-            foreach ($headers as $r => $row) {
-                $measured = $this->measureRow($row, $r, $grid, $style, $c->fresh && $placed === [], $engine);
-                self::place($placed, $measured['cells'], $cursor);
-                $cursor += $measured['height'];
-            }
-        }
-
         $body = $table->bodyRows();
         $count = count($body);
+        $headers = $table->headerRows();
         $offset = count($headers);
         $start = min(max(0, $token->index ?? 0), $count);
+
+        /** @var list<array{height: float, fragment: Fragment}> $headerRows */
+        $headerRows = [];
+        if ($first || $table->repeatsHeader()) {
+            foreach ($headers as $r => $row) {
+                $headerRows[] = $this->measureRow($row, $r, $grid, $style, $c->fresh && $headerRows === [], $engine);
+            }
+        }
+        $headerHeight = array_sum(array_column($headerRows, 'height'));
+
+        if (!$first && $headerRows !== [] && $c->fresh && $available !== null && $start < $count
+            && $this->crowdsOutRow($body[$start], $offset + $start, $token->parallel !== [], $headerHeight, $available, $grid, $style, $engine)) {
+            $headerRows = [];
+            $headerHeight = 0.0;
+            if (!isset($this->headerWarned[$table])) {
+                $this->headerWarned[$table] = true;
+                $engine->context()->warn('Table header leaves no room for a row; not repeated on that page');
+            }
+        }
+        if ($headerRows !== [] && !$c->fresh && $available !== null && $headerHeight > $available + self::EPSILON) {
+            return LayoutResult::doesNotFit();
+        }
+
+        /** @var list<array{y: float, fragment: Fragment}> $placed */
+        $placed = [];
+        $cursor = 0.0;
+        foreach ($headerRows as $measured) {
+            $placed[] = ['y' => $cursor, 'fragment' => $measured['fragment']];
+            $cursor += $measured['height'];
+        }
+
         $breakAt = null;
         $rowsOnPage = 0;
-
         for ($k = $start; $k < $count; $k++) {
             $resuming = $k === $start && $token !== null && $token->parallel !== [];
             if (!$resuming) {
                 $measured = $this->measureRow($body[$k], $offset + $k, $grid, $style, $c->fresh && $placed === [], $engine);
                 if ($available === null || $cursor + $measured['height'] <= $available + self::EPSILON) {
-                    self::place($placed, $measured['cells'], $cursor);
+                    $placed[] = ['y' => $cursor, 'fragment' => $measured['fragment']];
                     $cursor += $measured['height'];
                     $rowsOnPage++;
                     continue;
@@ -88,7 +122,7 @@ final class TableLayouter implements Layouter
             if ($split === null) {
                 return LayoutResult::doesNotFit();
             }
-            self::place($placed, $split['cells'], $cursor);
+            $placed[] = ['y' => $cursor, 'fragment' => $split['fragment']];
             $cursor += $split['height'];
             $rowsOnPage++;
             if (array_filter($split['tokens'], static fn (?BreakToken $t): bool => $t !== null) !== []) {
@@ -107,7 +141,7 @@ final class TableLayouter implements Layouter
         $ox = $style->borderWidth->left->points + $style->padding->left->points;
         $oy = $first ? BoxGeometry::topEdge($style) : 0.0;
         foreach ($placed as $p) {
-            $f->addChild($ox + $p['x'], $oy + $p['y'], $p['fragment']);
+            $f->addChild($ox, $oy + $p['y'], $p['fragment']);
         }
 
         return $breakAt === null ? LayoutResult::complete($f) : LayoutResult::partial($f, $breakAt);
@@ -136,16 +170,42 @@ final class TableLayouter implements Layouter
     }
 
     /**
-     * Column widths and x offsets for content width $width.
+     * True when a repeated header of $headerHeight leaves no room for the next
+     * body row: nothing at all is left, or the row would fit the page without it.
      *
-     * @return array{widths: list<float>, offsets: list<float>}
+     * @param array{width: float, widths: list<float>, offsets: list<float>} $grid
      */
-    private function grid(Table $table, ComputedStyle $style, float $width, LayoutEngine $engine, bool $warn): array
+    private function crowdsOutRow(TableRow $row, int $r, bool $resuming, float $headerHeight, float $available, array $grid, ComputedStyle $style, LayoutEngine $engine): bool
     {
+        $room = $available - $headerHeight;
+        if ($room <= self::EPSILON) {
+            return true;
+        }
+        if ($resuming) {
+            return false;
+        }
+        $height = $this->measureRow($row, $r, $grid, $style, false, $engine)['height'];
+        return $height > $room + self::EPSILON && $height <= $available + self::EPSILON;
+    }
+
+    /**
+     * Column widths and x offsets for content width $width, computed once per
+     * table, style and width; column warnings are emitted only then.
+     *
+     * @return array{width: float, widths: list<float>, offsets: list<float>}
+     */
+    private function grid(Table $table, ComputedStyle $style, float $width, LayoutEngine $engine): array
+    {
+        $key = self::styleKey($style) . '|' . $width;
+        $cached = $this->grids[$table] ?? [];
+        if (isset($cached[$key])) {
+            return $cached[$key];
+        }
+
         $content = $this->columnContent($table, $style, $engine);
         $n = count($content);
         $given = $table->trackList()?->count();
-        if ($warn && $given !== null && $given !== $n) {
+        if ($given !== null && $given !== $n) {
             $engine->context()->warn(sprintf('Table has %d columns but %d tracks', $n, $given));
         }
         $tracks = self::tracks($table, $n);
@@ -183,14 +243,19 @@ final class TableLayouter implements Layouter
             };
         }
 
+        // Fr tracks share what is left, never below their column's min-content.
         $remaining = $width - array_sum($widths);
         $totalFr = array_sum($fr);
         foreach ($fr as $k => $value) {
-            $widths[$k] = $remaining > self::EPSILON ? $remaining * $value / $totalFr : $content[$k]['min'];
+            $share = $remaining > self::EPSILON ? $remaining * $value / $totalFr : 0.0;
+            $widths[$k] = max($content[$k]['min'], $share);
         }
 
-        $total = array_sum($widths);
-        if ($warn && $total > $width + self::EPSILON) {
+        $total = 0.0;
+        foreach ($widths as $w) {
+            $total += $w;
+        }
+        if ($total > $width + self::EPSILON) {
             $engine->context()->warn(sprintf('Table columns need %.2fpt but only %.2fpt is available', $total, $width));
         }
 
@@ -200,46 +265,85 @@ final class TableLayouter implements Layouter
             $offsets[] = $x;
             $x += $w;
         }
-        return ['widths' => array_values($widths), 'offsets' => $offsets];
+        $grid = ['width' => max($width, $total), 'widths' => array_values($widths), 'offsets' => $offsets];
+        $cached[$key] = $grid;
+        $this->grids[$table] = $cached;
+        return $grid;
     }
 
     /**
-     * Column count and per-column min/max-content of its span-1 cells.
+     * Per-column min/max-content: the max over its span-1 cells, then each
+     * spanning cell's shortfall spread evenly over the auto columns it covers.
+     * Cached per table and style.
      *
      * @return list<array{min: float, max: float}>
      */
     private function columnContent(Table $table, ComputedStyle $style, LayoutEngine $engine): array
     {
-        $columns = [];
-        foreach (self::allRows($table) as $r => $row) {
-            $this->inRow($row, $r, $style, $engine, function (ComputedStyle $rowStyle) use ($row, $engine, &$columns): void {
+        $key = self::styleKey($style);
+        $cached = $this->content[$table] ?? [];
+        if (isset($cached[$key])) {
+            return $cached[$key];
+        }
+
+        $rows = self::allRows($table);
+        $n = 0;
+        foreach ($rows as $row) {
+            $n = max($n, array_sum(array_map(static fn (TableCell $cell): int => $cell->span(), $row->cells())));
+        }
+        $tracks = self::tracks($table, $n);
+        $columns = array_fill(0, $n, ['min' => 0.0, 'max' => 0.0]);
+        /** @var list<array{col: int, span: int, min: float, max: float}> $spanning */
+        $spanning = [];
+        foreach ($rows as $r => $row) {
+            $this->inRow($row, $r, $style, $engine, function (ComputedStyle $rowStyle) use ($row, $engine, &$columns, &$spanning): void {
                 $col = 0;
                 foreach ($row->cells() as $j => $cell) {
-                    for ($k = $col; $k < $col + $cell->span(); $k++) {
-                        if (!isset($columns[$k])) {
-                            $columns[$k] = ['min' => 0.0, 'max' => 0.0];
-                        }
-                    }
+                    $size = $engine->intrinsic(self::prepare($cell, $engine->context()->theme), $rowStyle, $j);
                     if ($cell->span() === 1) {
-                        $size = $engine->intrinsic(self::prepare($cell, $engine->context()->theme), $rowStyle, $j);
                         $columns[$col] = [
                             'min' => max($columns[$col]['min'], $size['min']),
                             'max' => max($columns[$col]['max'], $size['max']),
                         ];
+                    } else {
+                        $spanning[] = ['col' => $col, 'span' => $cell->span(), 'min' => $size['min'], 'max' => $size['max']];
                     }
                     $col += $cell->span();
                 }
             });
         }
-        ksort($columns);
-        return array_values($columns);
+
+        foreach ($spanning as $s) {
+            $covered = range($s['col'], $s['col'] + $s['span'] - 1);
+            $autos = array_values(array_filter($covered, static fn (int $k): bool => $tracks[$k] instanceof Auto));
+            if ($autos === []) {
+                continue;
+            }
+            $sumMin = 0.0;
+            $sumMax = 0.0;
+            foreach ($covered as $k) {
+                $fixed = $tracks[$k] instanceof Length ? $tracks[$k]->points : null;
+                $sumMin += $fixed ?? $columns[$k]['min'];
+                $sumMax += $fixed ?? $columns[$k]['max'];
+            }
+            $addMin = max(0.0, $s['min'] - $sumMin) / count($autos);
+            $addMax = max(0.0, $s['max'] - $sumMax) / count($autos);
+            foreach ($autos as $k) {
+                $columns[$k] = ['min' => $columns[$k]['min'] + $addMin, 'max' => $columns[$k]['max'] + $addMax];
+            }
+        }
+
+        $cached[$key] = $columns;
+        $this->content[$table] = $cached;
+        return $columns;
     }
 
     /**
-     * Lays a row out at unbounded height, then stretches every cell to the row height.
+     * Lays a row out at unbounded height, stretching every cell to the row's
+     * content height, inside a decorated row box.
      *
-     * @param array{widths: list<float>, offsets: list<float>} $grid
-     * @return array{height: float, cells: list<array{x: float, y: float, fragment: Fragment}>}
+     * @param array{width: float, widths: list<float>, offsets: list<float>} $grid
+     * @return array{height: float, fragment: Fragment}
      */
     private function measureRow(TableRow $row, int $r, array $grid, ComputedStyle $style, bool $fresh, LayoutEngine $engine): array
     {
@@ -260,9 +364,10 @@ final class TableLayouter implements Layouter
                     $w = $slots[$j]['width'];
                     $f = $this->layoutCell($cell, $j, $w, $rowStyle, new Constraints($w, null, $fresh, $height), null, $engine)->fragment ?? $f;
                 }
-                $cells[] = ['x' => $slots[$j]['x'], 'y' => 0.0, 'fragment' => $f];
+                $cells[] = ['x' => $slots[$j]['x'], 'fragment' => $f];
             }
-            return ['height' => $height, 'cells' => $cells];
+            $fragment = self::rowFragment($rowStyle, $grid['width'], $height, $cells, true, true);
+            return ['height' => $fragment->height, 'fragment' => $fragment];
         });
     }
 
@@ -271,17 +376,21 @@ final class TableLayouter implements Layouter
      * cells start); otherwise only cells with a non-null token continue.
      * Returns null when a cell cannot place anything.
      *
-     * @param array{widths: list<float>, offsets: list<float>} $grid
+     * @param array{width: float, widths: list<float>, offsets: list<float>} $grid
      * @param ?array<int, ?BreakToken> $tokens
-     * @return ?array{height: float, tokens: array<int, ?BreakToken>, cells: list<array{x: float, y: float, fragment: Fragment}>}
+     * @return ?array{height: float, tokens: array<int, ?BreakToken>, fragment: Fragment}
      */
     private function splitRow(TableRow $row, int $r, array $grid, ComputedStyle $style, ?float $height, bool $fresh, ?array $tokens, LayoutEngine $engine): ?array
     {
         return $this->inRow($row, $r, $style, $engine, function (ComputedStyle $rowStyle) use ($row, $grid, $height, $fresh, $tokens, $engine): ?array {
+            $first = $tokens === null;
+            $room = $height === null
+                ? null
+                : max(0.0, $height - ($first ? BoxGeometry::topEdge($rowStyle) : 0.0) - BoxGeometry::bottomEdge($rowStyle));
             $slots = self::slots($row, $grid);
             $next = [];
             $cells = [];
-            $rowHeight = 0.0;
+            $content = 0.0;
             foreach ($row->cells() as $j => $cell) {
                 $next[$j] = null;
                 $resume = $tokens[$j] ?? null;
@@ -289,16 +398,36 @@ final class TableLayouter implements Layouter
                     continue;
                 }
                 $w = $slots[$j]['width'];
-                $res = $this->layoutCell($cell, $j, $w, $rowStyle, new Constraints($w, $height, $fresh), $resume, $engine);
+                $res = $this->layoutCell($cell, $j, $w, $rowStyle, new Constraints($w, $room, $fresh), $resume, $engine);
                 if ($res->status === Status::DoesNotFit || $res->fragment === null) {
                     return null;
                 }
                 $next[$j] = $res->status === Status::Partial ? $res->token : null;
-                $cells[] = ['x' => $slots[$j]['x'], 'y' => 0.0, 'fragment' => $res->fragment];
-                $rowHeight = max($rowHeight, $res->fragment->height);
+                $cells[] = ['x' => $slots[$j]['x'], 'fragment' => $res->fragment];
+                $content = max($content, $res->fragment->height);
             }
-            return ['height' => $rowHeight, 'tokens' => $next, 'cells' => $cells];
+            $last = array_filter($next, static fn (?BreakToken $t): bool => $t !== null) === [];
+            $fragment = self::rowFragment($rowStyle, $grid['width'], $content, $cells, $first, $last);
+            return ['height' => $fragment->height, 'tokens' => $next, 'fragment' => $fragment];
         });
+    }
+
+    /**
+     * A row box (one slice of it for split rows) with its cells placed inside
+     * the row's border and padding.
+     *
+     * @param list<array{x: float, fragment: Fragment}> $cells
+     */
+    private static function rowFragment(ComputedStyle $rowStyle, float $width, float $contentHeight, array $cells, bool $first, bool $last): Fragment
+    {
+        $f = new Fragment($width, BoxGeometry::outerHeight($rowStyle, $contentHeight, $first, $last));
+        BoxGeometry::decorate($f, $rowStyle, $first, $last);
+        $ox = $rowStyle->borderWidth->left->points + $rowStyle->padding->left->points;
+        $oy = $first ? BoxGeometry::topEdge($rowStyle) : 0.0;
+        foreach ($cells as $cell) {
+            $f->addChild($ox + $cell['x'], $oy, $cell['fragment']);
+        }
+        return $f;
     }
 
     /** Lays a cell out at exactly $width, with the theme's cell defaults. */
@@ -330,7 +459,7 @@ final class TableLayouter implements Layouter
     /**
      * x and width of each cell of a row; a colspan cell spans its columns' widths.
      *
-     * @param array{widths: list<float>, offsets: list<float>} $grid
+     * @param array{width: float, widths: list<float>, offsets: list<float>} $grid
      * @return list<array{x: float, width: float}>
      */
     private static function slots(TableRow $row, array $grid): array
@@ -348,15 +477,10 @@ final class TableLayouter implements Layouter
         return $slots;
     }
 
-    /**
-     * @param list<array{x: float, y: float, fragment: Fragment}> $placed
-     * @param list<array{x: float, y: float, fragment: Fragment}> $cells
-     */
-    private static function place(array &$placed, array $cells, float $y): void
+    /** Cache key for everything a cell inherits from the table's computed style. */
+    private static function styleKey(ComputedStyle $style): string
     {
-        foreach ($cells as $cell) {
-            $placed[] = ['x' => $cell['x'], 'y' => $y + $cell['y'], 'fragment' => $cell['fragment']];
-        }
+        return md5(serialize($style));
     }
 
     /**
