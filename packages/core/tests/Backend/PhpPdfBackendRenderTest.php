@@ -155,4 +155,64 @@ final class PhpPdfBackendRenderTest extends TestCase
 
         self::assertSame($expected, $reused);
     }
+
+    /** @return array<string, array{string}> */
+    public static function wrapperProvider(): array
+    {
+        return [
+            'clip' => ['clip'],
+            'opacity' => ['opacity'],
+            'translucent colour' => ['alpha'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('wrapperProvider')]
+    public function test_text_state_is_resynced_after_wrappers(string $kind): void
+    {
+        $font = $this->fonts->resolve('Inter');
+        $red = Color::parse('red-500');
+        $first = match ($kind) {
+            'clip' => new Clip(0, 0, 500, 500, [new TextRun(10, 30, 'AAA', $font, 12, $red, 2.0)]),
+            'opacity' => new Opacity(0.5, [new TextRun(10, 30, 'AAA', $font, 12, $red, 2.0)]),
+            default => new TextRun(10, 30, 'AAA', $font, 12, Color::parse('#ef444480'), 2.0),
+        };
+        $qdf = PdfInspector::qdf($this->render([$first, new TextRun(10, 60, 'BBB', $font, 12, $red, 2.0)]));
+        $offset = (int) strrpos($qdf, 'Td');
+        $beforeSecond = substr($qdf, 0, $offset);
+        $lastEt = (int) strrpos($beforeSecond, 'ET');
+        $segment = substr($beforeSecond, $lastEt);
+        self::assertStringContainsString(' rg', $segment);
+        self::assertStringContainsString(' Tc', $segment);
+    }
+
+    public function test_nested_opacity_multiplies(): void
+    {
+        $qdf = PdfInspector::qdf($this->render([new Opacity(0.5, [new Rect(0, 0, 10, 10, fill: Color::parse('#00000080'))])]));
+        self::assertMatchesRegularExpression('/\/ca 0?\.25/', $qdf);
+        $qdf = PdfInspector::qdf($this->render([new Opacity(0.5, [new Opacity(0.5, [new Rect(0, 0, 10, 10, fill: Color::black())])])]));
+        self::assertMatchesRegularExpression('/\/ca 0?\.25/', $qdf);
+    }
+
+    public function test_unknown_op_is_rejected(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->render([new class implements Op {}]);
+    }
+
+    public function test_foreign_image_handle_is_rejected(): void
+    {
+        $this->expectException(\LogicException::class);
+        $img = new class implements \Papercut\Backend\ImageHandle {
+            public function widthPx(): int { return 1; }
+            public function heightPx(): int { return 1; }
+            public function id(): string { return 'x'; }
+        };
+        $this->render([new DrawImage(0, 0, 10, 10, $img)]);
+    }
+
+    public function test_link_box_is_flipped(): void
+    {
+        $qdf = PdfInspector::qdf($this->render([new Link(50, 50, 200, 100, 'https://example.com')]));
+        self::assertMatchesRegularExpression('/\/Rect\s*\[\s*50(\.0+)?\s+692(\.0+)?\s+250(\.0+)?\s+792(\.0+)?\s*\]/', $qdf);
+    }
 }

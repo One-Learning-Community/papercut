@@ -92,64 +92,101 @@ final class PhpPdfBackend implements Backend
     }
 
     /** @param list<Op> $ops */
-    private function drawOps(PdfPage $p, float $h, array $ops): void
+    private function drawOps(PdfPage $p, float $h, array $ops, float $inherited = 1.0): void
     {
         foreach ($ops as $op) {
             match (true) {
-                $op instanceof TextRun => $this->drawText($p, $h, $op),
-                $op instanceof Rect => $this->drawRect($p, $h, $op),
-                $op instanceof Line => $this->drawLine($p, $h, $op),
+                $op instanceof TextRun => $this->drawText($p, $h, $op, $inherited),
+                $op instanceof Rect => $this->drawRect($p, $h, $op, $inherited),
+                $op instanceof Line => $this->drawLine($p, $h, $op, $inherited),
                 $op instanceof DrawImage => $p->drawImage($this->pdfImage($op), $op->x, $h - $op->y - $op->height, $op->width, $op->height),
-                $op instanceof Clip => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawOps($p, $h, $op->ops)),
-                $op instanceof Opacity => $op->alpha >= 1.0
-                    ? $this->drawOps($p, $h, $op->ops)
-                    : $p->withOpacity($op->alpha, $op->alpha, fn () => $this->drawOps($p, $h, $op->ops)),
+                $op instanceof Clip => $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawOps($p, $h, $op->ops, $inherited))),
+                $op instanceof Opacity => $this->drawOpacity($p, $h, $op, $inherited),
                 $op instanceof Link => $p->addExternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, $op->uri),
                 default => throw new \LogicException('Unsupported op ' . $op::class),
             };
         }
     }
 
-    private function drawText(PdfPage $p, float $h, TextRun $t): void
+    private function drawText(PdfPage $p, float $h, TextRun $t, float $inherited): void
     {
         if ($t->text === '' || $t->color->isTransparent()) {
             return;
         }
         $font = $this->pdfFont($t->font);
         [$r, $g, $b] = $t->color->toUnitRgb();
-        $this->withAlpha($p, $t->color, fn () => $p->showEmbeddedText($t->text, $t->x, $h - $t->baseline, $font, $t->size, $r, $g, $b, $t->letterSpacing));
+        $this->withAlpha($p, $t->color, $inherited, fn () => $p->showEmbeddedText($t->text, $t->x, $h - $t->baseline, $font, $t->size, $r, $g, $b, $t->letterSpacing));
     }
 
-    private function drawRect(PdfPage $p, float $h, Rect $o): void
+    private function drawRect(PdfPage $p, float $h, Rect $o, float $inherited): void
     {
         $y = $h - $o->y - $o->height;
         if ($o->fill !== null && !$o->fill->isTransparent()) {
             [$r, $g, $b] = $o->fill->toUnitRgb();
-            $this->withAlpha($p, $o->fill, fn () => $p->fillRoundedRect($o->x, $y, $o->width, $o->height, $o->radius, $r, $g, $b));
+            $this->withAlpha($p, $o->fill, $inherited, fn () => $p->fillRoundedRect($o->x, $y, $o->width, $o->height, $o->radius, $r, $g, $b));
         }
         if ($o->stroke !== null && !$o->stroke->isTransparent() && $o->strokeWidth > 0) {
             [$r, $g, $b] = $o->stroke->toUnitRgb();
-            $this->withAlpha($p, $o->stroke, fn () => $p->strokeRoundedRect($o->x, $y, $o->width, $o->height, $o->radius, $o->strokeWidth, $r, $g, $b));
+            $this->withAlpha($p, $o->stroke, $inherited, fn () => $p->strokeRoundedRect($o->x, $y, $o->width, $o->height, $o->radius, $o->strokeWidth, $r, $g, $b));
         }
     }
 
-    private function drawLine(PdfPage $p, float $h, Line $l): void
+    private function drawLine(PdfPage $p, float $h, Line $l, float $inherited): void
     {
         if ($l->color->isTransparent()) {
             return;
         }
         [$r, $g, $b] = $l->color->toUnitRgb();
-        $this->withAlpha($p, $l->color, fn () => $l->dashed
+        $this->withAlpha($p, $l->color, $inherited, fn () => $l->dashed
             ? $p->strokeDashedLine($l->x1, $h - $l->y1, $l->x2, $h - $l->y2, $l->width, $r, $g, $b, [3 * $l->width, 2 * $l->width])
             : $p->strokeLine($l->x1, $h - $l->y1, $l->x2, $h - $l->y2, $l->width, $r, $g, $b));
     }
 
-    private function withAlpha(PdfPage $p, Color $c, \Closure $draw): void
+    private function drawOpacity(PdfPage $p, float $h, Opacity $op, float $inherited): void
     {
-        $c->isOpaque() ? $draw() : $p->withOpacity($c->alpha, $c->alpha, $draw);
+        if ($op->alpha <= 0.0) {
+            return;
+        }
+        if ($op->alpha >= 1.0) {
+            $this->drawOps($p, $h, $op->ops, $inherited);
+            return;
+        }
+        // PDF /ca replaces rather than multiplies, so compose nested alphas ourselves.
+        $effective = $inherited * $op->alpha;
+        $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, fn () => $this->drawOps($p, $h, $op->ops, $effective)));
     }
 
-    private function pdfFont(FontHandle $font): \Dskripchenko\PhpPdf\Pdf\PdfFont
+    private function withAlpha(PdfPage $p, Color $c, float $inherited, \Closure $draw): void
+    {
+        $effective = $c->alpha * $inherited;
+        if ($effective === $inherited) {
+            $draw();
+            return;
+        }
+        $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, $draw));
+    }
+
+    private function wrapped(PdfPage $p, \Closure $wrapper): void
+    {
+        $wrapper();
+        $this->invalidateTextState($p);
+    }
+
+    /**
+     * php-pdf's ContentStream caches the last text fill colour and char spacing and skips
+     * `rg`/`Tc` when unchanged, but our q...Q wrappers discard that graphics state. Poison
+     * the cache (NAN never === anything) so the next text run re-emits both.
+     */
+    private function invalidateTextState(PdfPage $p): void
+    {
+        $stream = $p->rawContentStream();
+        \Closure::bind(function (): void {
+            $this->lastFillR = $this->lastFillG = $this->lastFillB = NAN;
+            $this->lastCharSpacing = NAN;
+        }, $stream, $stream::class)();
+    }
+
+    private function pdfFont(FontHandle $font): PdfFont
     {
         $inner = $font instanceof CachedFont ? $font->inner() : $font;
         if (!$inner instanceof PhpPdfFont) {
@@ -158,7 +195,7 @@ final class PhpPdfBackend implements Backend
         return $inner->pdfFont();
     }
 
-    private function pdfImage(DrawImage $op): \Dskripchenko\PhpPdf\Image\PdfImage
+    private function pdfImage(DrawImage $op): PdfImage
     {
         if (!$op->image instanceof PhpPdfImage) {
             throw new \LogicException('PhpPdfBackend can only draw images it loaded; got ' . $op->image::class);
