@@ -64,7 +64,7 @@ abstract class PdfComponent extends Component
     }
 
     /**
-     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer
+     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image
      * @param T $node
      * @param array<string, mixed> $data
      * @return T
@@ -85,6 +85,35 @@ abstract class PdfComponent extends Component
         }
 
         return $node;
+    }
+
+    /**
+     * Like styled(), but maps the own `align` to text-align and `size` to font-size.
+     *
+     * @template T of \Papercut\Text|\Papercut\PageNumber
+     * @param T $node
+     * @param array<string, mixed> $data
+     * @return T
+     */
+    protected function textStyled(object $node, array $data): object
+    {
+        $own = $this->attrs($data)['own'];
+        $mapped = [];
+        if (isset($own['align'])) {
+            $mapped['text-align'] = $own['align'];
+        }
+        if (isset($own['size'])) {
+            $mapped['font-size'] = $own['size'];
+        }
+        if ($mapped !== []) {
+            try {
+                $node = $node->attributes($mapped);
+            } catch (UnknownAttribute | InvalidValue $e) {
+                throw $e->within('on <x-pdf::' . $this->tag() . '>');
+            }
+        }
+
+        return $this->styled($node, $data);
     }
 
     /**
