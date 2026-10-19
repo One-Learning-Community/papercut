@@ -6,7 +6,7 @@ namespace Papercut\Tests\Backend;
 
 use Papercut\Backend\PhpPdf\PhpPdfBackend;
 use Papercut\Paint\{Clip, DocumentMeta, DrawImage, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
-use Papercut\Tests\Support\{FakeFont, PdfInspector};
+use Papercut\Tests\Support\{FakeFont, PdfInspector, TestImages};
 use Papercut\Text\FontRegistry;
 use Papercut\Value\Color;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
@@ -74,7 +74,7 @@ final class PhpPdfBackendRenderTest extends TestCase
     public function test_every_op_type_produces_a_valid_pdf(): void
     {
         $font = $this->fonts->resolve('Inter', 700);
-        $png = $this->backend->loadImageBytes(PhpPdfImageTest::pngBytes(alpha: true));
+        $png = $this->backend->loadImageBytes(TestImages::png(alpha: true));
         $pdf = $this->render([
             new Rect(50, 50, 200, 100, fill: Color::parse('slate-100'), stroke: Color::parse('slate-400'), strokeWidth: 1, radius: 6),
             new Line(50, 170, 250, 170, Color::parse('red-500'), 0.5),

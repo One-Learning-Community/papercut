@@ -6,19 +6,16 @@ namespace Papercut\Tests\Contract;
 
 use Papercut\Backend\Backend;
 use Papercut\Paint\{Clip, DocumentMeta, DrawImage, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
-use Papercut\Tests\Backend\PhpPdfImageTest;
-use Papercut\Tests\Support\{FakeFont, PdfInspector};
+use Papercut\Tests\Support\{FakeFont, PdfInspector, TestImages};
 use Papercut\Text\FontRegistry;
 use Papercut\Value\Color;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Spec section 9 contract every Backend implementation must satisfy.
  * Subclasses only supply backend(); it must return a fresh instance per call.
  */
-#[RequiresPhpExtension('gd')]
 abstract class BackendContractTestCase extends TestCase
 {
     private Backend $backend;
@@ -26,9 +23,19 @@ abstract class BackendContractTestCase extends TestCase
 
     abstract protected function backend(): Backend;
 
+    /** True when the backend's output is a PDF; the contract only applies to PDF backends. */
+    public static function producesPdf(Backend $backend): bool
+    {
+        $meta = new DocumentMeta(title: 'guard');
+        return str_starts_with($backend->render($meta, [new PageDisplayList(100, 100, [])]), '%PDF-');
+    }
+
     protected function setUp(): void
     {
         $this->backend = $this->backend();
+        if (!self::producesPdf($this->backend)) {
+            self::markTestSkipped($this->backend::class . ' does not produce PDF output; contract suite skipped');
+        }
         $this->fonts = FontRegistry::withDefaults($this->backend);
     }
 
@@ -82,7 +89,7 @@ abstract class BackendContractTestCase extends TestCase
 
     public function test_image_is_placed_at_op_geometry(): void
     {
-        $png = $this->backend->loadImageBytes(PhpPdfImageTest::pngBytes());
+        $png = $this->backend->loadImageBytes(TestImages::png());
         $qdf = PdfInspector::qdf($this->render([new DrawImage(100, 50, 80, 40, $png)]));
         // Top-left (100,50) size 80x40 on an 842pt page: matrix [80 0 0 40 100 752].
         self::assertMatchesRegularExpression('/\b80(\.0+)?\s+0(\.0+)?\s+0(\.0+)?\s+40(\.0+)?\s+100(\.0+)?\s+752(\.0+)?\s+cm\b/', $qdf);
@@ -128,7 +135,7 @@ abstract class BackendContractTestCase extends TestCase
     public function test_every_op_type_produces_a_valid_pdf(): void
     {
         $font = $this->fonts->resolve('Inter', 700);
-        $png = $this->backend->loadImageBytes(PhpPdfImageTest::pngBytes(alpha: true));
+        $png = $this->backend->loadImageBytes(TestImages::png(alpha: true));
         $pdf = $this->render([
             new Rect(50, 50, 200, 100, fill: Color::parse('slate-100'), stroke: Color::parse('slate-400'), strokeWidth: 1, radius: 6),
             new Line(50, 170, 250, 170, Color::parse('red-500'), 0.5),
@@ -189,7 +196,8 @@ abstract class BackendContractTestCase extends TestCase
     {
         $font = $this->fonts->resolve('Inter');
         $ops = [new TextRun(72, 72, 'Same bytes', $font, 12, Color::black())];
-        self::assertSame($this->render($ops), ($this->backend())->render($this->meta(), [new PageDisplayList(595, 842, [
+        self::assertSame($this->render($ops), $this->render($ops), 'same instance, repeated render');
+        self::assertSame($this->render($ops), $this->backend()->render($this->meta(), [new PageDisplayList(595, 842, [
             new TextRun(72, 72, 'Same bytes', FontRegistry::withDefaults($this->backend())->resolve('Inter'), 12, Color::black()),
         ])]));
     }
