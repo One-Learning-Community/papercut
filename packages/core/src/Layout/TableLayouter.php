@@ -165,7 +165,7 @@ final class TableLayouter implements Layouter
             $min += $fixed ?? $size['min'];
             $max += $fixed ?? $size['max'];
         }
-        $edges = $style->padding->horizontal() + $style->borderWidth->horizontal();
+        $edges = $style->padding->horizontal() + $style->borderWidth->horizontal() + $this->rowEdge($table, $style, $engine);
         return ['min' => $min + $edges, 'max' => $max + $edges];
     }
 
@@ -202,6 +202,9 @@ final class TableLayouter implements Layouter
             return $cached[$key];
         }
 
+        // Columns fit inside every row box: size them against the width minus the widest row side edges.
+        $edge = $this->rowEdge($table, $style, $engine);
+        $width = max(0.0, $width - $edge);
         $content = $this->columnContent($table, $style, $engine);
         $n = count($content);
         $given = $table->trackList()?->count();
@@ -243,12 +246,27 @@ final class TableLayouter implements Layouter
             };
         }
 
-        // Fr tracks share what is left, never below their column's min-content.
+        // Fr tracks share what is left, never below their column's min-content: a clamped
+        // track is frozen at its min-content and the rest is re-shared (CSS grid).
         $remaining = $width - array_sum($widths);
-        $totalFr = array_sum($fr);
-        foreach ($fr as $k => $value) {
-            $share = $remaining > self::EPSILON ? $remaining * $value / $totalFr : 0.0;
-            $widths[$k] = max($content[$k]['min'], $share);
+        while ($fr !== []) {
+            $totalFr = array_sum($fr);
+            $clamped = [];
+            foreach ($fr as $k => $value) {
+                $share = $remaining > self::EPSILON && $totalFr > 0.0 ? $remaining * $value / $totalFr : 0.0;
+                if ($content[$k]['min'] > $share + self::EPSILON) {
+                    $clamped[$k] = $content[$k]['min'];
+                }
+                $widths[$k] = max($content[$k]['min'], $share);
+            }
+            if ($clamped === []) {
+                break;
+            }
+            foreach ($clamped as $k => $min) {
+                $widths[$k] = $min;
+                $remaining -= $min;
+                unset($fr[$k]);
+            }
         }
 
         $total = 0.0;
@@ -265,10 +283,21 @@ final class TableLayouter implements Layouter
             $offsets[] = $x;
             $x += $w;
         }
-        $grid = ['width' => max($width, $total), 'widths' => array_values($widths), 'offsets' => $offsets];
+        $grid = ['width' => max($width, $total) + $edge, 'widths' => array_values($widths), 'offsets' => $offsets];
         $cached[$key] = $grid;
         $this->grids[$table] = $cached;
         return $grid;
+    }
+
+    /** Largest left + right padding and border over all rows. */
+    private function rowEdge(Table $table, ComputedStyle $style, LayoutEngine $engine): float
+    {
+        $edge = 0.0;
+        foreach (self::allRows($table) as $r => $row) {
+            $rs = $engine->styleOf($row, $style, $r);
+            $edge = max($edge, $rs->padding->horizontal() + $rs->borderWidth->horizontal());
+        }
+        return $edge;
     }
 
     /**
@@ -477,10 +506,17 @@ final class TableLayouter implements Layouter
         return $slots;
     }
 
-    /** Cache key for everything a cell inherits from the table's computed style. */
+    /** Cache key for the inherited text properties, the only ones that change intrinsic sizes. */
     private static function styleKey(ComputedStyle $style): string
     {
-        return md5(serialize($style));
+        return implode("\0", [
+            $style->fontFamily,
+            (string) $style->fontSize,
+            (string) $style->fontWeight,
+            $style->italic ? 'i' : '',
+            (string) $style->letterSpacing,
+            (string) $style->lineHeight,
+        ]);
     }
 
     /**

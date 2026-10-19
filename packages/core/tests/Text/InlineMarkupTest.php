@@ -90,4 +90,24 @@ final class InlineMarkupTest extends TestCase
             self::assertSame('inline markup', $e->kind);
         }
     }
+
+    // --- Task 13 ---------------------------------------------------------
+
+    public function test_link_href_scheme_is_validated_at_parse_time(): void
+    {
+        foreach (['<a href="javascript:alert(1)">x</a>', '<a href="docs/a.pdf">x</a>', '<a href="">x</a>', '<a href="ftp://x.test">x</a>'] as $bad) {
+            try {
+                InlineMarkup::parse($bad);
+                self::fail("accepted $bad");
+            } catch (InvalidValue $e) {
+                self::assertSame(
+                    sprintf('Invalid inline markup "%s": <a href> must use http, https, mailto, tel or a #fragment.', $bad),
+                    $e->getMessage(),
+                );
+            }
+        }
+        foreach (['https://x.test', 'HTTP://x.test', 'mailto:a@x.test', 'Tel:+1', '#top', '  https://x.test'] as $good) {
+            self::assertNotNull(InlineMarkup::parse(sprintf('<a href="%s">x</a>', $good))[0]->href);
+        }
+    }
 }

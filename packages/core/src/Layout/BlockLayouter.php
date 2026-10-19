@@ -97,7 +97,9 @@ final class BlockLayouter implements Layouter
             }
             if ($res->status === Status::DoesNotFit || $res->fragment === null) {
                 if ($monolithic) {
-                    continue; // unbounded and fresh: cannot happen for well-behaved layouters
+                    // unbounded and fresh: cannot happen for well-behaved layouters, but never drop content silently
+                    $engine->context()->warn(sprintf('Content dropped inside fixed-height box: %s[%d]', $child->debugName(), $i));
+                    continue;
                 }
                 if ($placed === []) {
                     return LayoutResult::doesNotFit();
@@ -247,8 +249,12 @@ final class BlockLayouter implements Layouter
             if ($res->fragment === null) {
                 break;
             }
+            $partial = $res->status === Status::Partial && $res->token !== null;
+            if ($partial && $res->token == $token) {
+                break; // no progress: the repeated slice is dropped
+            }
             $slices[] = $res->fragment;
-            if ($res->status !== Status::Partial || $res->token === null || $res->token == $token) {
+            if (!$partial) {
                 break;
             }
             $token = $res->token;

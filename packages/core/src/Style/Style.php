@@ -98,6 +98,9 @@ final readonly class Style
         public ?bool $breakAfter = null,
         public ?int $minLines = null,
     ) {
+        if ($fontWeight !== null && ($fontWeight < 1 || $fontWeight > 1000)) {
+            throw InvalidValue::for('font weight', (string) $fontWeight);
+        }
     }
 
     /**

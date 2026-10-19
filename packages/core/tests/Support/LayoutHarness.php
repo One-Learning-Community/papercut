@@ -15,9 +15,9 @@ final class LayoutHarness
     public array $warnings = [];
     public LayoutEngine $engine;
 
-    public function __construct(?Theme $theme = null, OverflowMode $overflow = OverflowMode::Throw)
+    public function __construct(?Theme $theme = null, OverflowMode $overflow = OverflowMode::Throw, ?FakeBackend $backend = null)
     {
-        $backend = new FakeBackend();
+        $backend ??= new FakeBackend();
         $ctx = new LayoutContext(FontRegistry::withDefaults($backend), $theme ?? Theme::default(), $backend, $overflow, function (string $w): void { $this->warnings[] = $w; });
         $this->engine = new LayoutEngine($ctx);
     }

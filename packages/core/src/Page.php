@@ -80,7 +80,7 @@ final class Page implements Node
     public static function size(Length $w, Length $h): self
     {
         if (!is_finite($w->points) || !is_finite($h->points) || $w->points <= 0 || $h->points <= 0) {
-            throw InvalidValue::for('page size', $w . ' ' . $h);
+            throw InvalidValue::for('page size', $w . ' ' . $h)->because('width and height must be positive');
         }
         return new self($w->points, $h->points);
     }

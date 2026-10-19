@@ -29,20 +29,7 @@ final class ImageLayouter implements Layouter
         $edgesH = $style->padding->horizontal() + $style->borderWidth->horizontal();
         $edgesV = $style->padding->vertical() + $style->borderWidth->vertical();
 
-        // Border-box size.
-        $w = BoxGeometry::resolve($style->width, $c->width);
-        $h = BoxGeometry::resolve($style->height, $c->definiteHeight);
-        if ($w !== null && $h !== null) {
-            // both given
-        } elseif ($w !== null) {
-            $h = $iw > 0.0 ? max(0.0, $w - $edgesH) * $ih / $iw + $edgesV : $edgesV;
-        } elseif ($h !== null) {
-            $w = $ih > 0.0 ? max(0.0, $h - $edgesV) * $iw / $ih + $edgesH : $edgesH;
-        } else {
-            $cw = min($iw, max(0.0, $c->width - $edgesH));
-            $w = $cw + $edgesH;
-            $h = $iw > 0.0 ? $cw * $ih / $iw + $edgesV : $edgesV;
-        }
+        [$w, $h] = self::size($style, $c, $iw, $ih);
 
         if ($c->height !== null && $h > $c->height + 1e-9) {
             return LayoutResult::doesNotFit();
@@ -78,6 +65,62 @@ final class ImageLayouter implements Layouter
         return LayoutResult::complete($fragment);
     }
 
+    /**
+     * Border-box size: explicit width/height (the other one derived from the
+     * image's aspect ratio), else the intrinsic size; then min/max clamps,
+     * then scaled down to fit c.width. Aspect is kept unless both were set.
+     *
+     * @return array{float, float}
+     */
+    private static function size(ComputedStyle $style, Constraints $c, float $iw, float $ih): array
+    {
+        $edgesH = $style->padding->horizontal() + $style->borderWidth->horizontal();
+        $edgesV = $style->padding->vertical() + $style->borderWidth->vertical();
+        $toH = static fn (float $w): float => $iw > 0.0 ? max(0.0, $w - $edgesH) * $ih / $iw + $edgesV : $edgesV;
+        $toW = static fn (float $h): float => $ih > 0.0 ? max(0.0, $h - $edgesV) * $iw / $ih + $edgesH : $edgesH;
+
+        $w = BoxGeometry::resolve($style->width, $c->width);
+        $h = BoxGeometry::resolve($style->height, $c->definiteHeight);
+        $keep = $w === null || $h === null;
+        if ($w === null && $h === null) {
+            $w = $iw + $edgesH;
+            $h = $toH($w);
+        } elseif ($h === null) {
+            $h = $toH((float) $w);
+        } elseif ($w === null) {
+            $w = $toW($h);
+        }
+
+        $clamped = self::clamp($w, BoxGeometry::resolve($style->minWidth, $c->width), BoxGeometry::resolve($style->maxWidth, $c->width));
+        if ($clamped !== $w) {
+            $h = $keep ? $toH($clamped) : $h;
+            $w = $clamped;
+        }
+        $clamped = self::clamp($h, BoxGeometry::resolve($style->minHeight, $c->definiteHeight), BoxGeometry::resolve($style->maxHeight, $c->definiteHeight));
+        if ($clamped !== $h) {
+            $w = $keep ? $toW($clamped) : $w;
+            $h = $clamped;
+        }
+
+        $limit = max(0.0, $c->width);
+        if ($w > $limit + 1e-9) {
+            $h = $keep ? $toH($limit) : ($w > 0.0 ? $h * $limit / $w : $h);
+            $w = $limit;
+        }
+        return [max(0.0, $w), max(0.0, $h)];
+    }
+
+    private static function clamp(float $v, ?float $min, ?float $max): float
+    {
+        if ($max !== null) {
+            $v = min($v, $max);
+        }
+        if ($min !== null) {
+            $v = max($v, $min);
+        }
+        return $v;
+    }
+
     public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
     {
         if (!$node instanceof Image) {
@@ -85,7 +128,7 @@ final class ImageLayouter implements Layouter
         }
         $w = $style->width instanceof Length
             ? $style->width->points
-            : $engine->context()->image($node)->widthPx() * self::PT_PER_PX;
+            : $engine->context()->image($node)->widthPx() * self::PT_PER_PX + $style->padding->horizontal() + $style->borderWidth->horizontal();
         return ['min' => $w, 'max' => $w];
     }
 }

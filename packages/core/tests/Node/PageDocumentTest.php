@@ -20,6 +20,7 @@ final class PageDocumentTest extends TestCase
                 self::fail('accepted');
             } catch (InvalidValue $e) {
                 self::assertSame('page size', $e->kind);
+                self::assertStringEndsWith(': width and height must be positive.', $e->getMessage());
             }
         }
     }

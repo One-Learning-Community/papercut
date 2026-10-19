@@ -9,8 +9,13 @@ use Papercut\Backend\FontHandle;
 final class FakeFont implements FontHandle
 {
     public int $advanceCalls = 0;
+    /** Total characters measured by advance(). */
+    public int $advancedChars = 0;
+    /** Calls to ascent() and descent(). */
+    public int $metricCalls = 0;
 
-    public function __construct(private readonly string $id = 'fake')
+    /** $kerning: the pair "o A" is 1pt (at 10pt) tighter than its glyphs, like a real kerned font. */
+    public function __construct(private readonly string $id = 'fake', private readonly bool $kerning = false)
     {
     }
 
@@ -23,16 +28,20 @@ final class FakeFont implements FontHandle
     {
         $this->advanceCalls++;
         $n = mb_strlen($text, 'UTF-8');
-        return $n * 0.5 * $size + $n * $letterSpacing;
+        $this->advancedChars += $n;
+        $kern = $this->kerning ? substr_count($text, 'o A') * 0.1 * $size : 0.0;
+        return $n * 0.5 * $size + $n * $letterSpacing - $kern;
     }
 
     public function ascent(float $size): float
     {
+        $this->metricCalls++;
         return 0.8 * $size;
     }
 
     public function descent(float $size): float
     {
+        $this->metricCalls++;
         return 0.2 * $size;
     }
 
