@@ -43,11 +43,14 @@ final class Image extends PdfComponent
     }
 
     /**
-     * Relative paths must stay inside the image base. Absolute paths (including stream wrappers and
+     * Relative paths must stay inside the image base (textual containment: symlinks inside the base, e.g. public/storage, are followed). Absolute paths (including stream wrappers and
      * Windows drive paths) are trusted: never feed untrusted input to src.
      */
     private static function resolvePath(string $src): string
     {
+        if (str_contains($src, "\0")) {
+            throw new ImageUnreadable('Image path contains a NUL byte');
+        }
         $absolute = $src !== '' && ($src[0] === '/' || $src[0] === '\\'
             || preg_match('#^[A-Za-z][A-Za-z0-9+.-]*://#', $src) === 1
             || preg_match('#^[A-Za-z]:[\\\\/]#', $src) === 1);
@@ -56,13 +59,21 @@ final class Image extends PdfComponent
         } else {
             $base = config('papercut.image_path');
             $base = is_string($base) && $base !== '' ? $base : public_path();
-            $path = rtrim($base, '/') . '/' . $src;
-            $realBase = realpath($base);
-            $real = realpath($path);
-            if ($realBase !== false && $real !== false
-                && !str_starts_with($real, rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
-                throw new ImageUnreadable("Image path escapes the image directory: $src");
+            $stack = [];
+            foreach (preg_split('#[/\\\\]#', $src) ?: [] as $segment) {
+                if ($segment === '' || $segment === '.') {
+                    continue;
+                }
+                if ($segment === '..') {
+                    if ($stack === []) {
+                        throw new ImageUnreadable("Image path escapes the image directory: $src");
+                    }
+                    array_pop($stack);
+                } else {
+                    $stack[] = $segment;
+                }
             }
+            $path = rtrim($base, '/') . ($stack === [] ? '' : '/' . implode('/', $stack));
         }
         if (!is_file($path)) {
             throw new ImageUnreadable("Image not found: $path");

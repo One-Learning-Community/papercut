@@ -52,6 +52,34 @@ final class HardeningTest extends TestCase
         self::assertInstanceOf(\Papercut\Image::class, $img);
     }
 
+    public function test_image_symlinked_subdirectory_inside_base_is_allowed(): void
+    {
+        symlink($this->dir, $this->dir . '/img/link');
+        $img = $this->nodeFrom('<x-pdf::image src="link/secret.txt" />');
+        self::assertInstanceOf(\Papercut\Image::class, $img);
+    }
+
+    public function test_image_dotdot_climbing_above_base_after_descending_is_rejected(): void
+    {
+        $this->expectException(ImageUnreadable::class);
+        $this->expectExceptionMessage('escapes the image directory');
+        $this->nodeFrom('<x-pdf::image src="a/../../secret.txt" />');
+    }
+
+    public function test_image_empty_dot_and_nul_src(): void
+    {
+        foreach (['', '.'] as $p) {
+            try {
+                $this->nodeFrom('<x-pdf::image :src="$p" />', ['p' => $p]);
+                self::fail('accepted');
+            } catch (ImageUnreadable $e) {
+                self::assertStringContainsString('Image not found', $e->getMessage());
+            }
+        }
+        $this->expectException(ImageUnreadable::class);
+        $this->nodeFrom('<x-pdf::image :src="$p" />', ['p' => "logo.png\0.txt"]);
+    }
+
     public function test_image_absolute_path_is_trusted(): void
     {
         $img = $this->nodeFrom('<x-pdf::image :src="$p" />', ['p' => $this->dir . '/secret.txt']);
@@ -127,7 +155,7 @@ final class HardeningTest extends TestCase
         try {
             Pdf::view('pdf.bad-style')->toString();
             self::fail('accepted');
-        } catch (\Throwable $e) {
+        } catch (\Illuminate\View\ViewException $e) {
             self::assertStringContainsString('Unknown style "crad" on <x-pdf::view>', $e->getMessage());
             self::assertStringContainsString('Did you mean "card"', $e->getMessage());
             self::assertStringContainsString('bad-style.blade.php', $e->getMessage());
@@ -146,16 +174,12 @@ final class HardeningTest extends TestCase
 
     public function test_root_errors_name_the_view(): void
     {
-        foreach (['pdf.two-roots', 'pdf.no-root'] as $view) {
+        foreach (['pdf.two-roots', 'pdf.no-root', 'pdf.leftover'] as $view) {
             try {
                 Pdf::view($view)->toString();
                 self::fail('accepted');
-            } catch (\Throwable $e) {
-                $root = $e;
-                while ($root->getPrevious() !== null && !$root instanceof InvalidStructure) {
-                    $root = $root->getPrevious();
-                }
-                self::assertStringEndsWith(" in view [$view]", $root->getMessage());
+            } catch (InvalidStructure $e) {
+                self::assertStringEndsWith(" in view [$view]", $e->getMessage());
             }
         }
     }
@@ -212,7 +236,7 @@ final class HardeningTest extends TestCase
     public function test_non_scalar_document_metadata_throws(): void
     {
         $this->expectException(InvalidValue::class);
-        $this->expectExceptionMessage('title');
+        $this->expectExceptionMessage('on <x-pdf::document>');
         $this->nodeFrom('<x-pdf::document :title="$t"><x-pdf::text>x</x-pdf::text></x-pdf::document>', ['t' => ['a']]);
     }
 

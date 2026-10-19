@@ -61,7 +61,7 @@ final class PendingPdf implements Responsable
 
     private static function asciiFallback(string $filename): string
     {
-        $fallback = str_replace(['%', '/', '\\'], '_', (string) preg_replace('/[^\x20-\x7e]/', '_', Str::ascii($filename)));
+        $fallback = str_replace('%', '_', (string) preg_replace('/[^\x20-\x7e]/', '_', Str::ascii($filename)));
 
         return $fallback === '' ? 'document.pdf' : $fallback;
     }

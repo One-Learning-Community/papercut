@@ -43,7 +43,7 @@ final class PdfManager
                 throw new InvalidStructure('A Papercut view must have exactly one <x-pdf::document> root; found ' . $this->describe($segments) . " in view [$view]");
             }
             if ($this->registry->remaining() > 0) {
-                throw new InvalidStructure('Some <x-pdf::*> elements were rendered outside the document in view [$view]');
+                throw new InvalidStructure("Some <x-pdf::*> elements were rendered outside the document in view [$view]");
             }
 
             return $segments[0];
