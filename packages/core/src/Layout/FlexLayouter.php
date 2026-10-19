@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Image, Link, Node, PageBreak, Spacer, Table, Text, View};
-use Papercut\Style\{Align, ComputedStyle, Justify};
+use Papercut\{Node, PageBreak, Spacer, View};
+use Papercut\Style\{Align, ComputedStyle};
 use Papercut\Value\{Auto, Length};
-
-use function Papercut\pt;
 
 /**
  * Row-direction Views: CSS flexbox (simplified) along the x axis, with
@@ -30,7 +28,7 @@ final class FlexLayouter implements Layouter
         $contentWidth = BoxGeometry::contentWidth($style, $c->width);
 
         // Only an explicit height is monolithic; a stretched definiteHeight is a minimum fill and stays splittable.
-        $target = $first ? self::definiteHeight($style, $c) : null;
+        $target = $first ? BoxGeometry::definiteHeight($style, $c) : null;
         $fixed = $target !== null && !$style->height instanceof Auto ? $target : null;
         if ($fixed !== null && $c->height !== null && $fixed > $c->height + self::EPSILON) {
             return LayoutResult::doesNotFit();
@@ -90,7 +88,7 @@ final class FlexLayouter implements Layouter
             }
             $cursor += $gap + $split['height'];
             $linesOnPage++;
-            if (array_filter($split['tokens'], static fn (?BreakToken $t): bool => $t !== null) !== []) {
+            if (ParallelSplit::pending($split['tokens'])) {
                 $breakAt = new BreakToken(index: $k, parallel: $split['tokens']);
                 break;
             }
@@ -209,14 +207,7 @@ final class FlexLayouter implements Layouter
             foreach ($group as $j => $item) {
                 $free -= $sizes[$j] + $item['margin'];
             }
-            [$lead, $between] = $free > self::EPSILON ? match ($style->justify) {
-                Justify::Start => [0.0, 0.0],
-                Justify::End => [$free, 0.0],
-                Justify::Center => [$free / 2, 0.0],
-                Justify::SpaceBetween => $n > 1 ? [0.0, $free / ($n - 1)] : [0.0, 0.0],
-                Justify::SpaceAround => [$free / $n / 2, $free / $n],
-                Justify::SpaceEvenly => [$free / ($n + 1), $free / ($n + 1)],
-            } : [0.0, 0.0];
+            [$lead, $between] = BoxGeometry::justify($style->justify, $free, $n);
 
             $line = [];
             $x = $lead;
@@ -291,13 +282,13 @@ final class FlexLayouter implements Layouter
      */
     private function measureLine(array $line, ComputedStyle $style, bool $fresh, ?float $crossFill, LayoutEngine $engine): array
     {
-        $frags = [];
-        $height = $crossFill ?? 0.0;
-        foreach ($line as $j => $item) {
-            $frags[$j] = $this->layoutItem($item, $style, new Constraints($item['main'], null, $fresh), null, $engine)->fragment
-                ?? new Fragment($item['main'], 0.0);
-            $height = max($height, $frags[$j]->height + $item['style']->margin->vertical());
-        }
+        ['height' => $height, 'fragments' => $frags] = ParallelSplit::measure(
+            array_keys($line),
+            $crossFill ?? 0.0,
+            fn (int $j): Fragment => $this->layoutItem($line[$j], $style, new Constraints($line[$j]['main'], null, $fresh), null, $engine)->fragment
+                ?? new Fragment($line[$j]['main'], 0.0),
+            static fn (int $j, Fragment $f): float => $f->height + $line[$j]['style']->margin->vertical(),
+        );
 
         $cells = [];
         foreach ($line as $j => $item) {
@@ -314,9 +305,8 @@ final class FlexLayouter implements Layouter
     }
 
     /**
-     * Parallel split of one line in $height. $tokens null = fresh split (all
-     * items start); otherwise only items with a non-null token continue.
-     * Returns null when an item cannot place anything (overflow).
+     * Parallel split of one line in $height (see ParallelSplit::split); items
+     * keep their margins, the trailing one truncated at $height.
      *
      * @param list<array{node: Node, style: ComputedStyle, index: int, x: float, main: float}> $line
      * @param ?array<int, ?BreakToken> $tokens
@@ -324,53 +314,27 @@ final class FlexLayouter implements Layouter
      */
     private function splitLine(array $line, ComputedStyle $style, ?float $height, bool $fresh, ?array $tokens, LayoutEngine $engine): ?array
     {
-        $next = [];
-        $cells = [];
-        $lineHeight = 0.0;
-        foreach ($line as $j => $item) {
-            $next[$j] = null;
-            $resume = $tokens[$j] ?? null;
-            if ($tokens !== null && $resume === null) {
-                continue;
-            }
-            $m = $item['style']->margin;
-            $top = $tokens === null ? $m->top->points : 0.0;
-            $res = $this->layoutItem($item, $style, new Constraints($item['main'], $height === null ? null : max(0.0, $height - $top), $fresh), $resume, $engine);
-            if ($res->status === Status::DoesNotFit || $res->fragment === null) {
-                return null;
-            }
-            $done = $res->status !== Status::Partial || $res->token === null;
-            $next[$j] = $done ? null : $res->token;
-            $cells[] = ['x' => $item['x'], 'y' => $top, 'fragment' => $res->fragment];
-            $bottom = $top + $res->fragment->height;
-            if ($done) {
-                // Margin-bottom is truncated at the page end, never pushing the line past $height.
-                $bottom = $height === null ? $bottom + $m->bottom->points : max($bottom, min($bottom + $m->bottom->points, $height));
-            }
-            $lineHeight = max($lineHeight, $bottom);
-        }
-        return ['height' => $lineHeight, 'tokens' => $next, 'cells' => $cells];
+        $slots = array_map(static fn (array $item): array => [
+            'x' => $item['x'],
+            'top' => $item['style']->margin->top->points,
+            'bottom' => $item['style']->margin->bottom->points,
+        ], $line);
+        return ParallelSplit::split(
+            $slots,
+            $height,
+            $tokens,
+            fn (int $j, ?float $room, ?BreakToken $resume): LayoutResult => $this->layoutItem($line[$j], $style, new Constraints($line[$j]['main'], $room, $fresh), $resume, $engine),
+        );
     }
 
     /**
-     * Lays an item out at exactly its resolved main size. Spacers only hold
-     * space; an item whose own width/min/max would resolve differently gets
-     * them pinned to the main size.
+     * Lays an item out at exactly its resolved main size.
      *
      * @param array{node: Node, style: ComputedStyle, index: int, x: float, main: float} $item
      */
     private function layoutItem(array $item, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
-        $node = $item['node'];
-        $main = $item['main'];
-        if ($node instanceof Spacer) {
-            return LayoutResult::complete(new Fragment($main, 0.0));
-        }
-        if (abs(BoxGeometry::borderBoxWidth($item['style'], $main) - $main) > self::EPSILON
-            && ($node instanceof View || $node instanceof Text || $node instanceof Link || $node instanceof Image || $node instanceof Table)) {
-            $node = $node->width(pt($main))->minWidth(pt($main))->maxWidth(pt($main));
-        }
-        return $engine->layout($node, $style, $c, $token, $item['index']);
+        return ExactWidth::layout($item['node'], $item['main'], $style, $c, $token, $engine, $item['index'], $item['style']);
     }
 
     private static function alignY(Align $align, float $slot, float $height): float
@@ -380,24 +344,6 @@ final class FlexLayouter implements Layouter
             Align::End => $slot - $height,
             Align::Start, Align::Stretch => 0.0,
         };
-    }
-
-    /** Border-box height the box should have: explicit height, else a stretched definiteHeight (a minimum). */
-    private static function definiteHeight(ComputedStyle $style, Constraints $c): ?float
-    {
-        $h = BoxGeometry::resolve($style->height, $c->definiteHeight) ?? $c->definiteHeight;
-        if ($h === null) {
-            return null;
-        }
-        $max = BoxGeometry::resolve($style->maxHeight, $c->definiteHeight);
-        if ($max !== null) {
-            $h = min($h, $max);
-        }
-        $min = BoxGeometry::resolve($style->minHeight, $c->definiteHeight);
-        if ($min !== null) {
-            $h = max($h, $min);
-        }
-        return max(0.0, $h);
     }
 
     /** @return list<\Papercut\Node|\Papercut\Component> */

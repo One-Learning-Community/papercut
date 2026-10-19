@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Layout;
 
 use Papercut\Paint\{Line, Rect};
-use Papercut\Style\{BorderStyle, ComputedStyle};
+use Papercut\Style\{BorderStyle, ComputedStyle, Justify};
 use Papercut\Value\{Auto, Length, Percent};
 
 /**
@@ -110,6 +110,57 @@ final class BoxGeometry
             $v instanceof Length => $v->points,
             $v instanceof Percent => $basis === null ? null : $v->resolve($basis),
             default => null,
+        };
+    }
+
+    /** Border-box height from an explicit Length, or a Percent of definiteHeight, clamped to min/max. Monolithic. */
+    public static function explicitHeight(ComputedStyle $s, Constraints $c): ?float
+    {
+        return self::clampHeight($s, $c, self::resolve($s->height, $c->definiteHeight));
+    }
+
+    /** Border-box height the box should have: the explicit height, else a stretched definiteHeight (a minimum fill). */
+    public static function definiteHeight(ComputedStyle $s, Constraints $c): ?float
+    {
+        return self::clampHeight($s, $c, self::resolve($s->height, $c->definiteHeight) ?? $c->definiteHeight);
+    }
+
+    /** Clamps a border-box height to min/max-height (percentages of definiteHeight); null stays null. */
+    public static function clampHeight(ComputedStyle $s, Constraints $c, ?float $h): ?float
+    {
+        if ($h === null) {
+            return null;
+        }
+        $max = self::resolve($s->maxHeight, $c->definiteHeight);
+        if ($max !== null) {
+            $h = min($h, $max);
+        }
+        $min = self::resolve($s->minHeight, $c->definiteHeight);
+        if ($min !== null) {
+            $h = max($h, $min);
+        }
+        return max(0.0, $h);
+    }
+
+    /**
+     * Distributes $free space over $n items per justify: [lead, between],
+     * the offset before the first item and the extra space between items.
+     * No free space (or no items) gives [0, 0].
+     *
+     * @return array{float, float}
+     */
+    public static function justify(Justify $justify, float $free, int $n): array
+    {
+        if ($free <= 1e-9 || $n <= 0) {
+            return [0.0, 0.0];
+        }
+        return match ($justify) {
+            Justify::Start => [0.0, 0.0],
+            Justify::End => [$free, 0.0],
+            Justify::Center => [$free / 2, 0.0],
+            Justify::SpaceBetween => $n > 1 ? [0.0, $free / ($n - 1)] : [0.0, 0.0],
+            Justify::SpaceAround => [$free / $n / 2, $free / $n],
+            Justify::SpaceEvenly => [$free / ($n + 1), $free / ($n + 1)],
         };
     }
 }
