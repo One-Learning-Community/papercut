@@ -52,4 +52,17 @@ final class ComputedStyleTest extends TestCase
         $c = ComputedStyle::root(Theme::default())->child(Style::make(letterSpacing: pt(1.5)));
         self::assertSame(1.5, $c->letterSpacing);
     }
+
+    public function test_zero_font_size_and_line_height_are_rejected(): void
+    {
+        $root = ComputedStyle::root(Theme::default());
+        try {
+            $root->child(Style::make(fontSize: pt(0)));
+            self::fail('expected');
+        } catch (\Papercut\Exception\InvalidValue $e) {
+            self::assertSame('font size', $e->kind);
+        }
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
+        $root->child(Style::make(lineHeight: 0.0));
+    }
 }

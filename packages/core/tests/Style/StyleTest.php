@@ -104,4 +104,47 @@ final class StyleTest extends TestCase
     {
         self::assertInstanceOf(Length::class, Style::fromAttributes(['basis' => '20mm'])->basis);
     }
+
+    public function test_make_signature_matches_constructor(): void
+    {
+        $sig = static fn (\ReflectionFunctionAbstract $f): array => array_map(
+            static fn (\ReflectionParameter $p): array => [
+                $p->getName(),
+                (string) $p->getType(),
+                $p->isDefaultValueAvailable() ? $p->getDefaultValue() : '__none__',
+            ],
+            $f->getParameters(),
+        );
+        self::assertSame(
+            $sig(new \ReflectionMethod(Style::class, '__construct')),
+            $sig(new \ReflectionMethod(Style::class, 'make')),
+        );
+    }
+
+    public function test_enum_values_are_trimmed_and_case_insensitive(): void
+    {
+        self::assertSame(Justify::Center, Style::fromAttributes(['justify' => ' Center'])->justify);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function invalidRanges(): iterable
+    {
+        yield 'weight zero' => ['weight', '0'];
+        yield 'weight too big' => ['weight', '1001'];
+        yield 'font-size zero' => ['font-size', '0'];
+        yield 'line-height zero' => ['line-height', '0'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidRanges')]
+    public function test_value_ranges_are_enforced(string $key, string $value): void
+    {
+        try {
+            Style::fromAttributes([$key => $value]);
+            self::fail('expected');
+        } catch (InvalidValue $e) {
+            self::assertStringContainsString('for ' . $key . '.', $e->getMessage());
+        }
+    }
 }

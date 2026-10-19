@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Style;
 
+use Papercut\Exception\InvalidValue;
 use Papercut\Value\{Auto, Color, Edges, Length, Percent};
 
 /**
@@ -100,6 +101,12 @@ final readonly class ComputedStyle
 
     public function child(Style $style): self
     {
+        if ($style->fontSize !== null && $style->fontSize->points <= 0.0) {
+            throw InvalidValue::for('font size', (string) $style->fontSize);
+        }
+        if ($style->lineHeight !== null && $style->lineHeight <= 0.0) {
+            throw InvalidValue::for('line height', (string) $style->lineHeight);
+        }
         return new self(
             width: $style->width ?? Auto::instance(),
             height: $style->height ?? Auto::instance(),

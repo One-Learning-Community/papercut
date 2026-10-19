@@ -41,12 +41,12 @@ final readonly class Style
         'basis' => ['basis', 'lengthPercentAuto'],
         'wrap' => ['wrap', 'bool'],
         'font' => ['fontFamily', 'string'],
-        'font-size' => ['fontSize', 'length'],
-        'weight' => ['fontWeight', 'int>=1'],
+        'font-size' => ['fontSize', 'length>0'],
+        'weight' => ['fontWeight', 'weight'],
         'italic' => ['italic', 'bool'],
         'bold' => ['fontWeight', 'bold'],
         'color' => ['color', 'color'],
-        'line-height' => ['lineHeight', 'float>=0'],
+        'line-height' => ['lineHeight', 'float>0'],
         'letter-spacing' => ['letterSpacing', 'length'],
         'text-align' => ['textAlign', 'enum:' . TextAlign::class],
         'underline' => ['underline', 'bool'],
@@ -103,9 +103,86 @@ final readonly class Style
     /**
      * Named-argument factory; accepts exactly the constructor's parameters.
      */
-    public static function make(mixed ...$properties): self
-    {
-        return new self(...$properties);
+    public static function make(
+        Length|Percent|Auto|null $width = null,
+        Length|Percent|Auto|null $height = null,
+        Length|Percent|null $minWidth = null,
+        Length|Percent|null $maxWidth = null,
+        Length|Percent|null $minHeight = null,
+        Length|Percent|null $maxHeight = null,
+        ?Edges $padding = null,
+        ?Edges $margin = null,
+        ?Edges $borderWidth = null,
+        ?Color $borderColor = null,
+        ?BorderStyle $borderStyle = null,
+        ?Length $radius = null,
+        ?Color $background = null,
+        ?float $opacity = null,
+        ?Direction $direction = null,
+        ?Length $gap = null,
+        ?Justify $justify = null,
+        ?Align $alignItems = null,
+        ?Align $alignSelf = null,
+        ?float $grow = null,
+        ?float $shrink = null,
+        Length|Percent|Auto|null $basis = null,
+        ?bool $wrap = null,
+        ?string $fontFamily = null,
+        ?Length $fontSize = null,
+        ?int $fontWeight = null,
+        ?bool $italic = null,
+        ?Color $color = null,
+        ?float $lineHeight = null,
+        ?Length $letterSpacing = null,
+        ?TextAlign $textAlign = null,
+        ?bool $underline = null,
+        ?bool $strike = null,
+        ?bool $keepTogether = null,
+        ?bool $keepWithNext = null,
+        ?bool $breakBefore = null,
+        ?bool $breakAfter = null,
+        ?int $minLines = null,
+    ): self {
+        return new self(
+            width: $width,
+            height: $height,
+            minWidth: $minWidth,
+            maxWidth: $maxWidth,
+            minHeight: $minHeight,
+            maxHeight: $maxHeight,
+            padding: $padding,
+            margin: $margin,
+            borderWidth: $borderWidth,
+            borderColor: $borderColor,
+            borderStyle: $borderStyle,
+            radius: $radius,
+            background: $background,
+            opacity: $opacity,
+            direction: $direction,
+            gap: $gap,
+            justify: $justify,
+            alignItems: $alignItems,
+            alignSelf: $alignSelf,
+            grow: $grow,
+            shrink: $shrink,
+            basis: $basis,
+            wrap: $wrap,
+            fontFamily: $fontFamily,
+            fontSize: $fontSize,
+            fontWeight: $fontWeight,
+            italic: $italic,
+            color: $color,
+            lineHeight: $lineHeight,
+            letterSpacing: $letterSpacing,
+            textAlign: $textAlign,
+            underline: $underline,
+            strike: $strike,
+            keepTogether: $keepTogether,
+            keepWithNext: $keepWithNext,
+            breakBefore: $breakBefore,
+            breakAfter: $breakAfter,
+            minLines: $minLines,
+        );
     }
 
     public function merge(Style $over): self
@@ -156,6 +233,9 @@ final readonly class Style
             'lengthPercent' => self::parseLengthPercent($v, false),
             'lengthPercentAuto' => self::parseLengthPercent($v, true),
             'color' => $v instanceof Color ? $v : Color::parse(self::str($v, 'color')),
+            'length>0' => self::positiveLength($v),
+            'float>0' => self::positiveNumber($v),
+            'weight' => self::parseWeight($v),
             'float>=0' => self::parseNumber($v, 'number', false, 0.0),
             'float01' => self::parseOpacity($v),
             'int>=1' => (int) self::parseNumber($v, 'integer', true, 1.0),
@@ -198,6 +278,33 @@ final readonly class Style
         return $n;
     }
 
+    private static function positiveLength(string|int|float|bool|object $v): Length
+    {
+        $l = $v instanceof Length ? $v : Length::parse(self::str($v, 'length'));
+        if ($l->points <= 0.0) {
+            throw InvalidValue::for('length', (string) $l);
+        }
+        return $l;
+    }
+
+    private static function positiveNumber(string|int|float|bool|object $v): float
+    {
+        $n = self::parseNumber($v, 'number', false, 0.0);
+        if ($n <= 0.0) {
+            throw InvalidValue::for('number', (string) $n);
+        }
+        return $n;
+    }
+
+    private static function parseWeight(string|int|float|bool|object $v): int
+    {
+        $n = (int) self::parseNumber($v, 'integer', true, 1.0);
+        if ($n > 1000) {
+            throw InvalidValue::for('integer', (string) $n);
+        }
+        return $n;
+    }
+
     private static function parseOpacity(string|int|float|bool|object $v): float
     {
         $n = self::parseNumber($v, 'opacity', false, 0.0);
@@ -231,12 +338,13 @@ final readonly class Style
             return $v;
         }
         $s = self::str($v, 'value');
-        $case = $enum::tryFrom($s);
+        $normalized = strtolower(trim($s));
+        $case = $enum::tryFrom($normalized);
         if ($case !== null) {
             return $case;
         }
         $values = array_map(static fn (\BackedEnum $c): string => (string) $c->value, $enum::cases());
-        throw InvalidValue::for('value', $s, self::suggest($s, $values));
+        throw InvalidValue::for('value', $s, self::suggest($normalized, $values));
     }
 
     /**
