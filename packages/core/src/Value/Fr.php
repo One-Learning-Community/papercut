@@ -24,6 +24,9 @@ final readonly class Fr implements \Stringable
     {
         $s = trim($input);
         if (preg_match('/^(\d+(?:\.\d+)?|\.\d+)fr$/', $s, $m) && (float) $m[1] > 0) {
+            if (!is_finite((float) $m[1])) {
+                throw InvalidValue::for('fraction', $input);
+            }
             return new self((float) $m[1]);
         }
         if (preg_match('/^(\d+(?:\.\d+)?|\.\d+)\s*fr$/i', $s, $m) && (float) $m[1] > 0) {

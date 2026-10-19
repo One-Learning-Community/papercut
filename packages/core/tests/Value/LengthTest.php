@@ -87,6 +87,12 @@ final class LengthTest extends TestCase
         }
     }
 
+    public function test_of_rejects_unit_overflow(): void
+    {
+        $this->expectException(InvalidValue::class);
+        Length::of(PHP_FLOAT_MAX, Unit::In);
+    }
+
     public function test_negative_zero_prints_as_zero(): void
     {
         self::assertSame('0pt', (string) Length::parse('-0pt'));

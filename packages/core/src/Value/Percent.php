@@ -24,6 +24,9 @@ final readonly class Percent implements \Stringable
     {
         $s = trim($input);
         if (preg_match('/^(-?(?:\d+(?:\.\d+)?|\.\d+))%$/', $s, $m)) {
+            if (!is_finite((float) $m[1])) {
+                throw InvalidValue::for('percentage', $input);
+            }
             return new self((float) $m[1]);
         }
         if (preg_match('/^(-?(?:\d+(?:\.\d+)?|\.\d+))\s+%$/', $s, $m)) {
