@@ -205,10 +205,10 @@ interface Layouter {
 - **Components:** one Blade component class per tag, registered under the `pdf` namespace.
 - **Blade → nodes without HTML:**
   1. Each component validates its attributes during Blade rendering, so an exception is raised inside the compiled view and Laravel's view-exception mapping reports the template file and line.
-  2. Each component builds its node and stores it in a per-render `NodeRegistry` under an integer id. It returns a marker string `"\0pc:{id}\0"`.
+  2. Each component builds its node and stores it in a per-render `NodeRegistry` under an integer id. It returns a marker string `"[[pc:{nonce}:{id}]]"`, where `nonce` is 16 random hex chars generated per render. (Spike 2026-10-18: Blade `trim()`s slot content, which strips NUL bytes at the edges, so markers must be printable.)
   3. A container component's slot arrives as a string of markers interleaved with literal text. The container resolves the markers back to nodes in order. Whitespace-only text between block elements is dropped. Other text becomes an implicit `text` node, and inside text-bearing elements it is parsed for inline markup.
   4. The root `document` component's output is a single marker. `Pdf::view()` renders the view, resolves the root node and passes it to core.
-  5. NUL bytes in user data are stripped before marker resolution so they cannot forge markers.
+  5. User data cannot forge markers because it cannot know the per-render nonce. Literal text that happens to look like a marker with a wrong nonce stays literal text.
   6. Typed values bound with `:attr` arrive as PHP values directly through the component constructor, so nothing is converted to a string and lost.
   7. Structural validation happens at the container: for example, a `td` outside a `tr` raises `InvalidStructure` naming both tags.
 - **`Pdf` facade / `PdfManager`:** `view()`, `make(Node)`, default options from config.

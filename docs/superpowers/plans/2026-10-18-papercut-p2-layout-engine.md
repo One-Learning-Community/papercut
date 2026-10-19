@@ -370,7 +370,7 @@ final class ThemeTest extends TestCase
 - `final readonly class Span { __construct(string $text, Style $style = new Style(), ?string $href = null, bool $lineBreak = false) }`: `static text(string, ?Style = null)`, `static break()`.
 - `final class Text implements Node`:
   - `static make(string $text = '')`; `static spans(Span ...$spans)`; `static markup(string $markup)` (uses `Text\InlineMarkup::parse`, Task 4; until then this throws `\LogicException`, and Task 4 wires it).
-  - `static h1(string)`, `h2`, `h3`, `h4`, `p(string)`: preset markers stored as `private ?string $preset` (`'h1'…'h4'`, `'p'`), resolved via the Theme at layout time; `preset(): ?string`.
+  - `static h1(string)`, `h2`, `h3`, `h4`, `p(string)`: preset markers stored as `private ?string $preset` (`'h1'…'h4'`, `'p'`), resolved via the Theme at layout time; `preset(): ?string`; `withPreset(string $name): self` (accepts `h1`–`h4` and `p`, else `\InvalidArgumentException`) so markup text can take a preset: `Text::markup($m)->withPreset("h2")`.
   - `spanList(): list<Span>`; `append(string|Span ...$more): self`.
 - `final class Image implements Node`: `static file(string $path)`, `static bytes(string $bytes)`, `static handle(ImageHandle $h)`; `fit(ImageFit)`; `source(): array{kind: 'file'|'bytes'|'handle', value: string|ImageHandle}`; `fitMode(): ImageFit` (default Contain).
 - `final class Spacer implements Node`: `static size(Length $l)` (fixed main-axis size), `static flex(float $grow = 1)`; `fixedSize(): ?Length`.
@@ -430,6 +430,8 @@ final class NodesTest extends TestCase
     public function test_text_presets_and_alignment(): void
     {
         self::assertSame('h2', Text::h2('Title')->preset());
+        self::assertSame('h3', Text::make('x')->withPreset('h3')->preset());
+        self::assertNull(Text::make('x')->preset());
         self::assertSame(TextAlign::Right, Text::make('x')->right()->style()->textAlign);
         $t = Text::make('Hello ')->append(Span::text('world', Style::make(fontWeight: 700)));
         self::assertCount(2, $t->spanList());
