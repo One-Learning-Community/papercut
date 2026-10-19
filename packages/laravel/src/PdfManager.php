@@ -12,7 +12,7 @@ use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
 use Papercut\RenderOptions;
 use Papercut\Style\{Style, Theme};
-use Papercut\Text\{FontRegistry, FontStyle};
+use Papercut\Text\FontRegistry;
 use Papercut\Value\Color;
 
 final class PdfManager
@@ -67,14 +67,8 @@ final class PdfManager
     {
         $backend = new PhpPdfBackend();
         $fonts = FontRegistry::withDefaults($backend);
-        /** @var array<string, array<int|string, array<string, string>>> $families */
-        $families = (array) config('papercut.fonts', []);
-        foreach ($families as $family => $weights) {
-            foreach ($weights as $weight => $faces) {
-                foreach ($faces as $style => $path) {
-                    $fonts->register((string) $family, $path, (int) $weight, $style === 'italic' ? FontStyle::Italic : FontStyle::Normal);
-                }
-            }
+        foreach (FontConfig::faces() as $face) {
+            $fonts->register($face['family'], $face['path'], $face['weight'], $face['style']);
         }
 
         $cfg = (array) config('papercut.theme', []);
@@ -102,6 +96,7 @@ final class PdfManager
             fonts: $fonts,
             theme: $theme,
             overflow: $mode,
+            fallbackFamilies: FontConfig::fallbacks(),
             onWarning: static function (string $msg): void {
                 logger()->warning('[papercut] ' . $msg);
             },
