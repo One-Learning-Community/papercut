@@ -219,7 +219,7 @@ interface Layouter {
 
 ### 7.5 Backend adapter
 
-- `Backend` renders a list of `PageDisplayList`s plus `DocumentMeta` to PDF bytes. `FontHandle` exposes what layout needs from a font: `advance(string $text, float $size): float` (kerning included), `ascent()`, `descent()`, `lineGap()` (all in points per 1pt of size) and `covers(string $text): bool`.
+- `Backend` renders a list of `PageDisplayList`s plus `DocumentMeta` to PDF bytes. `FontHandle` exposes what layout needs from a font: `advance(string $text, float $size, float $letterSpacing = 0.0): float` (kerning included, matching drawing exactly, including `.notdef` glyphs at 1000 units), `ascent(float $size)`, `descent(float $size)` (points, positive) and `covers(string $text): bool`. Line gap is not used; line height comes from the `line-height` style.
 - The v0.1 implementation `PhpPdfBackend` maps ops onto `Dskripchenko\PhpPdf\Pdf\Page`. It flips coordinates (our top-left origin becomes PDF's bottom-left), converts `Color` to 0–1 RGB floats, and uses `showEmbeddedText`, `fillRoundedRect`, `strokeRoundedRect`, `strokeLine`, `drawImage`, `withClipRect`, `withOpacity` and `addExternalLink`.
 - **Measurement and drawing must agree.** `FontHandle::advance()` is computed from the same `PdfFont` shaping and kerning that `showEmbeddedText` uses.
 - The adapter is the only code that knows the dependency's API. Swapping backends (an in-house writer, or a glyph-level path for HarfBuzz) touches only `Papercut\Backend\*`.
