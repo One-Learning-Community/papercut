@@ -15,7 +15,7 @@ final readonly class Percent implements \Stringable
     public static function of(float $value): self
     {
         if (!is_finite($value)) {
-            throw InvalidValue::for('percentage', (string) $value);
+            throw InvalidValue::for('percentage', InvalidValue::number($value));
         }
         return new self($value);
     }

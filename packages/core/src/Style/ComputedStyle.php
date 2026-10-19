@@ -105,7 +105,7 @@ final readonly class ComputedStyle
             throw InvalidValue::for('font size', (string) $style->fontSize);
         }
         if ($style->lineHeight !== null && $style->lineHeight <= 0.0) {
-            throw InvalidValue::for('line height', (string) $style->lineHeight);
+            throw InvalidValue::for('line height', InvalidValue::number($style->lineHeight));
         }
         return new self(
             width: $style->width ?? Auto::instance(),

@@ -40,6 +40,20 @@ final class InvalidValue extends PapercutException
         return new self($kind, $input, $suggestion, null, [], null, $previous);
     }
 
+    /**
+     * Formats a number for an error message. Non-finite floats become NAN, INF or -INF
+     * directly, because casting NAN to string warns on PHP 8.5+.
+     */
+    public static function number(float|int $value): string
+    {
+        return match (true) {
+            is_nan((float) $value) => 'NAN',
+            $value === INF => 'INF',
+            $value === -INF => '-INF',
+            default => (string) $value,
+        };
+    }
+
     /** Names the attribute the value was given to: `for <attribute>`. */
     public function withContext(string $attribute): self
     {

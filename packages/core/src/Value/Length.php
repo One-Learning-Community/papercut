@@ -18,7 +18,7 @@ final readonly class Length implements \Stringable
     {
         $points = $value * $unit->points();
         if (!is_finite($value) || !is_finite($points)) {
-            throw InvalidValue::for('length', (string) $value);
+            throw InvalidValue::for('length', InvalidValue::number($value));
         }
         return new self($points);
     }
@@ -26,7 +26,7 @@ final readonly class Length implements \Stringable
     public static function points(float $pt): self
     {
         if (!is_finite($pt)) {
-            throw InvalidValue::for('length', (string) $pt);
+            throw InvalidValue::for('length', InvalidValue::number($pt));
         }
         return new self($pt);
     }
