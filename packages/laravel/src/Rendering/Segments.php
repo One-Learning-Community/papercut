@@ -5,15 +5,25 @@ declare(strict_types=1);
 namespace Papercut\Laravel\Rendering;
 
 use Papercut\Laravel\Exception\InvalidStructure;
+use Papercut\Laravel\Components\HeaderRows;
+use Papercut\TableCell;
+use Papercut\TableRow;
 use Papercut\Text;
 
 final class Segments
 {
+    private const array PARENTS = [
+        TableCell::class => ['td', 'tr'],
+        TableRow::class => ['tr', 'table'],
+        HeaderRows::class => ['thead', 'table'],
+    ];
+
     /**
      * @param list<object|string> $segs
+     * @param list<class-string> $allow table-structure classes (TableCell, TableRow, HeaderRows) this parent accepts
      * @return list<object>
      */
-    public static function nodes(array $segs, string $tag): array
+    public static function nodes(array $segs, string $tag, array $allow = []): array
     {
         $out = [];
         foreach ($segs as $seg) {
@@ -22,6 +32,11 @@ final class Segments
                     $out[] = Text::markup(trim($seg));
                 }
             } else {
+                foreach (self::PARENTS as $class => [$name, $parent]) {
+                    if ($seg instanceof $class && !in_array($class, $allow, true)) {
+                        throw new InvalidStructure("<x-pdf::$name> must be inside <x-pdf::$parent>");
+                    }
+                }
                 $out[] = $seg;
             }
         }

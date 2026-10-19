@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\View\Component;
 use Illuminate\View\ComponentSlot;
 use Papercut\Exception\InvalidValue;
+use Papercut\Style\Style;
 use Papercut\Exception\UnknownAttribute;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\Laravel\Rendering\Segments;
@@ -56,15 +57,62 @@ abstract class PdfComponent extends Component
             if ($key === 'style' || in_array($key, $this->ownAttributes(), true)) {
                 $own[$key] = $value;
             } else {
-                $style[$key === 'align' ? 'align-items' : $key] = $value;
+                $style[$key] = $value;
             }
         }
 
         return ['own' => $own, 'style' => $style];
     }
 
+    /** @return array<string, string> user attribute key => style key (container components only) */
+    protected function aliases(): array
+    {
+        return [];
+    }
+
     /**
-     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image
+     * Applies style attributes and a named style (string) or Style object, tagging errors with the tag.
+     *
+     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
+     * @param T $node
+     * @param array<string, mixed> $style
+     * @return T
+     */
+    protected function applyStyle(object $node, array $style, mixed $styleName = null): object
+    {
+        $location = 'on <x-pdf::' . $this->tag() . '>';
+        $aliases = $this->aliases();
+        try {
+            $plain = [];
+            foreach ($style as $key => $value) {
+                if (isset($aliases[$key])) {
+                    try {
+                        $node = $node->attributes([$aliases[$key] => $value]);
+                    } catch (InvalidValue $e) {
+                        $re = InvalidValue::for($e->kind, $e->input, $e->suggestion)->withContext($key);
+                        throw $e->reason !== null ? $re->because($e->reason) : $re;
+                    }
+                } else {
+                    $plain[$key] = $value;
+                }
+            }
+            if ($plain !== []) {
+                $node = $node->attributes($plain);
+            }
+            if ($styleName instanceof Style || is_string($styleName)) {
+                $node = $node->apply($styleName);
+            } elseif ($styleName !== null) {
+                throw InvalidValue::for('style', is_scalar($styleName) ? (string) $styleName : get_debug_type($styleName))->withContext('style');
+            }
+        } catch (UnknownAttribute | InvalidValue $e) {
+            throw $e->within($location);
+        }
+
+        return $node;
+    }
+
+    /**
+     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
      * @param T $node
      * @param array<string, mixed> $data
      * @return T
@@ -72,19 +120,8 @@ abstract class PdfComponent extends Component
     protected function styled(object $node, array $data): object
     {
         ['own' => $own, 'style' => $style] = $this->attrs($data);
-        $location = 'on <x-pdf::' . $this->tag() . '>';
-        try {
-            if ($style !== []) {
-                $node = $node->attributes($style);
-            }
-            if (isset($own['style']) && is_string($own['style'])) {
-                $node = $node->apply($own['style']);
-            }
-        } catch (UnknownAttribute | InvalidValue $e) {
-            throw $e->within($location);
-        }
 
-        return $node;
+        return $this->applyStyle($node, $style, $own['style'] ?? null);
     }
 
     /**
@@ -97,7 +134,7 @@ abstract class PdfComponent extends Component
      */
     protected function textStyled(object $node, array $data): object
     {
-        $own = $this->attrs($data)['own'];
+        ['own' => $own, 'style' => $style] = $this->attrs($data);
         $mapped = [];
         if (isset($own['align'])) {
             $mapped['text-align'] = $own['align'];
@@ -105,15 +142,8 @@ abstract class PdfComponent extends Component
         if (isset($own['size'])) {
             $mapped['font-size'] = $own['size'];
         }
-        if ($mapped !== []) {
-            try {
-                $node = $node->attributes($mapped);
-            } catch (UnknownAttribute | InvalidValue $e) {
-                throw $e->within('on <x-pdf::' . $this->tag() . '>');
-            }
-        }
 
-        return $this->styled($node, $data);
+        return $this->applyStyle($node, [...$mapped, ...$style], $own['style'] ?? null);
     }
 
     /**
@@ -123,9 +153,19 @@ abstract class PdfComponent extends Component
     protected function children(array $data): array
     {
         /** @var list<\Papercut\Node> $nodes */
-        $nodes = Segments::nodes(app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')), $this->tag());
+        $nodes = $this->rawChildren($data, []);
 
         return $nodes;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param list<class-string> $allow table-structure classes this parent accepts
+     * @return list<object>
+     */
+    protected function rawChildren(array $data, array $allow): array
+    {
+        return Segments::nodes(app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')), $this->tag(), $allow);
     }
 
     /** @param array<string, mixed> $data */

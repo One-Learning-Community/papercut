@@ -17,9 +17,10 @@ final class Spacer extends PdfComponent
     protected function build(array $data): object
     {
         ['own' => $own, 'style' => $style] = $this->attrs($data);
+        $location = 'on <x-pdf::spacer>';
         foreach (array_keys($style) as $key) {
             if ($key !== 'grow') {
-                throw UnknownAttribute::for($key)->within('on <x-pdf::spacer>');
+                throw UnknownAttribute::for($key)->within($location);
             }
         }
 
@@ -28,15 +29,18 @@ final class Spacer extends PdfComponent
             try {
                 $length = $size instanceof Length ? $size : Length::parse((string) $size);
             } catch (InvalidValue $e) {
-                throw $e->withContext('size')->within('on <x-pdf::spacer>');
+                throw $e->withContext('size')->within($location);
             }
-            $node = \Papercut\Spacer::size($length);
-        } else {
-            $grow = $style['grow'] ?? 1;
-            $node = \Papercut\Spacer::flex(is_numeric($grow) ? (float) $grow : 1.0);
-            unset($style['grow']);
+
+            return $this->applyStyle(\Papercut\Spacer::size($length), [], $own['style'] ?? null);
         }
 
-        return $this->styled($node, [...$data, 'attributes' => new \Illuminate\View\ComponentAttributeBag([...$style, ...(isset($own['style']) ? ['style' => $own['style']] : [])])]);
+        $grow = $style['grow'] ?? 1;
+        if (!is_int($grow) && !is_float($grow) && !(is_string($grow) && is_numeric($grow)) || $grow < 0) {
+            $shown = is_scalar($grow) ? (string) $grow : get_debug_type($grow);
+            throw InvalidValue::for('number', $shown)->withContext('grow')->within($location);
+        }
+
+        return $this->applyStyle(\Papercut\Spacer::flex((float) $grow), [], $own['style'] ?? null);
     }
 }

@@ -40,7 +40,12 @@ abstract class TestCase extends Orchestra
             try {
                 $html = Blade::render($blade, $data);
             } catch (ViewException $e) { // @phpstan-ignore catch.neverThrown
-                throw $e->getPrevious() ?? $e;
+                $inner = $e;
+                while ($inner instanceof ViewException && $inner->getPrevious() !== null) {
+                    $inner = $inner->getPrevious();
+                }
+
+                throw $inner;
             }
             $segments = $registry->segments($html);
             $nodes = [];
