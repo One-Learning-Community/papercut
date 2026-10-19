@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Component, Image, Link, Node, PageBreak, Spacer, Table, TableCell, Text, View};
+use Papercut\{Component, Image, Link, Node, PageBreak, PageNumber, Spacer, Table, TableCell, Text, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Style\{ComputedStyle, Direction};
 
@@ -35,6 +35,7 @@ final class LayoutEngine
         $this->layouters[TableCell::class] = $table;
         $this->layouters[Spacer::class] = $leaf;
         $this->layouters[PageBreak::class] = $leaf;
+        $this->layouters[PageNumber::class] = $leaf;
     }
 
     public function context(): LayoutContext
@@ -49,10 +50,25 @@ final class LayoutEngine
         $this->ctx->pushPath(self::pathName($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index);
-            return $this->layouterFor($node, $style)->layout($node, $style, $c, $token, $this);
+            $result = $this->layouterFor($node, $style)->layout($node, $style, $c, $token, $this);
+            if ($result->status === Status::DoesNotFit && $c->fresh) {
+                $this->recordFailure();
+            }
+            return $result;
         } finally {
             $this->ctx->popPath();
         }
+    }
+
+    /** Keeps an already recorded descendant failure: the deepest node is the useful one. */
+    private function recordFailure(): void
+    {
+        $path = $this->ctx->path();
+        $last = $this->ctx->lastFailurePath;
+        if ($last !== null && str_starts_with($last, $path . ' > ')) {
+            return;
+        }
+        $this->ctx->setLastFailurePath($path);
     }
 
     /** @return array{min: float, max: float} */
