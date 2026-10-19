@@ -20,10 +20,12 @@ final class LayoutEngine
     private array $layouters = [];
 
     private readonly BlockLayouter $block;
+    private readonly FlexLayouter $flex;
 
     public function __construct(private readonly LayoutContext $ctx)
     {
         $this->block = new BlockLayouter();
+        $this->flex = new FlexLayouter();
         $leaf = new LeafLayouter();
         $this->layouters[Text::class] = new TextLayouter();
         $this->layouters[Link::class] = new LinkLayouter($this->block);
@@ -117,8 +119,8 @@ final class LayoutEngine
 
     private function layouterFor(Node $node, ComputedStyle $style): Layouter
     {
-        if ($node instanceof View && $style->direction === Direction::Column) {
-            return $this->block;
+        if ($node instanceof View) {
+            return $style->direction === Direction::Row ? $this->flex : $this->block;
         }
         return $this->layouters[$node::class] ?? throw new \LogicException(sprintf(
             'No layouter registered for %s at "%s".',
