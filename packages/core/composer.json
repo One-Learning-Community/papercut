@@ -3,10 +3,10 @@
     "description": "Component-based, page-aware PDF layout engine for modern PHP.",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/OWNER/papercut",
+    "homepage": "https://github.com/One-Learning-Community/papercut",
     "support": {
-        "issues": "https://github.com/OWNER/papercut/issues",
-        "source": "https://github.com/OWNER/papercut"
+        "issues": "https://github.com/One-Learning-Community/papercut/issues",
+        "source": "https://github.com/One-Learning-Community/papercut"
     },
     "authors": [
         {

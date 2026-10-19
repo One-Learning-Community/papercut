@@ -27,9 +27,9 @@ composer --working-dir=packages/core install
 composer --working-dir=packages/laravel install
 ```
 
-If Composer cannot resolve `papercut/core` for the Laravel package, the path repository has probably not picked
-up core's `0.1.x-dev` branch alias (the alias is declared for the `main` branch). Run
-`COMPOSER_ROOT_VERSION=0.1.x-dev composer --working-dir=packages/laravel update papercut/core`.
+The Laravel package's path repository pins core to `0.1.x-dev` (`options.versions` in its `composer.json`), so it
+resolves on any branch or detached checkout. Bump that pin together with core's `branch-alias` when the minor
+version changes.
 
 ## Running the tests
 
@@ -45,8 +45,8 @@ vendor/bin/phpunit
 vendor/bin/phpstan analyse --memory-limit=1G
 ```
 
-If Xdebug is loaded, prefix with `php -d xdebug.mode=off` for speed. CI is configured to run the same commands on PHP 8.4 and 8.5
-(`.github/workflows`); it has not run yet.
+If Xdebug is loaded, prefix with `php -d xdebug.mode=off` for speed. CI runs the same commands on PHP 8.4 and 8.5
+(`.github/workflows`).
 
 Snapshot updates: visual-regression snapshots (`packages/core/tests/Visual/snapshots`, rasterised with `pdftoppm -r 72`)
 are refreshed with `cd packages/core && UPDATE_SNAPSHOTS=1 php -d xdebug.mode=off vendor/bin/phpunit tests/Visual`.
@@ -90,25 +90,34 @@ They write PDFs next to the scripts (git-ignored). `tests/Feature/ExamplesTest.p
 
 ## Releasing
 
-Publishing and tagging are maintainer actions; nothing here runs automatically. Placeholders to resolve first:
-every `https://github.com/OWNER/papercut` URL (the `homepage` and `support` fields of both `composer.json` files)
-must be replaced with the real repository URL.
+Releases are tag-driven. Packagist reads one `composer.json` per repository, so each package is mirrored into its own
+read-only split repository: `One-Learning-Community/papercut-core` and `One-Learning-Community/papercut-laravel`.
+Never commit to the split repos directly; they are overwritten on every split.
 
-1. Make sure `main` is green: both suites and PHPStan on PHP 8.4 and 8.5, and the core README test passes. The visual
-   snapshots were generated with a local poppler, not the CI image: on the first CI run verify them, and regenerate
-   with `UPDATE_SNAPSHOTS=1` in CI (or in a Docker image matching it) if they differ, reviewing every changed PNG.
-2. Replace the `OWNER` placeholder (`grep -rn OWNER --include=composer.json .`).
-3. In `CHANGELOG.md` change `## [0.1.0] - unreleased` to the release date and add a fresh `Unreleased` section.
-4. Commit, then tag from `main`: `git tag -s v0.1.0 -m "Papercut 0.1.0" && git push origin main v0.1.0`.
-5. `papercut/laravel` requires `papercut/core: ^0.1` and `papercut/core` is a separate Composer package, but
-   Packagist reads one `composer.json` per repository. Publish each package from its own read-only split
-   repository (for example with `splitsh-lite` or a subtree-split workflow), tagging both with `v0.1.0`; the
-   monorepo itself is not submitted to Packagist.
-6. Submit the `papercut/core` split repository at https://packagist.org/packages/submit first, then
-   `papercut/laravel`, and enable the GitHub webhook so new tags are picked up.
-7. Verify in a scratch project: `composer require papercut/core` and `composer require papercut/laravel`, then
-   render one document with each.
-8. Reconsider `minimum-stability: dev` in the split Laravel repo's `composer.json` (it exists for the monorepo path
-   repo; consumers should not need it).
-9. Before the Laravel package is installable from Packagist, remove its `repositories` path entry from the split
-   copy's `composer.json` (the path repo only exists for monorepo development).
+| Workflow | Trigger | Does |
+|---|---|---|
+| `core.yml`, `laravel.yml` | push to `main`, pull requests | tests, PHPStan, benchmark gate |
+| `split.yml` | push to `main` | mirrors `packages/*` to the split repos (their `dev-main`) |
+| `release.yml` | tag `vX.Y.Z` | both suites, CHANGELOG check, split + tag both packages, GitHub release |
+
+### One-time setup
+
+1. Create a fine-grained personal access token (resource owner `One-Learning-Community`) with
+   **Contents: read and write** on `papercut-core` and `papercut-laravel` only, and save it as the
+   `SPLIT_TOKEN` Actions secret on `One-Learning-Community/papercut`. Without it `split.yml` skips with a notice
+   and `release.yml` fails at the split step.
+2. Once both split repos have content, submit them at https://packagist.org/packages/submit (`papercut-core`
+   first, then `papercut-laravel`). Packagist's GitHub integration keeps them updated on new pushes and tags.
+
+### Each release
+
+1. Make sure `main` is green.
+2. In `CHANGELOG.md` change `## [X.Y.Z] - unreleased` to the release date (`release.yml` refuses an unreleased
+   or missing section) and add a fresh `## [Unreleased]` section.
+3. If the minor version changed, bump core's `extra.branch-alias` and the Laravel path repo's `versions` pin.
+4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Papercut X.Y.Z" && git push origin main vX.Y.Z`.
+5. Verify in a scratch project: `composer require papercut/core papercut/laravel`, then render one document with
+   each.
+
+The Laravel package's `repositories` and `minimum-stability` entries exist for monorepo development. Composer
+ignores both in non-root packages, so they do not affect consumers of the split repo.

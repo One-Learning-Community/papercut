@@ -3,10 +3,10 @@
     "description": "Blade components that compile to Papercut's PDF layout engine.",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/OWNER/papercut",
+    "homepage": "https://github.com/One-Learning-Community/papercut",
     "support": {
-        "issues": "https://github.com/OWNER/papercut/issues",
-        "source": "https://github.com/OWNER/papercut"
+        "issues": "https://github.com/One-Learning-Community/papercut/issues",
+        "source": "https://github.com/One-Learning-Community/papercut"
     },
     "authors": [
         {
@@ -19,7 +19,10 @@
             "type": "path",
             "url": "../core",
             "options": {
-                "symlink": true
+                "symlink": true,
+                "versions": {
+                    "papercut/core": "0.1.x-dev"
+                }
             }
         }
     ],
