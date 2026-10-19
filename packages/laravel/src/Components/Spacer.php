@@ -24,6 +24,10 @@ final class Spacer extends PdfComponent
             }
         }
 
+        if (isset($own['size']) && array_key_exists('grow', $style)) {
+            throw new \Papercut\Laravel\Exception\InvalidStructure('<x-pdf::spacer> takes size or grow, not both');
+        }
+
         if (isset($own['size'])) {
             $size = $own['size'];
             try {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Style;
 
 use Papercut\Exception\UnknownAttribute;
+use Papercut\Support\Suggest;
 use Papercut\Value\{Color, Edges, Length};
 
 use function Papercut\pt;
@@ -70,16 +71,7 @@ final class Theme
         if (isset($this->styles[$name])) {
             return $this->styles[$name];
         }
-        $best = null;
-        $bestDistance = 3;
-        foreach (array_keys($this->styles) as $known) {
-            $d = levenshtein($name, (string) $known);
-            if ($d < $bestDistance) {
-                $best = (string) $known;
-                $bestDistance = $d;
-            }
-        }
-        throw UnknownAttribute::for($name, $best, 'style');
+        throw UnknownAttribute::for($name, Suggest::closest($name, array_map(strval(...), array_keys($this->styles))), 'style');
     }
 
     public function with(

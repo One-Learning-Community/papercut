@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Laravel;
 
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Support\Str;
 use Papercut\Document;
 use Papercut\RenderOptions;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -25,7 +26,11 @@ final class PendingPdf implements Responsable
 
     public function save(string $path): self
     {
-        file_put_contents($path, $this->toString());
+        $bytes = $this->toString();
+        $written = @file_put_contents($path, $bytes);
+        if ($written === false || $written !== strlen($bytes)) {
+            throw new \RuntimeException('Could not write PDF to "' . $path . '"');
+        }
 
         return $this;
     }
@@ -49,6 +54,7 @@ final class PendingPdf implements Responsable
     private function respond(string $disposition, string $filename): Response
     {
         $body = $this->toString();
+        $filename = str_replace(['/', '\\'], '-', $filename);
 
         return new Response($body, 200, [
             'Content-Type' => 'application/pdf',
@@ -59,7 +65,7 @@ final class PendingPdf implements Responsable
 
     private static function asciiFallback(string $filename): string
     {
-        $fallback = str_replace(['%', '/', '\\'], '_', (string) preg_replace('/[^\x20-\x7e]/', '_', $filename));
+        $fallback = str_replace('%', '_', (string) preg_replace('/[^\x20-\x7e]/', '_', Str::ascii($filename)));
 
         return $fallback === '' ? 'document.pdf' : $fallback;
     }

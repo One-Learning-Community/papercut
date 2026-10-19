@@ -40,7 +40,7 @@ final class FlexLayouter implements Layouter
             $available = $c->height - ($first ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
         }
 
-        $items = $this->items($node, $style, $contentWidth, $engine);
+        $items = $this->items($node, $style, $contentWidth, $engine, $token === null);
         $lines = self::resolveLines($items, $style, $contentWidth);
         $count = count($lines);
 
@@ -145,12 +145,15 @@ final class FlexLayouter implements Layouter
      *
      * @return list<array{node: Node, style: ComputedStyle, index: int, base: float, hyp: float, min: float, max: float, margin: float}>
      */
-    private function items(Node $node, ComputedStyle $style, float $width, LayoutEngine $engine): array
+    private function items(Node $node, ComputedStyle $style, float $width, LayoutEngine $engine, bool $warn = false): array
     {
         $items = [];
         foreach (self::children($node) as $i => $child) {
             $child = LayoutEngine::expand($child);
             if ($child instanceof PageBreak) {
+                if ($warn) {
+                    $engine->context()->warn('PageBreak inside a row is ignored');
+                }
                 continue;
             }
             $cs = $engine->styleOf($child, $style, $i);

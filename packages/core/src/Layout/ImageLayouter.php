@@ -68,7 +68,8 @@ final class ImageLayouter implements Layouter
     /**
      * Border-box size: explicit width/height (the other one derived from the
      * image's aspect ratio), else the intrinsic size; then min/max clamps,
-     * then scaled down to fit c.width. Aspect is kept unless both were set.
+     * then scaled down to fit c.width. Aspect is kept unless both were set,
+     * or a min clamp on one axis would break a max on the other (max wins).
      *
      * @return array{float, float}
      */
@@ -101,6 +102,12 @@ final class ImageLayouter implements Layouter
             $w = $keep ? $toW($clamped) : $w;
             $h = $clamped;
         }
+
+        // A min clamp on one axis can push the other past its max: the max wins, at the cost of the aspect ratio.
+        $maxW = BoxGeometry::resolve($style->maxWidth, $c->width);
+        $maxH = BoxGeometry::resolve($style->maxHeight, $c->definiteHeight);
+        $w = $maxW === null ? $w : min($w, $maxW);
+        $h = $maxH === null ? $h : min($h, $maxH);
 
         $limit = max(0.0, $c->width);
         if ($w > $limit + 1e-9) {

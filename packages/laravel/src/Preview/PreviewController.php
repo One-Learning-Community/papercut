@@ -16,11 +16,12 @@ final class PreviewController
 
     public function index(): Response
     {
+        abort_unless(app()->isLocal(), 404);
         $prefix = '/' . trim((string) config('papercut.preview.path', '_papercut'), '/');
         $items = '';
         foreach ($this->registry->names() as $name) {
             $e = e($name);
-            $items .= '<li><a href="' . e($prefix . '/' . $name) . '">' . $e . '</a></li>';
+            $items .= '<li><a href="' . e($prefix . '/' . rawurlencode($name)) . '">' . $e . '</a></li>';
         }
 
         return new HttpResponse(
@@ -33,6 +34,7 @@ final class PreviewController
 
     public function show(string $view): Response
     {
+        abort_unless(app()->isLocal(), 404);
         abort_unless($this->registry->has($view), 404);
 
         return $this->pdf->view($view, $this->registry->data($view))->inline();

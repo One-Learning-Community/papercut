@@ -62,7 +62,7 @@ abstract class TestCase extends Orchestra
         });
     }
 
-    private function app(): \Illuminate\Contracts\Foundation\Application
+    protected function app(): \Illuminate\Contracts\Foundation\Application
     {
         self::assertNotNull($this->app);
 

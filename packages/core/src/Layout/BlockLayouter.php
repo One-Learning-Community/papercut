@@ -40,7 +40,7 @@ final class BlockLayouter implements Layouter
             $available = $c->height - ($first ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
         }
 
-        /** @var list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed */
+        /** @var list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, token: ?BreakToken, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed */
         $placed = [];
         $cursor = 0.0;
         $start = min(max(0, $token->index ?? 0), $count);
@@ -105,11 +105,34 @@ final class BlockLayouter implements Layouter
                     return LayoutResult::doesNotFit();
                 }
                 // keep-with-next: walk back over a chain of keepWithNext children placed just before i.
+                // A container ending in keepWithNext is re-laid to break before that trailing chain;
+                // if nothing of it would remain, the whole container joins the chain.
                 $k = count($placed);
                 $next = $i;
-                while ($k > 0 && $placed[$k - 1]['index'] === $next - 1 && $placed[$k - 1]['style']->keepWithNext) {
+                $split = null;
+                while ($k > 0 && $placed[$k - 1]['index'] === $next - 1) {
+                    $p = $placed[$k - 1];
+                    if (!$p['style']->keepWithNext) {
+                        if (!self::endsWithKeepWithNext($p['node'], $p['style'], $engine)) {
+                            break;
+                        }
+                        $split = self::splitBeforeTrailingKeep($p, $style, $engine);
+                        if ($split !== null) {
+                            break;
+                        }
+                    }
                     $k--;
-                    $next = $placed[$k]['index'];
+                    $next = $p['index'];
+                }
+                if ($split !== null) {
+                    $p = $placed[$k - 1];
+                    $p['fragment'] = $split[0];
+                    $p['height'] = $split[0]->height;
+                    $p['x'] = self::alignX($p['style']->alignSelf ?? $style->alignItems, $p['style']->margin->left->points, max(0.0, $contentWidth - $p['style']->margin->horizontal()), $split[0]->width);
+                    $placed = [...array_slice($placed, 0, $k - 1), $p];
+                    $cursor = $p['y'] + $p['height'];
+                    $breakAt = new BreakToken(index: $p['index'], child: $split[1]);
+                    break;
                 }
                 if ($k === 0 && !$c->fresh) {
                     return LayoutResult::doesNotFit();
@@ -133,6 +156,7 @@ final class BlockLayouter implements Layouter
                 'index' => $i,
                 'width' => $width,
                 'fresh' => $fresh,
+                'token' => $resuming ? $resumeToken : null,
                 'fragment' => $f,
                 'x' => self::alignX($align, $ml, $slot, $f->width),
                 'y' => $y,
@@ -232,6 +256,90 @@ final class BlockLayouter implements Layouter
     }
 
     /**
+     * True when $node is a splittable column container whose last child is
+     * keepWithNext, or (recursively) itself ends with keepWithNext.
+     */
+    private static function endsWithKeepWithNext(Node $node, ComputedStyle $style, LayoutEngine $engine): bool
+    {
+        if (!($node instanceof View || $node instanceof Link) || $style->height instanceof Length || $style->direction !== Direction::Column) {
+            return false;
+        }
+        $children = $node->children();
+        if ($children === []) {
+            return false;
+        }
+        $i = count($children) - 1;
+        $last = LayoutEngine::expand($children[$i]);
+        if ($last instanceof PageBreak) {
+            return false;
+        }
+        $ls = $engine->styleOf($last, $style, $i);
+        return $ls->keepWithNext || self::endsWithKeepWithNext($last, $ls, $engine);
+    }
+
+    /**
+     * Re-lays a placed container ending in keepWithNext with its height cut
+     * at the top of that trailing chain, so the chain moves on with the next
+     * sibling. Null when nothing of the container would remain before it.
+     *
+     * @param array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, token: ?BreakToken, fragment: Fragment, x: float, y: float, height: float, before: float} $p
+     * @return ?array{Fragment, BreakToken}
+     */
+    private static function splitBeforeTrailingKeep(array $p, ComputedStyle $parent, LayoutEngine $engine): ?array
+    {
+        $cut = self::trailingKeepOffset($p['node'], $p['style'], $p['fragment'], $engine);
+        if ($cut === null) {
+            return null;
+        }
+        $res = $engine->layout($p['node'], $parent, new Constraints($p['width'], $cut, $p['fresh']), $p['token'], $p['index']);
+        if ($res->status !== Status::Partial || $res->fragment === null || $res->token === null) {
+            return null;
+        }
+        return [$res->fragment, $res->token];
+    }
+
+    /**
+     * The constraint height at which $node (already laid out as $f) breaks
+     * just before its trailing keepWithNext chain; null when the chain starts
+     * at its first placed child. Trailing fragment children map one-to-one
+     * onto trailing node children: a completed, non-monolithic container
+     * places every child after a leading skipped PageBreak.
+     */
+    private static function trailingKeepOffset(Node $node, ComputedStyle $style, Fragment $f, LayoutEngine $engine): ?float
+    {
+        if (!($node instanceof View || $node instanceof Link)) {
+            return null;
+        }
+        $children = $node->children();
+        $frags = $f->children();
+        $n = count($children);
+        $m = count($frags);
+        $j = $n - 1;
+        while ($j >= 0 && $n - $j <= $m) {
+            $cs = $engine->styleOf(LayoutEngine::expand($children[$j]), $style, $j);
+            if (!$cs->keepWithNext) {
+                break;
+            }
+            $j--;
+        }
+        $bottom = BoxGeometry::bottomEdge($style);
+        if ($j < $n - 1) {
+            $first = $m - ($n - 1 - $j);
+            return $first <= 0 ? null : $frags[$first]['y'] + $bottom;
+        }
+        if ($m === 0) {
+            return null;
+        }
+        $last = LayoutEngine::expand($children[$n - 1]);
+        $inner = self::trailingKeepOffset($last, $engine->styleOf($last, $style, $n - 1), $frags[$m - 1]['fragment'], $engine);
+        if ($inner === null) {
+            // the last child is all chain: cut before it, unless it is all that was placed
+            return $m === 1 ? null : $frags[$m - 1]['y'] + $bottom;
+        }
+        return $frags[$m - 1]['y'] + $inner + $bottom;
+    }
+
+    /**
      * A monolithic box never splits: a child's forced-break slices are laid
      * out one after another (fresh, unbounded, no gap) into one wrapper.
      */
@@ -276,8 +384,8 @@ final class BlockLayouter implements Layouter
      * Gives free space to grow children (re-laid out at their new definite
      * height), or else shifts children per justify.
      *
-     * @param list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed
-     * @return list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, fragment: Fragment, x: float, y: float, height: float, before: float}>
+     * @param list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, token: ?BreakToken, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed
+     * @return list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, token: ?BreakToken, fragment: Fragment, x: float, y: float, height: float, before: float}>
      */
     private static function distribute(array $placed, float $free, ComputedStyle $style, LayoutEngine $engine): array
     {

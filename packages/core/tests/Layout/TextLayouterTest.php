@@ -477,4 +477,16 @@ final class TextLayouterTest extends TestCase
         self::assertSame(Status::Complete, $rest->status);
         self::assertSame(0, $font->metricCalls);
     }
+
+    // --- Final review ---
+
+    public function test_right_and_center_alignment_use_the_measured_merged_width(): void
+    {
+        $h = new LayoutHarness(backend: new \Papercut\Tests\Support\FakeBackend(kerning: true));
+        // items sum to 40pt, the merged run "To Avoid" is drawn 39pt wide
+        $right = LayoutHarness::runs($h->layout(Text::make('To Avoid')->right(), 100)->fragment);
+        self::assertSame(61.0, $right[0]['x']);
+        $center = LayoutHarness::runs($h->layout(Text::make('To Avoid')->center(), 100)->fragment);
+        self::assertSame(30.5, $center[0]['x']);
+    }
 }

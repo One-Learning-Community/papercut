@@ -9,7 +9,7 @@ use Papercut\Concerns\HasStyle;
 /**
  * A hyperlinked block; lays out like a column View.
  */
-final class Link implements Node
+final class Link implements Styled
 {
     use HasStyle;
 

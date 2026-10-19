@@ -94,9 +94,9 @@ trait HasStyle
         return Edges::of(...$lengths);
     }
 
-    public function border(Length $width, ?Color $color = null, ?BorderStyle $style = null): static
+    public function border(Length $width, Color|string|null $color = null, ?BorderStyle $style = null): static
     {
-        return $this->withStyle(new Style(borderWidth: Edges::all($width), borderColor: $color, borderStyle: $style));
+        return $this->withStyle(new Style(borderWidth: Edges::all($width), borderColor: $color === null ? null : self::toColor($color), borderStyle: $style));
     }
 
     public function borderWidth(Edges|Length $v): static
@@ -104,9 +104,9 @@ trait HasStyle
         return $this->withStyle(new Style(borderWidth: $v instanceof Edges ? $v : Edges::all($v)));
     }
 
-    public function borderColor(Color $c): static
+    public function borderColor(Color|string $c): static
     {
-        return $this->withStyle(new Style(borderColor: $c));
+        return $this->withStyle(new Style(borderColor: self::toColor($c)));
     }
 
     public function radius(Length $v): static

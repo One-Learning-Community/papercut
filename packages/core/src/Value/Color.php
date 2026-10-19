@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Value;
 
 use Papercut\Exception\InvalidValue;
+use Papercut\Support\Suggest;
 
 final readonly class Color implements \Stringable
 {
@@ -126,15 +127,6 @@ final readonly class Color implements \Stringable
         if (preg_match('/^([a-z]+)-\d+$/', $key, $m) && isset($palette[$m[1] . '-500'])) {
             return null;
         }
-        $best = null;
-        $bestDistance = 3;
-        foreach (array_keys($palette) as $name) {
-            $d = levenshtein($key, $name);
-            if ($d < $bestDistance || ($d === $bestDistance && $best !== null && strcmp($name, $best) < 0)) {
-                $best = $name;
-                $bestDistance = $d;
-            }
-        }
-        return $bestDistance <= 2 ? $best : null;
+        return Suggest::closest($key, array_map(strval(...), array_keys($palette)));
     }
 }

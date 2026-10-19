@@ -390,6 +390,44 @@ final class BlockLayouterTest extends TestCase
         self::assertSame(Status::Complete, $r->status);
         self::assertSame(['[column] Content dropped inside fixed-height box: scripted[1]'], $h->warnings);
     }
+
+    // --- Final review: keepWithNext across containers ---
+
+    public function test_keep_with_next_at_end_of_nested_container_moves_with_next_sibling(): void
+    {
+        $h = new LayoutHarness();
+        $col = Column::make(Column::make(Text::make('intro'), Text::make('Heading')->keepWithNext()), Spacer::size(pt(50)));
+        $r = $h->layout($col, 100, 40);
+        self::assertSame(Status::Partial, $r->status);
+        self::assertSame(['intro'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+        self::assertSame(0, $r->token?->index);
+        self::assertSame(1, $r->token->child?->index);
+        $rest = $h->layout($col, 100, null, $r->token);
+        self::assertSame(['Heading'], array_column(LayoutHarness::runs($rest->fragment), 'text'));
+    }
+
+    public function test_keep_with_next_chain_in_deeply_nested_container(): void
+    {
+        $h = new LayoutHarness();
+        $inner = Column::make(Text::make('a'), Column::make(Text::make('b'), Text::make('H1')->keepWithNext(), Text::make('H2')->keepWithNext()));
+        $col = Column::make($inner, Spacer::size(pt(50)));
+        $r = $h->layout($col, 100, 60);
+        self::assertSame(['a', 'b'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+        $rest = $h->layout($col, 100, null, $r->token);
+        self::assertSame(['H1', 'H2'], array_column(LayoutHarness::runs($rest->fragment), 'text'));
+    }
+
+    public function test_nested_container_that_is_only_keep_with_next_joins_the_chain(): void
+    {
+        $h = new LayoutHarness();
+        $col = Column::make(Text::make('intro'), Column::make(Text::make('Heading')->keepWithNext()), Spacer::size(pt(50)));
+        $r = $h->layout($col, 100, 40);
+        self::assertSame(1, $r->token?->index);
+        self::assertNull($r->token->child);
+        self::assertSame(['intro'], array_column(LayoutHarness::runs($r->fragment), 'text'));
+        $alone = Column::make(Column::make(Text::make('Heading')->keepWithNext()), Spacer::size(pt(50)));
+        self::assertSame(Status::DoesNotFit, $h->layout($alone, 100, 40, fresh: false)->status);
+    }
 }
 
 final class ScriptedNode implements Node

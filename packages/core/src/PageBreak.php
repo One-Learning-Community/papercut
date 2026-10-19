@@ -6,7 +6,7 @@ namespace Papercut;
 
 use Papercut\Concerns\HasStyle;
 
-final class PageBreak implements Node
+final class PageBreak implements Styled
 {
     use HasStyle;
 

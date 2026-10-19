@@ -6,7 +6,7 @@ namespace Papercut;
 
 use Papercut\Concerns\HasStyle;
 
-final class PageNumber implements Node
+final class PageNumber implements Styled
 {
     use HasStyle;
 

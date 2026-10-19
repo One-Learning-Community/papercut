@@ -7,7 +7,7 @@ namespace Papercut;
 use Papercut\Concerns\HasStyle;
 use Papercut\Style\TextAlign;
 
-final class TableCell implements Node
+final class TableCell implements Styled
 {
     use HasStyle;
 

@@ -8,7 +8,7 @@ use Papercut\Backend\ImageHandle;
 use Papercut\Concerns\HasStyle;
 use Papercut\Style\ImageFit;
 
-final class Image implements Node
+final class Image implements Styled
 {
     use HasStyle;
 

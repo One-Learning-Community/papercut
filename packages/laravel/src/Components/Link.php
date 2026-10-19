@@ -16,8 +16,11 @@ final class Link extends PdfComponent
     protected function build(array $data): object
     {
         $href = $this->attrs($data)['own']['href'] ?? null;
+        if ($href instanceof \Stringable) {
+            $href = (string) $href;
+        }
         if (!is_string($href) || $href === '') {
-            throw new InvalidStructure('<x-pdf::link> requires an href attribute');
+            throw new InvalidStructure('<x-pdf::link> href must be a non-empty string');
         }
 
         return $this->styled(\Papercut\Link::to($href, ...$this->children($data)), $data);
