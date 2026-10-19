@@ -6,7 +6,7 @@
 
 ## 1. Summary
 
-Papercut is an open-source PDF generation library for modern PHP. Documents are built as a tree of typed, immutable components with flexbox layout and engine-native pagination. The flagship way to use it is Laravel Blade: `<x-pdf::*>` tags compile into the component tree, not into HTML. A framework-agnostic core engine does all layout and PDF writing in pure PHP. HarfBuzz text shaping is an optional FFI accelerator.
+Papercut is an open-source PDF generation library for modern PHP. Documents are built as a tree of typed, immutable components with flexbox layout and engine-native pagination. The flagship way to use it is Laravel Blade: `<x-pdf::*>` tags compile into the component tree, not into HTML. A framework-agnostic core engine does all layout in pure PHP. It draws through a thin backend adapter, and the v0.1 backend is [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf)'s low-level writer (fonts, subsetting, shaping, images, PDF serialization).
 
 It is not HTML-to-PDF. There is no CSS cascade, no browser and no HTML parser. The tag vocabulary is small, strict and ours.
 
@@ -33,10 +33,10 @@ It is not HTML-to-PDF. There is no CSS cascade, no browser and no HTML parser. T
 ## 4. Requirements
 
 - PHP 8.4+.
-- Required extensions: `ext-zlib` and `ext-mbstring`.
-- Optional: `ext-ffi` plus system `libharfbuzz`, enabling `HarfBuzzShaper`.
-- `papercut/core` has zero Composer runtime dependencies.
+- Required extensions: `ext-zlib`, `ext-mbstring` and `ext-dom` (needed by the backend).
+- `papercut/core` has exactly one Composer runtime dependency: `dskripchenko/php-pdf: ^1.24` (MIT). It is used only through `Papercut\Backend\PhpPdf\*`, and no other namespace may import `Dskripchenko\*`.
 - `papercut/laravel` requires `papercut/core` and supports Laravel 12+.
+- Optional HarfBuzz shaping via `ext-ffi` is deferred to the polish stage. It needs a glyph-level drawing path in the backend (§7.5).
 
 ## 5. Repository layout
 
@@ -151,7 +151,7 @@ Custom PHP components implement `Papercut\Component` (`render(): Node`) and are 
 
 ### 6.5 Values and string grammar
 
-- **Lengths:** `12pt`, `20mm`, `2cm`, `1in`, `50%`. Bare numbers are rejected, except for a unitless `line-height`.
+- **Lengths:** `12pt`, `16px` (CSS px, 0.75pt), `20mm`, `2cm`, `1in`, `50%`. Bare numbers are rejected, except `0` and a unitless `line-height`.
 - **Fractions:** `3fr`. **Auto:** `auto`.
 - **Edges:** 1–4 values in CSS order: `"20mm"`, `"10mm 20mm"`, `"10mm 20mm 5mm 15mm"`.
 - **Column lists:** space-separated lengths, fractions or `auto`.
@@ -175,10 +175,10 @@ Node tree ─► Style resolve ─► Layout (page-aware) ─► Page display li
 | `Value` | Length, Fr, Percent, Color, Edges, plus a strict string parser with "did you mean" suggestions. | — |
 | `Node` | Immutable element definitions (data only). | Value |
 | `Style` | Computed style per node: inheritance, theme defaults, named styles. | Node, Value |
-| `Text` | Font loading (TTF/OTF parse), `FontRegistry` (family/weight/italic matching), the `Shaper` interface (`BasicShaper`: cmap plus GPOS/kern pair kerning; `HarfBuzzShaper`: FFI), Unicode line breaking (UAX #14 subset). | Value |
+| `Text` | `FontRegistry` (family/weight/italic matching per CSS), `TextMeasurer` (string width at a size, with a per-font cache), Unicode line breaking (UAX #14 subset). Font parsing and shaping are delegated to the backend. | Value, Backend |
 | `Layout` | Page-aware layout: one layouter per node type, plus flexbox and table algorithms. | Node, Style, Text |
-| `Paint` | Converts laid-out fragments into per-page display lists (text runs, rects, paths, images, clips, links); resolves `{page}`/`{total}`. | Layout |
-| `Pdf` | Writer: object model, xref, Flate streams, TrueType glyph subsetting, CFF whole-font embedding, ToUnicode CMaps, JPEG passthrough, PNG decode with SMask alpha, metadata, link annotations. | Paint, Text |
+| `Paint` | Converts laid-out fragments into per-page display lists of backend-neutral ops (text runs, rects, lines, images, clips, opacity, links); resolves `{page}`/`{total}`. Coordinates are top-left origin, in points. | Layout |
+| `Backend` | The `Backend` and `FontHandle` interfaces, plus the `PhpPdf` implementation (§7.5). | Paint |
 | `Document` (facade) | `save`, `toString`, `stream`; renderer options. | all |
 
 ### 7.3 Layout contract (page-aware fragmentation)
@@ -217,7 +217,15 @@ interface Layouter {
 - **Preview route (local env only, opt-in):** `/_papercut/{view}` renders a view with sample data from a registered provider and displays the PDF inline. Refreshing reloads it.
 - **Artisan:** `papercut:fonts` lists the resolved font families and checks the files.
 
-### 7.5 Fonts
+### 7.5 Backend adapter
+
+- `Backend` renders a list of `PageDisplayList`s plus `DocumentMeta` to PDF bytes. `FontHandle` exposes what layout needs from a font: `advance(string $text, float $size): float` (kerning included), `ascent()`, `descent()`, `lineGap()` (all in points per 1pt of size) and `covers(string $text): bool`.
+- The v0.1 implementation `PhpPdfBackend` maps ops onto `Dskripchenko\PhpPdf\Pdf\Page`. It flips coordinates (our top-left origin becomes PDF's bottom-left), converts `Color` to 0–1 RGB floats, and uses `showEmbeddedText`, `fillRoundedRect`, `strokeRoundedRect`, `strokeLine`, `drawImage`, `withClipRect`, `withOpacity` and `addExternalLink`.
+- **Measurement and drawing must agree.** `FontHandle::advance()` is computed from the same `PdfFont` shaping and kerning that `showEmbeddedText` uses.
+- The adapter is the only code that knows the dependency's API. Swapping backends (an in-house writer, or a glyph-level path for HarfBuzz) touches only `Papercut\Backend\*`.
+- **Spike results (2026-10-18, v1.24.1, Inter 4.1, Xdebug off):** 10 pages × 40 text lines in about 54 ms (font load 4 ms, draw 45 ms, serialize 5 ms). `qpdf --check` passes, output is byte-deterministic with a fixed creation date, text extracts correctly via ToUnicode, and the font is subsetted (40 KB PDF from a 400 KB TTF).
+
+### 7.6 Fonts
 
 - The 14 standard PDF fonts are not used. Every document embeds real fonts so glyph coverage and metrics are consistent.
 - Papercut bundles one open-licensed default family (Inter or a similar sans, 4 styles, OFL) so it works out of the box.
@@ -233,14 +241,15 @@ interface Layouter {
 
 ## 9. Testing
 
-- **Unit tests:** the value parser (grammar fuzzing included), font parsing and subsetting (round-trip subset fonts through the parser), the line breaker and the flex algorithm.
+- **Unit tests:** the value parser (grammar fuzzing included), font matching, the line breaker and the flex algorithm.
+- **Backend contract tests:** a shared suite every `Backend` must pass (valid PDF, text extractable via `pdftotext`, fonts embedded and subsetted, op geometry lands where expected, deterministic bytes).
 - **Layout tests:** assert fragment geometry and break positions, not bytes. For example: "table splits after row 14; page 2 = header + rows 15–30".
 - **Visual regression:** the examples and a fixture suite are rendered to PNG with `pdftoppm` (dev/CI only) and compared with approved snapshots within a pixel tolerance.
 - **Validity:** every test PDF goes through `qpdf --check`.
 - **Determinism:** with fixed document ID and dates, output is byte-identical across runs.
 - **Laravel:** Testbench tests for components, markers, error file:line reporting and responses.
 - **Performance benchmark** in CI against the §3 target; a regression over 20% fails the job.
-- **CI matrix:** PHP 8.4 and 8.5, with and without FFI/HarfBuzz.
+- **CI matrix:** PHP 8.4 and 8.5.
 
 ## 10. Out of scope for v0.1 (architecture leaves room)
 
@@ -248,6 +257,7 @@ RTL and bidirectional text, complex-script shaping without HarfBuzz, hyphenation
 
 ## 11. Open risks
 
-- **Performance of pure-PHP font subsetting and line breaking.** Mitigation: cache parsed fonts per process (OPcache-friendly arrays), measure early, and use HarfBuzz FFI when present.
+- **Backend dependency risk:** `dskripchenko/php-pdf` has a single maintainer, is about 5 months old and changes fast. Mitigation: pin `^1.24`, keep every use behind `Papercut\Backend\PhpPdf`, and keep backend-contract tests that any replacement backend must pass.
+- **Performance of measurement during layout.** Mitigation: `TextMeasurer` caches word widths per font and size; the CI benchmark tracks it.
 - **Blade marker approach edge cases** (components rendered outside a document, nested `Pdf::view` calls). Mitigation: registry scoped per render with a stack, plus clear exceptions.
 - **Error line numbers depend on Laravel's compiled-view exception mapping.** The node path is always included as a fallback.
