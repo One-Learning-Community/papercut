@@ -28,6 +28,13 @@ final class FontsCommand extends Command
         }
         $this->table(['Family', 'Weight', 'Style', 'Path', 'Status'], $rows);
 
+        $known = array_map(strtolower(...), array_column($faces, 'family'));
+        foreach (FontConfig::fallbacks() as $family) {
+            if (!in_array(strtolower($family), $known, true)) {
+                $this->warn(sprintf('Fallback family "%s" is not registered.', $family));
+            }
+        }
+
         return $failed ? self::FAILURE : self::SUCCESS;
     }
 

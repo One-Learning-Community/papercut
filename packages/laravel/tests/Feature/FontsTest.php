@@ -87,4 +87,48 @@ final class FontsTest extends TestCase
 
         $this->assertSame(['Brand'], Pdf::options()->fallbackFamilies);
     }
+
+    /** @return iterable<string, array{array<mixed>, string}> */
+    public static function badFonts(): iterable
+    {
+        $p = '/p.ttf';
+        yield 'non-numeric weight' => [['Brand' => ['bold' => ['normal' => $p]]], 'papercut.fonts.Brand.bold: weight'];
+        yield 'weight out of range' => [['Brand' => [0 => ['normal' => $p]]], 'papercut.fonts.Brand.0: weight'];
+        yield 'bad style key' => [['Brand' => [700 => ['bold' => $p]]], 'papercut.fonts.Brand.700.bold: style must be "normal" or "italic"'];
+        yield 'flat path' => [['Brand' => [400 => $p]], 'papercut.fonts.Brand.400: expected'];
+        yield 'non-string path' => [['Brand' => [400 => ['normal' => 12]]], 'papercut.fonts.Brand.400.normal: path'];
+        yield 'empty path' => [['Brand' => [400 => ['normal' => '']]], 'papercut.fonts.Brand.400.normal: path'];
+        yield 'family not array' => [['Brand' => $p], 'papercut.fonts.Brand: expected'];
+    }
+
+    /** @param array<mixed> $fonts */
+    #[\PHPUnit\Framework\Attributes\DataProvider('badFonts')]
+    public function testMalformedFontConfigThrows(array $fonts, string $message): void
+    {
+        $this->configure($fonts);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid font config ' . $message);
+
+        Pdf::options();
+    }
+
+    public function testBadFallbackEntryThrows(): void
+    {
+        config(['papercut.fallback_fonts' => ['Brand', '']]);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('papercut.fallback_fonts.1');
+
+        Pdf::options();
+    }
+
+    public function testCommandWarnsAboutUnregisteredFallback(): void
+    {
+        $this->configure([], ['Ghost']);
+
+        Artisan::call('papercut:fonts');
+
+        $out = Artisan::output();
+        $this->assertStringContainsString('Ghost', $out);
+        $this->assertStringContainsString('not registered', $out);
+    }
 }

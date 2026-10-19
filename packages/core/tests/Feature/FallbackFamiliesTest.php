@@ -4,39 +4,52 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{Document, Page, RenderOptions};
-use Papercut\Tests\Support\FakeBackend;
+use Papercut\Text;
+use Papercut\Tests\Support\{FakeBackend, LayoutHarness};
 use Papercut\Text\FontRegistry;
 use PHPUnit\Framework\TestCase;
 
 final class FallbackFamiliesTest extends TestCase
 {
+    private string $file;
+
+    protected function setUp(): void
+    {
+        $this->file = sys_get_temp_dir() . '/fallback-cjk-' . getmypid() . '.ttf';
+        copy(__DIR__ . '/../../resources/fonts/Inter/Inter-Italic.ttf', $this->file);
+    }
+
+    protected function tearDown(): void
+    {
+        @unlink($this->file);
+    }
+
     /**
      * @param list<string> $fallbacks
-     * @return list<string>
+     * @return array{LayoutHarness, list<array{font: string, text: string}>}
      */
-    private function warningsFor(array $fallbacks): array
+    private function layoutWith(array $fallbacks): array
     {
-        $dir = __DIR__ . '/../../resources/fonts/Inter';
-        $backend = new FakeBackend(coverAll: ['Inter-Italic.ttf']);
-        $fonts = FontRegistry::withDefaults($backend)->register('Cjk', "$dir/Inter-Italic.ttf");
-        $warnings = [];
-        Document::make(Page::a4()->body('Hello 日本語'))->render(new RenderOptions(
-            backend: $backend,
-            fonts: $fonts,
-            onWarning: static function (string $m) use (&$warnings): void { $warnings[] = $m; },
-            fallbackFamilies: $fallbacks,
-        ));
-        return $warnings;
+        $backend = new FakeBackend(coverAll: [basename($this->file)]);
+        $fonts = FontRegistry::withDefaults($backend)->register('Cjk', $this->file);
+        $h = new LayoutHarness(backend: $backend, fonts: $fonts, fallbackFamilies: $fallbacks);
+        $result = $h->layout(Text::make('Hello 日本語'), 400);
+
+        return [$h, LayoutHarness::fontRuns($result->fragment)];
     }
 
     public function testMissingGlyphsWarnWithoutFallback(): void
     {
-        $this->assertNotSame([], $this->warningsFor([]));
+        [$h, $runs] = $this->layoutWith([]);
+        $this->assertNotSame([], $h->warnings);
+        $this->assertNotContains('fake:' . basename($this->file), array_column($runs, 'font'));
     }
 
-    public function testFallbackFamilyCoverageIsUsed(): void
+    public function testFallbackFamilyFontIsUsedForUncoveredGlyphs(): void
     {
-        $this->assertSame([], $this->warningsFor(['Cjk']));
+        [$h, $runs] = $this->layoutWith(['Cjk']);
+        $this->assertSame([], $h->warnings);
+        $cjk = array_values(array_filter($runs, fn (array $r): bool => $r["font"] === 'fake:' . basename($this->file)));
+        $this->assertSame(['日本語'], array_column($cjk, 'text'));
     }
 }
