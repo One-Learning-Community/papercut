@@ -1,0 +1,122 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Papercut\Style;
+
+use Papercut\Exception\UnknownAttribute;
+use Papercut\Value\{Color, Edges, Length};
+
+use function Papercut\pt;
+
+final class Theme
+{
+    private const array HEADING_SIZES = [1 => 24.0, 2 => 18.0, 3 => 14.0, 4 => 12.0];
+
+    /**
+     * @param array<string, Style> $styles
+     */
+    public function __construct(
+        public readonly string $fontFamily,
+        public readonly float $fontSize,
+        public readonly int $fontWeight,
+        public readonly Color $color,
+        public readonly float $lineHeight,
+        public readonly Edges $cellPadding,
+        public readonly int $minLines,
+        private readonly array $styles = [],
+    ) {
+    }
+
+    public static function default(): self
+    {
+        return new self(
+            fontFamily: 'Inter',
+            fontSize: 10.0,
+            fontWeight: 400,
+            color: Color::parse('slate-900'),
+            lineHeight: 1.4,
+            cellPadding: Edges::of(pt(4), pt(6)),
+            minLines: 2,
+        );
+    }
+
+    public function heading(int $level): Style
+    {
+        $size = self::HEADING_SIZES[$level]
+            ?? throw new \InvalidArgumentException(sprintf('Heading level must be 1-4, got %d.', $level));
+
+        return Style::make(
+            fontSize: pt($size),
+            fontWeight: 700,
+            margin: Edges::of(Length::zero(), Length::zero(), pt($size * 0.5), Length::zero()),
+        );
+    }
+
+    public function paragraph(): Style
+    {
+        return Style::make(margin: Edges::of(Length::zero(), Length::zero(), pt(6), Length::zero()));
+    }
+
+    public function withStyle(string $name, Style $style): self
+    {
+        $styles = $this->styles;
+        $styles[$name] = $style;
+        return $this->withStyles($styles);
+    }
+
+    public function named(string $name): Style
+    {
+        if (isset($this->styles[$name])) {
+            return $this->styles[$name];
+        }
+        $best = null;
+        $bestDistance = 3;
+        foreach (array_keys($this->styles) as $known) {
+            $d = levenshtein($name, (string) $known);
+            if ($d < $bestDistance) {
+                $best = (string) $known;
+                $bestDistance = $d;
+            }
+        }
+        throw UnknownAttribute::for($name, $best, 'style');
+    }
+
+    public function with(
+        ?string $fontFamily = null,
+        ?float $fontSize = null,
+        ?int $fontWeight = null,
+        ?Color $color = null,
+        ?float $lineHeight = null,
+        ?Edges $cellPadding = null,
+        ?int $minLines = null,
+    ): self {
+        return new self(
+            $fontFamily ?? $this->fontFamily,
+            $fontSize ?? $this->fontSize,
+            $fontWeight ?? $this->fontWeight,
+            $color ?? $this->color,
+            $lineHeight ?? $this->lineHeight,
+            $cellPadding ?? $this->cellPadding,
+            $minLines ?? $this->minLines,
+            $this->styles,
+        );
+    }
+
+    /**
+     * @param array<string, Style> $styles
+     */
+    private function withStyles(array $styles): self
+    {
+        return new self(
+            $this->fontFamily,
+            $this->fontSize,
+            $this->fontWeight,
+            $this->color,
+            $this->lineHeight,
+            $this->cellPadding,
+            $this->minLines,
+            $styles,
+        );
+    }
+}
