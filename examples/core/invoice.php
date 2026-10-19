@@ -7,7 +7,7 @@ require __DIR__ . '/../../packages/core/vendor/autoload.php';
 
 use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, Text};
 use Papercut\Style\Justify;
-use Papercut\Value\{Color, Edges};
+use Papercut\Value\Edges;
 
 use function Papercut\{mm, pt};
 
@@ -41,7 +41,7 @@ $letterhead = Row::make(
         Text::make('Issued 2026-03-02 / Due 2026-04-01')->right()->color('slate-600'),
     )->gap(pt(2)),
 )->padding(Edges::of(pt(0), pt(0), pt(14), pt(0)))
-    ->borderWidth(Edges::of(pt(0), pt(0), pt(1.5), pt(0)))->borderColor(Color::parse('indigo-600'));
+    ->borderWidth(Edges::of(pt(0), pt(0), pt(1.5), pt(0)))->borderColor('indigo-600');
 
 $billTo = Row::make(
     Column::make(
@@ -73,7 +73,7 @@ foreach ($items as [$name, $desc, $hours, $rate]) {
         Text::make((string) $hours)->right(),
         Text::make($money($rate))->right(),
         Text::make($money($hours * $rate))->right(),
-    )->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0)))->borderColor(Color::parse('slate-200')));
+    )->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0)))->borderColor('slate-200'));
 }
 
 $totalRow = fn (string $l, string $v, bool $strong = false) => Row::make(
@@ -89,7 +89,7 @@ $totals = Row::make(
         $totalRow('Tax (8.25%)', $money($tax)),
         $totalRow('Total due', $money($total), true)->margin(Edges::of(pt(4), pt(0), pt(0), pt(0)))
             ->padding(Edges::of(pt(6), pt(0), pt(0), pt(0)))
-            ->borderWidth(Edges::of(pt(1), pt(0), pt(0), pt(0)))->borderColor(Color::parse('slate-900')),
+            ->borderWidth(Edges::of(pt(1), pt(0), pt(0), pt(0)))->borderColor('slate-900'),
     )->gap(pt(4))->width(mm(70)),
 );
 
@@ -103,7 +103,7 @@ $document = Document::make(
                     PageNumber::make('Page {page} of {total}')->size(pt(8))->color('slate-500')->right(),
                 )->justify(Justify::SpaceBetween)->gap(pt(12)),
             )->padding(Edges::of(pt(8), pt(0), pt(0), pt(0)))
-                ->borderWidth(Edges::of(pt(0.5), pt(0), pt(0), pt(0)))->borderColor(Color::parse('slate-200')),
+                ->borderWidth(Edges::of(pt(0.5), pt(0), pt(0), pt(0)))->borderColor('slate-200'),
         ),
 )->title('Invoice INV-2026-0142')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));
 
