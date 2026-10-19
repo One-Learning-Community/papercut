@@ -3,7 +3,26 @@
     "description": "Blade components that compile to Papercut's PDF layout engine.",
     "type": "library",
     "license": "MIT",
-    "repositories": [{ "type": "path", "url": "../core", "options": { "symlink": true } }],
+    "homepage": "https://github.com/OWNER/papercut",
+    "support": {
+        "issues": "https://github.com/OWNER/papercut/issues",
+        "source": "https://github.com/OWNER/papercut"
+    },
+    "authors": [
+        {
+            "name": "Papercut contributors",
+            "role": "Maintainer"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../core",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "require": {
         "php": "^8.4",
         "illuminate/console": "^12.0|^13.0",
@@ -11,22 +30,44 @@
         "illuminate/routing": "^12.0|^13.0",
         "illuminate/support": "^12.0|^13.0",
         "illuminate/view": "^12.0|^13.0",
-        "papercut/core": "@dev"
+        "papercut/core": "^0.1"
     },
     "require-dev": {
         "orchestra/testbench": "^11.3",
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4"
     },
-    "autoload": { "psr-4": { "Papercut\\Laravel\\": "src/" } },
-    "autoload-dev": { "psr-4": { "Papercut\\Laravel\\Tests\\": "tests/" } },
+    "autoload": {
+        "psr-4": {
+            "Papercut\\Laravel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Papercut\\Laravel\\Tests\\": "tests/"
+        }
+    },
     "extra": {
         "laravel": {
-            "providers": ["Papercut\\Laravel\\PapercutServiceProvider"],
-            "aliases": { "Pdf": "Papercut\\Laravel\\Facades\\Pdf" }
+            "providers": [
+                "Papercut\\Laravel\\PapercutServiceProvider"
+            ],
+            "aliases": {
+                "Pdf": "Papercut\\Laravel\\Facades\\Pdf"
+            }
         }
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "config": { "sort-packages": true }
+    "config": {
+        "sort-packages": true
+    },
+    "keywords": [
+        "pdf",
+        "laravel",
+        "blade",
+        "pdf-generator",
+        "invoice",
+        "report"
+    ]
 }
