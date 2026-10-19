@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Papercut\Laravel\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
+use Illuminate\View\ViewException;
+use Illuminate\Support\Facades\Blade;
 use Papercut\Laravel\PapercutServiceProvider;
+use Papercut\Laravel\Rendering\NodeRegistry;
 
 abstract class TestCase extends Orchestra
 {
@@ -24,5 +27,40 @@ abstract class TestCase extends Orchestra
     protected function defineEnvironment($app): void
     {
         $app['config']->set('view.paths', [...(array) $app['config']->get('view.paths', []), __DIR__ . '/views']);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    protected function nodeFrom(string $blade, array $data = []): mixed
+    {
+        $registry = $this->app()->make(NodeRegistry::class);
+
+        return $registry->scope(function () use ($registry, $blade, $data): object {
+            try {
+                $html = Blade::render($blade, $data);
+            } catch (ViewException $e) { // @phpstan-ignore catch.neverThrown
+                throw $e->getPrevious() ?? $e;
+            }
+            $segments = $registry->segments($html);
+            $nodes = [];
+            foreach ($segments as $seg) {
+                if (is_string($seg)) {
+                    self::assertSame('', trim($seg), 'Unexpected text outside nodes: ' . $seg);
+                } else {
+                    $nodes[] = $seg;
+                }
+            }
+            self::assertCount(1, $nodes);
+
+            return $nodes[0];
+        });
+    }
+
+    private function app(): \Illuminate\Contracts\Foundation\Application
+    {
+        self::assertNotNull($this->app);
+
+        return $this->app;
     }
 }
