@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Paint;
 
-use Papercut\Paint\{Clip, DocumentMeta, Line, Opacity, PageDisplayList, Rect, TextRun};
+use Papercut\Backend\ImageHandle;
+use Papercut\Paint\{Clip, DocumentMeta, DrawImage, Line, Link, Opacity, PageDisplayList, Rect, TextRun};
 use Papercut\Tests\Support\FakeFont;
 use Papercut\Value\Color;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class OpsTest extends TestCase
@@ -57,6 +59,67 @@ final class OpsTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         new TextRun(0, 0, 'x', new FakeFont(), 0, Color::black());
+    }
+
+    /** @return iterable<string, array{\Closure(): object}> */
+    public static function nonFiniteOps(): iterable
+    {
+        yield 'rect nan' => [static fn () => new Rect(NAN, 0, 1, 1)];
+        yield 'rect inf width' => [static fn () => new Rect(0, 0, INF, 1)];
+        yield 'text run nan' => [static fn () => new TextRun(NAN, 0, 'x', new FakeFont(), 12, Color::black())];
+        yield 'text run inf size' => [static fn () => new TextRun(0, 0, 'x', new FakeFont(), INF, Color::black())];
+        yield 'text run nan spacing' => [static fn () => new TextRun(0, 0, 'x', new FakeFont(), 12, Color::black(), NAN)];
+        yield 'opacity nan' => [static fn () => new Opacity(NAN, [])];
+        yield 'page nan' => [static fn () => new PageDisplayList(NAN, 842, [])];
+        yield 'page inf' => [static fn () => new PageDisplayList(595, INF, [])];
+        yield 'line nan' => [static fn () => new Line(0, 0, NAN, 0, Color::black())];
+        yield 'clip inf' => [static fn () => new Clip(0, 0, INF, 1, [])];
+        yield 'link nan' => [static fn () => new Link(NAN, 0, 1, 1, 'u')];
+        yield 'image nan' => [static fn () => new DrawImage(0, NAN, 1, 1, self::image())];
+    }
+
+    /** @param \Closure(): object $make */
+    #[DataProvider('nonFiniteOps')]
+    public function test_non_finite_numbers_are_rejected(\Closure $make): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('non-finite');
+        $make();
+    }
+
+    public function test_boundary_values_are_valid(): void
+    {
+        self::assertSame(0.0, (new Opacity(0.0, []))->alpha);
+        self::assertSame(1.0, (new Opacity(1.0, []))->alpha);
+        self::assertSame(0.0, (new Rect(0, 0, 0, 0))->width);
+    }
+
+    public function test_rect_rejects_negative_stroke_width_and_radius(): void
+    {
+        foreach ([fn () => new Rect(0, 0, 1, 1, strokeWidth: -1), fn () => new Rect(0, 0, 1, 1, radius: -1)] as $make) {
+            try {
+                $make();
+                self::fail('Expected InvalidArgumentException');
+            } catch (\InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function test_line_image_and_link_hold_values(): void
+    {
+        self::assertSame(2.0, (new Line(0, 0, 10, 0, Color::black(), 2))->width);
+        self::assertSame('img', (new DrawImage(0, 0, 10, 10, self::image()))->image->id());
+        self::assertSame('https://x.test', (new Link(0, 0, 10, 10, 'https://x.test'))->uri);
+    }
+
+    private static function image(): ImageHandle
+    {
+        return new class implements ImageHandle {
+            public function id(): string { return 'img'; }
+            public function widthPx(): int { return 1; }
+            public function heightPx(): int { return 1; }
+        };
     }
 
     public function test_fake_font_metrics(): void

@@ -14,6 +14,9 @@ final readonly class Percent implements \Stringable
 
     public static function of(float $value): self
     {
+        if (!is_finite($value)) {
+            throw InvalidValue::for('percentage', (string) $value);
+        }
         return new self($value);
     }
 
@@ -21,6 +24,9 @@ final readonly class Percent implements \Stringable
     {
         $s = trim($input);
         if (preg_match('/^(-?(?:\d+(?:\.\d+)?|\.\d+))%$/', $s, $m)) {
+            if (!is_finite((float) $m[1])) {
+                throw InvalidValue::for('percentage', $input);
+            }
             return new self((float) $m[1]);
         }
         if (preg_match('/^(-?(?:\d+(?:\.\d+)?|\.\d+))\s+%$/', $s, $m)) {

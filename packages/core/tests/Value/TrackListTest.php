@@ -50,8 +50,29 @@ final class TrackListTest extends TestCase
 
     public function test_empty_is_invalid(): void
     {
-        $this->expectException(InvalidValue::class);
-        TrackList::parse('   ');
+        try {
+            TrackList::parse('   ');
+            self::fail('Expected InvalidValue');
+        } catch (InvalidValue $e) {
+            self::assertSame('column list', $e->kind);
+        }
+    }
+
+    public function test_auto_is_case_insensitive(): void
+    {
+        $t = TrackList::parse('1fr AUTO');
+        self::assertInstanceOf(Fr::class, $t->tracks[0]);
+        self::assertInstanceOf(Auto::class, $t->tracks[1]);
+    }
+
+    public function test_split_percent_suggestion(): void
+    {
+        try {
+            TrackList::parse('50 % 1fr');
+            self::fail('Expected InvalidValue');
+        } catch (InvalidValue $e) {
+            self::assertSame('50% 1fr', $e->suggestion);
+        }
     }
 
     public function test_of(): void

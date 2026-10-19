@@ -23,7 +23,7 @@ final class PdfInspector
     public static function words(string $pdf, int $page = 1): array
     {
         $html = self::run(['pdftotext', '-bbox', '-enc', 'UTF-8', '-f', (string) $page, '-l', (string) $page], $pdf, '-')[1];
-        preg_match_all('/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">(.*?)<\/word>/u', $html, $m, PREG_SET_ORDER);
+        preg_match_all('/<word xMin="(-?[\d.]+)" yMin="(-?[\d.]+)" xMax="(-?[\d.]+)" yMax="(-?[\d.]+)">(.*?)<\/word>/u', $html, $m, PREG_SET_ORDER);
         return array_map(static fn (array $w): array => [
             'text' => html_entity_decode($w[5], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'xMin' => (float) $w[1], 'yMin' => (float) $w[2],
@@ -48,12 +48,14 @@ final class PdfInspector
     {
         $in = self::tmp($pdf);
         $out = $in . '.qdf';
-        exec(sprintf('qpdf --qdf --object-streams=disable %s %s 2>&1', escapeshellarg($in), escapeshellarg($out)), $o, $code);
-        Assert::assertContains($code, [0, 3], 'qpdf --qdf failed: ' . implode("\n", $o));
-        $body = (string) file_get_contents($out);
-        @unlink($in);
-        @unlink($out);
-        return $body;
+        try {
+            exec(sprintf('qpdf --qdf --object-streams=disable %s %s 2>&1', escapeshellarg($in), escapeshellarg($out)), $o, $code);
+            Assert::assertContains($code, [0, 3], 'qpdf --qdf failed: ' . implode("\n", $o));
+            return (string) file_get_contents($out);
+        } finally {
+            @unlink($in);
+            @unlink($out);
+        }
     }
 
     /**
@@ -75,7 +77,8 @@ final class PdfInspector
 
     private static function tmp(string $pdf): string
     {
-        $file = tempnam(sys_get_temp_dir(), 'pc') . '.pdf';
+        $file = tempnam(sys_get_temp_dir(), 'pc');
+        Assert::assertNotFalse($file);
         file_put_contents($file, $pdf);
         return $file;
     }

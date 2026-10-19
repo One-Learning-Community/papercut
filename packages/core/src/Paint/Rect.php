@@ -18,7 +18,10 @@ final readonly class Rect implements Op
         public float $strokeWidth = 0.0,
         public float $radius = 0.0,
     ) {
-        if ($width < 0 || $height < 0 || $strokeWidth < 0 || $radius < 0) {
+        if (!is_finite($x) || !is_finite($y) || !is_finite($width) || !is_finite($height) || !is_finite($strokeWidth) || !is_finite($radius)) {
+            throw new \InvalidArgumentException('Rect received a non-finite number.');
+        }
+        if (!($width >= 0) || !($height >= 0) || !($strokeWidth >= 0) || !($radius >= 0)) {
             throw new \InvalidArgumentException('Rect dimensions, stroke width and radius must be non-negative.');
         }
     }

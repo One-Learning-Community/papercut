@@ -17,5 +17,8 @@ final readonly class Clip implements Op
         /** @var list<Op> */
         public array $ops,
     ) {
+        if (!is_finite($x) || !is_finite($y) || !is_finite($width) || !is_finite($height)) {
+            throw new \InvalidArgumentException('Clip received a non-finite number.');
+        }
     }
 }

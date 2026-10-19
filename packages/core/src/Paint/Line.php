@@ -17,5 +17,8 @@ final readonly class Line implements Op
         public float $width = 1.0,
         public bool $dashed = false,
     ) {
+        if (!is_finite($x1) || !is_finite($y1) || !is_finite($x2) || !is_finite($y2) || !is_finite($width)) {
+            throw new \InvalidArgumentException('Line received a non-finite number.');
+        }
     }
 }

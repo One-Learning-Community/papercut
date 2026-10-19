@@ -29,8 +29,18 @@ final class PercentFrAutoTest extends TestCase
         $this->assertInvalid(fn () => Fr::parse('3 fr'), 'fraction', '3fr');
         $this->assertInvalid(fn () => Fr::parse('0fr'), 'fraction', null);
         $this->assertInvalid(fn () => Fr::parse('-1fr'), 'fraction', null);
-        $this->expectException(InvalidValue::class);
-        Fr::of(0);
+        $this->assertInvalid(fn () => Fr::parse('1' . str_repeat('0', 400) . 'fr'), 'fraction', null);
+        $this->assertInvalid(fn () => Fr::parse('3FR'), 'fraction', '3fr');
+        $this->assertInvalid(fn () => Fr::of(NAN), 'fraction', null);
+        $this->assertInvalid(fn () => Fr::of(INF), 'fraction', null);
+        $this->assertInvalid(fn () => Fr::of(0), 'fraction', null);
+    }
+
+    public function test_percent_rejects_non_finite(): void
+    {
+        $this->assertInvalid(fn () => Percent::parse('1' . str_repeat('0', 400) . '%'), 'percentage', null);
+        $this->assertInvalid(fn () => Percent::of(INF), 'percentage', null);
+        $this->assertInvalid(fn () => Percent::of(NAN), 'percentage', null);
     }
 
     public function test_auto_is_singleton(): void
