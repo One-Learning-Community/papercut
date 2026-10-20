@@ -104,6 +104,18 @@ final class TreeWalkerTest extends TestCase
         self::assertSame($pdfMsg, self::messageOf(fn () => $this->walk($doc)));
     }
 
+    public function test_bad_named_style_in_header_footer_and_background_matches_pdf_error(): void
+    {
+        $bad = fn () => Row::make(Text::make('x')->apply('nope'));
+        foreach (['header', 'footer', 'background'] as $region) {
+            $doc = Document::make(Page::a4()->body(Text::make('b'))->$region($bad()));
+            $pdfMsg = self::messageOf(fn () => $doc->toPdf(new PdfOptions(backend: new FakeBackend())));
+            self::assertNotSame('', $pdfMsg, $region);
+            self::assertStringContainsString('page > ' . $region . ' > ', $pdfMsg, $region);
+            self::assertSame($pdfMsg, self::messageOf(fn () => $this->walk($doc)), $region);
+        }
+    }
+
     public function test_style_inherits_through_the_walk(): void
     {
         $doc = Document::make(Page::a4()->body(Row::make(Text::make('x'))->color(Color::hex('#ff0000'))));

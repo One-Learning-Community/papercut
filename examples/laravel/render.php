@@ -10,7 +10,7 @@ declare(strict_types=1);
 require __DIR__ . '/../../packages/laravel/vendor/autoload.php';
 
 use Orchestra\Testbench\Foundation\Application as Testbench;
-use Papercut\Laravel\Facades\Pdf;
+use Papercut\Laravel\Facades\Papercut;
 use Papercut\Laravel\PapercutServiceProvider;
 
 $app = Testbench::create();
@@ -23,6 +23,6 @@ $data = require __DIR__ . '/data.php';
 
 foreach ($data as $view => $viewData) {
     $path = __DIR__ . "/$view.pdf";
-    Pdf::view($view, $viewData)->save($path);
+    Papercut::view($view, $viewData)->pdf()->save($path);
     echo "Wrote examples/laravel/$view.pdf\n";
 }

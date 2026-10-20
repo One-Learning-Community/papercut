@@ -51,8 +51,8 @@ final class Paginator
         $contentWidth = $w - $left - $m->right->points;
         $contentHeight = $h - $top - $m->bottom->points;
 
-        $header = $this->slot($page->headerNodes(), $root, $contentWidth);
-        $footer = $this->slot($page->footerNodes(), $root, $contentWidth);
+        $header = $this->slot($page->headerNodes(), $root, $contentWidth, 'header');
+        $footer = $this->slot($page->footerNodes(), $root, $contentWidth, 'footer');
         $headerSpace = $header === null ? 0.0 : $header->height + $page->headerGapLength()->points;
         $footerSpace = $footer === null ? 0.0 : $footer->height + $page->footerGapLength()->points;
 
@@ -77,7 +77,7 @@ final class Paginator
 
         $background = null;
         if ($page->backgroundNodes() !== []) {
-            $background = $this->engine->layout(Column::make(...$page->backgroundNodes()), $root, new Constraints($w, null, true, $h))->fragment;
+            $background = $this->engine->layout(Column::make(...$page->backgroundNodes()), $root, new Constraints($w, null, true, $h), pathName: 'background')->fragment;
         }
 
         /** @var list<array{x: float, y: float, fragment: Fragment}> $before */
@@ -141,11 +141,11 @@ final class Paginator
     }
 
     /** @param list<\Papercut\Node|\Papercut\Component> $nodes */
-    private function slot(array $nodes, ComputedStyle $root, float $width): ?Fragment
+    private function slot(array $nodes, ComputedStyle $root, float $width, string $pathName): ?Fragment
     {
         if ($nodes === []) {
             return null;
         }
-        return $this->engine->layout(Column::make(...$nodes), $root, new Constraints($width, null, true))->fragment;
+        return $this->engine->layout(Column::make(...$nodes), $root, new Constraints($width, null, true), pathName: $pathName)->fragment;
     }
 }

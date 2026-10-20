@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel;
 
-use Papercut\Backend\PhpPdf\PhpPdfBackend;
 use Papercut\Document;
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Preview\PreviewRegistry;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
-use Papercut\Export\PdfOptions;
+use Papercut\Export\{FidelityLevel, FidelityReport, PdfOptions};
 use Papercut\Style\{Style, Theme};
 use Papercut\Text\{FontFace, FontSet};
 use Papercut\Value\Color;
 
-final class PdfManager
+final class PapercutManager
 {
     private ?PdfOptions $options = null;
 
@@ -31,7 +30,7 @@ final class PdfManager
     }
 
     /** @param array<string, mixed> $data */
-    public function view(string $view, array $data = []): PendingPdf
+    public function view(string $view, array $data = []): PendingDocument
     {
         $document = $this->registry->scope(function () use ($view, $data): object {
             $html = view($view, $data)->render();
@@ -41,13 +40,13 @@ final class PdfManager
             ));
 
             if (count($segments) !== 1 || !$segments[0] instanceof Document) {
-                throw new InvalidStructure('A Papercut view must have exactly one <x-pdf::document> root; found ' . $this->describe($segments) . " in view [$view]");
+                throw new InvalidStructure('A Papercut view must have exactly one ' . Tag::of('document') . ' root; found ' . $this->describe($segments) . " in view [$view]");
             }
             if ($this->registry->remaining() > 0) {
                 if (preg_match('/\[\[pc:[0-9a-f]{16}:\d+\]\]/i', $html) === 1) {
-                    throw new InvalidStructure("A slot containing <x-pdf::*> tags was modified as a string (e.g. strtoupper(\$slot)) in view [$view]");
+                    throw new InvalidStructure('A slot containing ' . Tag::any() . " tags was modified as a string (e.g. strtoupper(\$slot)) in view [$view]");
                 }
-                throw new InvalidStructure("Some <x-pdf::*> elements were rendered outside the document in view [$view]");
+                throw new InvalidStructure('Some ' . Tag::any() . " elements were rendered outside the document in view [$view]");
             }
 
             return $segments[0];
@@ -57,19 +56,18 @@ final class PdfManager
         return $this->make($document);
     }
 
-    public function make(Document $doc): PendingPdf
+    public function make(Document $doc): PendingDocument
     {
-        return new PendingPdf($doc, $this->options());
+        return new PendingDocument($doc, $this);
     }
 
-    public function options(): PdfOptions
+    public function pdfOptions(): PdfOptions
     {
         return $this->options ??= $this->buildOptions();
     }
 
     private function buildOptions(): PdfOptions
     {
-        $backend = new PhpPdfBackend(self::cacheDir());
         $fonts = (new FontSet(array_map(
             static fn (array $face): FontFace => new FontFace($face['family'], $face['path'], $face['weight'], $face['style']),
             FontConfig::faces(),
@@ -109,15 +107,29 @@ final class PdfManager
         };
 
         return new PdfOptions(
-            backend: $backend,
             fonts: $fonts,
             theme: $theme,
+            onWarning: static function (string $msg, ?FidelityReport $report = null): void {
+                if ($report?->level === FidelityLevel::Approximated) {
+                    logger()->debug('[papercut] ' . $msg);
+                } else {
+                    logger()->warning('[papercut] ' . $msg);
+                }
+            },
+            strict: self::strict(),
             overflow: $mode,
             cacheDir: self::cacheDir(),
-            onWarning: static function (string $msg): void {
-                logger()->warning('[papercut] ' . $msg);
-            },
         );
+    }
+
+    private static function strict(): bool
+    {
+        $strict = config('papercut.strict', false);
+        if (!is_bool($strict)) {
+            throw new \InvalidArgumentException('Invalid papercut.strict: ' . (is_scalar($strict) ? var_export($strict, true) : get_debug_type($strict)) . '; expected true or false');
+        }
+
+        return $strict;
     }
 
     private static function cacheDir(): string|false|null

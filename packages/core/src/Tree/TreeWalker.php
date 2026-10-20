@@ -11,8 +11,8 @@ use Papercut\Style\{ComputedStyle, StyleResolver};
 /**
  * Walks a Document's expanded node tree without laying it out: pages, then
  * regions (background, header, body, footer), then nodes, with computed styles
- * and paths. Body paths match layout's; header, footer and background use
- * their region names where layout has an anonymous column.
+ * and paths. Paths match layout's in every region, so errors read the same
+ * as from toPdf().
  */
 final class TreeWalker
 {

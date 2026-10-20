@@ -3,6 +3,41 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] - 0.2.0
+
+v0.1 was never published to Packagist, so there are no deprecation shims.
+
+### Changed (breaking)
+
+Migration from v0.1:
+
+| v0.1 | 0.2 |
+|---|---|
+| `Pdf::view(...)` | `Papercut::view(...)->pdf()` |
+| `<x-pdf::…>` | `<x-doc::…>` |
+| `PendingPdf` | `PendingOutput` |
+| `PdfManager` | `PapercutManager` |
+| `Document::render()` / `toString()` | `toPdf()->bytes()` |
+| `Document::save($p)` / `stream()` | `toPdf()->save($p)` / `toPdf()->stream()` |
+| `RenderOptions` | `PdfOptions` |
+| `Image::handle()` | removed; use `Image::file()` / `Image::bytes()` |
+
+- The `Pdf` facade alias is now `Papercut`; `Papercut::pdfOptions()` replaces `Pdf::options()`.
+- The Blade tag prefix is configurable through `papercut.prefix` (default `doc`).
+- `PdfOptions` is not a drop-in rename of `RenderOptions`; the constructor changed shape:
+  - the positional order is now theme, fonts, onWarning, strict, then backend, overflow, cacheDir, so use named arguments;
+  - `fonts` takes a `FontSet`, not a `FontRegistry`;
+  - fallback families moved to `FontSet::withFallbacks()`;
+  - the bundled Inter is always registered.
+- Save failures now read `Directory does not exist: …` or `Could not write output to "…": …` (previously `Could not write PDF to …`).
+- In Laravel, all config errors (theme, styles, overflow, strict, fonts, including a missing or unreadable font file) now surface when the output is rendered, not at `view()`, `make()` or `Papercut::pdfOptions()`.
+
+### Added
+
+- `Papercut::make($document)` and `PendingDocument` (`document()`, `pdf()`); `PendingOutput` takes its `Content-Type` and default filename from the `Output`.
+- Core: `Exporter`/`Output` API, `PdfOptions`, `FontSet`, fidelity reporting (`Fidelity`, `FidelityReport`), strict mode (`UnsupportedFeature`) and `MissingExporter`.
+- Config key `papercut.strict` (default `false`).
+
 ## [0.1.0] - unreleased
 
 ### Added

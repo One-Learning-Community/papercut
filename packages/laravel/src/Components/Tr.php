@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\TableCell;
 use Papercut\TableRow;
 
-final class Tr extends PdfComponent
+final class Tr extends PapercutComponent
 {
     protected function build(array $data): object
     {
         $cells = [];
         foreach ($this->rawChildren($data, [TableCell::class]) as $child) {
             if (!$child instanceof TableCell) {
-                throw new InvalidStructure('<x-pdf::tr> can only contain <x-pdf::td> or <x-pdf::th>');
+                throw new InvalidStructure(Tag::of('tr') . ' can only contain ' . Tag::of('td') . ' or ' . Tag::of('th'));
             }
             $cells[] = $child;
         }

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Papercut\Laravel\Preview;
 
 use Illuminate\Http\Response as HttpResponse;
-use Papercut\Laravel\PdfManager;
+use Papercut\Laravel\PapercutManager;
 use Symfony\Component\HttpFoundation\Response;
 
 final class PreviewController
 {
-    public function __construct(private readonly PreviewRegistry $registry, private readonly PdfManager $pdf)
+    public function __construct(private readonly PreviewRegistry $registry, private readonly PapercutManager $papercut)
     {
     }
 
@@ -37,6 +37,6 @@ final class PreviewController
         abort_unless(app()->isLocal(), 404);
         abort_unless($this->registry->has($view), 404);
 
-        return $this->pdf->view($view, $this->registry->data($view))->inline();
+        return $this->papercut->view($view, $this->registry->data($view))->pdf()->inline();
     }
 }

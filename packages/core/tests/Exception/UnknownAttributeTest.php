@@ -25,13 +25,13 @@ final class UnknownAttributeTest extends TestCase
     public function test_message_with_context_and_suggestion(): void
     {
         $base = UnknownAttribute::for('paddng', 'padding');
-        $e = $base->within('on <x-pdf::column>');
+        $e = $base->within('on <x-doc::column>');
         self::assertSame(
-            'Unknown attribute "paddng" on <x-pdf::column>. Did you mean "padding"?',
+            'Unknown attribute "paddng" on <x-doc::column>. Did you mean "padding"?',
             $e->getMessage(),
         );
         self::assertSame($base, $e->getPrevious());
-        self::assertSame(['on <x-pdf::column>'], $e->locations);
+        self::assertSame(['on <x-doc::column>'], $e->locations);
     }
 
     public function test_repeated_within_appends_left_to_right(): void

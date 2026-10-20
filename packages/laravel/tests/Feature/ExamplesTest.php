@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Tests\Feature;
 
-use Papercut\Laravel\Facades\Pdf;
+use Papercut\Laravel\Facades\Papercut;
 use Papercut\Laravel\Tests\TestCase;
 
 final class ExamplesTest extends TestCase
@@ -43,7 +43,7 @@ final class ExamplesTest extends TestCase
 
     private function render(string $view): string
     {
-        $pdf = Pdf::view($view, self::data($view))->toString();
+        $pdf = Papercut::view($view, self::data($view))->pdf()->toString();
         $base = (string) tempnam(sys_get_temp_dir(), 'pc-ex');
         $file = $base . '.pdf';
         $this->temps[] = $base;

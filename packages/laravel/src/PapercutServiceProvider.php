@@ -21,7 +21,7 @@ final class PapercutServiceProvider extends ServiceProvider
 
         $this->app->singleton(PreviewRegistry::class);
 
-        $this->app->scoped(PdfManager::class);
+        $this->app->scoped(PapercutManager::class);
     }
 
     public function boot(): void
@@ -34,7 +34,7 @@ final class PapercutServiceProvider extends ServiceProvider
             $this->commands([FontsCommand::class]);
         }
 
-        Blade::componentNamespace('Papercut\\Laravel\\Components', 'pdf');
+        Blade::componentNamespace('Papercut\\Laravel\\Components', Tag::prefix());
 
         if (config('papercut.preview.enabled') && $this->app->environment('local')) {
             Route::prefix((string) config('papercut.preview.path', '_papercut'))->group(static function (): void {

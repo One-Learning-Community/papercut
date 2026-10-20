@@ -1,7 +1,7 @@
-<x-pdf::document>
-<x-pdf::page>
-<x-pdf::text>@yield('title')</x-pdf::text>
+<x-doc::document>
+<x-doc::page>
+<x-doc::text>@yield('title')</x-doc::text>
 @yield('content')
-</x-pdf::page>
-</x-pdf::document>
+</x-doc::page>
+</x-doc::document>
 @stack('after')

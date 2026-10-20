@@ -52,3 +52,29 @@ Decisions the controller took on the maintainer's behalf while they were offline
 ## p4-polish
 - Task 3: Ruling: subagent was denied 'git rm' of the duplicated PhpPdfBackendRenderTest.php; controller will NOT perform it on its behalf — keep file (duplicated coverage, harmless), mark pending removal, surface to user for approval — cost if wrong: ~19 duplicate tests run twice
 - Final review (opus): With fixes — all suites green; bench 56ms; output pixel-identical. Important: CI bench baseline unarmed (MAINTAINER), snapshots unverified on CI poppler (MAINTAINER), kerning cache undocumented (fix dispatched with laravel cache_dir + symlink guard + bench docs). Ruling: CI-dependent items are maintainer follow-ups (no remote/CI available) — cost if wrong: first CI run may go red on snapshots.
+
+# Rulings made during multi-format Phase 0 (seams and renames), 2026-10-19
+
+Plan: docs/superpowers/plans/2026-10-19-multi-format-phase0-seams.md. Each entry: what was decided — why — cost if wrong.
+
+## p0-multi-format-seams
+- Ruling: implementers ran on Sonnet 5.5, all reviews on Opus 5.5 — maintainer instruction — cost if wrong: none
+- Ruling (R1): Task 5 typed ExportOptions onWarning as a plain `?\Closure`; Task 6 widened the docblock to `\Closure(string, ?FidelityReport=): void` once FidelityReport existed — avoids a PHPStan unknown-class error — cost if wrong: none
+- Ruling (R2): Task 5 also adapted Laravel internals minimally (no public API change) so every task left both packages green; Task 8 did the renames — Laravel loads core through a symlink — cost if wrong: small rework in Task 8
+- Ruling: golden record mode (`UPDATE_GOLDEN=1`) may only add missing keys; an existing key with a different hash fails even in record mode — the byte-identical promise outranks the plan's convenience flag — cost if wrong: re-baselining later means deleting the JSON entry first
+- Ruling: `StyleResolver::resolve()` applies no table-cell defaults; a separate `resolveInTable()` does, and TreeWalker uses it for cells under a table row — the plan's single-layer version changed styling of a bare TableCell outside a table (v0.1: no padding, normal weight) — cost if wrong: none
+- Ruling: leftover `x-pdf` text in core docblocks and exception tests was swept in Task 8 (plan gap) — cost if wrong: none
+- Ruling: the CHANGELOG "[0.1.0] - unreleased" section keeps v0.1 names as history — it documents v0.1, and the migration table maps from it — cost if wrong: one section rewrite later
+- Ruling: Paginator names slot columns `header`/`footer`/`background` in layout paths, so PDF and TreeWalker report identical error paths (spec §5.4) — final review found the plan accepted a divergence — cost if wrong: none (paths never reach PDF bytes)
+- Ruling: a new PhpPdfBackend per Laravel render (v0.1 shared one per scoped manager) is accepted — measured 0.7 ms/doc either way, identical bytes, better isolation — cost if wrong: repeated large-image decoding in batch jobs
+- Ruling: cheap reviewer Minors were folded into fix rounds where they touched the same lines (test tightening, import order, Tag prefix caching, config comment placement, README prefix/strict rows) — cost if wrong: none
+
+## Carry-overs for the Phase 1 plan (before the 0.2.0 API freeze)
+- Settle accessor style: spec §5.2 lists `Output::mime()`/`extension()` methods, but Output exposes public properties (and `bytes` as both); ExportOptions/PdfOptions mix properties and getters.
+- TreeVisitor gives no sibling index or header-row flag; phase 2 needs both (FlexSlot::index matching, `w:tblHeader`/`<thead>`).
+- WidthResolver: warnings carry no node path; `for()` always uses a default-cache PhpPdfBackend (decide a cache policy for non-PDF exports); add a direction guard or docblock to `flexLines`.
+- Fidelity always passes two arguments to onWarning: document it or make the call arity-aware before HtmlExporter reports anything (native callables such as `error_log(...)` would TypeError).
+- Extract a shared Laravel options builder (theme, fonts, onWarning, strict) for HtmlOptions.
+- Add a test that app components `<x-doc.foo>` don't conflict with `<x-doc::*>` (spec §8.2).
+- Add a `composer analyse` script to packages/laravel.
+- Deferred test polish: PdfExporterTest cacheDir and WidthResolver fresh-engine assertions are vacuous; `PdfOptions::from` is tested only for theme; the renders-once test doesn't prove `pdf()` memoization; overflow/cache_dir tests are duplicated across HardeningTest and OptionsFromConfigTest; cell defaults are duplicated in `resolveInTable` and `TableLayouter::prepare` (add an equality test); golden test ignores example warnings when exit code is 0.

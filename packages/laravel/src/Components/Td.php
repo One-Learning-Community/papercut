@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Exception\InvalidValue;
 use Papercut\Style\TextAlign;
 use Papercut\TableCell;
 
-class Td extends PdfComponent
+class Td extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
@@ -21,7 +22,7 @@ class Td extends PdfComponent
         ['own' => $own] = $this->attrs($data);
         $children = $this->children($data);
         $cell = $header ? TableCell::th(...$children) : TableCell::make(...$children);
-        $where = 'on <x-pdf::' . $this->tag() . '>';
+        $where = 'on ' . Tag::of($this->tag());
 
         if (isset($own['colspan'])) {
             $raw = $own['colspan'];

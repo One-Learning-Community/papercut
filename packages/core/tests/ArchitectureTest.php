@@ -28,4 +28,24 @@ final class ArchitectureTest extends TestCase
         }
         self::assertSame([], $offenders, 'Only src/Backend/PhpPdf may reference Dskripchenko\\*');
     }
+
+    public function test_tree_and_style_do_not_depend_on_layout_or_backend(): void
+    {
+        $src = realpath(__DIR__ . '/../src');
+        self::assertIsString($src);
+        $offenders = [];
+        foreach (['Tree', 'Style'] as $dir) {
+            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($src . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
+            foreach ($it as $file) {
+                if ($file->getExtension() !== 'php') {
+                    continue;
+                }
+                $code = (string) file_get_contents($file->getPathname());
+                if (preg_match('/Papercut\\\\(Layout|Backend)\b/', $code) === 1) {
+                    $offenders[] = substr($file->getPathname(), strlen($src) + 1);
+                }
+            }
+        }
+        self::assertSame([], $offenders, 'src/Tree and src/Style must not reference Papercut\\Layout or Papercut\\Backend');
+    }
 }

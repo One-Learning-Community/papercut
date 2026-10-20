@@ -1,1 +1,1 @@
-<x-pdf::document><x-pdf::page margin="20 mm">x</x-pdf::page></x-pdf::document>
+<x-doc::document><x-doc::page margin="20 mm">x</x-doc::page></x-doc::document>

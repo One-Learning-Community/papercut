@@ -1,1 +1,1 @@
-<x-pdf::column>{{ strtoupper($slot) }}</x-pdf::column>
+<x-doc::column>{{ strtoupper($slot) }}</x-doc::column>

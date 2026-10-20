@@ -5,7 +5,7 @@
 
 Blade components that compile to a real layout engine, not HTML.
 
-Papercut is a PDF library for modern PHP. You write `<x-pdf::*>` tags in Blade; they become a tree of
+Papercut is a PDF library for modern PHP. You write `<x-doc::*>` tags in Blade; they become a tree of
 typed, immutable components with flexbox layout and page-aware pagination, and a pure-PHP engine turns
 that tree into a PDF. There is no browser, no HTML parser and no CSS cascade. The tag vocabulary is small,
 strict and ours, and a typo in an attribute is an error that names the tag, not a silently wrong page.
@@ -15,24 +15,24 @@ strict and ours, and a typo in an attribute is an error that names the tag, not 
 ## A Blade document
 
 ```blade
-<x-pdf::document title="Transcript">
-  <x-pdf::page size="a4" margin="20mm">
-    <x-pdf::column gap="8pt">
-      <x-pdf::h1>{{ $student }}</x-pdf::h1>
-      <x-pdf::table columns="3fr 25mm 20mm">
-        <x-pdf::thead><x-pdf::th>Course</x-pdf::th><x-pdf::th>Credits</x-pdf::th><x-pdf::th>Grade</x-pdf::th></x-pdf::thead>
+<x-doc::document title="Transcript">
+  <x-doc::page size="a4" margin="20mm">
+    <x-doc::column gap="8pt">
+      <x-doc::h1>{{ $student }}</x-doc::h1>
+      <x-doc::table columns="3fr 25mm 20mm">
+        <x-doc::thead><x-doc::th>Course</x-doc::th><x-doc::th>Credits</x-doc::th><x-doc::th>Grade</x-doc::th></x-doc::thead>
         @foreach ($courses as $c)
-          <x-pdf::tr><x-pdf::td>{{ $c->title }}</x-pdf::td><x-pdf::td>{{ $c->credits }}</x-pdf::td><x-pdf::td align="right">{{ $c->grade }}</x-pdf::td></x-pdf::tr>
+          <x-doc::tr><x-doc::td>{{ $c->title }}</x-doc::td><x-doc::td>{{ $c->credits }}</x-doc::td><x-doc::td align="right">{{ $c->grade }}</x-doc::td></x-doc::tr>
         @endforeach
-      </x-pdf::table>
-    </x-pdf::column>
-    <x-slot:footer><x-pdf::page-number format="Page {page} of {total}" align="center" /></x-slot:footer>
-  </x-pdf::page>
-</x-pdf::document>
+      </x-doc::table>
+    </x-doc::column>
+    <x-slot:footer><x-doc::page-number format="Page {page} of {total}" align="center" /></x-slot:footer>
+  </x-doc::page>
+</x-doc::document>
 ```
 
 ```php
-return Pdf::view('pdf.transcript', compact('student', 'courses'))->download('transcript.pdf');
+return Papercut::view('pdf.transcript', compact('student', 'courses'))->pdf()->download('transcript.pdf');
 ```
 
 ## Features
@@ -43,12 +43,12 @@ return Pdf::view('pdf.transcript', compact('student', 'courses'))->download('tra
 - Keep-together and keep-with-next, so a heading is not stranded at the bottom of a page.
 - Page numbers with a page count: `Page {page} of {total}`.
 - Real fonts: every document embeds fonts (Inter is bundled; register your own families), with subsetting and fallback families. The 14 standard PDF fonts are not used.
-- Composition: your own Blade components can contain `<x-pdf::*>` tags (see `examples/laravel/views/components`).
+- Composition: your own Blade components can contain `<x-doc::*>` tags (see `examples/laravel/views/components`).
 - Strict, readable errors for unknown attributes, bad values and invalid structure.
 
 ## How it works
 
-1. Each `<x-pdf::*>` component builds a node of the core engine (`Papercut\Row`, `Papercut\Table`, ...) and,
+1. Each `<x-doc::*>` component builds a node of the core engine (`Papercut\Row`, `Papercut\Table`, ...) and,
    instead of emitting HTML, returns a short opaque marker string that stands in for that node in a
    per-render registry.
 2. Blade composes the markers into the template output as it normally would, so loops, conditionals and

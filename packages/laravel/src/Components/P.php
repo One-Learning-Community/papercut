@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
-final class P extends PdfComponent
+final class P extends PapercutComponent
 {
     protected function ownAttributes(): array
     {

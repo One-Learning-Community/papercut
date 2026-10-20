@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\Laravel\Rendering\Segments;
 use Papercut\Value\{Edges, Length};
 
-final class Page extends PdfComponent
+final class Page extends PapercutComponent
 {
     private const array SLOTS = ['header', 'footer', 'background'];
 
@@ -22,7 +23,7 @@ final class Page extends PdfComponent
     protected function build(array $data): object
     {
         ['own' => $own, 'style' => $style] = $this->attrs($data);
-        $location = 'on <x-pdf::page>';
+        $location = 'on ' . Tag::of('page');
         foreach (array_keys($style) as $key) {
             throw UnknownAttribute::for($key)->within($location);
         }
@@ -33,7 +34,7 @@ final class Page extends PdfComponent
         $slots = $this->namedSlots($data);
         foreach (array_keys($slots) as $name) {
             if (!in_array($name, self::SLOTS, true)) {
-                throw new InvalidStructure("Unknown slot \"$name\" on <x-pdf::page>; allowed slots: " . implode(', ', self::SLOTS));
+                throw new InvalidStructure("Unknown slot \"$name\" on " . Tag::of('page') . "; allowed slots: " . implode(', ', self::SLOTS));
             }
         }
 
@@ -64,7 +65,7 @@ final class Page extends PdfComponent
     /** @param array<string, mixed> $own */
     private static function configured(array $own): \Papercut\Page
     {
-        $location = 'on <x-pdf::page>';
+        $location = 'on ' . Tag::of('page');
         try {
             $size = $own['size'] ?? config('papercut.paper', 'a4');
             if (!is_string($size)) {

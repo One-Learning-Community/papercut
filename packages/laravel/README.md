@@ -1,6 +1,6 @@
 # papercut/laravel
 
-Blade components for [Papercut](../../README.md): `<x-pdf::*>` tags compile into Papercut's layout engine and out to a PDF. Not HTML-to-PDF.
+Blade components for [Papercut](../../README.md): `<x-doc::*>` tags compile into Papercut's layout engine and out to a PDF. Not HTML-to-PDF.
 
 > **Status: v0.1, pre-release. Not yet published to Packagist.**
 
@@ -24,29 +24,29 @@ To try it now, clone the monorepo and add path repositories to your app's `compo
 }
 ```
 
-then `composer require papercut/laravel:@dev`. Requires PHP 8.4+, `ext-zlib`, `ext-mbstring`, `ext-dom` and Laravel 12 or 13. The service provider and the `Pdf` facade are auto-discovered.
+then `composer require papercut/laravel:@dev`. Requires PHP 8.4+, `ext-zlib`, `ext-mbstring`, `ext-dom` and Laravel 12 or 13. The service provider and the `Papercut` facade are auto-discovered.
 
 ## Quick start
 
 ```blade
 {{-- resources/views/pdf/hello.blade.php --}}
-<x-pdf::document title="Hello">
-  <x-pdf::page>
-    <x-pdf::h1>Hello, {{ $name }}</x-pdf::h1>
-    <x-pdf::p>Rendered by Papercut.</x-pdf::p>
-  </x-pdf::page>
-</x-pdf::document>
+<x-doc::document title="Hello">
+  <x-doc::page>
+    <x-doc::h1>Hello, {{ $name }}</x-doc::h1>
+    <x-doc::p>Rendered by Papercut.</x-doc::p>
+  </x-doc::page>
+</x-doc::document>
 ```
 
 ```php
-use Papercut\Laravel\Facades\Pdf;
+use Papercut\Laravel\Facades\Papercut;
 
-Route::get('/hello', fn () => Pdf::view('pdf.hello', ['name' => 'Ada'])->download('hello.pdf'));
+Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pdf()->download('hello.pdf'));
 ```
 
-A view must have exactly one `<x-pdf::document>` root. `Pdf::view($view, $data)` returns a `PendingPdf` with `download($filename)`, `inline($filename)`, `save($path)` and `toString()`. A `PendingPdf` returned from a route renders inline.
+A view must have exactly one `<x-doc::document>` root. `Papercut::view($view, $data)` returns a `PendingDocument`; `->document()` gives the core `Document` and `->pdf()` a `PendingOutput` with `download($filename)`, `inline($filename)`, `save($path)`, `toString()` and `output()`. The filename defaults to `document.pdf`. A `PendingOutput` returned from a route renders inline. `Papercut::make($document)` wraps a `Document` you built in PHP the same way.
 
-Full examples: [`examples/laravel`](../../examples/laravel) (invoice, transcript, report). Content inside `<x-pdf::document>` may also contain your own Blade components, which can themselves contain `<x-pdf::*>` tags.
+Full examples: [`examples/laravel`](../../examples/laravel) (invoice, transcript, report). Content inside `<x-doc::document>` may also contain your own Blade components, which can themselves contain `<x-doc::*>` tags.
 
 ## Configuration
 
@@ -58,19 +58,19 @@ This publishes `config/papercut.php`:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `paper` | `'a4'` | Page size when `<x-pdf::page>` has no `size`: `a3`, `a4`, `a5`, `a6`, `letter`, `legal` |
-| `margin` | `'20mm'` | Page margin when `<x-pdf::page>` has no `margin` |
+| `prefix` | `'doc'` | Blade tag prefix (`<x-doc::page>`): lowercase letters, digits and dashes. Read at boot |
+| `paper` | `'a4'` | Page size when `<x-doc::page>` has no `size`: `a3`, `a4`, `a5`, `a6`, `letter`, `legal` |
+| `margin` | `'20mm'` | Page margin when `<x-doc::page>` has no `margin` |
 | `fonts` | `[]` | Extra font families, see [Fonts](#fonts) |
 | `fallback_fonts` | `[]` | Family names tried, in order, for glyphs the primary font lacks |
 | `theme` | `[]` | Defaults: `font_family`, `font_size` (points, number), `color`, `line_height` (number) |
 | `styles` | `[]` | [Named styles](#named-styles) |
 | `overflow` | `null` | `'throw'`, `'clip'`, or `null` = throw in `local`/`testing`, clip elsewhere |
-| `image_path` | `null` | Base directory for relative `<x-pdf::image src>`; `null` = `public_path()` |
+| `strict` | `false` | `true` makes an export throw `UnsupportedFeature` for content a format cannot render, instead of dropping it with a warning. Consider `true` in tests |
+| `image_path` | `null` | Base directory for relative `<x-doc::image src>`; `null` = `public_path()` |
 | `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
 | `preview.path` | `'_papercut'` | URL prefix for preview routes |
-
-> Apps that also use barryvdh/laravel-dompdf (which claims the same `Pdf` alias) should import the facade explicitly: `use Papercut\Laravel\Facades\Pdf;`.
 
 ## Tags
 
@@ -78,23 +78,23 @@ Style attributes (next section) work on every tag marked "style" below. Values a
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-pdf::document>` | `title`, `author`, `subject`, `keywords`, `lang` | Root. Children must be `<x-pdf::page>`; with no page, content gets an implicit page. No style attributes. |
-| `<x-pdf::page>` | `size`, `orientation` (`portrait`/`landscape`), `margin`, `header-gap`, `footer-gap` | Slots: `<x-slot:header>`, `<x-slot:footer>`, `<x-slot:background>`. No style attributes. |
-| `<x-pdf::view>` | `align` | Style. Generic container. |
-| `<x-pdf::row>` | `align` | Style. Lays children out horizontally. |
-| `<x-pdf::column>` | `align` | Style. Lays children out vertically. |
-| `<x-pdf::text>` | `align`, `size` | Style. Inline markup allowed: `<b>`, `<i>`, `<u>`, `<s>`, `<a href>`, `<br>`, `<span>`. |
-| `<x-pdf::h1>` ... `<x-pdf::h4>` | `align`, `size` | Style. Heading presets. |
-| `<x-pdf::p>` | `align`, `size` | Style. Paragraph preset. |
-| `<x-pdf::image>` | `src`, `data`, `fit` (`contain`/`cover`/`fill`) | Style. Exactly one of `src` or `data` (raw bytes). Absolute and scheme paths (`/x.png`, `C:\x.png`, `file://`) are trusted as given; relative paths are contained to `papercut.image_path` (`..` cannot escape it). Remote URLs are not supported. Never pass untrusted input to `src`. |
-| `<x-pdf::link>` | `href` | Style. Required `href`. |
-| `<x-pdf::table>` | `columns`, `repeat-header` | Style. Children: one optional `<x-pdf::thead>` first, then `<x-pdf::tr>`. `columns` is a track list such as `"3fr 25mm 20mm"`. `repeat-header` defaults to on. |
-| `<x-pdf::thead>` | none | Contains `<x-pdf::th>`/`<x-pdf::td>` cells (one header row) or `<x-pdf::tr>` rows. |
-| `<x-pdf::tr>` | none | Style. Contains `<x-pdf::td>`/`<x-pdf::th>`. |
-| `<x-pdf::td>` / `<x-pdf::th>` | `colspan`, `align` (`left`/`right`/`center`/`justify`) | Style. `th` is a header cell. |
-| `<x-pdf::spacer>` | `size` | `size="10mm"` is a fixed gap; with no `size` it is flexible (`grow`, default 1). Only `grow` is accepted besides `size`/`style`. |
-| `<x-pdf::page-number>` | `format`, `align`, `size` | Style. `format` uses `{page}` and `{total}`; no content allowed. |
-| `<x-pdf::page-break>` | none | Forces a new page. |
+| `<x-doc::document>` | `title`, `author`, `subject`, `keywords`, `lang` | Root. Children must be `<x-doc::page>`; with no page, content gets an implicit page. No style attributes. |
+| `<x-doc::page>` | `size`, `orientation` (`portrait`/`landscape`), `margin`, `header-gap`, `footer-gap` | Slots: `<x-slot:header>`, `<x-slot:footer>`, `<x-slot:background>`. No style attributes. |
+| `<x-doc::view>` | `align` | Style. Generic container. |
+| `<x-doc::row>` | `align` | Style. Lays children out horizontally. |
+| `<x-doc::column>` | `align` | Style. Lays children out vertically. |
+| `<x-doc::text>` | `align`, `size` | Style. Inline markup allowed: `<b>`, `<i>`, `<u>`, `<s>`, `<a href>`, `<br>`, `<span>`. |
+| `<x-doc::h1>` ... `<x-doc::h4>` | `align`, `size` | Style. Heading presets. |
+| `<x-doc::p>` | `align`, `size` | Style. Paragraph preset. |
+| `<x-doc::image>` | `src`, `data`, `fit` (`contain`/`cover`/`fill`) | Style. Exactly one of `src` or `data` (raw bytes). Absolute and scheme paths (`/x.png`, `C:\x.png`, `file://`) are trusted as given; relative paths are contained to `papercut.image_path` (`..` cannot escape it). Remote URLs are not supported. Never pass untrusted input to `src`. |
+| `<x-doc::link>` | `href` | Style. Required `href`. |
+| `<x-doc::table>` | `columns`, `repeat-header` | Style. Children: one optional `<x-doc::thead>` first, then `<x-doc::tr>`. `columns` is a track list such as `"3fr 25mm 20mm"`. `repeat-header` defaults to on. |
+| `<x-doc::thead>` | none | Contains `<x-doc::th>`/`<x-doc::td>` cells (one header row) or `<x-doc::tr>` rows. |
+| `<x-doc::tr>` | none | Style. Contains `<x-doc::td>`/`<x-doc::th>`. |
+| `<x-doc::td>` / `<x-doc::th>` | `colspan`, `align` (`left`/`right`/`center`/`justify`) | Style. `th` is a header cell. |
+| `<x-doc::spacer>` | `size` | `size="10mm"` is a fixed gap; with no `size` it is flexible (`grow`, default 1). Only `grow` is accepted besides `size`/`style`. |
+| `<x-doc::page-number>` | `format`, `align`, `size` | Style. `format` uses `{page}` and `{total}`; no content allowed. |
+| `<x-doc::page-break>` | none | Forces a new page. |
 
 On `row`, `column` and `view`, `align` is a shorthand for `align-items`. On text tags, `align` is `text-align` and `size` is `font-size`. Every style-capable tag also accepts `style="name"` (a [named style](#named-styles)).
 
@@ -141,7 +141,7 @@ Define styles in `config/papercut.php`, using the same keys as tag attributes:
 ```
 
 ```blade
-<x-pdf::column style="card">...</x-pdf::column>
+<x-doc::column style="card">...</x-doc::column>
 ```
 
 The named style is the base; attributes written on the tag override it for any property both set.
@@ -168,15 +168,15 @@ Inter (regular, bold, italic, bold italic) is bundled and always available. Regi
 For fast iteration on a layout, register a view with sample data (for example in a service provider) and enable previews:
 
 ```php
-Pdf::preview('pdf.invoice', fn () => ['invoice' => Invoice::factory()->make()]);
+Papercut::preview('pdf.invoice', fn () => ['invoice' => Invoice::factory()->make()]);
 ```
 
 Set `PAPERCUT_PREVIEW=true`. Only in the `local` environment, `GET /_papercut` lists the registered views and `GET /_papercut/{view}` renders one inline.
 
 ## Errors
 
-- `Papercut\Exception\UnknownAttribute` and `Papercut\Exception\InvalidValue`: reported with the tag (`on <x-pdf::td>`), the attribute and, where possible, a suggestion.
-- `Papercut\Laravel\Exception\InvalidStructure`: misplaced content, such as a `<x-pdf::tr>` outside a table, a missing `<x-pdf::document>` root, or an unknown page slot.
+- `Papercut\Exception\UnknownAttribute` and `Papercut\Exception\InvalidValue`: reported with the tag (`on <x-doc::td>`), the attribute and, where possible, a suggestion.
+- `Papercut\Laravel\Exception\InvalidStructure`: misplaced content, such as a `<x-doc::tr>` outside a table, a missing `<x-doc::document>` root, or an unknown page slot.
 - `Papercut\Exception\ImageUnreadable`: the `src` file is missing or cannot be read as an image.
 - `Papercut\Exception\LayoutOverflow`: a block cannot fit on a page even after every permitted split. Controlled by `overflow`: throw (default in `local`/`testing`) or clip.
 

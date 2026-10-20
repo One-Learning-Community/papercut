@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Rendering;
 
+use Papercut\Laravel\Tag;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Components\HeaderRows;
 use Papercut\TableCell;
@@ -34,7 +35,7 @@ final class Segments
             } else {
                 foreach (self::PARENTS as $class => [$name, $parent]) {
                     if ($seg instanceof $class && !in_array($class, $allow, true)) {
-                        throw new InvalidStructure("<x-pdf::$name> must be inside <x-pdf::$parent>");
+                        throw new InvalidStructure(Tag::of($name) . ' must be inside ' . Tag::of($parent));
                     }
                 }
                 $out[] = $seg;
@@ -50,7 +51,7 @@ final class Segments
         $text = '';
         foreach ($segs as $seg) {
             if (!is_string($seg)) {
-                throw new InvalidStructure("<x-pdf::$tag> can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>)");
+                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>)");
             }
             $text .= $seg;
         }

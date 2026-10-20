@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Tests\Feature;
 
-use Papercut\Document;
-use Papercut\Laravel\Facades\Pdf;
-use Papercut\Laravel\PendingPdf;
+use Papercut\Laravel\Facades\Papercut;
 use Papercut\Laravel\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -56,10 +54,9 @@ final class GoldenBytesTest extends TestCase
     {
         // The example views set no createdAt, so the PDF would embed the current time. Pin it by rebuilding the
         // resolved document with a fixed date; only the test does this, the examples stay as they are.
-        $document = (new \ReflectionProperty(PendingPdf::class, 'document'))->getValue(Pdf::view($view, $data));
-        self::assertInstanceOf(Document::class, $document);
+        $document = Papercut::view($view, $data)->document()->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z'));
 
-        return Pdf::make($document->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z')))->toString();
+        return Papercut::make($document)->pdf()->toString();
     }
 
     public function test_golden_keys_match_the_cases_exactly(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Rendering;
 
+use Papercut\Laravel\Tag;
 use Illuminate\Support\HtmlString;
 use Papercut\Laravel\Exception\InvalidStructure;
 
@@ -26,7 +27,7 @@ final class NodeRegistry
     {
         $key = array_key_last($this->scopes);
         if ($key === null) {
-            throw new InvalidStructure('<x-pdf::*> components can only be rendered through Pdf::view().');
+            throw new InvalidStructure(Tag::any() . ' components can only be rendered through Papercut::view().');
         }
         $id = $this->scopes[$key]['next']++;
         $this->scopes[$key]['nodes'][$id] = $node;
@@ -55,10 +56,10 @@ final class NodeRegistry
                 $exact = $m[1] === $this->scopes[$key]['nonce'] && str_starts_with($part, '[[pc:');
                 if (!$exact || !isset($this->scopes[$key]['nodes'][$id])) {
                     $view = $this->scopes[$key]['view'];
-                    throw new InvalidStructure('A slot containing <x-pdf::*> tags was modified as a string (e.g. strtoupper($slot))' . ($view !== null ? " in view [$view]" : ''));
+                    throw new InvalidStructure('A slot containing ' . Tag::any() . ' tags was modified as a string (e.g. strtoupper($slot))' . ($view !== null ? " in view [$view]" : ''));
                 }
                 if (isset($this->scopes[$key]['taken'][$id])) {
-                    throw new InvalidStructure('A <x-pdf::*> element was output twice (is {{ $slot }} echoed more than once?)');
+                    throw new InvalidStructure('A ' . Tag::any() . ' element was output twice (is {{ $slot }} echoed more than once?)');
                 }
                 $this->scopes[$key]['taken'][$id] = true;
                 $node = $this->scopes[$key]['nodes'][$id];

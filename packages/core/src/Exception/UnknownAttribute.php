@@ -32,7 +32,7 @@ final class UnknownAttribute extends PapercutException
         return new self($name, $suggestion, [], $noun);
     }
 
-    /** Appends a location phrase such as `on <x-pdf::column>`; repeated calls append left to right. */
+    /** Appends a location phrase such as `on <x-doc::column>`; repeated calls append left to right. */
     public function within(string $location): self
     {
         return new self($this->name, $this->suggestion, [...$this->locations, $location], $this->noun, $this);

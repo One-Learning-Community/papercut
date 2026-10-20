@@ -1,1 +1,1 @@
-<x-pdf::document><x-pdf::text>Implicit</x-pdf::text></x-pdf::document>
+<x-doc::document><x-doc::text>Implicit</x-doc::text></x-doc::document>

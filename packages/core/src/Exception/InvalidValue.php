@@ -60,7 +60,7 @@ final class InvalidValue extends PapercutException
         return new self($this->kind, $this->input, $this->suggestion, $attribute, $this->locations, $this->reason, $this);
     }
 
-    /** Appends a location phrase such as `on <x-pdf::page>`; repeated calls append left to right. */
+    /** Appends a location phrase such as `on <x-doc::page>`; repeated calls append left to right. */
     public function within(string $location): self
     {
         return new self($this->kind, $this->input, $this->suggestion, $this->context, [...$this->locations, $location], $this->reason, $this);

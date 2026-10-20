@@ -1,7 +1,7 @@
 # Papercut Blade examples
 
 Blade versions of the plain-PHP examples in `examples/core`: `invoice`, `transcript`, `report`.
-`views/components/` holds two app components (`<x-stat-card>`, `<x-line-item-row>`) that wrap `<x-pdf::*>` tags.
+`views/components/` holds two app components (`<x-stat-card>`, `<x-line-item-row>`) that wrap `<x-doc::*>` tags.
 Sample data lives in `data.php`; the report's table is generated filler, not measurements.
 
 ```

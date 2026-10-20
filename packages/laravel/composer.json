@@ -56,7 +56,7 @@
                 "Papercut\\Laravel\\PapercutServiceProvider"
             ],
             "aliases": {
-                "Pdf": "Papercut\\Laravel\\Facades\\Pdf"
+                "Papercut": "Papercut\\Laravel\\Facades\\Papercut"
             }
         }
     },

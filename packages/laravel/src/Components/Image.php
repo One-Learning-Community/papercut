@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Exception\{ImageUnreadable, InvalidValue};
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Style\ImageFit;
 
-final class Image extends PdfComponent
+final class Image extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
@@ -21,17 +22,17 @@ final class Image extends PdfComponent
         $src = $own['src'] ?? null;
         $bytes = $own['data'] ?? null;
         if (($src === null) === ($bytes === null)) {
-            throw new InvalidStructure('<x-pdf::image> requires exactly one of src or data');
+            throw new InvalidStructure(Tag::of('image') . ' requires exactly one of src or data');
         }
         if (($src !== null && !is_string($src)) || ($bytes !== null && !is_string($bytes))) {
-            throw new InvalidStructure('<x-pdf::image> src must be a string path');
+            throw new InvalidStructure(Tag::of('image') . ' src must be a string path');
         }
 
         if ($src !== null) {
             try {
                 $node = \Papercut\Image::file(self::resolvePath($src));
             } catch (ImageUnreadable $e) {
-                throw new ImageUnreadable($e->getMessage() . ' on <x-pdf::image src="' . $src . '">', 0, $e);
+                throw new ImageUnreadable($e->getMessage() . ' on ' . rtrim(Tag::of('image'), '>') . ' src="' . $src . '">', 0, $e);
             }
         } else {
             $node = \Papercut\Image::bytes((string) $bytes);
@@ -39,7 +40,7 @@ final class Image extends PdfComponent
 
         if (isset($own['fit'])) {
             $fit = ImageFit::tryFrom((string) $own['fit'])
-                ?? throw InvalidValue::for('fit', (string) $own['fit'])->because('expected contain, cover or fill')->withContext('fit')->within('on <x-pdf::image>');
+                ?? throw InvalidValue::for('fit', (string) $own['fit'])->because('expected contain, cover or fill')->withContext('fit')->within('on ' . Tag::of('image'));
             $node = $node->fit($fit);
         }
 

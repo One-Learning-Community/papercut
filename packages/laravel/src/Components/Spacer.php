@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Value\Length;
 
-final class Spacer extends PdfComponent
+final class Spacer extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
@@ -17,7 +18,7 @@ final class Spacer extends PdfComponent
     protected function build(array $data): object
     {
         ['own' => $own, 'style' => $style] = $this->attrs($data);
-        $location = 'on <x-pdf::spacer>';
+        $location = 'on ' . Tag::of('spacer');
         foreach (array_keys($style) as $key) {
             if ($key !== 'grow') {
                 throw UnknownAttribute::for($key)->within($location);
@@ -25,7 +26,7 @@ final class Spacer extends PdfComponent
         }
 
         if (isset($own['size']) && array_key_exists('grow', $style)) {
-            throw new \Papercut\Laravel\Exception\InvalidStructure('<x-pdf::spacer> takes size or grow, not both');
+            throw new \Papercut\Laravel\Exception\InvalidStructure(Tag::of('spacer') . ' takes size or grow, not both');
         }
 
         if (isset($own['size'])) {
