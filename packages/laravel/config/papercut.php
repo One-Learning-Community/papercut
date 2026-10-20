@@ -54,6 +54,15 @@ return [
             'families' => null, // null = every registered family; or a list of names
         ],
     ],
+    // <x-doc::markup>: HTML or plain text in, document nodes out.
+    'markup' => [
+        // Invokable class implementing Papercut\Laravel\Markup\ImageResolver: turns an <img src> into bytes, or null when missing.
+        'images' => null,
+        // 'theme' (HTML gives structure; the theme styles it) or 'original' (inline style="" applied on top).
+        'styles' => 'theme',
+        // 'drop' or 'keep' paragraphs that hold only &nbsp; or <br>.
+        'blank_paragraphs' => 'drop',
+    ],
     'preview' => [
         'enabled' => env('PAPERCUT_PREVIEW', false),
         'path' => '_papercut',

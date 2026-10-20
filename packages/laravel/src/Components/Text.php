@@ -13,6 +13,6 @@ final class Text extends PapercutComponent
 
     protected function build(array $data): object
     {
-        return $this->textStyled(\Papercut\Text::markup(trim($this->text($data))), $data);
+        return $this->textStyled($this->inlineText($data), $data);
     }
 }

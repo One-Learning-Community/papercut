@@ -13,6 +13,6 @@ final class H4 extends PapercutComponent
 
     protected function build(array $data): object
     {
-        return $this->textStyled(\Papercut\Text::markup(trim($this->text($data)))->withPreset('h4'), $data);
+        return $this->textStyled($this->inlineText($data)->withPreset('h4'), $data);
     }
 }

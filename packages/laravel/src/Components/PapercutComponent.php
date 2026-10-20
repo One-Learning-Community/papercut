@@ -75,7 +75,7 @@ abstract class PapercutComponent extends Component
     /**
      * Applies style attributes and a named style (string) or Style object, tagging errors with the tag.
      *
-     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
+     * @template T of \Papercut\ListNode|\Papercut\ListItem|\Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
      * @param T $node
      * @param array<string, mixed> $style
      * @return T
@@ -117,7 +117,7 @@ abstract class PapercutComponent extends Component
     }
 
     /**
-     * @template T of \Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
+     * @template T of \Papercut\ListNode|\Papercut\ListItem|\Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
      * @param T $node
      * @param array<string, mixed> $data
      * @return T
@@ -177,6 +177,12 @@ abstract class PapercutComponent extends Component
     protected function text(array $data): string
     {
         return Segments::text(app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')), $this->tag());
+    }
+
+    /** @param array<string, mixed> $data */
+    protected function inlineText(array $data): \Papercut\Text
+    {
+        return Segments::inline(app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')), $this->tag());
     }
 
     /**

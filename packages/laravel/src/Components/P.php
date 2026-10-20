@@ -13,6 +13,6 @@ final class P extends PapercutComponent
 
     protected function build(array $data): object
     {
-        return $this->textStyled(\Papercut\Text::markup(trim($this->text($data)))->withPreset('p'), $data);
+        return $this->textStyled($this->inlineText($data)->withPreset('p'), $data);
     }
 }
