@@ -133,4 +133,28 @@ final class FontRegistryTest extends TestCase
         $this->expectException(\Papercut\Exception\InvalidValue::class);
         (new FontRegistry(new PhpPdfBackend()))->register('X', self::DIR . '/Inter-Regular.ttf', 0);
     }
+
+    public function test_registry_matches_effective_faces(): void
+    {
+        $dir = self::DIR;
+        $set = (new \Papercut\Text\FontSet())->with(
+            new \Papercut\Text\FontFace('Brand', "$dir/Inter-Italic.ttf", 400, FontStyle::Italic),
+            new \Papercut\Text\FontFace('inter', "$dir/Inter-Regular.ttf", 700),
+        );
+        $map = static fn (array $rows): array => array_map(static fn (array $r): string => strtolower($r['family']) . '|' . $r['weight'] . '|' . $r['style']->value . '|' . $r['path'], $rows);
+        $expected = $map(array_map(static fn (\Papercut\Text\FontFace $f): array => [
+            'family' => $f->family, 'weight' => $f->weight, 'style' => $f->style, 'path' => realpath($f->path) ?: $f->path,
+        ], $set->effectiveFaces()));
+        $actual = $map(FontRegistry::fromSet($set, new PhpPdfBackend())->faces());
+        sort($expected);
+        sort($actual);
+        $this->assertSame($expected, $actual);
+
+        $doc = \Papercut\Document::make(\Papercut\Page::a4()->body(
+            \Papercut\Text::make('Plain bold italic')->weight(700),
+            \Papercut\Text::make('Brand italic')->font('Brand')->italic(),
+        ))->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z'));
+        $bytes = $doc->toPdf(new \Papercut\Export\PdfOptions(fonts: $set))->bytes();
+        $this->assertSame('7c0493dc227e8b8c347a1d45a6b81cd88b026cf1', sha1($bytes));
+    }
 }

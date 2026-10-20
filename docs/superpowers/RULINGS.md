@@ -52,3 +52,91 @@ Decisions the controller took on the maintainer's behalf while they were offline
 ## p4-polish
 - Task 3: Ruling: subagent was denied 'git rm' of the duplicated PhpPdfBackendRenderTest.php; controller will NOT perform it on its behalf — keep file (duplicated coverage, harmless), mark pending removal, surface to user for approval — cost if wrong: ~19 duplicate tests run twice
 - Final review (opus): With fixes — all suites green; bench 56ms; output pixel-identical. Important: CI bench baseline unarmed (MAINTAINER), snapshots unverified on CI poppler (MAINTAINER), kerning cache undocumented (fix dispatched with laravel cache_dir + symlink guard + bench docs). Ruling: CI-dependent items are maintainer follow-ups (no remote/CI available) — cost if wrong: first CI run may go red on snapshots.
+
+# Rulings made during multi-format Phase 0 (seams and renames), 2026-10-19
+
+Plan: docs/superpowers/plans/2026-10-19-multi-format-phase0-seams.md. Each entry: what was decided — why — cost if wrong.
+
+## p0-multi-format-seams
+- Ruling: implementers ran on Sonnet 5.5, all reviews on Opus 5.5 — maintainer instruction — cost if wrong: none
+- Ruling (R1): Task 5 typed ExportOptions onWarning as a plain `?\Closure`; Task 6 widened the docblock to `\Closure(string, ?FidelityReport=): void` once FidelityReport existed — avoids a PHPStan unknown-class error — cost if wrong: none
+- Ruling (R2): Task 5 also adapted Laravel internals minimally (no public API change) so every task left both packages green; Task 8 did the renames — Laravel loads core through a symlink — cost if wrong: small rework in Task 8
+- Ruling: golden record mode (`UPDATE_GOLDEN=1`) may only add missing keys; an existing key with a different hash fails even in record mode — the byte-identical promise outranks the plan's convenience flag — cost if wrong: re-baselining later means deleting the JSON entry first
+- Ruling: `StyleResolver::resolve()` applies no table-cell defaults; a separate `resolveInTable()` does, and TreeWalker uses it for cells under a table row — the plan's single-layer version changed styling of a bare TableCell outside a table (v0.1: no padding, normal weight) — cost if wrong: none
+- Ruling: leftover `x-pdf` text in core docblocks and exception tests was swept in Task 8 (plan gap) — cost if wrong: none
+- Ruling: the CHANGELOG "[0.1.0] - unreleased" section keeps v0.1 names as history — it documents v0.1, and the migration table maps from it — cost if wrong: one section rewrite later
+- Ruling: Paginator names slot columns `header`/`footer`/`background` in layout paths, so PDF and TreeWalker report identical error paths (spec §5.4) — final review found the plan accepted a divergence — cost if wrong: none (paths never reach PDF bytes)
+- Ruling: a new PhpPdfBackend per Laravel render (v0.1 shared one per scoped manager) is accepted — measured 0.7 ms/doc either way, identical bytes, better isolation — cost if wrong: repeated large-image decoding in batch jobs
+- Ruling: cheap reviewer Minors were folded into fix rounds where they touched the same lines (test tightening, import order, Tag prefix caching, config comment placement, README prefix/strict rows) — cost if wrong: none
+
+## Carry-overs for the Phase 1 plan (before the 0.2.0 API freeze)
+- Settle accessor style: spec §5.2 lists `Output::mime()`/`extension()` methods, but Output exposes public properties (and `bytes` as both); ExportOptions/PdfOptions mix properties and getters.
+- TreeVisitor gives no sibling index or header-row flag; phase 2 needs both (FlexSlot::index matching, `w:tblHeader`/`<thead>`).
+- WidthResolver: warnings carry no node path; `for()` always uses a default-cache PhpPdfBackend (decide a cache policy for non-PDF exports); add a direction guard or docblock to `flexLines`.
+- Fidelity always passes two arguments to onWarning: document it or make the call arity-aware before HtmlExporter reports anything (native callables such as `error_log(...)` would TypeError).
+- Extract a shared Laravel options builder (theme, fonts, onWarning, strict) for HtmlOptions.
+- Add a test that app components `<x-doc.foo>` don't conflict with `<x-doc::*>` (spec §8.2).
+- Add a `composer analyse` script to packages/laravel.
+- Deferred test polish: PdfExporterTest cacheDir and WidthResolver fresh-engine assertions are vacuous; `PdfOptions::from` is tested only for theme; the renders-once test doesn't prove `pdf()` memoization; overflow/cache_dir tests are duplicated across HardeningTest and OptionsFromConfigTest; cell defaults are duplicated in `resolveInTable` and `TableLayouter::prepare` (add an equality test); golden test ignores example warnings when exit code is 0.
+
+# Rulings made during multi-format Phase 1 (HTML exporter), 2026-10-19
+
+Plan: docs/superpowers/plans/2026-10-19-multi-format-phase1-html.md. Each entry: what was decided — why — cost if wrong.
+
+## p1-html
+- Ruling: implementers on Sonnet 5.5, all reviews on Opus 5.5 — maintainer instruction — cost if wrong: none
+- Ruling: a TableCell outside a table renders in HTML as a column `<div>` and emits the same plain warning as PDF ("A table cell outside a table is laid out as a column") — mirrors PDF — cost if wrong: small markup change
+- Ruling: spacers — fixed `flex:0 0 {size}pt`, flexible `flex:{grow} 0 0` — matches PDF — cost if wrong: none
+- Ruling: the upstream php-docx PR also makes the writer emit `w:keepNext` (php-docx read it but never wrote it) — Papercut's keep-with-next mapping depends on it — cost if wrong: larger upstream PR
+- Ruling: a test that couldn't fail (`cacheDir: false`) was replaced with one that checks the default cache directory, proved by a deliberate break — cost if wrong: none
+- Ruling: `Css::pagination` diffs `minLines` against the parent (like text properties), so custom themes don't emit orphans/widows on every node — cost if wrong: none
+- Ruling: a child turning underline/strike off under a decorated parent can't be undone in CSS; HTML reports Approximated `text decoration override` (once per paragraph) — honest reporting — cost if wrong: an extra debug log line
+- Ruling: HTML link errors carry no node path, so they equal PDF's message exactly (spec §5.4); PDF validates links at paint time, where no path exists — cost if wrong: HTML link errors less locatable (idea: validate link URIs when nodes are built, so every format fails early)
+- Ruling: tables — `<table>`/`<tr>` carry their text styles; fr widths subtract percent tracks too; tables with an `auto` track use `table-layout:auto`; image and stray-row errors match PDF text exactly — PDF parity — cost if wrong: none
+- Ruling: refused `imageUrl` results (empty, `//`, `/\`, `javascript:` …) embed the image and warn — cost if wrong: none
+- Ruling: fallback font families count as used for `@font-face` in embed/link modes — PDF uses them for missing glyphs; both modes are opt-in — cost if wrong: larger embedded HTML with big fallback fonts
+- Ruling: the committed HTML example renders link fonts by relative path (KB, not 2.2 MB of base64); the unpushed commit that had the blobs was recreated — cost if wrong: renders show Inter only from a checkout
+- Ruling: fr columns are plain percentages computed from an estimated table width (page content width minus ancestor and own box edges) — Chrome ignores mixed `%`/`pt` `calc()` on `<col>`; verified exact in headless Chrome for top-level and padded tables — cost if wrong: Length-vs-fr ratio approximate for tables inside fixed/percent-width ancestors or flex rows (reported)
+- Ruling: real table cells lay out as columns (wrapper flex div); cell justify maps to `vertical-align`; row padding is reported, not emitted; block Links keep their flex props; nested links render as `<span>` and are reported — PDF lays cells and links out as column Views — cost if wrong: an extra wrapper div per cell
+- Ruling: content parity compares word multisets with table-header-row words removed from both sides — header rows repeat per page in PDF (n/a in HTML); mutation-checked to catch every dropped body row — cost if wrong: a body row made only of header words could drop undetected
+- Ruling: cheap reviewer Minors were folded into fix rounds where they touched the same lines — cost if wrong: none
+
+# Rulings made during PDF/HTML hardening, 2026-10-19
+
+Plan: docs/superpowers/plans/2026-10-19-pdf-html-hardening.md. Each entry: what was decided — why — cost if wrong.
+
+## hardening
+- Ruling (H1): DOCX is on hold until php-docx has the features listed in docs/superpowers/php-docx-1.15-gaps.md — the §5.3 mapping cannot be met on 1.15 — cost if wrong: DOCX starts later than needed
+- Ruling (H2): `PendingHtml` is `Htmlable`, `Stringable` and `Responsable`, no longer a `PendingOutput`; `page()` and `fragment()` return `PendingOutput`; `toResponse()` keeps the full-page response (200, text/html, no Content-Disposition) — a string must not mean two things — cost if wrong: callers rename `->html()->save()` to `->html()->page()->save()`
+- Ruling (H3): `html.image_url` and `html.font_url` name invokable classes; `html.fonts` accepts `link`; invalid `html.*` config is reported when HTML options are first built, not at boot, so artisan commands still run with a half-set config; `link` needs `html.font_url`; no code-level options hook in 0.2.0 — cost if wrong: a bad config surfaces at first export instead of boot
+- Ruling (H4): PDF's "Table columns need X but only Y" warning is not mirrored in HTML — the browser resolves column overflow itself, and mirroring it would need text measurement in HTML — cost if wrong: an HTML export of a too-narrow table gives no warning
+- Ruling: php-pdf's `PdfImage::fromBytes` accepts PNG/JPEG cut to 60%, so the truncated-image test asserts parity (same outcome and message) plus a header-only PNG both formats refuse; refusing truncated data is a php-pdf follow-up — cost if wrong: truncated images embed broken in both formats
+- Ruling: `FontSet::effectiveFaces` keeps an overridden face at its first-registration position (the old `FontFaces::faces` moved it to the end) — only `@font-face` order for overridden faces changes; no golden changed — cost if wrong: one ordering line
+- Ruling: `->html()->toResponse()` sends the full page with no Content-Disposition (as before); `->html()->page()->toResponse()` is a normal `PendingOutput` and sends `inline` — keeps route behaviour unchanged — cost if wrong: none
+- Ruling: a resolver class that the container cannot build is reported naming its config key (`Cannot build papercut.html.<key> resolver …`) — a bare container error does not say which key is wrong — cost if wrong: none
+
+## Carry-overs (status after the hardening plan)
+- *Done in hardening Task 2.* HTML and PDF now refuse the same images: both validate through the `Backend` interface, so a header-only PNG is refused by both. *Waits for php-pdf:* a PNG or JPEG truncated to about 60% is accepted by php-pdf's `PdfImage`, so it embeds broken in both formats.
+- *Done in hardening Task 6 (H2).* `PendingHtml` had `(string) $html` = fragment but `toString()` = full page; it now exposes explicit `page()` and `fragment()`, each a `PendingOutput`.
+- *Done in hardening Task 7 (H3).* Laravel has no per-call options hook, so `imageUrl`, `fontUrl` and `link` font mode were PHP-API only; they are now config keys naming invokable resolver classes.
+- Add HTML (and DOCX) timings to the bench (spec §9). *HTML: done in hardening Task 5. DOCX: waits for DOCX.*
+- *Done in hardening Task 3.* WidthResolver is the single source for track counting (HtmlWriter no longer duplicates TableLayouter's rule); `FontSet::effectiveFaces()` shares face dedupe between FontRegistry and FontFaces.
+- *Waits for DOCX* (only DOCX calls `WidthResolver`). WidthResolver carry-overs from Phase 0 still apply: node-path context for warnings, a cache policy for non-PDF exports, a `flexLines` direction guard.
+- Minor items:
+  - *Done in hardening Task 4:* cell `justify` space-between/around/evenly is reported (`cell justify`).
+  - *Done in hardening Task 4 (ruling H4, not mirrored):* PDF's "Table columns need X but only Y" warning needs layout widths, so HTML does not mirror it.
+  - *Done in hardening Task 4:* the `table()`/`tableRow()` decoration-override check.
+  - *Done in hardening Task 3:* the reused-cell stray warning edge case.
+  - *Done in hardening Task 4:* the render.php `fontUrl` returns null for faces outside the repo.
+
+# Rulings made during HTML font sources, 2026-10-19
+
+Design: docs/superpowers/specs/2026-10-19-html-font-sources-design.md. Each entry: what was decided — why — cost if wrong.
+
+## font-sources
+- Ruling (S1): HTML export gets a general, ordered stack of font sources (`FontMode::Sources`), with Google Fonts as the reference provider and Bunny Fonts as a host change — fonts services serve stylesheets, not stable file URLs, so `link` cannot express them, and a stack also mixes licensed local fonts with a service — cost if wrong: a larger API than a Google-only option
+- Ruling (S2): every used family is offered to the stack, registered or not, and Papercut keeps no font catalog — catalogs change, a stale list gives wrong answers, and HTML export never required registered families — cost if wrong: a family the host lacks costs its stylesheet request, and the browser falls back silently
+- Ruling (S3): a family no source accepts is reported as `font not linked` (`Approximated`) and falls back to the system stack, never to embed — silently embedding adds megabytes the app did not ask for — cost if wrong: a missing family shows in a fallback font until a source is added
+- Ruling (S4): opt-in only; the default stays `none` and `Sources` with an empty stack throws; the privacy note (visitors' browsers contact the host, which sees their IP address; LG München I, 3 O 17493/20) is stated where people turn it on; Bunny is shown as a host change, with no claim about anyone's compliance — a third-party request must never come from a default configuration — cost if wrong: an app enables Google without reading the note
+- Ruling (S5): Laravel `html.font_sources` is a list of classes, built by the container and validated against `Papercut\Html\FontSource`; the Google and local-fonts sources are bound from `html.google_fonts` and `html.local_fonts` and built only in `sources` mode — class names survive `config:cache`, and a typo in an unused block must not break exports — cost if wrong: a custom source needing config of its own must read it itself
+- Ruling (planner): `FontRequest` carries the export's `FontSet`, so `LocalFonts` needs no `FontSet` constructor argument (design §5.7 left this choice open) — the Laravel binding then needs no `FontSet` at build time — cost if wrong: `FontRequest` is slightly larger

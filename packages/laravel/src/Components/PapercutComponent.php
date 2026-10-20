@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Closure;
 use Illuminate\View\Component;
 use Illuminate\View\ComponentSlot;
 use Papercut\Exception\InvalidValue;
 use Papercut\Style\Style;
 use Papercut\Exception\UnknownAttribute;
-use Papercut\Laravel\PdfManager;
+use Papercut\Laravel\PapercutManager;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\Laravel\Rendering\Segments;
 
-abstract class PdfComponent extends Component
+abstract class PapercutComponent extends Component
 {
     final public function render(): string
     {
@@ -81,7 +82,7 @@ abstract class PdfComponent extends Component
      */
     protected function applyStyle(object $node, array $style, mixed $styleName = null): object
     {
-        $location = 'on <x-pdf::' . $this->tag() . '>';
+        $location = 'on ' . Tag::of($this->tag());
         $aliases = $this->aliases();
         try {
             $plain = [];
@@ -101,7 +102,7 @@ abstract class PdfComponent extends Component
                 $node = $node->attributes($plain);
             }
             if (is_string($styleName)) {
-                app(PdfManager::class)->options()->theme()->named($styleName);
+                app(PapercutManager::class)->pdfOptions()->theme()->named($styleName);
                 $node = $node->apply($styleName);
             } elseif ($styleName instanceof Style) {
                 $node = $node->apply($styleName);

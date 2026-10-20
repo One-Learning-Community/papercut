@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\TableCell;
 use Papercut\TableRow;
 
-final class Thead extends PdfComponent
+final class Thead extends PapercutComponent
 {
     protected function build(array $data): object
     {
@@ -16,10 +17,10 @@ final class Thead extends PdfComponent
         $cells = array_filter($children, fn ($c) => $c instanceof TableCell);
         $rows = array_filter($children, fn ($c) => $c instanceof TableRow);
         if ($children === []) {
-            throw new InvalidStructure('<x-pdf::thead> must not be empty');
+            throw new InvalidStructure(Tag::of('thead') . ' must not be empty');
         }
         if (count($cells) + count($rows) !== count($children) || ($cells !== [] && $rows !== [])) {
-            throw new InvalidStructure('<x-pdf::thead> can only contain <x-pdf::th>/<x-pdf::td> cells or <x-pdf::tr> rows, not both');
+            throw new InvalidStructure(Tag::of('thead') . ' can only contain ' . Tag::of('th') . '/' . Tag::of('td') . ' cells or ' . Tag::of('tr') . ' rows, not both');
         }
         if ($cells !== []) {
             /** @var list<TableCell> $list */

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
-final class Row extends PdfComponent
+final class Row extends PapercutComponent
 {
     protected function aliases(): array
     {

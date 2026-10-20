@@ -1,1 +1,1 @@
-@php(app(\Papercut\Laravel\Rendering\NodeRegistry::class)->register(new \stdClass()))<x-pdf::document><x-pdf::text>x</x-pdf::text></x-pdf::document>
+@php(app(\Papercut\Laravel\Rendering\NodeRegistry::class)->register(new \stdClass()))<x-doc::document><x-doc::text>x</x-doc::text></x-doc::document>

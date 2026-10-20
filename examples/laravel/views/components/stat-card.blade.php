@@ -1,8 +1,8 @@
 @props(['label', 'value', 'note' => null, 'color' => 'slate-900'])
-<x-pdf::column gap="3pt" padding="14pt" background="slate-50" radius="8pt" grow="1">
-    <x-pdf::text size="8pt" bold color="slate-500">{{ $label }}</x-pdf::text>
-    <x-pdf::text size="22pt" bold :color="$color">{{ $value }}</x-pdf::text>
+<x-doc::column gap="3pt" padding="14pt" background="slate-50" radius="8pt" grow="1">
+    <x-doc::text size="8pt" bold color="slate-500">{{ $label }}</x-doc::text>
+    <x-doc::text size="22pt" bold :color="$color">{{ $value }}</x-doc::text>
     @if ($note)
-        <x-pdf::text size="9pt" color="slate-600">{{ $note }}</x-pdf::text>
+        <x-doc::text size="9pt" color="slate-600">{{ $note }}</x-doc::text>
     @endif
-</x-pdf::column>
+</x-doc::column>

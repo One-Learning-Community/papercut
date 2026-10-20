@@ -1,5 +1,5 @@
 @extends('layouts.base')
 @section('title', 'Layout title')
 @section('content')
-<x-pdf::text>Body text</x-pdf::text>
+<x-doc::text>Body text</x-doc::text>
 @endsection

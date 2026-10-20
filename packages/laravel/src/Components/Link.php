@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Laravel\Exception\InvalidStructure;
 
-final class Link extends PdfComponent
+final class Link extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
@@ -20,7 +21,7 @@ final class Link extends PdfComponent
             $href = (string) $href;
         }
         if (!is_string($href) || $href === '') {
-            throw new InvalidStructure('<x-pdf::link> href must be a non-empty string');
+            throw new InvalidStructure(Tag::of('link') . ' href must be a non-empty string');
         }
 
         return $this->styled(\Papercut\Link::to($href, ...$this->children($data)), $data);

@@ -1,1 +1,1 @@
-<x-pdf::document><x-pdf::page><x-pdf::view style="crad">x</x-pdf::view></x-pdf::page></x-pdf::document>
+<x-doc::document><x-doc::page><x-doc::view style="crad">x</x-doc::view></x-doc::page></x-doc::document>

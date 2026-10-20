@@ -11,16 +11,16 @@ use Papercut\Laravel\Tests\TestCase;
 final class TableComponentsTest extends TestCase
 {
     private const string TABLE = <<<'BLADE'
-<x-pdf::table columns="3fr 25mm 20mm" :repeat-header="false">
-  <x-pdf::thead><x-pdf::th>Course</x-pdf::th><x-pdf::th>Credits</x-pdf::th><x-pdf::th>Grade</x-pdf::th></x-pdf::thead>
+<x-doc::table columns="3fr 25mm 20mm" :repeat-header="false">
+  <x-doc::thead><x-doc::th>Course</x-doc::th><x-doc::th>Credits</x-doc::th><x-doc::th>Grade</x-doc::th></x-doc::thead>
   @foreach ($courses as $c)
-    <x-pdf::tr>
-      <x-pdf::td>{{ $c[0] }}</x-pdf::td>
-      <x-pdf::td>{{ $c[1] }}</x-pdf::td>
-      <x-pdf::td align="right" colspan="1">{{ $c[2] }}</x-pdf::td>
-    </x-pdf::tr>
+    <x-doc::tr>
+      <x-doc::td>{{ $c[0] }}</x-doc::td>
+      <x-doc::td>{{ $c[1] }}</x-doc::td>
+      <x-doc::td align="right" colspan="1">{{ $c[2] }}</x-doc::td>
+    </x-doc::tr>
   @endforeach
-</x-pdf::table>
+</x-doc::table>
 BLADE;
 
     public function test_table_from_blade(): void
@@ -37,7 +37,7 @@ BLADE;
 
     public function test_thead_with_multiple_rows(): void
     {
-        $t = $this->nodeFrom('<x-pdf::table><x-pdf::thead><x-pdf::tr><x-pdf::th>A</x-pdf::th></x-pdf::tr><x-pdf::tr><x-pdf::th>B</x-pdf::th></x-pdf::tr></x-pdf::thead></x-pdf::table>');
+        $t = $this->nodeFrom('<x-doc::table><x-doc::thead><x-doc::tr><x-doc::th>A</x-doc::th></x-doc::tr><x-doc::tr><x-doc::th>B</x-doc::th></x-doc::tr></x-doc::thead></x-doc::table>');
         self::assertInstanceOf(Table::class, $t);
         self::assertCount(2, $t->headerRows());
         self::assertTrue($t->repeatsHeader());
@@ -45,17 +45,17 @@ BLADE;
 
     public function test_repeat_header_presence_and_string_false(): void
     {
-        $t = $this->nodeFrom('<x-pdf::table repeat-header />');
+        $t = $this->nodeFrom('<x-doc::table repeat-header />');
         self::assertInstanceOf(Table::class, $t);
         self::assertTrue($t->repeatsHeader());
-        $t = $this->nodeFrom('<x-pdf::table repeat-header="false" />');
+        $t = $this->nodeFrom('<x-doc::table repeat-header="false" />');
         self::assertInstanceOf(Table::class, $t);
         self::assertFalse($t->repeatsHeader());
     }
 
     public function test_colspan_and_align(): void
     {
-        $t = $this->nodeFrom('<x-pdf::table><x-pdf::tr><x-pdf::td colspan="2" align="right" padding="2mm">x</x-pdf::td></x-pdf::tr></x-pdf::table>');
+        $t = $this->nodeFrom('<x-doc::table><x-doc::tr><x-doc::td colspan="2" align="right" padding="2mm">x</x-doc::td></x-doc::tr></x-doc::table>');
         self::assertInstanceOf(Table::class, $t);
         self::assertSame(2, $t->bodyRows()[0]->cells()[0]->span());
     }
@@ -63,14 +63,14 @@ BLADE;
     /** @return iterable<string, array{string, string}> */
     public static function misplaced(): iterable
     {
-        yield 'td in column' => ['<x-pdf::column><x-pdf::td>x</x-pdf::td></x-pdf::column>', '<x-pdf::td> must be inside <x-pdf::tr>'];
-        yield 'tr in column' => ['<x-pdf::column><x-pdf::tr><x-pdf::td>x</x-pdf::td></x-pdf::tr></x-pdf::column>', '<x-pdf::tr> must be inside <x-pdf::table>'];
-        yield 'thead in column' => ['<x-pdf::column><x-pdf::thead><x-pdf::th>x</x-pdf::th></x-pdf::thead></x-pdf::column>', '<x-pdf::thead> must be inside <x-pdf::table>'];
-        yield 'text in tr' => ['<x-pdf::table><x-pdf::tr>loose</x-pdf::tr></x-pdf::table>', '<x-pdf::tr> can only contain <x-pdf::td> or <x-pdf::th>'];
-        yield 'column in table' => ['<x-pdf::table><x-pdf::column /></x-pdf::table>', '<x-pdf::table> can only contain'];
-        yield 'mixed thead' => ['<x-pdf::table><x-pdf::thead><x-pdf::th>a</x-pdf::th><x-pdf::tr><x-pdf::th>b</x-pdf::th></x-pdf::tr></x-pdf::thead></x-pdf::table>', '<x-pdf::thead> can only contain'];
-        yield 'two theads' => ['<x-pdf::table><x-pdf::thead><x-pdf::th>a</x-pdf::th></x-pdf::thead><x-pdf::thead><x-pdf::th>b</x-pdf::th></x-pdf::thead></x-pdf::table>', '<x-pdf::table> can only contain'];
-        yield 'thead after body' => ['<x-pdf::table><x-pdf::tr><x-pdf::td>a</x-pdf::td></x-pdf::tr><x-pdf::thead><x-pdf::th>b</x-pdf::th></x-pdf::thead></x-pdf::table>', '<x-pdf::table> can only contain'];
+        yield 'td in column' => ['<x-doc::column><x-doc::td>x</x-doc::td></x-doc::column>', '<x-doc::td> must be inside <x-doc::tr>'];
+        yield 'tr in column' => ['<x-doc::column><x-doc::tr><x-doc::td>x</x-doc::td></x-doc::tr></x-doc::column>', '<x-doc::tr> must be inside <x-doc::table>'];
+        yield 'thead in column' => ['<x-doc::column><x-doc::thead><x-doc::th>x</x-doc::th></x-doc::thead></x-doc::column>', '<x-doc::thead> must be inside <x-doc::table>'];
+        yield 'text in tr' => ['<x-doc::table><x-doc::tr>loose</x-doc::tr></x-doc::table>', '<x-doc::tr> can only contain <x-doc::td> or <x-doc::th>'];
+        yield 'column in table' => ['<x-doc::table><x-doc::column /></x-doc::table>', '<x-doc::table> can only contain'];
+        yield 'mixed thead' => ['<x-doc::table><x-doc::thead><x-doc::th>a</x-doc::th><x-doc::tr><x-doc::th>b</x-doc::th></x-doc::tr></x-doc::thead></x-doc::table>', '<x-doc::thead> can only contain'];
+        yield 'two theads' => ['<x-doc::table><x-doc::thead><x-doc::th>a</x-doc::th></x-doc::thead><x-doc::thead><x-doc::th>b</x-doc::th></x-doc::thead></x-doc::table>', '<x-doc::table> can only contain'];
+        yield 'thead after body' => ['<x-doc::table><x-doc::tr><x-doc::td>a</x-doc::td></x-doc::tr><x-doc::thead><x-doc::th>b</x-doc::th></x-doc::thead></x-doc::table>', '<x-doc::table> can only contain'];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('misplaced')]

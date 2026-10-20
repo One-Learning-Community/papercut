@@ -16,8 +16,8 @@ final class ServiceProviderTest extends TestCase
         $this->assertSame('_papercut', config('papercut.preview.path'));
     }
 
-    public function testRegistersPdfComponentNamespace(): void
+    public function testRegistersPapercutComponentNamespace(): void
     {
-        $this->assertSame('Papercut\\Laravel\\Components', Blade::getClassComponentNamespaces()['pdf'] ?? null);
+        $this->assertSame('Papercut\\Laravel\\Components', Blade::getClassComponentNamespaces()['doc'] ?? null);
     }
 }

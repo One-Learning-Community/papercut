@@ -69,9 +69,9 @@ jobs:
           coverage: none
           tools: composer:v2
       - run: composer install --no-interaction --no-progress --no-dev --classmap-authoritative
-      - name: Benchmark (10-page table document, median of 5 runs after 1 warm-up)
+      - name: Benchmark (10-page table document, PDF and HTML, median of 5 runs after 1 warm-up)
         run: php -d opcache.enable_cli=1 bench/run.php | tee bench-result.json
-      - name: Compare with the committed baseline (fails if > 20% slower)
+      - name: Compare with the committed baseline (PDF and HTML each fail if > 20% slower)
         run: php bench/check.php bench-result.json
       - uses: actions/upload-artifact@v7
         if: always()

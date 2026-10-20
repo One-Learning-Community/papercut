@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Laravel\Tests\Feature;
 
 use Illuminate\Support\Facades\Artisan;
-use Papercut\Laravel\Facades\Pdf;
+use Papercut\Laravel\Facades\Papercut;
 use Papercut\Laravel\Tests\TestCase;
 
 final class FontsTest extends TestCase
@@ -76,16 +76,16 @@ final class FontsTest extends TestCase
     {
         $this->configure(['Brand' => [400 => ['normal' => self::INTER . '/Inter-Regular.ttf']]]);
 
-        $options = Pdf::options();
+        $options = Papercut::pdfOptions();
 
-        $this->assertTrue($options->fonts($options->backend())->has('Brand'));
+        $this->assertTrue(\Papercut\Text\FontRegistry::fromSet($options->fonts(), $options->backend())->has('Brand'));
     }
 
     public function testOptionsForwardFallbackFonts(): void
     {
         $this->configure([], ['Brand']);
 
-        $this->assertSame(['Brand'], Pdf::options()->fallbackFamilies);
+        $this->assertSame(['Brand'], Papercut::pdfOptions()->fonts()->fallbacks);
     }
 
     /** @return iterable<string, array{array<mixed>, string}> */
@@ -109,7 +109,7 @@ final class FontsTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid font config ' . $message);
 
-        Pdf::options();
+        Papercut::pdfOptions();
     }
 
     public function testBadFallbackEntryThrows(): void
@@ -118,7 +118,7 @@ final class FontsTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('papercut.fallback_fonts.1');
 
-        Pdf::options();
+        Papercut::pdfOptions();
     }
 
     public function testCommandWarnsAboutUnregisteredFallback(): void

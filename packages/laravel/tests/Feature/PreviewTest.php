@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Laravel\Tests\Feature;
 
 use Orchestra\Testbench\Attributes\DefineEnvironment;
-use Papercut\Laravel\Facades\Pdf;
+use Papercut\Laravel\Facades\Papercut;
 use Papercut\Laravel\Tests\TestCase;
 
 final class PreviewTest extends TestCase
@@ -33,8 +33,8 @@ final class PreviewTest extends TestCase
     #[DefineEnvironment('previewLocal')]
     public function testIndexListsRegisteredViewsEscaped(): void
     {
-        Pdf::preview('pdf.hello', ['name' => 'A']);
-        Pdf::preview('pdf.<b>x</b>');
+        Papercut::preview('pdf.hello', ['name' => 'A']);
+        Papercut::preview('pdf.<b>x</b>');
 
         $response = $this->get('/_papercut');
 
@@ -49,7 +49,7 @@ final class PreviewTest extends TestCase
     #[DefineEnvironment('previewLocal')]
     public function testRendersRegisteredViewAsPdf(): void
     {
-        Pdf::preview('pdf.hello', ['name' => 'World']);
+        Papercut::preview('pdf.hello', ['name' => 'World']);
 
         $response = $this->get('/_papercut/pdf.hello');
 
@@ -62,7 +62,7 @@ final class PreviewTest extends TestCase
     public function testDataClosureIsCalledPerRequest(): void
     {
         $calls = 0;
-        Pdf::preview('pdf.hello', function () use (&$calls): array {
+        Papercut::preview('pdf.hello', function () use (&$calls): array {
             $calls++;
 
             return ['name' => 'N' . $calls];
@@ -83,7 +83,7 @@ final class PreviewTest extends TestCase
     #[DefineEnvironment('previewTesting')]
     public function testNoRoutesOutsideLocal(): void
     {
-        Pdf::preview('pdf.hello', ['name' => 'A']);
+        Papercut::preview('pdf.hello', ['name' => 'A']);
 
         $this->get('/_papercut')->assertNotFound();
         $this->get('/_papercut/pdf.hello')->assertNotFound();
@@ -92,7 +92,7 @@ final class PreviewTest extends TestCase
     #[DefineEnvironment('previewLocalDisabled')]
     public function testNoRoutesWhenDisabled(): void
     {
-        Pdf::preview('pdf.hello', ['name' => 'A']);
+        Papercut::preview('pdf.hello', ['name' => 'A']);
 
         $this->get('/_papercut')->assertNotFound();
     }

@@ -1,1 +1,1 @@
-<x-pdf::column>{{ $slot }}{{ $slot }}</x-pdf::column>
+<x-doc::column>{{ $slot }}{{ $slot }}</x-doc::column>

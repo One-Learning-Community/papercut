@@ -1,1 +1,1 @@
-<x-pdf::column paddng="4pt" />
+<x-doc::column paddng="4pt" />

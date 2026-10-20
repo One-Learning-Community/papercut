@@ -7,7 +7,7 @@ namespace Papercut\Laravel\Tests\Unit;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Rendering\{NodeRegistry, Segments};
 use Papercut\Text;
-use PHPUnit\Framework\TestCase;
+use Papercut\Laravel\Tests\TestCase;
 
 final class NodeRegistryTest extends TestCase
 {

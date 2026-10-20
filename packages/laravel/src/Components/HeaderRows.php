@@ -6,7 +6,7 @@ namespace Papercut\Laravel\Components;
 
 use Papercut\TableRow;
 
-/** Internal value object returned by <x-pdf::thead>; only <x-pdf::table> accepts it. */
+/** Internal value object returned by <x-doc::thead>; only <x-doc::table> accepts it. */
 final readonly class HeaderRows
 {
     /** @param list<TableRow> $rows */

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Backend;
 
-use Papercut\{Document, Page, RenderOptions, Text};
+use Papercut\{Document, Page, Text};
+use Papercut\Export\PdfOptions;
+use Papercut\Text\{FontFace, FontSet};
 use Dskripchenko\PhpPdf\Font\Ttf\TtfFile;
 use Papercut\Backend\PhpPdf\{KerningCache, PhpPdfBackend};
 use Papercut\Text\FontRegistry;
@@ -140,9 +142,9 @@ final class KerningCacheTest extends TestCase
         }
     }
 
-    public function test_render_options_pass_the_cache_dir_to_the_default_backend(): void
+    public function test_pdf_options_pass_the_cache_dir_to_the_default_backend(): void
     {
-        (new RenderOptions(cacheDir: $this->dir))->backend()->loadFont($this->font);
+        (new PdfOptions(cacheDir: $this->dir))->backend()->loadFont($this->font);
         self::assertCount(1, $this->cacheFiles());
     }
 
@@ -152,8 +154,8 @@ final class KerningCacheTest extends TestCase
             ->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z'));
         $render = function (string|false $dir) use ($doc): string {
             $backend = new PhpPdfBackend(kerningCacheDir: $dir);
-            $fonts = (new FontRegistry($backend))->register('Copy', $this->font);
-            return $doc->render(new RenderOptions(backend: $backend, fonts: $fonts));
+            $fonts = new FontSet([new FontFace('Copy', $this->font)]);
+            return $doc->toPdf(new PdfOptions(backend: $backend, fonts: $fonts))->bytes();
         };
         $uncached = $render(false);
         $this->forgetParsedFonts();

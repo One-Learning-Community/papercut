@@ -3,6 +3,53 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] - 0.2.0
+
+v0.1 was never published to Packagist, so there are no deprecation shims.
+
+### Changed (breaking)
+
+Migration from v0.1:
+
+| v0.1 | 0.2 |
+|---|---|
+| `Pdf::view(...)` | `Papercut::view(...)->pdf()` |
+| `<x-pdf::…>` | `<x-doc::…>` |
+| `PendingPdf` | `PendingOutput` |
+| `PdfManager` | `PapercutManager` |
+| `Document::render()` / `toString()` | `toPdf()->bytes()` |
+| `Document::save($p)` / `stream()` | `toPdf()->save($p)` / `toPdf()->stream()` |
+| `RenderOptions` | `PdfOptions` |
+| `Image::handle()` | removed; use `Image::file()` / `Image::bytes()` |
+
+- The `Pdf` facade alias is now `Papercut`; `Papercut::pdfOptions()` replaces `Pdf::options()`.
+- The Blade tag prefix is configurable through `papercut.prefix` (default `doc`).
+- `PdfOptions` is not a drop-in rename of `RenderOptions`; the constructor changed shape:
+  - the positional order is now theme, fonts, onWarning, strict, then backend, overflow, cacheDir, so use named arguments;
+  - `fonts` takes a `FontSet`, not a `FontRegistry`;
+  - fallback families moved to `FontSet::withFallbacks()`;
+  - the bundled Inter is always registered.
+- Save failures now read `Directory does not exist: …` or `Could not write output to "…": …` (previously `Could not write PDF to …`).
+- In Laravel, all config errors (theme, styles, overflow, strict, fonts, including a missing or unreadable font file) now surface when the output is rendered, not at `view()`, `make()` or `Papercut::pdfOptions()`.
+- `->html()` returns a `PendingHtml` that no longer extends `PendingOutput` and has no `toString()`, `save()`, `download()`, `inline()` or `output()`. Use `->html()->page()` (full page) or `->html()->fragment()` (embeddable fragment), each a `PendingOutput` named `document.html`. `PendingOutput` is now `final`. Returning `->html()` from a route still sends the full page with no `Content-Disposition`.
+- `Output` and the export options expose methods, not properties: `$output->bytes()`, `mime()`, `extension()`; `$options->theme()`, `fonts()`, `onWarning()`, `strict()`, `overflow()`, `cacheDir()`.
+
+### Added
+
+- `Papercut::make($document)` and `PendingDocument` (`document()`, `pdf()`); `PendingOutput` takes its `Content-Type` and default filename from the `Output`.
+- Core: `Exporter`/`Output` API, `PdfOptions`, `FontSet`, fidelity reporting (`Fidelity`, `FidelityReport`), strict mode (`UnsupportedFeature`) and `MissingExporter`.
+- Config key `papercut.strict` (default `false`).
+- HTML export: `Document::toHtml()` in core and `Papercut::view(...)->html()` in Laravel (`PendingHtml`: `(string)` and `{{ }}` give the fragment for embedding, `page()` and `fragment()` each return a `PendingOutput`, and a route response is the full page).
+- Config key `papercut.html.fonts` (`none` default, `embed` or `link`), and `papercut.html.image_url` / `papercut.html.font_url`: invokable class names implementing `Papercut\Laravel\Html\ImageUrlResolver` / `FontUrlResolver`, built by the container (class names survive `config:cache`; closures are rejected). `link` needs `font_url`. Invalid `html.*` config is reported at the first `->html()` export.
+- Laravel: `papercut.html.fonts = sources`, with `html.font_sources` (default `[GoogleFonts::class]`), `html.google_fonts` (`host`, `display`, `families`) and `html.local_fonts` (`mode`, `families`). The service provider binds `GoogleFonts` and `LocalFonts` from config. Checked lazily at the first `->html()` export, and only when used.
+- Preview routes accept `?format=pdf|html`; any other value is a 404.
+- `Papercut::exportOptions()` (shared theme, fonts, warnings, strict) and `Papercut::htmlOptions()`; `pdfOptions()` builds on the shared options.
+- `HtmlOptions` (`fullPage`, `fontMode`, `imageUrl`, `fontUrl`), `FontMode` (`None`, `Embed`, `Link`) and the `imageUrl` / `fontUrl` callbacks: images embed as data URIs unless `imageUrl` returns a safe URL; fonts embed or link per `FontMode`.
+- `onWarning` callbacks are arity-aware: a one-parameter callback gets the message only, a callback with a second parameter also gets the `FidelityReport`.
+- A table cell outside a table (not in a row) is laid out as a column and warns `A table cell outside a table is laid out as a column`, in both PDF and HTML.
+- HTML font sources: `FontMode::Sources` with `HtmlOptions::fontSources`, an ordered stack of `FontSource` objects or closures (`GoogleFonts` for Google Fonts and Bunny Fonts, `LocalFonts::embed()` / `link()` for registered files). Full pages get `<link>` tags in `<head>`; fragments get `@import` rules first in `<style>`. Unsafe answers fall through to the next source with a warning, and a family nobody answers for is reported as `font not linked`.
+- `Papercut\Tree\Visit`: `TreeVisitor` callbacks now receive a `Visit` (path, index, parent, header and region context) instead of loose arguments.
+
 ## [0.1.0] - unreleased
 
 ### Added

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Papercut\Laravel\Tag;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\TableRow;
 use Papercut\Value\TrackList;
 
-final class Table extends PdfComponent
+final class Table extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
@@ -47,7 +48,7 @@ final class Table extends PdfComponent
                 $table = $table->bodyRow($child);
             } else {
                 $name = $child instanceof HeaderRows ? 'thead' : (method_exists($child, 'debugName') ? $child->debugName() : get_debug_type($child));
-                throw new InvalidStructure("<x-pdf::table> can only contain <x-pdf::thead> (once, first) and <x-pdf::tr>, found <$name>");
+                throw new InvalidStructure(Tag::of('table') . ' can only contain ' . Tag::of('thead') . ' (once, first) and ' . Tag::of('tr') . ", found <$name>");
             }
         }
 

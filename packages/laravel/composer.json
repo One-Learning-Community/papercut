@@ -56,9 +56,12 @@
                 "Papercut\\Laravel\\PapercutServiceProvider"
             ],
             "aliases": {
-                "Pdf": "Papercut\\Laravel\\Facades\\Pdf"
+                "Papercut": "Papercut\\Laravel\\Facades\\Papercut"
             }
         }
+    },
+    "scripts": {
+        "analyse": "phpstan analyse --memory-limit=1G"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

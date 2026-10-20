@@ -45,7 +45,7 @@ final class SnapshotTest extends TestCase
     {
         $document = require __DIR__ . "/fixtures/$name.php";
         self::assertInstanceOf(Document::class, $document);
-        $pages = $this->rasterise($document->toString());
+        $pages = $this->rasterise($document->toPdf()->bytes());
         self::assertNotSame([], $pages, 'pdftoppm produced no pages');
 
         $snapshotDir = __DIR__ . '/snapshots';

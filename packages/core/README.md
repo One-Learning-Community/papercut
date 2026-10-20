@@ -15,7 +15,7 @@ PHP 8.4+, `ext-mbstring`, `ext-zlib`, `ext-dom`. The only Composer dependency is
 ## Quick start
 
 Every example below is a complete snippet that leaves a `Papercut\Document` in `$document` (and, where needed, a
-`RenderOptions` in `$options`); the test suite runs each one (`tests/Feature/ReadmeTest.php`). Real code would end with `$document->save('out.pdf')`.
+`PdfOptions` in `$options`); the test suite runs each one (`tests/Feature/ReadmeTest.php`). Real code would end with `$document->toPdf()->save('out.pdf')`.
 
 ```php
 use Papercut\{Column, Document, Page, Text};
@@ -31,7 +31,7 @@ $document = Document::make(
 )->title('Hello');
 ```
 
-Output: `$document->save($path)`, `$document->render()` / `toString()` (a string of PDF bytes) or `stream()`
+Output: `$document->toPdf()` returns an `Output`: `->save($path)`, `->bytes()` (a string of PDF bytes) or `->stream()`
 (writes to output, returns the byte count).
 
 ## Elements
@@ -43,7 +43,7 @@ Output: `$document->save($path)`, `$document->render()` / `toString()` (a string
 | `Row::make(...)`, `Column::make(...)` | Flex containers (horizontal, vertical). |
 | `Spacer::flex()`, `Spacer::size($length)` | Flexible or fixed gap. |
 | `Text::make()`, `h1`-`h4`, `p`, `markup()`, `spans()` | Text, with inline spans. |
-| `Image::file()`, `bytes()`, `handle()` | Raster images, `fit()` modes. |
+| `Image::file()`, `bytes()` | Raster images, `fit()` modes. |
 | `Link::to($uri, ...$children)` | A clickable region around children. |
 | `Table::make()` | Page-aware table. |
 | `PageNumber::make('Page {page} of {total}')` | Page number and page count. |
@@ -91,7 +91,8 @@ Colours are `Color` values or strings: hex (`'#336699'`) or the bundled Tailwind
 Named styles live in the `Theme`; apply one by name:
 
 ```php
-use Papercut\{Column, Document, Page, RenderOptions, Text};
+use Papercut\{Column, Document, Page, Text};
+use Papercut\Export\PdfOptions;
 use Papercut\Style\{Style, Theme};
 use Papercut\Value\Color;
 use function Papercut\{mm, pt};
@@ -106,10 +107,10 @@ $document = Document::make(
         )->gap(pt(6)),
     ),
 );
-$options = new RenderOptions(theme: $theme); // pass to save()/render()
+$options = new PdfOptions(theme: $theme); // pass to toPdf()
 ```
 
-Pass `RenderOptions` as the second argument to `render()`, `toString()`, `save()` and `stream()`.
+Pass `PdfOptions` to `toPdf()`.
 
 ## Text and inline markup
 
@@ -233,21 +234,20 @@ $document = Document::make(
 ## Fonts
 
 Inter (Regular, Bold, Italic, BoldItalic) is bundled, subset and embedded; the 14 standard PDF fonts are never
-used. Register your own families on a `FontRegistry`, pick them with `font()`, and list fallback families for glyphs
+used. Add your own families with a `FontSet` of `FontFace`s, pick them with `font()`, and list fallback families for glyphs
 the primary font lacks.
 
 ```php
-use Papercut\{Column, Document, Page, RenderOptions, Text};
-use Papercut\Backend\PhpPdf\PhpPdfBackend;
-use Papercut\Text\{FontRegistry, FontStyle};
+use Papercut\{Column, Document, Page, Text};
+use Papercut\Export\PdfOptions;
+use Papercut\Text\{FontFace, FontRegistry, FontSet};
 use function Papercut\{mm, pt};
 
-$backend = new PhpPdfBackend();
-$fonts = FontRegistry::withDefaults($backend);
-// Register your own family (path to a TTF), here reusing the bundled file under another name:
+// Add your own family (paths to TTFs), here reusing the bundled files under another name:
 $inter = dirname((new ReflectionClass(FontRegistry::class))->getFileName(), 3) . '/resources/fonts/Inter';
-$fonts->register('Brand', $inter . '/Inter-Regular.ttf', 400, FontStyle::Normal);
-$fonts->register('Brand', $inter . '/Inter-Bold.ttf', 700, FontStyle::Normal);
+$fonts = (new FontSet())
+    ->with(new FontFace('Brand', $inter . '/Inter-Regular.ttf', 400), new FontFace('Brand', $inter . '/Inter-Bold.ttf', 700))
+    ->withFallbacks('Inter');
 
 $document = Document::make(
     Page::a4()->margin(mm(20))->body(
@@ -257,13 +257,57 @@ $document = Document::make(
         )->gap(pt(8)),
     ),
 );
-$options = new RenderOptions(backend: $backend, fonts: $fonts, fallbackFamilies: ['Inter']);
-// $document->save('out.pdf', $options);
+$options = new PdfOptions(fonts: $fonts);
+// $document->toPdf($options)->save('out.pdf');
 ```
 
 The backend shapes and reorders text within a single drawn run (kerning, ligatures). Right-to-left and bidirectional
 paragraph layout (direction, reordering across line breaks, direction-aware alignment) is unsupported and untested
 in v0.1, and so is HarfBuzz shaping.
+
+## Fonts in HTML
+
+`HtmlOptions::fontMode` decides how a browser gets the fonts of an HTML export:
+
+- `FontMode::None` (default): only the `font-family` stack is written. The browser uses what it has.
+- `FontMode::Embed`: the registered files are embedded as `data:` URIs in `@font-face` rules.
+- `FontMode::Link`: the registered files are linked; the `fontUrl` callback returns each face's URL.
+- `FontMode::Sources`: an ordered stack of font sources decides, family by family, where the browser gets the font. Pass the stack as `fontSources`. A source is a `FontSource` object or a closure `fn (FontRequest $r): ?FontAnswer`; return `null` to pass a family to the next source.
+
+```php
+use Papercut\{Document, Page, Text};
+use Papercut\Export\{FontMode, HtmlOptions};
+use Papercut\Html\{GoogleFonts, LocalFonts};
+
+$document = Document::make(Page::a4()->body(Text::make('Hello')));
+
+// Google Fonts
+$google = new HtmlOptions(fullPage: true, fontMode: FontMode::Sources, fontSources: [new GoogleFonts()]);
+
+// Bunny Fonts: same API, another host
+$bunny = new HtmlOptions(fullPage: true, fontMode: FontMode::Sources, fontSources: [new GoogleFonts(host: 'https://fonts.bunny.net')]);
+
+// Mixed: your own Acme font is embedded, everything else comes from Google
+$mixed = new HtmlOptions(
+    fullPage: true,
+    fontMode: FontMode::Sources,
+    fontSources: [LocalFonts::embed(['Acme']), new GoogleFonts()],
+);
+
+$html = $document->toHtml($google)->bytes();
+```
+
+A full page gets one `<link rel="stylesheet">` per stylesheet in `<head>`. A fragment has no head, so the same stylesheets are written as `@import` rules at the very start of its `<style>` block (a browser ignores an `@import` that follows another rule).
+
+**Order matters.** Each family goes to the first source that answers for it, so put specific sources first and catch-all hosts last. `GoogleFonts` accepts every family unless you give it an allowlist, so a catch-all `GoogleFonts` placed above `LocalFonts` would take your own families. For the same reason Bunny above Google only makes sense when Bunny has an allowlist (`new GoogleFonts(host: 'https://fonts.bunny.net', families: ['Inter'])`).
+
+A source that answers with an unsafe URL (a scheme other than http or https, a protocol-relative `//host`, control characters, an empty face list) is skipped, a warning is sent to `onWarning`, and the next source is asked. A family no source answers for is reported as `font not linked` (an approximation) and the browser falls back to the `font-family` stack.
+
+**Privacy.** With a third-party host the visitor's browser sends its IP address to that host. LG München I (3 O 17493/20, January 2022) held that this can breach data protection law without consent. Bunny Fonts is a host that states it does not log IP addresses, but the request still reaches a third party: moving to it changes the host, not the question, and is no compliance guarantee. The fully private routes are `LocalFonts`, `FontMode::Embed` and `FontMode::Link`, which serve fonts you control.
+
+**Content Security Policy.** Three directives are involved: `style-src` for the stylesheet host; `font-src` for the font domain (Google: `fonts.googleapis.com` for styles, `fonts.gstatic.com` for fonts; Bunny: `fonts.bunny.net` for both); and `font-src data:` for embedded faces (`LocalFonts::embed`, and `FontMode::Embed`).
+
+**Limits.** The font stylesheets are built from the families and weights the document uses. Google rejects the stylesheet of a family it does not have, or of a weight it does not offer, and the browser then falls back silently. The library cannot see that, because it never fetches the stylesheet.
 
 ## Kerning cache
 
@@ -275,11 +319,12 @@ unwritable directory, a symlinked or foreign-owned one, a corrupt file) falls ba
 output is identical either way.
 
 ```php
-use Papercut\{Document, Page, RenderOptions, Text};
+use Papercut\{Document, Page, Text};
+use Papercut\Export\PdfOptions;
 
 $document = Document::make(Page::a4()->body(Text::make('Hello')));
-$options = new RenderOptions(cacheDir: '/var/cache/myapp/papercut'); // your own directory
-$options = new RenderOptions(cacheDir: false);                       // no disk cache
+$options = new PdfOptions(cacheDir: '/var/cache/myapp/papercut'); // your own directory
+$options = new PdfOptions(cacheDir: false);                       // no disk cache
 ```
 
 ## Errors
@@ -294,7 +339,7 @@ Every error extends `Papercut\PapercutException` and says what is wrong and wher
 | `ImageUnreadable` | A file or bytes that are not a supported image. |
 | `LayoutOverflow` | Content that cannot fit on an empty page. |
 
-By default overflow throws. `new RenderOptions(overflow: OverflowMode::Clip)` clips instead and reports through
+By default overflow throws. `new PdfOptions(overflow: OverflowMode::Clip)` clips instead and reports through
 `onWarning`.
 
 ```php

@@ -1,1 +1,1 @@
-<x-pdf::document><x-twice><x-pdf::text>hi</x-pdf::text></x-twice></x-pdf::document>
+<x-doc::document><x-twice><x-doc::text>hi</x-doc::text></x-twice></x-doc::document>

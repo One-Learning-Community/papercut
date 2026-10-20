@@ -39,6 +39,10 @@ final class TableLayouter implements Layouter
     private \WeakMap $prepared;
     /** @var \WeakMap<TableCell, View> the block container each cell is laid out as */
     private \WeakMap $columns;
+    /** @var \WeakMap<TableCell, true> prepared cells, which belong to a table */
+    private \WeakMap $inTable;
+    /** @var \WeakMap<TableCell, true> bare cells already warned about */
+    private \WeakMap $strayWarned;
 
     public function __construct(private readonly BlockLayouter $block)
     {
@@ -47,11 +51,14 @@ final class TableLayouter implements Layouter
         $this->headerWarned = new \WeakMap();
         $this->prepared = new \WeakMap();
         $this->columns = new \WeakMap();
+        $this->inTable = new \WeakMap();
+        $this->strayWarned = new \WeakMap();
     }
 
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
         if ($node instanceof TableCell) {
+            $this->warnStray($node, $engine);
             return $this->block->layout($this->column($node), $style, $c, $token, $engine);
         }
         $table = self::table($node);
@@ -154,6 +161,7 @@ final class TableLayouter implements Layouter
     public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
     {
         if ($node instanceof TableCell) {
+            $this->warnStray($node, $engine);
             return $this->block->intrinsic($this->column($node), $style, $engine);
         }
         if ($style->width instanceof Length) {
@@ -161,7 +169,7 @@ final class TableLayouter implements Layouter
         }
         $table = self::table($node);
         $columns = $this->columnContent($table, $style, $engine);
-        $tracks = self::tracks($table, count($columns));
+        $tracks = self::trackList($table);
         $min = 0.0;
         $max = 0.0;
         foreach ($columns as $k => $size) {
@@ -193,6 +201,17 @@ final class TableLayouter implements Layouter
     }
 
     /**
+     * Column widths in pt for a table whose border box is offered $available,
+     * without pagination.
+     *
+     * @return list<float>
+     */
+    public function columns(Table $table, ComputedStyle $style, float $available, LayoutEngine $engine): array
+    {
+        return $this->grid($table, $style, BoxGeometry::contentWidth($style, $available), $engine)['widths'];
+    }
+
+    /**
      * Column widths and x offsets for content width $width, computed once per
      * table, style and width; column warnings are emitted only then.
      *
@@ -215,7 +234,7 @@ final class TableLayouter implements Layouter
         if ($given !== null && $given !== $n) {
             $engine->context()->warn(sprintf('Table has %d columns but %d tracks', $n, $given));
         }
-        $tracks = self::tracks($table, $n);
+        $tracks = self::trackList($table);
 
         $widths = array_fill(0, $n, 0.0);
         $auto = [];
@@ -321,11 +340,8 @@ final class TableLayouter implements Layouter
         }
 
         $rows = self::allRows($table);
-        $n = 0;
-        foreach ($rows as $row) {
-            $n = max($n, array_sum(array_map(static fn (TableCell $cell): int => $cell->span(), $row->cells())));
-        }
-        $tracks = self::tracks($table, $n);
+        $tracks = self::trackList($table);
+        $n = count($tracks);
         $columns = array_fill(0, $n, ['min' => 0.0, 'max' => 0.0]);
         /** @var list<array{col: int, span: int, min: float, max: float}> $spanning */
         $spanning = [];
@@ -550,12 +566,17 @@ final class TableLayouter implements Layouter
     }
 
     /**
-     * The given tracks for $n columns: missing tracks are 1fr, extra ones dropped.
+     * One track per column: the column count is the widest row's total span; missing tracks
+     * are 1fr, extra ones ignored.
      *
      * @return list<Length|Percent|Fr|Auto>
      */
-    private static function tracks(Table $table, int $n): array
+    public static function trackList(Table $table): array
     {
+        $n = 0;
+        foreach (self::allRows($table) as $row) {
+            $n = max($n, array_sum(array_map(static fn (TableCell $cell): int => $cell->span(), $row->cells())));
+        }
         $given = $table->trackList()->tracks ?? [];
         $tracks = [];
         for ($k = 0; $k < $n; $k++) {
@@ -570,11 +591,18 @@ final class TableLayouter implements Layouter
      */
     private function prepare(TableCell $cell, Theme $theme): TableCell
     {
-        return $this->prepared[$cell] ??= self::withThemeDefaults($cell, $theme);
+        if (!isset($this->prepared[$cell])) {
+            $prepared = self::withThemeDefaults($cell, $theme);
+            $this->prepared[$cell] = $prepared;
+            $this->inTable[$prepared] = true; // the engine lays this one out; it is not a stray cell
+        }
+        return $this->prepared[$cell];
     }
 
+    // StyleResolver applies the same defaults as its lowest layer; applying them twice changes nothing.
     private static function withThemeDefaults(TableCell $cell, Theme $theme): TableCell
     {
+        $source = $cell;
         $own = $cell->style();
         $named = new Style();
         $name = $cell->styleName();
@@ -591,13 +619,22 @@ final class TableLayouter implements Layouter
         if ($cell->header() && $own->fontWeight === null && $named->fontWeight === null) {
             $cell = $cell->weight(700);
         }
-        return $cell;
+        // Always a distinct instance: the source cell is never marked inTable, so a bare reuse still warns.
+        return $cell === $source ? clone $cell : $cell;
     }
 
     /** @return list<TableRow> */
     private static function allRows(Table $table): array
     {
         return [...$table->headerRows(), ...$table->bodyRows()];
+    }
+
+    private function warnStray(TableCell $cell, LayoutEngine $engine): void
+    {
+        if (!isset($this->inTable[$cell]) && !isset($this->strayWarned[$cell])) {
+            $this->strayWarned[$cell] = true;
+            $engine->context()->warn('A table cell outside a table is laid out as a column');
+        }
     }
 
     private function column(TableCell $cell): View

@@ -15,7 +15,7 @@ final class BenchmarkDocumentTest extends TestCase
     {
         $doc = require __DIR__ . '/../../bench/transcript.php';
         self::assertInstanceOf(Document::class, $doc);
-        $pdf = $doc->render();
+        $pdf = $doc->toPdf()->bytes();
         PdfInspector::check($pdf);
         self::assertSame('10', PdfInspector::info($pdf)['Pages']);
         $text = PdfInspector::text($pdf);

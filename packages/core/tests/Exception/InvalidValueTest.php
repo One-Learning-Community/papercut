@@ -43,9 +43,9 @@ final class InvalidValueTest extends TestCase
     public function test_context_and_location(): void
     {
         $base = InvalidValue::for('edges', '20 mm', '20mm');
-        $e = $base->withContext('margin')->within('on <x-pdf::page>');
-        self::assertSame('Invalid edges "20 mm" for margin on <x-pdf::page>. Did you mean "20mm"?', $e->getMessage());
-        self::assertSame(['on <x-pdf::page>'], $e->locations);
+        $e = $base->withContext('margin')->within('on <x-doc::page>');
+        self::assertSame('Invalid edges "20 mm" for margin on <x-doc::page>. Did you mean "20mm"?', $e->getMessage());
+        self::assertSame(['on <x-doc::page>'], $e->locations);
         self::assertSame('margin', $e->context);
         $mid = $e->getPrevious();
         self::assertInstanceOf(InvalidValue::class, $mid);
@@ -56,8 +56,8 @@ final class InvalidValueTest extends TestCase
     public function test_location_only_and_repeated_locations_append_left_to_right(): void
     {
         self::assertSame(
-            'Invalid edges "20 mm" on <x-pdf::view>.',
-            InvalidValue::for('edges', '20 mm')->within('on <x-pdf::view>')->getMessage(),
+            'Invalid edges "20 mm" on <x-doc::view>.',
+            InvalidValue::for('edges', '20 mm')->within('on <x-doc::view>')->getMessage(),
         );
         $e = InvalidValue::for('edges', 'x')->within('on <a>')->within('in <b>');
         self::assertSame('Invalid edges "x" on <a> in <b>.', $e->getMessage());

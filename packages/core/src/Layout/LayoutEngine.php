@@ -7,6 +7,7 @@ namespace Papercut\Layout;
 use Papercut\{Component, Image, Link, Node, OverflowMode, PageBreak, PageNumber, Spacer, Table, TableCell, Text, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Style\{ComputedStyle, Direction};
+use Papercut\Tree\{Expander, NodePath};
 
 /**
  * Dispatches nodes to their layouters. Expands Components, resolves the
@@ -14,8 +15,6 @@ use Papercut\Style\{ComputedStyle, Direction};
  */
 final class LayoutEngine
 {
-    private const int MAX_COMPONENT_DEPTH = 100;
-
     /** @var array<class-string<Node>, Layouter> */
     private array $layouters = [];
 
@@ -30,6 +29,7 @@ final class LayoutEngine
 
     private readonly BlockLayouter $block;
     private readonly FlexLayouter $flex;
+    private readonly TableLayouter $table;
 
     public function __construct(private readonly LayoutContext $ctx)
     {
@@ -40,12 +40,22 @@ final class LayoutEngine
         $this->layouters[Text::class] = new TextLayouter();
         $this->layouters[Link::class] = new LinkLayouter($this->block);
         $this->layouters[Image::class] = new ImageLayouter();
-        $table = new TableLayouter($this->block);
-        $this->layouters[Table::class] = $table;
-        $this->layouters[TableCell::class] = $table;
+        $this->table = new TableLayouter($this->block);
+        $this->layouters[Table::class] = $this->table;
+        $this->layouters[TableCell::class] = $this->table;
         $this->layouters[Spacer::class] = $leaf;
         $this->layouters[PageBreak::class] = $leaf;
         $this->layouters[PageNumber::class] = $leaf;
+    }
+
+    public function flexLayouter(): FlexLayouter
+    {
+        return $this->flex;
+    }
+
+    public function tableLayouter(): TableLayouter
+    {
+        return $this->table;
     }
 
     public function context(): LayoutContext
@@ -60,8 +70,8 @@ final class LayoutEngine
      */
     public function layout(Node|Component $node, ComputedStyle $parent, Constraints $c, ?BreakToken $token = null, ?int $index = null, ?string $pathName = null): LayoutResult
     {
-        $node = self::expand($node);
-        $this->ctx->pushPath($pathName ?? self::pathName($node, null, $index));
+        $node = Expander::expand($node);
+        $this->ctx->pushPath($pathName ?? NodePath::segment($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index, $pathName);
             $layouter = $this->layouterFor($node, $style);
@@ -123,12 +133,12 @@ final class LayoutEngine
     /** @return array{min: float, max: float} */
     public function intrinsic(Node|Component $node, ComputedStyle $parent, ?int $index = null): array
     {
-        $node = self::expand($node);
+        $node = Expander::expand($node);
         $byParent = $this->intrinsics[$node] ?? null;
         if ($byParent !== null && isset($byParent[$parent])) {
             return $byParent[$parent];
         }
-        $this->ctx->pushPath(self::pathName($node, null, $index));
+        $this->ctx->pushPath(NodePath::segment($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index);
             $size = $this->layouterFor($node, $style)->intrinsic($node, $style, $this);
@@ -147,7 +157,7 @@ final class LayoutEngine
     /** Computed style of a child node, with style errors reported at its path. */
     public function styleOf(Node $node, ComputedStyle $parent, ?int $index = null): ComputedStyle
     {
-        $this->ctx->pushPath(self::pathName($node, null, $index));
+        $this->ctx->pushPath(NodePath::segment($node, null, $index));
         try {
             return $this->enter($node, $parent, $index);
         } finally {
@@ -167,34 +177,8 @@ final class LayoutEngine
             throw $e->within('at ' . $this->ctx->path());
         }
         $this->ctx->popPath();
-        $this->ctx->pushPath($pathName ?? self::pathName($node, $style, $index));
+        $this->ctx->pushPath($pathName ?? NodePath::segment($node, $style, $index));
         return $style;
-    }
-
-    /** Renders Components down to a Node. */
-    public static function expand(Node|Component $node): Node
-    {
-        $depth = 0;
-        while (!$node instanceof Node) {
-            if (++$depth > self::MAX_COMPONENT_DEPTH) {
-                throw new \LogicException(sprintf(
-                    'Component %s did not render to a node within %d levels; check for a component that renders itself.',
-                    $node::class,
-                    self::MAX_COMPONENT_DEPTH,
-                ));
-            }
-            $node = $node->render();
-        }
-        return $node;
-    }
-
-    /** Views are named by their computed direction; debugName() can be stale after attributes(). */
-    private static function pathName(Node $node, ?ComputedStyle $style, ?int $index): string
-    {
-        $name = $node instanceof View && $style !== null
-            ? ($style->direction === Direction::Row ? 'row' : 'column')
-            : $node->debugName();
-        return $index === null ? $name : sprintf('%s[%d]', $name, $index);
     }
 
     private function layouterFor(Node $node, ComputedStyle $style): Layouter
