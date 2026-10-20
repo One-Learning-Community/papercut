@@ -46,6 +46,7 @@ Migration from v0.1:
 - `HtmlOptions` (`fullPage`, `fontMode`, `imageUrl`, `fontUrl`), `FontMode` (`None`, `Embed`, `Link`) and the `imageUrl` / `fontUrl` callbacks: images embed as data URIs unless `imageUrl` returns a safe URL; fonts embed or link per `FontMode`.
 - `onWarning` callbacks are arity-aware: a one-parameter callback gets the message only, a callback with a second parameter also gets the `FidelityReport`.
 - A table cell outside a table (not in a row) is laid out as a column and warns `A table cell outside a table is laid out as a column`, in both PDF and HTML.
+- HTML font sources: `FontMode::Sources` with `HtmlOptions::fontSources`, an ordered stack of `FontSource` objects or closures (`GoogleFonts` for Google Fonts and Bunny Fonts, `LocalFonts::embed()` / `link()` for registered files). Full pages get `<link>` tags in `<head>`; fragments get `@import` rules first in `<style>`. Unsafe answers fall through to the next source with a warning, and a family nobody answers for is reported as `font not linked`.
 - `Papercut\Tree\Visit`: `TreeVisitor` callbacks now receive a `Visit` (path, index, parent, header and region context) instead of loose arguments.
 
 ## [0.1.0] - unreleased

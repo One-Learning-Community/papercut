@@ -11,6 +11,7 @@ use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
 use Papercut\Layout\WidthResolver;
 use Papercut\Style\{ComputedStyle, Justify};
+use Papercut\Text\FontStyle;
 use Papercut\Value\{Auto, Fr, Length, Percent};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
 
@@ -31,6 +32,8 @@ final class HtmlWriter implements TreeVisitor
     private \WeakMap $strays;
     /** @var array<string,true> */
     private array $families = [];
+    /** @var array<string, array{family: string, variants: list<FontVariant>, path: ?string}> by lowercased family */
+    private array $usage = [];
     /** @var list<float> horizontal padding, border and margin of each open node */
     private array $edges = [];
     /** Content width of the current region's page, in points. */
@@ -53,6 +56,33 @@ final class HtmlWriter implements TreeVisitor
     public static function esc(string $s): string
     {
         return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Per lowercased family: the first spelling seen, the distinct weight/style pairs in first-seen order,
+     * and the first node path that used it (null when only the root style did).
+     *
+     * @return array<string, array{family: string, variants: list<FontVariant>, path: ?string}>
+     */
+    public function fontUsage(): array
+    {
+        return $this->usage;
+    }
+
+    private function recordFont(ComputedStyle $s, ?string $path): void
+    {
+        $this->families[$s->fontFamily] = true;
+        $key = strtolower($s->fontFamily);
+        $variant = new FontVariant($s->fontWeight, $s->italic ? FontStyle::Italic : FontStyle::Normal);
+        if (!isset($this->usage[$key])) {
+            $this->usage[$key] = ['family' => $s->fontFamily, 'variants' => [], 'path' => $path];
+        }
+        foreach ($this->usage[$key]['variants'] as $seen) {
+            if ($seen->weight === $variant->weight && $seen->style === $variant->style) {
+                return;
+            }
+        }
+        $this->usage[$key]['variants'][] = $variant;
     }
 
     /** @return list<string> font families of every style written, in first-seen order */
@@ -96,7 +126,7 @@ final class HtmlWriter implements TreeVisitor
         $this->edges = [];
         $m = $this->page?->margins();
         $this->regionWidth = $this->page === null || $m === null ? 0.0 : max(0.0, $this->page->width() - $m->left->points - $m->right->points);
-        $this->families[$root->fontFamily] = true;
+        $this->recordFont($root, null);
         $style = match ($region) {
             Region::Header => ' style="margin-bottom:' . Css::pt($this->page?->headerGapLength()->points ?? 0.0) . '"',
             Region::Footer => ' style="margin-top:' . Css::pt($this->page?->footerGapLength()->points ?? 0.0) . '"',
@@ -150,9 +180,9 @@ final class HtmlWriter implements TreeVisitor
     }
 
     /** @return array<string,string> */
-    private function textCss(ComputedStyle $s, ?ComputedStyle $parent): array
+    private function textCss(ComputedStyle $s, ?ComputedStyle $parent, string $path): array
     {
-        $this->families[$s->fontFamily] = true;
+        $this->recordFont($s, $path);
 
         return Css::text($s, $parent, $this->options->fonts()->fallbacks);
     }
@@ -164,7 +194,7 @@ final class HtmlWriter implements TreeVisitor
         if ($this->parentIsFlex($at)) {
             $decls += Css::flexItem($s);
         }
-        $decls = [...$decls, ...Css::pagination($s, $parent), ...$this->textCss($s, $parent)];
+        $decls = [...$decls, ...Css::pagination($s, $parent), ...$this->textCss($s, $parent, $at->path())];
         $this->out .= '<div' . self::styleAttr($decls) . '>';
 
         return '</div>';
@@ -174,11 +204,11 @@ final class HtmlWriter implements TreeVisitor
     {
         $override = self::overridesDecoration($s, $parent);
         $tag = in_array($t->preset(), ['h1', 'h2', 'h3', 'h4'], true) ? $t->preset() : 'p';
-        $decls = [...Css::box($s), ...$this->textCss($s, $parent), ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent)];
+        $decls = [...Css::box($s), ...$this->textCss($s, $parent, $at->path()), ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent)];
         $this->out .= '<' . $tag . self::styleAttr($decls) . '>';
         $nested = false;
         foreach ($t->spanList() as $span) {
-            $override = $this->span($span, $s, $nested) || $override;
+            $override = $this->span($span, $s, $nested, $at->path()) || $override;
         }
         if ($nested) {
             $this->fidelity->approximated('nested link', $at->path());
@@ -191,14 +221,14 @@ final class HtmlWriter implements TreeVisitor
     }
 
     /** @return bool whether the span turns off a decoration the paragraph has on */
-    private function span(\Papercut\Span $span, ComputedStyle $text, bool &$nested): bool
+    private function span(\Papercut\Span $span, ComputedStyle $text, bool &$nested, string $path): bool
     {
         if ($span->lineBreak) {
             $this->out .= '<br>';
             return false;
         }
         $style = $text->child($span->style);
-        $diff = $this->textCss($style, $text);
+        $diff = $this->textCss($style, $text, $path);
         $body = self::esc($span->text);
         if ($diff !== []) {
             $body = '<span' . self::styleAttr($diff) . '>' . $body . '</span>';
@@ -222,7 +252,7 @@ final class HtmlWriter implements TreeVisitor
     {
         $href = self::href($l->uri());
         $this->checkDecoration($s, $parent, $at->path());
-        $decls = [...Css::box($s), ...Css::flexContainer($s), 'flex-direction' => 'column', ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent), ...$this->textCss($s, $parent)];
+        $decls = [...Css::box($s), ...Css::flexContainer($s), 'flex-direction' => 'column', ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent), ...$this->textCss($s, $parent, $at->path())];
         if ($this->linkDepth > 0) {
             $this->fidelity->approximated('nested link', $at->path());
             $this->linkDepth++;
@@ -299,7 +329,7 @@ final class HtmlWriter implements TreeVisitor
             $this->fidelity->approximated('auto column widths', $at->path());
         }
 
-        $decls = [...Css::box($s), ...$this->textCss($s, $parent)];
+        $decls = [...Css::box($s), ...$this->textCss($s, $parent, $at->path())];
         if ($this->parentIsFlex($at)) {
             $decls += Css::flexItem($s);
         }
@@ -350,7 +380,7 @@ final class HtmlWriter implements TreeVisitor
             unset($box['padding']);
             $this->fidelity->approximated('row padding', $at->path());
         }
-        $this->out .= '<tr' . self::styleAttr([...$box, ...$this->textCss($s, $parent)]) . '>';
+        $this->out .= '<tr' . self::styleAttr([...$box, ...$this->textCss($s, $parent, $at->path())]) . '>';
 
         return '</tr>';
     }
@@ -365,7 +395,7 @@ final class HtmlWriter implements TreeVisitor
         $this->checkDecoration($s, $parent, $at->path());
         $tag = $n->header() ? 'th' : 'td';
         $span = $n->span() > 1 ? ' colspan="' . $n->span() . '"' : '';
-        $td = [...Css::box($s), ...$this->textCss($s, $parent)];
+        $td = [...Css::box($s), ...$this->textCss($s, $parent, $at->path())];
         if ($s->justify === Justify::Center) {
             $td['vertical-align'] = 'middle';
         } elseif ($s->justify === Justify::End) {
@@ -388,7 +418,7 @@ final class HtmlWriter implements TreeVisitor
             $this->fidelity->warn(sprintf('[%s] A table cell outside a table is laid out as a column', $at->path()));
         }
         $this->checkDecoration($s, $parent, $at->path());
-        $decls = [...Css::box($s), ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::flexContainer($s), ...Css::pagination($s, $parent), ...$this->textCss($s, $parent)];
+        $decls = [...Css::box($s), ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::flexContainer($s), ...Css::pagination($s, $parent), ...$this->textCss($s, $parent, $at->path())];
         $this->out .= '<div' . self::styleAttr($decls) . '>';
 
         return '</div>';

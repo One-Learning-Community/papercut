@@ -27,7 +27,7 @@ final class FontFaces
             if (!in_array(strtolower($face->family), $used, true)) {
                 continue;
             }
-            $src = $mode === FontMode::Embed ? self::data($face) : self::link($face, $fontUrl);
+            $src = $mode === FontMode::Embed ? self::dataUri($face) : self::link($face, $fontUrl);
             if ($src === null) {
                 continue;
             }
@@ -38,7 +38,8 @@ final class FontFaces
         return $out;
     }
 
-    private static function data(FontFace $face): string
+    /** @throws FontNotFound when the font file cannot be read */
+    public static function dataUri(FontFace $face): string
     {
         $bytes = is_file($face->path) && is_readable($face->path) ? file_get_contents($face->path) : false;
         if ($bytes === false) {

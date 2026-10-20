@@ -265,6 +265,50 @@ The backend shapes and reorders text within a single drawn run (kerning, ligatur
 paragraph layout (direction, reordering across line breaks, direction-aware alignment) is unsupported and untested
 in v0.1, and so is HarfBuzz shaping.
 
+## Fonts in HTML
+
+`HtmlOptions::fontMode` decides how a browser gets the fonts of an HTML export:
+
+- `FontMode::None` (default): only the `font-family` stack is written. The browser uses what it has.
+- `FontMode::Embed`: the registered files are embedded as `data:` URIs in `@font-face` rules.
+- `FontMode::Link`: the registered files are linked; the `fontUrl` callback returns each face's URL.
+- `FontMode::Sources`: an ordered stack of font sources decides, family by family, where the browser gets the font. Pass the stack as `fontSources`. A source is a `FontSource` object or a closure `fn (FontRequest $r): ?FontAnswer`; return `null` to pass a family to the next source.
+
+```php
+use Papercut\{Document, Page, Text};
+use Papercut\Export\{FontMode, HtmlOptions};
+use Papercut\Html\{GoogleFonts, LocalFonts};
+
+$document = Document::make(Page::a4()->body(Text::make('Hello')));
+
+// Google Fonts
+$google = new HtmlOptions(fullPage: true, fontMode: FontMode::Sources, fontSources: [new GoogleFonts()]);
+
+// Bunny Fonts: same API, another host
+$bunny = new HtmlOptions(fullPage: true, fontMode: FontMode::Sources, fontSources: [new GoogleFonts(host: 'https://fonts.bunny.net')]);
+
+// Mixed: your own Acme font is embedded, everything else comes from Google
+$mixed = new HtmlOptions(
+    fullPage: true,
+    fontMode: FontMode::Sources,
+    fontSources: [LocalFonts::embed(['Acme']), new GoogleFonts()],
+);
+
+$html = $document->toHtml($google)->bytes();
+```
+
+A full page gets one `<link rel="stylesheet">` per stylesheet in `<head>`. A fragment has no head, so the same stylesheets are written as `@import` rules at the very start of its `<style>` block (a browser ignores an `@import` that follows another rule).
+
+**Order matters.** Each family goes to the first source that answers for it, so put specific sources first and catch-all hosts last. `GoogleFonts` accepts every family unless you give it an allowlist, so a catch-all `GoogleFonts` placed above `LocalFonts` would take your own families. For the same reason Bunny above Google only makes sense when Bunny has an allowlist (`new GoogleFonts(host: 'https://fonts.bunny.net', families: ['Inter'])`).
+
+A source that answers with an unsafe URL (a scheme other than http or https, a protocol-relative `//host`, control characters, an empty face list) is skipped, a warning is sent to `onWarning`, and the next source is asked. A family no source answers for is reported as `font not linked` (an approximation) and the browser falls back to the `font-family` stack.
+
+**Privacy.** With a third-party host the visitor's browser sends its IP address to that host. LG München I (3 O 17493/20, January 2022) held that this can breach data protection law without consent. Moving to Bunny Fonts changes the host, not the question. The fully private routes are `LocalFonts`, `FontMode::Embed` and `FontMode::Link`, which serve fonts you control.
+
+**Content Security Policy.** Allow the stylesheet host in `style-src` (for example `https://fonts.googleapis.com`) and the font host in `font-src` (`https://fonts.gstatic.com` for Google; `data:` for embedded faces).
+
+**Limits.** The font stylesheets are built from the families and weights the document uses. Google rejects the stylesheet of a family it does not have, or of a weight it does not offer, and the browser then falls back silently. The library cannot see that, because it never fetches the stylesheet.
+
 ## Kerning cache
 
 Parsing a font's GPOS pair-kerning table costs tens of milliseconds, so the default backend stores it on disk and

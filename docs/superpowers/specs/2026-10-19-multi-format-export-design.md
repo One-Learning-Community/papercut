@@ -110,8 +110,9 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
 - `PdfOptions extends ExportOptions`: `backend`, `cacheDir`, `overflow: OverflowMode`. This replaces `RenderOptions`.
 - `HtmlOptions extends ExportOptions`:
   - `fullPage: bool = false`
-  - `fontMode: FontMode = none` (`none`|`embed`|`link`). `embed` and `link` are opt-in. The Laravel config key `html.fonts` accepts `none`, `embed` or `link`; `link` needs the `fontUrl` callback; in Laravel, `link` requires `html.font_url` (§8.2).
+  - `fontMode: FontMode = none` (`none`|`embed`|`link`|`sources`). `embed`, `link` and `sources` are opt-in. The Laravel config key `html.fonts` accepts `none`, `embed`, `link` or `sources`; `link` needs the `fontUrl` callback; in Laravel, `link` requires `html.font_url` (§8.2).
   - `fontUrl: ?Closure(FontFace): ?string`: used by `link`; a null return skips that face.
+  - `fontSources: list<FontSource|Closure(FontRequest): ?FontAnswer>`: used by `sources`; an ordered stack, and each used family goes to the first source that accepts it. Details in `2026-10-19-html-font-sources-design.md`.
   - `imageUrl: ?Closure(Image): ?string` (null, or a null return, means embed as a data URI)
 - `DocxOptions extends ExportOptions`: no extra settings in 0.2.0.
 
@@ -200,7 +201,7 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
   - Units are emitted in `pt`.
 - **Print CSS:** `@page` size and margins from the first page; `break-before: page` for page breaks and `break-before`/`break-after`; `break-inside: avoid` for `keep-together` and table rows. The page box's screen styling is removed in print.
 - **Page-only features:** `page-number`, keep rules and `min-lines` are n/a on screen. Page numbers are left out of the output, not rendered as "1".
-- **Fonts (`fontMode`):** `none` (default) emits family names only, falling back to `system-ui, sans-serif`. `embed` is opt-in and inlines each used `FontSet` file as a base64 `@font-face`. `link` is opt-in and uses the URL the `fontUrl` callback returns for each face (a null return skips that face). Google Fonts in `link` mode is future work (§12).
+- **Fonts (`fontMode`):** `none` (default) emits family names only, falling back to `system-ui, sans-serif`. `embed` is opt-in and inlines each used `FontSet` file as a base64 `@font-face`. `link` is opt-in and uses the URL the `fontUrl` callback returns for each face (a null return skips that face). `sources` is opt-in and takes an ordered stack of font sources (`fontSources`): each used family goes to the first source that accepts it, and a source answers with a stylesheet URL (such as Google Fonts) or with `@font-face` faces (local files). A family no source accepts is reported as `font not linked`. See `2026-10-19-html-font-sources-design.md`.
 - **Images:** data URIs by default; an `imageUrl` callback can return a URL instead. Laravel embeds by default too.
 - **Security:**
   - All text and attribute values are escaped.
@@ -239,7 +240,7 @@ Legend: ✓ supported · ≈ approximated (reported) · ✗ dropped (reported; s
 | Font family, size, italic, color, underline, strike | ✓ | ✓ |
 | Font weight | ✓ | ≈ bold for ≥ 600, otherwise regular |
 | Line height, letter spacing, text align incl. justify | ✓ | ✓ |
-| Fonts | ✓ `@font-face` (embed/link/none) | ≈ family name only (the reader's machine supplies the font) |
+| Fonts | ✓ `@font-face` (embed/link/none) or font sources (sources) | ≈ family name only (the reader's machine supplies the font) |
 | Inline markup `<b> <i> <u> <s> <a> <br> <span>` | ✓ | ✓ |
 | Headings h1–h4, p | ✓ `<h1>`–`<h4>`, `<p>` | ✓ paragraph styles |
 | Block `link` | ✓ | ≈ hyperlink on the text runs inside it |
@@ -287,7 +288,7 @@ return Papercut::view('invoices.show', $data)->html();   // full-page response
   - `PendingHtml` has no `toString()`, `save()` or `download()` of its own, so a string never means two things.
 - `->docx()` without `papercut/docx` installed throws `MissingExporter`.
 - **Tags:** `<x-doc::*>`. The prefix is the config key `papercut.prefix` (default `doc`); the service provider registers the component namespace from it. App components in `components/doc/` (`<x-doc.foo>`) do not conflict.
-- **Config additions:** `prefix`, `strict` (default `false`; the docs suggest `true` in tests), `html.fonts` (`none|embed|link`), `html.image_url` and `html.font_url` (amendment H3). Laravel's `onWarning` logs `Dropped` as a warning and `Approximated` as debug.
+- **Config additions:** `prefix`, `strict` (default `false`; the docs suggest `true` in tests), `html.fonts` (`none|embed|link|sources`), `html.image_url` and `html.font_url` (amendment H3), and `html.font_sources`, `html.google_fonts` and `html.local_fonts` (see `2026-10-19-html-font-sources-design.md`). Laravel's `onWarning` logs `Dropped` as a warning and `Approximated` as debug.
 - **HTML callbacks (amendment H3):** `html.image_url` and `html.font_url` name invokable classes, resolved from the container, that implement `Papercut\Laravel\Html\ImageUrlResolver` and `Papercut\Laravel\Html\FontUrlResolver`. Class names survive `config:cache`; a closure does not, and is rejected with an error naming the key. `html.fonts = link` requires `html.font_url`. Invalid `html.*` config is reported when HTML options are first built (the first `->html()` export), not at boot. There is no code-level options hook in 0.2.0.
 - **Preview route:** `/_papercut/{view}?format=pdf|html|docx` (default `pdf`).
 
@@ -378,7 +379,7 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
 
 ## 12. Future work (the design leaves room)
 
-- **Google Fonts in HTML `link` mode:** a built-in `fontUrl` that maps bundled and common families to Google Fonts URLs, instead of requiring a callback.
+- *Done:* font sources (Google Fonts and others in HTML export), see `2026-10-19-html-font-sources-design.md`.
 - **Raw HTML input** (`<x-doc::html>`): convert HTML into Papercut nodes once, when the tree is built, using php-pdf's `HtmlParser` and CSS cascade as the front end plus a translator from its elements (`Paragraph`, `Run`, `Table`, `ListNode`) to `Text`/`Span`/`Table`. The result works in every format. It reverses v0.1's "no HTML parser" stance, so it needs its own spec. It would likely also bring a list node.
 - **Font embedding in DOCX** (upstream).
 - **An editable DOCX mode** (fewer layout tables, more native paragraphs), as a contribution.

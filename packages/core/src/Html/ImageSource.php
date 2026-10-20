@@ -37,12 +37,10 @@ final class ImageSource
     /** An allowed link scheme, a data:image/ URI, or a relative path. Control characters and edge whitespace are refused: browsers drop them inside schemes. */
     private static function safe(string $url): bool
     {
-        if ($url === '' || preg_match('/[\x00-\x1f\x7f]/', $url) === 1 || trim($url) !== $url) {
-            return false;
-        }
-
-        return Link::allowed($url)
+        return Urls::clean($url) && (
+            Link::allowed($url)
             || preg_match('~^data:image/~i', $url) === 1
-            || preg_match('~^(?![a-z][a-z0-9+.-]*:|[/\\\\]{2}|\\\\)~i', $url) === 1;
+            || Urls::relative($url)
+        );
     }
 }

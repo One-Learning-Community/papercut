@@ -128,3 +128,15 @@ Plan: docs/superpowers/plans/2026-10-19-pdf-html-hardening.md. Each entry: what 
   - *Done in hardening Task 4:* the `table()`/`tableRow()` decoration-override check.
   - *Done in hardening Task 3:* the reused-cell stray warning edge case.
   - *Done in hardening Task 4:* the render.php `fontUrl` returns null for faces outside the repo.
+
+# Rulings made during HTML font sources, 2026-10-19
+
+Design: docs/superpowers/specs/2026-10-19-html-font-sources-design.md. Each entry: what was decided — why — cost if wrong.
+
+## font-sources
+- Ruling (S1): HTML export gets a general, ordered stack of font sources (`FontMode::Sources`), with Google Fonts as the reference provider and Bunny Fonts as a host change — fonts services serve stylesheets, not stable file URLs, so `link` cannot express them, and a stack also mixes licensed local fonts with a service — cost if wrong: a larger API than a Google-only option
+- Ruling (S2): every used family is offered to the stack, registered or not, and Papercut keeps no font catalog — catalogs change, a stale list gives wrong answers, and HTML export never required registered families — cost if wrong: a family the host lacks costs its stylesheet request, and the browser falls back silently
+- Ruling (S3): a family no source accepts is reported as `font not linked` (`Approximated`) and falls back to the system stack, never to embed — silently embedding adds megabytes the app did not ask for — cost if wrong: a missing family shows in a fallback font until a source is added
+- Ruling (S4): opt-in only; the default stays `none` and `Sources` with an empty stack throws; the privacy note (visitors' browsers contact the host, which sees their IP address; LG München I, 3 O 17493/20) is stated where people turn it on; Bunny is shown as a host change, with no claim about anyone's compliance — a third-party request must never come from a default configuration — cost if wrong: an app enables Google without reading the note
+- Ruling (S5): Laravel `html.font_sources` is a list of classes, built by the container and validated against `Papercut\Html\FontSource`; the Google and local-fonts sources are bound from `html.google_fonts` and `html.local_fonts` and built only in `sources` mode — class names survive `config:cache`, and a typo in an unused block must not break exports — cost if wrong: a custom source needing config of its own must read it itself
+- Ruling (planner): `FontRequest` carries the export's `FontSet`, so `LocalFonts` needs no `FontSet` constructor argument (design §5.7 left this choice open) — the Laravel binding then needs no `FontSet` at build time — cost if wrong: `FontRequest` is slightly larger

@@ -9,4 +9,5 @@ enum FontMode: string
     case None = 'none';
     case Embed = 'embed';
     case Link = 'link';
+    case Sources = 'sources';
 }
