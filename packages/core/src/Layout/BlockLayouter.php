@@ -32,6 +32,16 @@ final class BlockLayouter implements Layouter
 
         $fixed = $first ? BoxGeometry::explicitHeight($style, $c) : null;
         $stretch = $first && $fixed === null ? BoxGeometry::clampHeight($style, $c, $c->definiteHeight) : null;
+        if ($first && $fixed === null) {
+            // min-height is a minimum fill, like a stretch: the box grows to it but can still split.
+            $floor = BoxGeometry::minimumFill($style, $c);
+            if ($floor === false) {
+                return LayoutResult::doesNotFit();
+            }
+            if ($floor !== null) {
+                $stretch = max($stretch ?? 0.0, $floor);
+            }
+        }
         if ($fixed !== null && $c->height !== null && $fixed > $c->height + self::EPSILON) {
             return LayoutResult::doesNotFit();
         }
@@ -191,6 +201,9 @@ final class BlockLayouter implements Layouter
         }
 
         $last = $breakAt === null;
+        if ($fixed === null && $first && $last) {
+            $contentHeight = BoxGeometry::capContent($style, $c, $contentHeight);
+        }
         $f = new Fragment($borderWidth, BoxGeometry::outerHeight($style, $contentHeight, $first, $last));
         BoxGeometry::decorate($f, $style, $first, $last);
         $ox = $style->borderWidth->left->points + $style->padding->left->points;

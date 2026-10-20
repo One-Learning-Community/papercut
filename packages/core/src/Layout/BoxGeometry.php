@@ -125,6 +125,38 @@ final class BoxGeometry
         return self::clampHeight($s, $c, self::resolve($s->height, $c->definiteHeight) ?? $c->definiteHeight);
     }
 
+    /**
+     * The border-box min-height of a content-sized box, fitted to the space: null without a
+     * min-height; DoesNotFit (false) when it is taller than the space left on a page that
+     * already has content; capped to the space on a fresh page.
+     */
+    public static function minimumFill(ComputedStyle $s, Constraints $c): float|false|null
+    {
+        $min = self::resolve($s->minHeight, $c->definiteHeight);
+        if ($min === null || $min <= 0.0) {
+            return null;
+        }
+        // As in CSS, min-height wins over a smaller max-height.
+        if ($c->height !== null && $min > $c->height + 1e-9) {
+            return $c->fresh ? $c->height : false;
+        }
+        return $min;
+    }
+
+    /** Caps the content height of a content-sized, single-slice box so its border box fits max-height. */
+    public static function capContent(ComputedStyle $s, Constraints $c, float $contentHeight): float
+    {
+        $max = self::resolve($s->maxHeight, $c->definiteHeight);
+        if ($max === null) {
+            return $contentHeight;
+        }
+        $edges = self::topEdge($s) + self::bottomEdge($s);
+        $capped = min($contentHeight, $max - $edges);
+        $min = self::resolve($s->minHeight, $c->definiteHeight);
+        // min-height wins over max-height, as in CSS.
+        return max(0.0, $min === null ? $capped : max($capped, min($contentHeight, $min - $edges)));
+    }
+
     /** Clamps a border-box height to min/max-height (percentages of definiteHeight); null stays null. */
     public static function clampHeight(ComputedStyle $s, Constraints $c, ?float $h): ?float
     {

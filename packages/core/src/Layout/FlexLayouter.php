@@ -34,6 +34,16 @@ final class FlexLayouter implements Layouter
         if ($fixed !== null && $c->height !== null && $fixed > $c->height + self::EPSILON) {
             return LayoutResult::doesNotFit();
         }
+        if ($first && $fixed === null) {
+            // min-height is a minimum fill, like a stretch: the box grows to it but can still split.
+            $floor = BoxGeometry::minimumFill($style, $c);
+            if ($floor === false) {
+                return LayoutResult::doesNotFit();
+            }
+            if ($floor !== null) {
+                $target = max($target ?? 0.0, $floor);
+            }
+        }
         $fixedContent = $target === null ? null : max(0.0, $target - BoxGeometry::topEdge($style) - BoxGeometry::bottomEdge($style));
 
         $available = null;
@@ -101,6 +111,9 @@ final class FlexLayouter implements Layouter
 
         $last = $breakAt === null;
         $contentHeight = $fixed !== null ? (float) $fixedContent : ($last ? max($cursor, $fixedContent ?? 0.0) : $cursor);
+        if ($fixed === null && $first && $last) {
+            $contentHeight = BoxGeometry::capContent($style, $c, $contentHeight);
+        }
         $f = new Fragment($borderWidth, BoxGeometry::outerHeight($style, $contentHeight, $first, $last));
         BoxGeometry::decorate($f, $style, $first, $last);
         $ox = $style->borderWidth->left->points + $style->padding->left->points;

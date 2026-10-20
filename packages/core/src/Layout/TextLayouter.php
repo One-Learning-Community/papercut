@@ -32,7 +32,17 @@ final class TextLayouter implements Layouter
             'width' => BoxGeometry::borderBoxWidth($style, $c->width),
             'content' => BoxGeometry::contentWidth($style, $c->width),
             'first' => ($token->index ?? 0) <= 0,
+            'size' => null,
         ];
+        if ($box['first']) {
+            // A box size from height or min-height/max-height applies when the text completes in one slice.
+            $fixed = BoxGeometry::explicitHeight($style, $c);
+            $floor = $fixed ?? BoxGeometry::minimumFill($style, $c);
+            if ($floor === false || ($floor !== null && $c->height !== null && $floor > $c->height + 1e-9 && !$c->fresh)) {
+                return LayoutResult::doesNotFit();
+            }
+            $box['size'] = ['fixed' => $fixed, 'floor' => $floor === null ? null : min($floor, $c->height ?? $floor), 'c' => $c];
+        }
         ['lines' => $lines, 'boxes' => $boxes] = $this->lines(self::text($node), $style, $box['content'], $engine);
         $total = count($lines);
         $start = min(max(0, $token->index ?? 0), $total);
@@ -164,6 +174,22 @@ final class TextLayouter implements Layouter
         return [($lineHeight - ($ascent + $descent)) / 2, $ascent, $descent];
     }
 
+    /**
+     * The content height of a single-slice text box: its explicit height, else its lines grown
+     * to min-height and capped by max-height.
+     *
+     * @param array{fixed: ?float, floor: ?float, c: Constraints} $size
+     */
+    private static function sized(ComputedStyle $style, array $size, float $lines): float
+    {
+        $edges = BoxGeometry::topEdge($style) + BoxGeometry::bottomEdge($style);
+        if ($size['fixed'] !== null) {
+            return max(0.0, min($size['fixed'], $size['c']->height ?? $size['fixed']) - $edges);
+        }
+        $height = $size['floor'] === null ? $lines : max($lines, $size['floor'] - $edges);
+        return BoxGeometry::capContent($style, $size['c'], $height);
+    }
+
     /** @param array<int, array{baseline: float, height: float}> $boxes */
     private static function fittingLines(array $boxes, int $start, int $total, ?float $height): int
     {
@@ -188,13 +214,16 @@ final class TextLayouter implements Layouter
      *
      * @param list<Line> $lines
      * @param array<int, array{baseline: float, height: float}> $boxes
-     * @param array{width: float, content: float, first: bool} $box
+     * @param array{width: float, content: float, first: bool, size: ?array{fixed: ?float, floor: ?float, c: Constraints}} $box
      */
     private function fragment(array $lines, array $boxes, int $start, int $end, ComputedStyle $style, array $box, bool $last): Fragment
     {
         $height = 0.0;
         for ($i = $start; $i < $end; $i++) {
             $height += $boxes[$i]['height'];
+        }
+        if ($box['first'] && $last && $box['size'] !== null) {
+            $height = self::sized($style, $box['size'], $height);
         }
         $f = new Fragment($box['width'], BoxGeometry::outerHeight($style, $height, $box['first'], $last));
         BoxGeometry::decorate($f, $style, $box['first'], $last);
