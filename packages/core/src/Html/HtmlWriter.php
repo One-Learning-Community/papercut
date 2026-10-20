@@ -6,11 +6,11 @@ namespace Papercut\Html;
 
 use Papercut\Backend\Backend;
 use Papercut\Export\LoadedImage;
-use Papercut\{Document, Image, Link, Node, Page, PageBreak, PageNumber, Spacer, Table, TableCell, TableRow, Text, View};
+use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, Spacer, Table, TableCell, TableRow, Text, View};
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
 use Papercut\Layout\WidthResolver;
-use Papercut\Style\{ComputedStyle, Justify};
+use Papercut\Style\{ComputedStyle, Justify, ListMarker};
 use Papercut\Text\FontStyle;
 use Papercut\Value\{Auto, Fr, Length, Percent};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
@@ -40,6 +40,10 @@ final class HtmlWriter implements TreeVisitor
     private float $regionWidth = 0.0;
     /** Open block links and span-link-bearing paragraphs inside them; an inner link cannot be an anchor. */
     private int $linkDepth = 0;
+    /** @var array{ordered: int, unordered: int} open lists of each kind, which sets the default marker */
+    private array $listDepth = ['ordered' => 0, 'unordered' => 0];
+    /** @var list<bool> whether each open list is ordered */
+    private array $openLists = [];
     /** @var array<string, LoadedImage> images already loaded this export, by source */
     private array $images = [];
 
@@ -156,6 +160,8 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof Table => $this->table($node, $style, $at),
             $node instanceof TableRow => $this->tableRow($node, $style, $at),
             $node instanceof TableCell => $this->tableCell($node, $style, $at),
+            $node instanceof ListNode => $this->list($node, $style, $parent, $at),
+            $node instanceof ListItem => $this->listItem($node, $style, $parent, $at),
             default => throw new \LogicException('HTML export of ' . $node->debugName() . ' is not supported'),
         };
         $this->styles[] = $style;
@@ -171,6 +177,9 @@ final class HtmlWriter implements TreeVisitor
         array_pop($this->edges);
         if ($node instanceof Link) {
             $this->linkDepth--;
+        }
+        if ($node instanceof ListNode) {
+            $this->listDepth[array_pop($this->openLists) ? 'ordered' : 'unordered']--;
         }
         if ($node instanceof Table) {
             $open = array_pop($this->sections);
@@ -198,6 +207,39 @@ final class HtmlWriter implements TreeVisitor
         $this->out .= '<div' . self::styleAttr($decls) . '>';
 
         return '</div>';
+    }
+
+    private function list(ListNode $n, ComputedStyle $s, ComputedStyle $parent, Visit $at): string
+    {
+        $this->checkDecoration($s, $parent, $at->path());
+        $kind = $n->isOrdered() ? 'ordered' : 'unordered';
+        $this->openLists[] = $n->isOrdered();
+        $depth = ++$this->listDepth[$kind];
+        $marker = $n->markerStyle() ?? ListMarker::forDepth($n->isOrdered(), $depth);
+        $decls = [
+            'list-style-type' => $marker->value,
+            'margin' => '0',
+            'padding' => '0 0 0 2em',
+            ...Css::box($s),
+            ...($this->parentIsFlex($at) ? Css::flexItem($s) : []),
+            ...Css::pagination($s, $parent),
+            ...$this->textCss($s, $parent, $at->path()),
+        ];
+        $tag = $n->isOrdered() ? 'ol' : 'ul';
+        $start = $n->isOrdered() && $n->startNumber() !== 1 ? ' start="' . $n->startNumber() . '"' : '';
+        $this->out .= '<' . $tag . $start . self::styleAttr($decls) . '>';
+
+        return '</' . $tag . '>';
+    }
+
+    private function listItem(ListItem $n, ComputedStyle $s, ComputedStyle $parent, Visit $at): string
+    {
+        $this->checkDecoration($s, $parent, $at->path());
+        $decls = [...Css::box($s), ...Css::pagination($s, $parent), ...$this->textCss($s, $parent, $at->path())];
+        $value = $n->valueOverride() !== null ? ' value="' . $n->valueOverride() . '"' : '';
+        $this->out .= '<li' . $value . self::styleAttr($decls) . '>';
+
+        return '</li>';
     }
 
     private function text(Text $t, ComputedStyle $s, ComputedStyle $parent, Visit $at): string

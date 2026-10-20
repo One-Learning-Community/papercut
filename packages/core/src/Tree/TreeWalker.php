@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tree;
 
-use Papercut\{Component, Document, Link, Node, Page, Table, TableCell, TableRow, View};
+use Papercut\{Component, Document, Link, ListItem, ListNode, Node, Page, Table, TableCell, TableRow, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Style\{ComputedStyle, StyleResolver};
 
@@ -73,9 +73,13 @@ final class TreeWalker
 
     private function children(Node $node, ComputedStyle $style, string $path, TreeVisitor $visitor, Region $region, bool $inHeader): void
     {
-        if ($node instanceof View || $node instanceof Link || $node instanceof TableCell) {
+        if ($node instanceof View || $node instanceof Link || $node instanceof TableCell || $node instanceof ListItem) {
             foreach ($node->children() as $i => $child) {
                 $this->visit(Expander::expand($child), $style, $path, $i, $visitor, $region, $node, $inHeader);
+            }
+        } elseif ($node instanceof ListNode) {
+            foreach ($node->items() as $i => $item) {
+                $this->visit($item, $style, $path, $i, $visitor, $region, $node, $inHeader);
             }
         } elseif ($node instanceof Table) {
             $headers = count($node->headerRows());

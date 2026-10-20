@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Component, Image, Link, Node, OverflowMode, PageBreak, PageNumber, Spacer, Table, TableCell, Text, View};
+use Papercut\{Component, Image, Link, ListNode, Node, OverflowMode, PageBreak, PageNumber, Spacer, Table, TableCell, Text, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Style\{ComputedStyle, Direction};
 use Papercut\Tree\{Expander, NodePath};
@@ -46,6 +46,13 @@ final class LayoutEngine
         $this->layouters[Spacer::class] = $leaf;
         $this->layouters[PageBreak::class] = $leaf;
         $this->layouters[PageNumber::class] = $leaf;
+        $this->layouters[ListNode::class] = new ListLayouter();
+        $this->layouters[MarkedItem::class] = new MarkedItemLayouter();
+    }
+
+    public function blockLayouter(): BlockLayouter
+    {
+        return $this->block;
     }
 
     public function flexLayouter(): FlexLayouter

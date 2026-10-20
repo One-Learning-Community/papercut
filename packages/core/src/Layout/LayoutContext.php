@@ -18,6 +18,9 @@ final class LayoutContext
     /** @var list<string> */
     private array $path = [];
     private ?Itemizer $itemizer = null;
+    /** Open lists by kind, for depth-dependent markers. */
+    private int $orderedLists = 0;
+    private int $unorderedLists = 0;
     /** @var array<string, ImageHandle> */
     private array $images = [];
     /** Path of the deepest node that returned DoesNotFit under fresh constraints; the paginator resets it. */
@@ -73,6 +76,21 @@ final class LayoutContext
     public function path(): string
     {
         return implode(' > ', $this->path);
+    }
+
+    /** Opens a list; returns its 1-based depth among open lists of the same kind. */
+    public function enterList(bool $ordered): int
+    {
+        return $ordered ? ++$this->orderedLists : ++$this->unorderedLists;
+    }
+
+    public function leaveList(bool $ordered): void
+    {
+        if ($ordered) {
+            $this->orderedLists = max(0, $this->orderedLists - 1);
+        } else {
+            $this->unorderedLists = max(0, $this->unorderedLists - 1);
+        }
     }
 
     public function setLastFailurePath(?string $path): void

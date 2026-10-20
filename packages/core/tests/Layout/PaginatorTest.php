@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Layout;
 
-use Papercut\{Document, Image, OverflowMode, Page, PageNumber, Text};
+use Papercut\{Document, Image, ListItem, ListNode, OverflowMode, Page, PageNumber, Text};
 use Papercut\Exception\LayoutOverflow;
 use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
 use Papercut\Paint\Painter;
@@ -213,6 +213,29 @@ final class PaginatorTest extends TestCase
         });
         self::assertSame(\Papercut\Layout\Status::DoesNotFit, $h->layout(new StuckNode(), 100, 50)->status);
         self::assertSame('stuck', $h->engine->context()->lastFailurePath);
+    }
+
+    public function test_long_list_item_shows_its_marker_on_the_first_page_only(): void
+    {
+        $lines = array_map(fn (int $i) => Text::make("L$i"), range(1, 20));
+        $pages = $this->paginate(Document::make($this->small()->body(ListNode::ordered(ListItem::make(...$lines)))));
+        self::assertGreaterThan(1, count($pages));
+        self::assertContains('1.', $this->texts($pages[0]));
+        self::assertContains('L1', $this->texts($pages[0]));
+        foreach (array_slice($pages, 1) as $p) {
+            self::assertNotContains('1.', $this->texts($p));
+        }
+        self::assertContains('L20', $this->texts($pages[count($pages) - 1]));
+    }
+
+    public function test_item_that_moves_to_the_next_page_takes_its_marker(): void
+    {
+        // 80pt body holds five 14pt lines: four fillers and item "a" fill page 1
+        $fill = array_map(fn (int $i) => Text::make("F$i"), range(1, 4));
+        $pages = $this->paginate(Document::make($this->small()->body(...$fill, ...[ListNode::ordered('a', 'b')])));
+        self::assertCount(2, $pages);
+        self::assertSame(['F1', 'F2', 'F3', 'F4', '1.', 'a'], $this->texts($pages[0]));
+        self::assertSame(['2.', 'b'], $this->texts($pages[1]));
     }
 
     public function test_header_and_footer_without_room_are_clipped_in_clip_mode(): void
