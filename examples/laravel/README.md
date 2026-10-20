@@ -6,7 +6,7 @@ Sample data lives in `data.php`; the report's table is generated filler, not mea
 
 ```
 cd packages/laravel && composer install
-php examples/laravel/render.php   # writes examples/laravel/{invoice,transcript,report}.pdf (git-ignored)
+php examples/laravel/render.php   # writes examples/laravel/{invoice,transcript,report}.{pdf,html} (the PDFs are git-ignored, the HTML is committed)
 ```
 
 `render.php` boots a throwaway app with Orchestra Testbench (a dev dependency) and registers the provider by hand.

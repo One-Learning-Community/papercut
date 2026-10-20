@@ -10,14 +10,16 @@ use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Preview\PreviewRegistry;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
-use Papercut\Export\{FidelityLevel, FidelityReport, PdfOptions};
+use Papercut\Export\{ExportOptions, FidelityLevel, FidelityReport, FontMode, HtmlOptions, PdfOptions};
 use Papercut\Style\{Style, Theme};
 use Papercut\Text\{FontFace, FontSet};
 use Papercut\Value\Color;
 
 final class PapercutManager
 {
-    private ?PdfOptions $options = null;
+    private ?ExportOptions $export = null;
+    private ?PdfOptions $pdf = null;
+    private ?HtmlOptions $html = null;
 
     public function __construct(private readonly NodeRegistry $registry, private readonly PreviewRegistry $previews)
     {
@@ -61,12 +63,23 @@ final class PapercutManager
         return new PendingDocument($doc, $this);
     }
 
-    public function pdfOptions(): PdfOptions
+    /** Options shared by every format: theme, fonts, warning sink and strict mode. */
+    public function exportOptions(): ExportOptions
     {
-        return $this->options ??= $this->buildOptions();
+        return $this->export ??= $this->buildExportOptions();
     }
 
-    private function buildOptions(): PdfOptions
+    public function pdfOptions(): PdfOptions
+    {
+        return $this->pdf ??= $this->buildPdfOptions();
+    }
+
+    public function htmlOptions(): HtmlOptions
+    {
+        return $this->html ??= $this->buildHtmlOptions();
+    }
+
+    private function buildExportOptions(): ExportOptions
     {
         $fonts = (new FontSet(array_map(
             static fn (array $face): FontFace => new FontFace($face['family'], $face['path'], $face['weight'], $face['style']),
@@ -95,6 +108,22 @@ final class PapercutManager
             }
         }
 
+        return new ExportOptions(
+            fonts: $fonts,
+            theme: $theme,
+            onWarning: static function (string $msg, ?FidelityReport $report = null): void {
+                if ($report?->level === FidelityLevel::Approximated) {
+                    logger()->debug('[papercut] ' . $msg);
+                } else {
+                    logger()->warning('[papercut] ' . $msg);
+                }
+            },
+            strict: self::strict(),
+        );
+    }
+
+    private function buildPdfOptions(): PdfOptions
+    {
         $overflow = config('papercut.overflow');
         $key = is_string($overflow) ? strtolower($overflow) : $overflow;
         if ($key !== null && $key !== 'throw' && $key !== 'clip') {
@@ -106,19 +135,35 @@ final class PapercutManager
             default => app()->environment('local', 'testing') ? OverflowMode::Throw : OverflowMode::Clip,
         };
 
+        $base = $this->exportOptions();
+
         return new PdfOptions(
-            fonts: $fonts,
-            theme: $theme,
-            onWarning: static function (string $msg, ?FidelityReport $report = null): void {
-                if ($report?->level === FidelityLevel::Approximated) {
-                    logger()->debug('[papercut] ' . $msg);
-                } else {
-                    logger()->warning('[papercut] ' . $msg);
-                }
-            },
-            strict: self::strict(),
+            theme: $base->theme(),
+            fonts: $base->fonts(),
+            onWarning: $base->onWarning(),
+            strict: $base->strict(),
             overflow: $mode,
             cacheDir: self::cacheDir(),
+        );
+    }
+
+    private function buildHtmlOptions(): HtmlOptions
+    {
+        $fonts = config('papercut.html.fonts', 'none');
+        $mode = match (is_string($fonts) ? strtolower($fonts) : null) {
+            'none' => FontMode::None,
+            'embed' => FontMode::Embed,
+            default => throw new \InvalidArgumentException('Invalid papercut.html.fonts: ' . (is_scalar($fonts) ? var_export($fonts, true) : get_debug_type($fonts)) . '; expected none or embed'),
+        };
+
+        $base = $this->exportOptions();
+
+        return new HtmlOptions(
+            theme: $base->theme(),
+            fonts: $base->fonts(),
+            onWarning: $base->onWarning(),
+            strict: $base->strict(),
+            fontMode: $mode,
         );
     }
 

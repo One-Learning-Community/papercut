@@ -35,7 +35,18 @@ strict and ours, and a typo in an attribute is an error that names the tag, not 
 return Papercut::view('pdf.transcript', compact('student', 'courses'))->pdf()->download('transcript.pdf');
 ```
 
+## One template, PDF and HTML
+
+```php
+$invoice = Papercut::view('pdf.invoice', compact('invoice'));
+
+return $invoice->pdf()->download('invoice.pdf');   // PDF
+return $invoice->html();                           // full HTML page
+// {!! $invoice->html() !!}                        // fragment inside another Blade view
+```
+
 ## Features
+
 
 - Flexbox-style layout: rows, columns, `gap`, `grow`, `justify`, `align`, spacers.
 - Page-aware tables: rows split across pages, never through a row unless a row is taller than a page.

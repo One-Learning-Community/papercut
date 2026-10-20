@@ -25,4 +25,6 @@ foreach ($data as $view => $viewData) {
     $path = __DIR__ . "/$view.pdf";
     Papercut::view($view, $viewData)->pdf()->save($path);
     echo "Wrote examples/laravel/$view.pdf\n";
+    Papercut::view($view, $viewData)->html()->save(__DIR__ . "/$view.html");
+    echo "Wrote examples/laravel/$view.html\n";
 }

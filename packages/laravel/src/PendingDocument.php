@@ -10,6 +10,7 @@ use Papercut\Document;
 final class PendingDocument
 {
     private ?PendingOutput $pdf = null;
+    private ?PendingHtml $html = null;
 
     public function __construct(private readonly Document $document, private readonly PapercutManager $manager)
     {
@@ -24,6 +25,14 @@ final class PendingDocument
     {
         return $this->pdf ??= new PendingOutput(
             fn (): \Papercut\Export\Output => $this->document->toPdf($this->manager->pdfOptions()),
+        );
+    }
+
+    public function html(): PendingHtml
+    {
+        return $this->html ??= new PendingHtml(
+            fn (): \Papercut\Export\Output => $this->document->toHtml($this->manager->htmlOptions()),
+            fn (): \Papercut\Export\Output => $this->document->toHtml($this->manager->htmlOptions()->withFullPage(true)),
         );
     }
 }

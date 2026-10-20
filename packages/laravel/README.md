@@ -67,10 +67,28 @@ This publishes `config/papercut.php`:
 | `styles` | `[]` | [Named styles](#named-styles) |
 | `overflow` | `null` | `'throw'`, `'clip'`, or `null` = throw in `local`/`testing`, clip elsewhere |
 | `strict` | `false` | `true` makes an export throw `UnsupportedFeature` for content a format cannot render, instead of dropping it with a warning. Consider `true` in tests |
+| `html.fonts` | `'none'` | Fonts in HTML output: `'none'` (a `system-ui` fallback stack, small files) or `'embed'` (base64 `@font-face`, large files) |
 | `image_path` | `null` | Base directory for relative `<x-doc::image src>`; `null` = `public_path()` |
 | `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
 | `preview.path` | `'_papercut'` | URL prefix for preview routes |
+
+## HTML output
+
+The same document exports to HTML. `->html()` shares the theme, fonts, named styles and strict setting with `->pdf()`.
+
+```php
+// A route: a full HTML page (Content-Type text/html; charset=UTF-8)
+return Papercut::view('pdf.invoice', $data)->html();
+
+// Download or save
+Papercut::view('pdf.invoice', $data)->html()->download('invoice.html');
+Papercut::view('pdf.invoice', $data)->html()->save(storage_path('invoice.html'));
+```
+
+Inside another Blade view, `{{ $doc->html() }}`, `{!! $doc->html() !!}` and `(string) $doc->html()` all give the embeddable fragment (one `.papercut` element, no `<html>`), where `$doc` is `Papercut::view(...)` or `Papercut::make($document)`. `toString()`, `save()`, `download()` and returning it from a route give the full page. HTML reports approximations through the same warning log as PDF and never drops content, so `strict` does not throw for it.
+
+Preview routes accept `?format=pdf` (default) or `?format=html`; any other value is a 404.
 
 ## Tags
 

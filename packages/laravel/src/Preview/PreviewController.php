@@ -37,6 +37,11 @@ final class PreviewController
         abort_unless(app()->isLocal(), 404);
         abort_unless($this->registry->has($view), 404);
 
-        return $this->papercut->view($view, $this->registry->data($view))->pdf()->inline();
+        $format = request()->query('format', 'pdf');
+        abort_unless($format === 'pdf' || $format === 'html', 404);
+
+        $pending = $this->papercut->view($view, $this->registry->data($view));
+
+        return $format === 'html' ? $pending->html()->toResponse(request()) : $pending->pdf()->inline();
     }
 }

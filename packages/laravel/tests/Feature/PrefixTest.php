@@ -66,4 +66,10 @@ final class PrefixTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Tag::prefix();
     }
+
+    public function test_app_components_under_doc_folder_do_not_conflict(): void
+    {
+        $node = $this->nodeFrom('<x-doc::document><x-doc::page><x-doc::text><x-doc.badge>Gold</x-doc.badge></x-doc::text></x-doc::page></x-doc::document>');
+        $this->assertStringContainsString('Badge Gold', \Papercut\Laravel\Facades\Papercut::make($node)->html()->toString());
+    }
 }

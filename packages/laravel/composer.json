@@ -60,6 +60,9 @@
             }
         }
     },
+    "scripts": {
+        "analyse": "phpstan analyse --memory-limit=1G"
+    },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {

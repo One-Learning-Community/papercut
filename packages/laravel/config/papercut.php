@@ -22,6 +22,10 @@ return [
     'image_path' => null, // null = public_path()
     // Kerning cache directory: null = sys_get_temp_dir()/papercut-cache-<uid>, false = disabled, string = path
     'cache_dir' => null,
+    'html' => [
+        // Fonts in HTML output: none (system-ui fallback stack) | embed (base64 @font-face, large)
+        'fonts' => 'none',
+    ],
     'preview' => [
         'enabled' => env('PAPERCUT_PREVIEW', false),
         'path' => '_papercut',
