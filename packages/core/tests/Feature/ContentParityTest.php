@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Tests\Feature;
 
 use Papercut\{Document, Node, Page, Text};
-use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
+use Papercut\Style\{ComputedStyle, ListMarker, StyleResolver, Theme};
 use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -82,19 +82,34 @@ final class ContentParityTest extends TestCase
         return $dom->body === null ? '' : $this->textOf($dom->body);
     }
 
-    /** textContent with a space around every block-level element, as a browser would lay it out (only span and a are inline). */
+    /**
+     * textContent with a space around every block-level element, as a browser would lay it out (only span and a are
+     * inline). List items get the marker the browser draws from CSS, since the PDF draws it as text.
+     */
     private function textOf(\Dom\Node $node): string
     {
         $text = '';
+        $number = $node instanceof \Dom\Element ? (int) ($node->getAttribute('start') ?? 1) : 1;
         foreach ($node->childNodes as $child) {
             if ($child instanceof \Dom\Text) {
                 $text .= $child->data;
             } elseif ($child instanceof \Dom\Element) {
                 $inline = in_array($child->localName, ['span', 'a'], true);
-                $text .= ($inline ? '' : ' ') . $this->textOf($child) . ($inline ? '' : ' ');
+                $marker = '';
+                if ($child->localName === 'li' && $node instanceof \Dom\Element) {
+                    $number = $child->hasAttribute('value') ? (int) $child->getAttribute('value') : $number;
+                    $marker = $this->listMarker($node)->label($number++) . ' ';
+                }
+                $text .= ($inline ? '' : ' ') . $marker . $this->textOf($child) . ($inline ? '' : ' ');
             }
         }
         return $text;
+    }
+
+    private function listMarker(\Dom\Element $list): ListMarker
+    {
+        preg_match('/list-style-type:\s*([a-z-]+)/', $list->getAttribute('style') ?? '', $m);
+        return ListMarker::tryFrom($m[1] ?? '') ?? ListMarker::Disc;
     }
 
     /** @return array<string,true> every word in every table header row of the document */

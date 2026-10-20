@@ -20,12 +20,18 @@ final class GoldenBytesTest extends TestCase
     /** @var list<string> */
     private const array EXAMPLES = ['invoice', 'transcript', 'report'];
 
+    /** @var list<string> visual fixtures that use features v0.1 did not have, so they have no v0.1 bytes to match */
+    private const array NEWER_FIXTURES = ['markup-slide'];
+
     /** @return iterable<string, array{string}> */
     public static function cases(): iterable
     {
         $files = glob(__DIR__ . '/../Visual/fixtures/*.php') ?: [];
         sort($files);
         foreach ($files as $file) {
+            if (in_array(basename($file, '.php'), self::NEWER_FIXTURES, true)) {
+                continue;
+            }
             $name = 'fixture:' . basename($file, '.php');
             yield $name => [$name];
         }
