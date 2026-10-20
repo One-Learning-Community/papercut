@@ -179,6 +179,9 @@ final class Css
         if ($s->keepTogether) {
             $d['break-inside'] = 'avoid';
         }
+        if ($s->keepWithNext && !$s->breakAfter) {
+            $d['break-after'] = 'avoid';
+        }
         if ($s->minLines !== ($parent === null ? self::rootMinLines() : $parent->minLines)) {
             $d['orphans'] = (string) $s->minLines;
             $d['widows'] = (string) $s->minLines;
@@ -200,6 +203,14 @@ final class Css
             $parts[] = $k . ':' . $v;
         }
         return implode(';', $parts);
+    }
+
+    /** Horizontal padding, border and margin of a box, in points. */
+    public static function horizontalEdges(ComputedStyle $s): float
+    {
+        return $s->padding->left->points + $s->padding->right->points
+            + $s->borderWidth->left->points + $s->borderWidth->right->points
+            + $s->margin->left->points + $s->margin->right->points;
     }
 
     private static function zero(Edges $e): bool

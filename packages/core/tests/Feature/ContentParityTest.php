@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{Document, Page};
+use Papercut\{Document, Node, Page, Text};
+use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
+use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function Papercut\pt;
 
-/** The words pdftotext finds in the PDF equal the words in the HTML text (body only: no header, footer or background). */
+/**
+ * The words pdftotext finds in the PDF equal the words in the HTML text, counted with multiplicity (body only: no header, footer or background).
+ * Table header rows repeat on every PDF page, which HTML has no equivalent of, so words that appear in any header row are left out of both sides.
+ */
 final class ContentParityTest extends TestCase
 {
     /** @return iterable<string, array{string}> */
@@ -34,14 +39,18 @@ final class ContentParityTest extends TestCase
     }
 
     #[DataProvider('documents')]
-    public function test_pdf_and_html_have_the_same_words(string $file): void
+    public function test_pdf_and_html_have_the_same_word_multisets(string $file): void
     {
         $source = require $file;
         self::assertInstanceOf(Document::class, $source);
         $pages = array_map(static fn (Page $p): Page => Page::size(pt($p->width()), pt($p->height()))->margin($p->margins())->body(...$p->bodyNodes()), $source->pages());
         $document = Document::make(...$pages);
 
-        self::assertSame($this->words($this->pdfText($document)), $this->words($this->htmlText($document)));
+        $headerWords = $this->headerWords($document);
+        self::assertSame(
+            $this->words($this->pdfText($document), $headerWords),
+            $this->words($this->htmlText($document), $headerWords),
+        );
     }
 
     #[DataProvider('documents')]
@@ -88,15 +97,69 @@ final class ContentParityTest extends TestCase
         return $text;
     }
 
-    /** @return list<string> */
-    private function words(string $text): array
+    /** @return array<string,true> every word in every table header row of the document */
+    private function headerWords(Document $document): array
+    {
+        $collector = new class implements TreeVisitor {
+            /** @var array<string,true> */
+            public array $words = [];
+
+            public function enterPage(Page $page, int $index): void
+            {
+            }
+
+            public function leavePage(Page $page, int $index): void
+            {
+            }
+
+            public function enterRegion(Region $region, ComputedStyle $root): void
+            {
+            }
+
+            public function leaveRegion(Region $region): void
+            {
+            }
+
+            public function enter(Node $node, ComputedStyle $style, Visit $at): bool
+            {
+                if ($node instanceof Text && $at->inHeader()) {
+                    foreach ($node->spanList() as $span) {
+                        foreach (preg_split('/\s+/u', trim(str_replace('-', '', $span->text)), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $w) {
+                            $this->words[$w] = true;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            public function leave(Node $node, ComputedStyle $style, Visit $at): void
+            {
+            }
+        };
+        (new TreeWalker(new StyleResolver(Theme::default())))->walk($document, $collector);
+
+        return $collector->words;
+    }
+
+    /**
+     * @param array<string,true> $skip words removed from the count
+     * @return array<string,int> word => occurrences, sorted by word
+     */
+    private function words(string $text, array $skip): array
     {
         // pdftotext dehyphenates a hyphenated word that wraps at the hyphen ("break-after" becomes "breakafter"), which
-        // the HTML text cannot show, so hyphens are ignored on both sides. This is the only normalisation applied.
+        // the HTML text cannot show, so hyphens are ignored on both sides.
         $text = str_replace('-', '', $text);
         $words = preg_split('/\s+/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        $words = array_values(array_unique($words));
-        sort($words, SORT_STRING);
-        return $words;
+        $counts = [];
+        foreach ($words as $w) {
+            if (!isset($skip[$w])) {
+                $counts[$w] = ($counts[$w] ?? 0) + 1;
+            }
+        }
+        ksort($counts, SORT_STRING);
+
+        return $counts;
     }
 }

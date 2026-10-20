@@ -42,6 +42,9 @@ Migration from v0.1:
 - Config key `papercut.html.fonts` (`none` default, or `embed`).
 - Preview routes accept `?format=pdf|html`; any other value is a 404.
 - `Papercut::exportOptions()` (shared theme, fonts, warnings, strict) and `Papercut::htmlOptions()`; `pdfOptions()` builds on the shared options.
+- `HtmlOptions` (`fullPage`, `fontMode`, `imageUrl`, `fontUrl`), `FontMode` (`None`, `Embed`, `Link`) and the `imageUrl` / `fontUrl` callbacks: images embed as data URIs unless `imageUrl` returns a safe URL; fonts embed or link per `FontMode`.
+- `onWarning` callbacks are arity-aware: a one-parameter callback gets the message only, a callback with a second parameter also gets the `FidelityReport`.
+- A table cell outside a table (not in a row) is laid out as a column and warns `A table cell outside a table is laid out as a column`, in both PDF and HTML.
 - `Papercut\Tree\Visit`: `TreeVisitor` callbacks now receive a `Visit` (path, index, parent, header and region context) instead of loose arguments.
 
 ## [0.1.0] - unreleased

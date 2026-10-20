@@ -145,7 +145,7 @@ final class HtmlExporterTest extends TestCase
     public function test_page_number_is_omitted_silently(): void
     {
         $reports = [];
-        $doc = Document::make(Page::a4()->body(Text::make('x'))->footer(PageNumber::make()));
+        $doc = Document::make(Page::a4()->body(Text::make('x'))->footer(PageNumber::make('Page {page}')));
         $html = $this->html($doc, new HtmlOptions(onWarning: function (string $m) use (&$reports): void {
             $reports[] = $m;
         }));
@@ -319,8 +319,14 @@ final class HtmlExporterTest extends TestCase
 
     public function test_stylesheet_uses_first_page_box(): void
     {
-        $html = $this->html($this->simple());
+        $html = $this->html($this->simple(), new HtmlOptions(fullPage: true));
         self::assertStringContainsString('@page{size:595.28pt 841.89pt;margin:56.693pt 56.693pt 56.693pt 56.693pt}', $html);
         self::assertStringContainsString('max-width:595.28pt;min-height:841.89pt;padding:56.693pt', $html);
+        self::assertStringContainsString('.papercut tr{break-inside:avoid}', $html);
+    }
+
+    public function test_fragment_style_has_no_page_rule(): void
+    {
+        self::assertStringNotContainsString('@page', $this->html($this->simple()));
     }
 }

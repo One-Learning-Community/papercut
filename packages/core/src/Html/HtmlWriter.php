@@ -7,7 +7,7 @@ namespace Papercut\Html;
 use Papercut\{Document, Image, Link, Node, Page, PageBreak, PageNumber, Spacer, Table, TableCell, TableRow, Text, View};
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
-use Papercut\Style\ComputedStyle;
+use Papercut\Style\{ComputedStyle, Justify};
 use Papercut\Value\{Auto, Fr, Length, Percent};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
 
@@ -28,6 +28,12 @@ final class HtmlWriter implements TreeVisitor
     private \WeakMap $strays;
     /** @var array<string,true> */
     private array $families = [];
+    /** @var list<float> horizontal padding, border and margin of each open node */
+    private array $edges = [];
+    /** Content width of the current region's page, in points. */
+    private float $regionWidth = 0.0;
+    /** Open block links and span-link-bearing paragraphs inside them; an inner link cannot be an anchor. */
+    private int $linkDepth = 0;
 
     public function __construct(
         Document $doc,
@@ -81,6 +87,9 @@ final class HtmlWriter implements TreeVisitor
     public function enterRegion(Region $region, ComputedStyle $root): void
     {
         $this->styles = [$root];
+        $this->edges = [];
+        $m = $this->page?->margins();
+        $this->regionWidth = $this->page === null || $m === null ? 0.0 : max(0.0, $this->page->width() - $m->left->points - $m->right->points);
         $this->families[$root->fontFamily] = true;
         $style = match ($region) {
             Region::Header => ' style="margin-bottom:' . Css::pt($this->page?->headerGapLength()->points ?? 0.0) . '"',
@@ -114,6 +123,7 @@ final class HtmlWriter implements TreeVisitor
             default => throw new \LogicException('HTML export of ' . $node->debugName() . ' is not supported'),
         };
         $this->styles[] = $style;
+        $this->edges[] = Css::horizontalEdges($style);
         $this->closers[] = $closer;
 
         return true;
@@ -122,6 +132,10 @@ final class HtmlWriter implements TreeVisitor
     public function leave(Node $node, ComputedStyle $style, Visit $at): void
     {
         array_pop($this->styles);
+        array_pop($this->edges);
+        if ($node instanceof Link) {
+            $this->linkDepth--;
+        }
         if ($node instanceof Table) {
             $open = array_pop($this->sections);
             $this->out .= $open === null ? '' : '</' . $open . '>';
@@ -156,8 +170,12 @@ final class HtmlWriter implements TreeVisitor
         $tag = in_array($t->preset(), ['h1', 'h2', 'h3', 'h4'], true) ? $t->preset() : 'p';
         $decls = [...Css::box($s), ...$this->textCss($s, $parent), ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent)];
         $this->out .= '<' . $tag . self::styleAttr($decls) . '>';
+        $nested = false;
         foreach ($t->spanList() as $span) {
-            $override = $this->span($span, $s) || $override;
+            $override = $this->span($span, $s, $nested) || $override;
+        }
+        if ($nested) {
+            $this->fidelity->approximated('nested link', $at->path());
         }
         if ($override) {
             $this->fidelity->approximated('text decoration override', $at->path());
@@ -167,7 +185,7 @@ final class HtmlWriter implements TreeVisitor
     }
 
     /** @return bool whether the span turns off a decoration the paragraph has on */
-    private function span(\Papercut\Span $span, ComputedStyle $text): bool
+    private function span(\Papercut\Span $span, ComputedStyle $text, bool &$nested): bool
     {
         if ($span->lineBreak) {
             $this->out .= '<br>';
@@ -180,7 +198,14 @@ final class HtmlWriter implements TreeVisitor
             $body = '<span' . self::styleAttr($diff) . '>' . $body . '</span>';
         }
         if ($span->href !== null) {
-            $body = '<a href="' . self::esc(self::href($span->href)) . '">' . $body . '</a>';
+            $href = self::href($span->href);
+            if ($this->linkDepth > 0) {
+                // An anchor inside an anchor is restructured by HTML parsers: keep the text and styles, lose the inner link.
+                $nested = true;
+                $body = $diff === [] ? '<span>' . $body . '</span>' : $body;
+            } else {
+                $body = '<a href="' . self::esc($href) . '">' . $body . '</a>';
+            }
         }
         $this->out .= $body;
 
@@ -191,7 +216,15 @@ final class HtmlWriter implements TreeVisitor
     {
         $href = self::href($l->uri());
         $this->checkDecoration($s, $parent, $at->path());
-        $decls = ['display' => 'flex', 'flex-direction' => 'column', ...Css::box($s), ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent), ...$this->textCss($s, $parent)];
+        $decls = [...Css::box($s), ...Css::flexContainer($s), 'flex-direction' => 'column', ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent), ...$this->textCss($s, $parent)];
+        if ($this->linkDepth > 0) {
+            $this->fidelity->approximated('nested link', $at->path());
+            $this->linkDepth++;
+            $this->out .= '<span class="pc-link"' . self::styleAttr($decls) . '>';
+
+            return '</span>';
+        }
+        $this->linkDepth++;
         $this->out .= '<a class="pc-link" href="' . self::esc($href) . '"' . self::styleAttr($decls) . '>';
 
         return '</a>';
@@ -230,6 +263,10 @@ final class HtmlWriter implements TreeVisitor
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);
         $tracks = self::tracks($n);
+        $given = $n->trackList()?->count();
+        if ($given !== null && $given !== count($tracks)) {
+            $this->fidelity->warn(sprintf('[%s] Table has %d columns but %d tracks', $at->path(), count($tracks), $given));
+        }
         $fixed = 0.0;
         $percent = 0.0;
         $frs = 0.0;
@@ -241,6 +278,7 @@ final class HtmlWriter implements TreeVisitor
         if ($frs > 0.0) {
             $this->fidelity->approximated('fr column widths', $at->path());
         }
+        $est = max(0.0, $this->regionWidth - array_sum($this->edges) - Css::horizontalEdges($s));
         $hasAuto = in_array(true, array_map(static fn (object $t): bool => $t instanceof Auto, $tracks), true);
         if ($hasAuto) {
             $this->fidelity->approximated('auto column widths', $at->path());
@@ -258,7 +296,7 @@ final class HtmlWriter implements TreeVisitor
             $width = match (true) {
                 $t instanceof Length => Css::pt($t->points),
                 $t instanceof Percent => Css::num($t->value) . '%',
-                $t instanceof Fr => $hasAuto ? null : self::frWidth($fixed, $percent, $t->value / $frs),
+                $t instanceof Fr => $hasAuto ? null : self::frWidth($fixed, $percent, $t->value / $frs, $est),
                 default => null,
             };
             $this->out .= '<col' . self::styleAttr($width === null ? [] : ['width' => $width]) . '>';
@@ -269,11 +307,12 @@ final class HtmlWriter implements TreeVisitor
         return '</table>';
     }
 
-    private static function frWidth(float $fixed, float $percent, float $share): string
+    /** A plain percentage of the table: browsers ignore a calc() mixing % and pt on a col, so fixed tracks are converted at the estimated width. */
+    private static function frWidth(float $fixed, float $percent, float $share, float $estimate): string
     {
-        $minus = ($fixed > 0.0 ? ' - ' . Css::pt($fixed) : '') . ($percent > 0.0 ? ' - ' . Css::num($percent) . '%' : '');
+        $fixedPercent = $estimate > 0.0 ? $fixed / $estimate * 100 : 0.0;
 
-        return ($minus === '' ? 'calc(100%' : 'calc((100%' . $minus . ')') . ' * ' . Css::num($share) . ')';
+        return Css::num($share * max(0.0, 100 - $percent - $fixedPercent)) . '%';
     }
 
     /**
@@ -310,7 +349,12 @@ final class HtmlWriter implements TreeVisitor
             array_pop($this->sections);
             $this->sections[] = $want;
         }
-        $this->out .= '<tr' . self::styleAttr([...Css::box($s), ...$this->textCss($s, $parent)]) . '>';
+        $box = Css::box($s);
+        if (isset($box['padding'])) {
+            unset($box['padding']);
+            $this->fidelity->approximated('row padding', $at->path());
+        }
+        $this->out .= '<tr' . self::styleAttr([...$box, ...$this->textCss($s, $parent)]) . '>';
 
         return '</tr>';
     }
@@ -325,9 +369,17 @@ final class HtmlWriter implements TreeVisitor
         $this->checkDecoration($s, $parent, $at->path());
         $tag = $n->header() ? 'th' : 'td';
         $span = $n->span() > 1 ? ' colspan="' . $n->span() . '"' : '';
-        $this->out .= '<' . $tag . $span . self::styleAttr([...Css::box($s), ...$this->textCss($s, $parent)]) . '>';
+        $td = [...Css::box($s), ...$this->textCss($s, $parent)];
+        if ($s->justify === Justify::Center) {
+            $td['vertical-align'] = 'middle';
+        } elseif ($s->justify === Justify::End) {
+            $td['vertical-align'] = 'bottom';
+        }
+        // The cell's children are laid out as a column; a td cannot be a flex container, so a div inside it is.
+        $column = array_diff_key(Css::flexContainer($s), ['display' => 1, 'flex-direction' => 1]);
+        $this->out .= '<' . $tag . $span . self::styleAttr($td) . '><div' . self::styleAttr(['display' => 'flex', 'flex-direction' => 'column', ...$column]) . '>';
 
-        return '</' . $tag . '>';
+        return '</div></' . $tag . '>';
     }
 
     /** A cell outside a table is laid out as a column; it becomes a div and warns like the PDF layout does. */
@@ -349,7 +401,7 @@ final class HtmlWriter implements TreeVisitor
     {
         $p = $at->parent();
 
-        return $p === null || $p instanceof View || $p instanceof Link || ($p instanceof TableCell && isset($this->strays[$p]));
+        return $p === null || $p instanceof View || $p instanceof Link || $p instanceof TableCell;
     }
 
     /** CSS cannot switch off a decoration an ancestor drew, so turning one off is only approximated. */

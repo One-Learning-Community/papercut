@@ -86,7 +86,7 @@ Papercut::view('pdf.invoice', $data)->html()->download('invoice.html');
 Papercut::view('pdf.invoice', $data)->html()->save(storage_path('invoice.html'));
 ```
 
-Inside another Blade view, `{{ $doc->html() }}`, `{!! $doc->html() !!}` and `(string) $doc->html()` all give the embeddable fragment (one `.papercut` element, no `<html>`), where `$doc` is `Papercut::view(...)` or `Papercut::make($document)`. `toString()`, `save()`, `download()` and returning it from a route give the full page. HTML reports approximations through the same warning log as PDF and never drops content, so `strict` does not throw for it.
+Inside another Blade view, `{{ $doc->html() }}`, `{!! $doc->html() !!}` and `(string) $doc->html()` all give the embeddable fragment (one `.papercut` element, no `<html>`), where `$doc` is `Papercut::view(...)` or `Papercut::make($document)`. `toString()`, `save()`, `download()` and returning it from a route give the full page. HTML reports approximations through the same warning log as PDF. Every approximation is reported (for example fr column widths, the page box, and header and footer once per page), and HTML reports nothing as dropped, so `strict` does not throw for it.
 
 Preview routes accept `?format=pdf` (default) or `?format=html`; any other value is a 404.
 

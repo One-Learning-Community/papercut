@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Html;
 
+use Papercut\Backend\PhpPdf\PhpPdfBackend;
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Image;
 use Papercut\Paint\Link;
@@ -37,6 +38,13 @@ final class ImageSource
         } else {
             $bytes = $value;
             $mime = self::mime($bytes) ?? throw new ImageUnreadable('Cannot read image bytes: Unsupported image format (expected PNG or JPEG).');
+        }
+
+        if (@getimagesizefromstring($bytes) === false) {
+            // Ask the PDF backend's own parser, so both formats refuse a corrupt image with the same exception and text.
+            $backend = new PhpPdfBackend(false);
+            $kind === 'file' ? $backend->loadImageFile($value) : $backend->loadImageBytes($bytes);
+            throw new ImageUnreadable($kind === 'file' ? sprintf('Cannot read image "%s": Invalid image data', $value) : 'Cannot read image bytes: Invalid image data');
         }
 
         return 'data:' . $mime . ';base64,' . base64_encode($bytes);

@@ -110,7 +110,7 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
 - `PdfOptions extends ExportOptions`: `backend`, `cacheDir`, `overflow: OverflowMode`. This replaces `RenderOptions`.
 - `HtmlOptions extends ExportOptions`:
   - `fullPage: bool = false`
-  - `fontMode: FontMode = none` (`none`|`embed`|`link`; Laravel config key `html.fonts`). `embed` and `link` are opt-in.
+  - `fontMode: FontMode = none` (`none`|`embed`|`link`). `embed` and `link` are opt-in. The Laravel config key `html.fonts` accepts `none` or `embed`; `link` needs the `fontUrl` callback and is set through the PHP API.
   - `fontUrl: ?Closure(FontFace): ?string`: used by `link`; a null return skips that face.
   - `imageUrl: ?Closure(Image): ?string` (null, or a null return, means embed as a data URI)
 - `DocxOptions extends ExportOptions`: no extra settings in 0.2.0.
@@ -277,7 +277,7 @@ return Papercut::view('invoices.show', $data)->html();   // full-page response
 - `PendingHtml extends PendingOutput` also implements `Htmlable`. `toHtml()` returns the fragment. `toResponse()` returns the full page.
 - `->docx()` without `papercut/docx` installed throws `MissingExporter`.
 - **Tags:** `<x-doc::*>`. The prefix is the config key `papercut.prefix` (default `doc`); the service provider registers the component namespace from it. App components in `components/doc/` (`<x-doc.foo>`) do not conflict.
-- **Config additions:** `prefix`, `strict` (default `false`; the docs suggest `true` in tests), `html.fonts` (`embed|link|none`). Laravel's `onWarning` logs `Dropped` as a warning and `Approximated` as debug.
+- **Config additions:** `prefix`, `strict` (default `false`; the docs suggest `true` in tests), `html.fonts` (`none|embed`; `link` is available through the PHP API only). Laravel's `onWarning` logs `Dropped` as a warning and `Approximated` as debug.
 - **Preview route:** `/_papercut/{view}?format=pdf|html|docx` (default `pdf`).
 
 ### 8.3 Migration from v0.1

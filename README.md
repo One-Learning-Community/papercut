@@ -47,7 +47,6 @@ return $invoice->html();                           // full HTML page
 
 ## Features
 
-
 - Flexbox-style layout: rows, columns, `gap`, `grow`, `justify`, `align`, spacers.
 - Page-aware tables: rows split across pages, never through a row unless a row is taller than a page.
 - Repeated table headers on every page a table crosses.

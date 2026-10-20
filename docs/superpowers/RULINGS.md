@@ -78,3 +78,34 @@ Plan: docs/superpowers/plans/2026-10-19-multi-format-phase0-seams.md. Each entry
 - Add a test that app components `<x-doc.foo>` don't conflict with `<x-doc::*>` (spec §8.2).
 - Add a `composer analyse` script to packages/laravel.
 - Deferred test polish: PdfExporterTest cacheDir and WidthResolver fresh-engine assertions are vacuous; `PdfOptions::from` is tested only for theme; the renders-once test doesn't prove `pdf()` memoization; overflow/cache_dir tests are duplicated across HardeningTest and OptionsFromConfigTest; cell defaults are duplicated in `resolveInTable` and `TableLayouter::prepare` (add an equality test); golden test ignores example warnings when exit code is 0.
+
+# Rulings made during multi-format Phase 1 (HTML exporter), 2026-10-19
+
+Plan: docs/superpowers/plans/2026-10-19-multi-format-phase1-html.md. Each entry: what was decided — why — cost if wrong.
+
+## p1-html
+- Ruling: implementers on Sonnet 5.5, all reviews on Opus 5.5 — maintainer instruction — cost if wrong: none
+- Ruling: a TableCell outside a table renders in HTML as a column `<div>` and emits the same plain warning as PDF ("A table cell outside a table is laid out as a column") — mirrors PDF — cost if wrong: small markup change
+- Ruling: spacers — fixed `flex:0 0 {size}pt`, flexible `flex:{grow} 0 0` — matches PDF — cost if wrong: none
+- Ruling: the upstream php-docx PR also makes the writer emit `w:keepNext` (php-docx read it but never wrote it) — Papercut's keep-with-next mapping depends on it — cost if wrong: larger upstream PR
+- Ruling: a test that couldn't fail (`cacheDir: false`) was replaced with one that checks the default cache directory, proved by a deliberate break — cost if wrong: none
+- Ruling: `Css::pagination` diffs `minLines` against the parent (like text properties), so custom themes don't emit orphans/widows on every node — cost if wrong: none
+- Ruling: a child turning underline/strike off under a decorated parent can't be undone in CSS; HTML reports Approximated `text decoration override` (once per paragraph) — honest reporting — cost if wrong: an extra debug log line
+- Ruling: HTML link errors carry no node path, so they equal PDF's message exactly (spec §5.4); PDF validates links at paint time, where no path exists — cost if wrong: HTML link errors less locatable (idea: validate link URIs when nodes are built, so every format fails early)
+- Ruling: tables — `<table>`/`<tr>` carry their text styles; fr widths subtract percent tracks too; tables with an `auto` track use `table-layout:auto`; image and stray-row errors match PDF text exactly — PDF parity — cost if wrong: none
+- Ruling: refused `imageUrl` results (empty, `//`, `/\`, `javascript:` …) embed the image and warn — cost if wrong: none
+- Ruling: fallback font families count as used for `@font-face` in embed/link modes — PDF uses them for missing glyphs; both modes are opt-in — cost if wrong: larger embedded HTML with big fallback fonts
+- Ruling: the committed HTML example renders link fonts by relative path (KB, not 2.2 MB of base64); the unpushed commit that had the blobs was recreated — cost if wrong: renders show Inter only from a checkout
+- Ruling: fr columns are plain percentages computed from an estimated table width (page content width minus ancestor and own box edges) — Chrome ignores mixed `%`/`pt` `calc()` on `<col>`; verified exact in headless Chrome for top-level and padded tables — cost if wrong: Length-vs-fr ratio approximate for tables inside fixed/percent-width ancestors or flex rows (reported)
+- Ruling: real table cells lay out as columns (wrapper flex div); cell justify maps to `vertical-align`; row padding is reported, not emitted; block Links keep their flex props; nested links render as `<span>` and are reported — PDF lays cells and links out as column Views — cost if wrong: an extra wrapper div per cell
+- Ruling: content parity compares word multisets with table-header-row words removed from both sides — header rows repeat per page in PDF (n/a in HTML); mutation-checked to catch every dropped body row — cost if wrong: a body row made only of header words could drop undetected
+- Ruling: cheap reviewer Minors were folded into fix rounds where they touched the same lines — cost if wrong: none
+
+## Carry-overs for the Phase 2 plan
+- **Parked:** an image with a valid header but truncated data embeds as a broken `<img>` in HTML while PDF throws. Fix: validate every image through the `Backend` interface (`loadImageBytes`/`loadImageFile`) from a shared default backend factory; drop the `getimagesizefromstring()` gate and the hard-coded `PhpPdfBackend` in `ImageSource`.
+- Ask the maintainer: `PendingHtml` has `(string) $html` = fragment but `toString()` = full page (documented and tested). Consider explicit `fragment()`/`page()` methods before the 0.2.0 freeze.
+- Laravel has no per-call options hook, so `imageUrl`, `fontUrl` and `link` font mode are PHP-API only.
+- Add HTML (and DOCX) timings to the bench (spec §9).
+- Make WidthResolver the single source for track counting (HtmlWriter duplicates TableLayouter's rule); `FontSet::effectiveFaces()` to share face dedupe between FontRegistry and FontFaces.
+- WidthResolver carry-overs from Phase 0 still apply: node-path context for warnings, a cache policy for non-PDF exports, a `flexLines` direction guard.
+- Minor: cell `justify` space-between/around has no effect in HTML and isn't reported; PDF's "Table columns need X but only Y" warning isn't mirrored (needs layout widths); `table()`/`tableRow()` skip the decoration-override check; the reused-cell stray warning edge case; the render.php `fontUrl` should return null for faces outside the repo.

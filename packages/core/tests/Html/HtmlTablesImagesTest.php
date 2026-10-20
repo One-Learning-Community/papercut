@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Html;
 
-use Papercut\{Column, Document, Image, Page, Table, TableCell, TableRow, Text};
+use Papercut\{Column, Document, Image, Link, Page, Spacer, Table, TableCell, TableRow, Text};
+use Papercut\Html\Css;
+use Papercut\Style\{Direction, Justify};
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Export\{HtmlOptions, PdfOptions};
 use Papercut\Style\ImageFit;
@@ -84,7 +86,7 @@ final class HtmlTablesImagesTest extends TestCase
         self::assertCount(2, $this->xpath($html, '//colgroup/col'));
         $html = $this->html($this->body(Table::make()->columns('10pt')->row('a', 'b')));
         $cols = $this->xpath($html, '//colgroup/col');
-        self::assertSame('width:calc((100% - 10pt) * 1)', $this->style($cols[1]));
+        self::assertSame('width:' . Css::num(100 - 10 / $this->contentWidth() * 100) . '%', $this->style($cols[1]));
     }
 
     public function test_header_row_cells_are_th_and_bold_from_theme(): void
@@ -104,8 +106,8 @@ final class HtmlTablesImagesTest extends TestCase
     {
         $inner = Table::make()->columns('1fr')->row('deep');
         $html = $this->html($this->body(Table::make()->columns('1fr 1fr')->row(Column::make(Text::make('one'), Text::make('two')), $inner)));
-        self::assertCount(2, $this->xpath($html, '//td[1]/div/p'));
-        self::assertCount(1, $this->xpath($html, '//td[2]/table/tbody/tr/td'));
+        self::assertCount(2, $this->xpath($html, '//td[1]/div/div/p'));
+        self::assertCount(1, $this->xpath($html, '//td[2]/div/table/tbody/tr/td'));
         self::assertCount(1, $this->xpath($html, '//table//table'));
     }
 
@@ -208,10 +210,10 @@ final class HtmlTablesImagesTest extends TestCase
         self::assertStringContainsString('width:50pt', $this->style($imgs[2]));
     }
 
-    public function test_image_inside_cell_has_no_flex_item_declarations(): void
+    public function test_image_inside_cell_gets_flex_item_declarations_from_the_wrapper(): void
     {
         $html = $this->html($this->body(Table::make()->columns('1fr')->row(Image::bytes(TestImages::png())->grow(1))));
-        self::assertStringNotContainsString('flex:', $this->style($this->xpath($html, '//td/img')[0]));
+        self::assertStringContainsString('flex:1 1 auto', $this->style($this->xpath($html, '//td/div/img')[0]));
     }
 
     public function test_stray_cell_renders_as_div_and_warns_like_pdf(): void
@@ -250,17 +252,187 @@ final class HtmlTablesImagesTest extends TestCase
         self::assertNull($stray[0][1]);
     }
 
-    public function test_fr_widths_subtract_length_and_percent_tracks(): void
+    private function contentWidth(): float
+    {
+        $page = Page::a4();
+        return $page->width() - $page->margins()->left->points - $page->margins()->right->points;
+    }
+
+    public function test_fr_widths_are_plain_percentages_of_what_the_other_tracks_leave(): void
     {
         $cols = $this->xpath($this->html($this->body(Table::make()->columns('25% 1fr')->row('a', 'b'))), '//col');
         self::assertSame('width:25%', $this->style($cols[0]));
-        self::assertSame('width:calc((100% - 25%) * 1)', $this->style($cols[1]));
-        $cols = $this->xpath($this->html($this->body(Table::make()->columns('30mm 25% 2fr 1fr')->row('a', 'b', 'c', 'd'))), '//col');
-        self::assertSame('width:calc((100% - 85.039pt - 25%) * 0.667)', $this->style($cols[2]));
-        self::assertSame('width:calc((100% - 85.039pt - 25%) * 0.333)', $this->style($cols[3]));
+        self::assertSame('width:75%', $this->style($cols[1]));
         $cols = $this->xpath($this->html($this->body(Table::make()->columns('1fr 1fr')->row('a', 'b'))), '//col');
-        self::assertSame('width:calc(100% * 0.5)', $this->style($cols[0]));
+        self::assertSame('width:50%', $this->style($cols[0]));
         self::assertStringNotContainsString('table-layout', $this->style($this->xpath($this->html($this->body(Table::make()->columns('1fr')->row('a'))), '//table')[0]));
+    }
+
+    public function test_length_fr_mix_at_page_level_gives_exact_percentages(): void
+    {
+        $cols = $this->xpath($this->html($this->body(Table::make()->columns('30mm 2fr 1fr')->row('a', 'b', 'c'))), '//col');
+        $left = 100 - (30 * 72 / 25.4) / $this->contentWidth() * 100;
+        self::assertSame('width:85.039pt', $this->style($cols[0]));
+        self::assertSame('width:' . Css::num($left * 2 / 3) . '%', $this->style($cols[1]));
+        self::assertSame('width:' . Css::num($left / 3) . '%', $this->style($cols[2]));
+    }
+
+    public function test_estimated_width_subtracts_ancestor_and_own_edges(): void
+    {
+        $table = Table::make()->columns('30pt 1fr')->padding(pt(5))->row('a', 'b');
+        $doc = $this->body(Column::make($table)->padding(pt(10))->margin(pt(2)));
+        $est = $this->contentWidth() - 2 * 10 - 2 * 2 - 2 * 5;
+        $cols = $this->xpath($this->html($doc), '//col');
+        self::assertSame('width:' . Css::num(100 - 30 / $est * 100) . '%', $this->style($cols[1]));
+    }
+
+    public function test_no_col_mixes_percent_and_pt_anywhere(): void
+    {
+        $files = [...(glob(__DIR__ . '/../Visual/fixtures/*.php') ?: []), ...(glob(__DIR__ . '/../../../../examples/core/documents/*.php') ?: [])];
+        self::assertNotSame([], $files);
+        $cols = 0;
+        foreach ($files as $file) {
+            $doc = require $file;
+            self::assertInstanceOf(Document::class, $doc);
+            foreach ($this->xpath($this->html($doc), '//col') as $col) {
+                $cols++;
+                $style = $this->style($col);
+                self::assertFalse(str_contains($style, '%') && str_contains($style, 'pt'), $file . ': ' . $style);
+                self::assertStringNotContainsString('calc', $style);
+            }
+        }
+        self::assertGreaterThan(0, $cols);
+    }
+
+    public function test_cell_children_sit_in_a_column_wrapper_that_counts_as_flex(): void
+    {
+        $cell = TableCell::make(Text::make('a'), Spacer::size(pt(12)), Text::make('b'))->attributes(['gap' => pt(4), 'justify' => Justify::Center]);
+        $html = $this->html($this->body(Table::make()->columns('1fr')->row($cell)));
+        $td = $this->xpath($html, '//td')[0];
+        self::assertStringContainsString('vertical-align:middle', $this->style($td));
+        $wrap = $this->xpath($html, '//td/div')[0];
+        self::assertSame('display:flex;flex-direction:column;gap:4pt;justify-content:center', $this->style($wrap));
+        self::assertCount(1, $this->xpath($html, '//td/div/div[@style="flex:0 0 12pt"]'));
+        $end = $this->html($this->body(Table::make()->columns('1fr')->row(TableCell::make('x')->attributes(['justify' => Justify::End]))));
+        self::assertStringContainsString('vertical-align:bottom', $this->style($this->xpath($end, '//td')[0]));
+    }
+
+    public function test_row_padding_is_dropped_and_reported(): void
+    {
+        $messages = [];
+        $html = $this->html($this->body(Table::make()->columns('1fr')->bodyRow(TableRow::make('a')->padding(pt(6)))), new HtmlOptions(onWarning: function (string $m) use (&$messages): void {
+            $messages[] = $m;
+        }));
+        self::assertStringNotContainsString('padding', $this->style($this->xpath($html, '//tr')[0]));
+        self::assertCount(1, array_filter($messages, static fn (string $m): bool => str_contains($m, 'row padding')));
+        $none = [];
+        $this->html($this->body(Table::make()->columns('1fr')->row('a')), new HtmlOptions(onWarning: function (string $m) use (&$none): void {
+            $none[] = $m;
+        }));
+        self::assertCount(0, array_filter($none, static fn (string $m): bool => str_contains($m, 'row padding')));
+    }
+
+    public function test_block_link_keeps_flex_container_props_as_a_column(): void
+    {
+        $html = $this->html($this->body(Link::to('https://example.com', Text::make('a'), Text::make('b'))->attributes(['gap' => pt(3), 'justify' => Justify::Center, 'direction' => Direction::Row])));
+        $a = $this->xpath($html, '//a')[0];
+        self::assertSame('display:flex;flex-direction:column;gap:3pt;justify-content:center', $this->style($a));
+    }
+
+    public function test_nested_links_render_one_anchor_and_one_report(): void
+    {
+        $messages = [];
+        $doc = $this->body(Link::to('https://outer.example', Text::spans(\Papercut\Span::text('plain '), new \Papercut\Span('inner', href: 'https://inner.example'), new \Papercut\Span(' more', href: 'https://inner2.example'))));
+        $html = $this->html($doc, new HtmlOptions(onWarning: function (string $m) use (&$messages): void {
+            $messages[] = $m;
+        }));
+        $warnings = [];
+        set_error_handler(static function (int $no, string $str) use (&$warnings): bool {
+            $warnings[] = $str;
+            return true;
+        });
+        try {
+            $parsed = \Dom\HTMLDocument::createFromString('<!DOCTYPE html><html><head><title>t</title></head><body>' . $html . '</body></html>');
+        } finally {
+            restore_error_handler();
+        }
+        self::assertSame([], $warnings);
+        self::assertCount(1, $parsed->getElementsByTagName('a'));
+        self::assertCount(1, $this->xpath($html, '//a'));
+        self::assertSame('https://outer.example', $this->xpath($html, '//a')[0]->getAttribute('href'));
+        self::assertCount(0, $this->xpath($html, '//a//a'));
+        self::assertSame('plain inner more', $this->xpath($html, '//a')[0]->textContent);
+        $nested = array_values(array_filter($messages, static fn (string $m): bool => str_contains($m, 'nested link')));
+        self::assertCount(1, $nested);
+        self::assertStringContainsString('page > body > link[0] > text[0]', $nested[0]);
+    }
+
+    public function test_block_link_inside_block_link_is_a_span(): void
+    {
+        $messages = [];
+        $doc = $this->body(Link::to('https://a.example', Link::to('https://b.example', Text::make('x'))));
+        $html = $this->html($doc, new HtmlOptions(onWarning: function (string $m) use (&$messages): void {
+            $messages[] = $m;
+        }));
+        self::assertCount(1, $this->xpath($html, '//a'));
+        self::assertCount(1, $this->xpath($html, '//a/span[@class="pc-link"]'));
+        self::assertCount(1, array_filter($messages, static fn (string $m): bool => str_contains($m, 'nested link')));
+        // A sibling link after the nest is a real anchor again.
+        $after = $this->html($this->body(Link::to('https://a.example', Link::to('https://b.example', 'x')), Link::to('https://c.example', 'y')));
+        self::assertCount(2, $this->xpath($after, '//a'));
+    }
+
+    public function test_track_count_mismatch_warns_like_pdf(): void
+    {
+        $doc = $this->body(Table::make()->columns('10pt 20pt 30pt')->row('a', 'b'));
+        $htmlW = [];
+        $this->html($doc, new HtmlOptions(onWarning: function (string $m) use (&$htmlW): void {
+            $htmlW[] = $m;
+        }));
+        $pdfW = [];
+        $doc->toPdf(new PdfOptions(onWarning: function (string $m) use (&$pdfW): void {
+            $pdfW[] = $m;
+        }));
+        $f = static fn (array $l): array => array_values(array_filter($l, static fn (string $m): bool => str_contains($m, 'columns but')));
+        self::assertCount(1, $f($pdfW));
+        self::assertSame($f($pdfW), $f($htmlW));
+    }
+
+    public function test_corrupt_images_with_valid_magic_bytes_throw_like_pdf(): void
+    {
+        // The HTML path asks the PDF backend's parser why, so the text is identical for every corruption it can detect.
+        // Not covered: a file getimagesizefromstring() accepts but the PDF parser refuses (e.g. unsupported PNG variants);
+        // HTML would embed those as the browser can show them.
+        foreach (["\x89PNG\r\n\x1a\n garbage", "\xFF\xD8\xFF garbage"] as $bytes) {
+            $doc = $this->body(Image::bytes($bytes));
+            $messages = [];
+            foreach (['toHtml', 'toPdf'] as $m) {
+                try {
+                    $doc->$m();
+                    self::fail($m . ' did not throw');
+                } catch (ImageUnreadable $e) {
+                    $messages[] = $e->getMessage();
+                }
+            }
+            self::assertSame($messages[1], $messages[0]);
+        }
+        $path = tempnam(sys_get_temp_dir(), 'pc') ?: throw new \RuntimeException('tmp');
+        file_put_contents($path, "\x89PNG\r\n\x1a\n garbage");
+        try {
+            $doc = $this->body(Image::file($path));
+            $messages = [];
+            foreach (['toHtml', 'toPdf'] as $m) {
+                try {
+                    $doc->$m();
+                } catch (ImageUnreadable $e) {
+                    $messages[] = $e->getMessage();
+                }
+            }
+            self::assertCount(2, $messages);
+            self::assertSame($messages[1] ?? null, $messages[0] ?? null);
+        } finally {
+            unlink($path);
+        }
     }
 
     public function test_table_and_row_text_styles_cascade(): void

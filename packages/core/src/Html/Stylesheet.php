@@ -16,6 +16,7 @@ final class Stylesheet
         $w = $page === null ? 595.28 : $page->width();
         $h = $page === null ? 841.89 : $page->height();
         $m = $page === null ? '0pt' : self::margins($page->margins());
+        $pageRule = $o->fullPage() ? '@page{size:' . Css::pt($w) . ' ' . Css::pt($h) . ';margin:' . $m . '}' : null;
 
         return $fontFaces . implode("\n", [
             '.papercut{background:#e5e7eb;padding:24px 0}',
@@ -29,8 +30,8 @@ final class Stylesheet
             '.papercut .pc-header,.papercut .pc-body,.papercut .pc-footer,.papercut .pc-background{display:flex;flex-direction:column;align-items:stretch}',
             '.papercut .pc-background{position:absolute;inset:0;z-index:-1}',
             '.papercut .pc-break{break-before:page}',
-            '@page{size:' . Css::pt($w) . ' ' . Css::pt($h) . ';margin:' . $m . '}',
-            '@media print{.papercut{background:none;padding:0}.papercut .pc-page{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none;break-after:page}}',
+            ...($pageRule === null ? [] : [$pageRule]),
+            '@media print{.papercut{background:none;padding:0}.papercut .pc-page{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none;break-after:page}.papercut tr{break-inside:avoid}}',
         ]);
     }
 

@@ -11,6 +11,7 @@ use Papercut\Node;
  */
 final readonly class Visit
 {
+    /** @internal Built by TreeWalker only. */
     public function __construct(
         private string $path,
         private int $index,
@@ -37,7 +38,7 @@ final readonly class Visit
         return $this->parent;
     }
 
-    /** True for a header TableRow and everything inside it. */
+    /** True within the nearest table's header rows: a header TableRow and everything inside it. */
     public function inHeader(): bool
     {
         return $this->inHeader;
