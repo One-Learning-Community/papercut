@@ -28,6 +28,15 @@ final class FontRegistry
             ->register('Inter', "$dir/Inter-BoldItalic.ttf", 700, FontStyle::Italic);
     }
 
+    public static function fromSet(FontSet $set, Backend $backend): self
+    {
+        $registry = self::withDefaults($backend);
+        foreach ($set->faces as $face) {
+            $registry->register($face->family, $face->path, $face->weight, $face->style);
+        }
+        return $registry;
+    }
+
     public function register(string $family, string $path, int $weight = 400, FontStyle $style = FontStyle::Normal): self
     {
         if ($weight < 1 || $weight > 1000) {

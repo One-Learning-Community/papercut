@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut;
 
-use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
-use Papercut\Paint\{DocumentMeta, Painter};
+use Papercut\Export\{ExportOptions, Exporter, Output, PdfExporter, PdfOptions};
+use Papercut\Paint\DocumentMeta;
 
 final class Document
 {
@@ -85,56 +85,13 @@ final class Document
         return new DocumentMeta($this->title, $this->author, $this->subject, $this->keywords, $this->lang, $this->createdAt);
     }
 
-    /**
-     * Lays out, paints and renders the document to PDF bytes.
-     *
-     * The font registry is built on the same backend instance that renders. A custom
-     * registry created on a different backend makes the PhpPdf backend throw LogicException.
-     */
-    public function render(?RenderOptions $options = null): string
+    public function export(Exporter $exporter, ?ExportOptions $options = null): Output
     {
-        $options ??= new RenderOptions();
-        $backend = $options->backend();
-        $ctx = new LayoutContext($options->fonts($backend), $options->theme(), $backend, $options->overflow, $options->onWarning, $options->fallbackFamilies);
-        $placed = (new Paginator(new LayoutEngine($ctx), $ctx))->paginate($this);
-
-        return $backend->render($this->meta(), Painter::paint($placed));
+        return $exporter->export($this, $options ?? $exporter->defaultOptions());
     }
 
-    public function toString(?RenderOptions $options = null): string
+    public function toPdf(?PdfOptions $options = null): Output
     {
-        return $this->render($options);
-    }
-
-    public function save(string $path, ?RenderOptions $options = null): void
-    {
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            throw new \RuntimeException("Directory does not exist: $dir");
-        }
-        $bytes = $this->render($options);
-        error_clear_last();
-        $written = @file_put_contents($path, $bytes);
-        if ($written === false || $written < strlen($bytes)) {
-            $error = error_get_last()['message'] ?? sprintf('wrote %d of %d bytes', (int) $written, strlen($bytes));
-            throw new \RuntimeException(sprintf('Could not write PDF to "%s": %s', $path, $error));
-        }
-    }
-
-    /** Writes the PDF to php://output and returns the number of bytes written. */
-    public function stream(?RenderOptions $options = null): int
-    {
-        $bytes = $this->render($options);
-        $out = fopen('php://output', 'wb');
-        if ($out === false) {
-            throw new \RuntimeException('Could not open php://output');
-        }
-        $written = fwrite($out, $bytes);
-        fclose($out);
-        if ($written === false || $written < strlen($bytes)) {
-            throw new \RuntimeException(sprintf('Could not write PDF to php://output: wrote %d of %d bytes', (int) $written, strlen($bytes)));
-        }
-
-        return $written;
+        return $this->export(new PdfExporter(), $options);
     }
 }

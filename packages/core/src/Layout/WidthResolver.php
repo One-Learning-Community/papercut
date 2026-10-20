@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Table, View};
+use Papercut\{OverflowMode, Table, View};
+use Papercut\Backend\PhpPdf\PhpPdfBackend;
+use Papercut\Export\ExportOptions;
+use Papercut\Text\FontRegistry;
 use Papercut\Style\ComputedStyle;
 
 /**
@@ -15,6 +18,26 @@ final class WidthResolver
 {
     public function __construct(private readonly LayoutEngine $engine)
     {
+    }
+
+    /**
+     * A resolver over a fresh layout context and engine, never shared with a PDF render:
+     * table column warnings fire once per engine and must not be swallowed here.
+     */
+    public static function for(ExportOptions $options): self
+    {
+        $backend = new PhpPdfBackend();
+        $fonts = $options->fonts();
+        $ctx = new LayoutContext(
+            FontRegistry::fromSet($fonts, $backend),
+            $options->theme(),
+            $backend,
+            OverflowMode::Throw,
+            $options->onWarning(),
+            $fonts->fallbacks,
+        );
+
+        return new self(new LayoutEngine($ctx));
     }
 
     /**

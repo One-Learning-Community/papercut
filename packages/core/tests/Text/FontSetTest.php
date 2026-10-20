@@ -1,0 +1,33 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Papercut\Tests\Text;
+
+use Papercut\Text\{FontFace, FontRegistry, FontSet, FontStyle};
+use Papercut\Tests\Support\FakeBackend;
+use PHPUnit\Framework\TestCase;
+
+final class FontSetTest extends TestCase
+{
+    private const string INTER = __DIR__ . '/../../resources/fonts/Inter/Inter-Regular.ttf';
+
+    public function test_registry_from_set_has_inter_and_custom_faces_and_fallbacks(): void
+    {
+        $set = (new FontSet())->with(new FontFace('Brand', self::INTER, 700, FontStyle::Italic))->withFallbacks('Inter', 'Brand');
+        self::assertSame(['Inter', 'Brand'], $set->fallbacks);
+        $registry = FontRegistry::fromSet($set, new FakeBackend());
+        self::assertTrue($registry->has('Inter'));
+        self::assertTrue($registry->has('Brand'));
+        self::assertContains(['family' => 'Brand', 'weight' => 700, 'style' => FontStyle::Italic, 'path' => realpath(self::INTER)], $registry->faces());
+    }
+
+    public function test_set_is_immutable(): void
+    {
+        $a = new FontSet();
+        $b = $a->with(new FontFace('X', self::INTER))->withFallbacks('X');
+        self::assertSame([], $a->faces);
+        self::assertSame([], $a->fallbacks);
+        self::assertCount(1, $b->faces);
+    }
+}

@@ -7,7 +7,7 @@ namespace Papercut\Laravel;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Str;
 use Papercut\Document;
-use Papercut\RenderOptions;
+use Papercut\Export\PdfOptions;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -15,13 +15,13 @@ final class PendingPdf implements Responsable
 {
     private ?string $rendered = null;
 
-    public function __construct(private readonly Document $document, private readonly RenderOptions $options)
+    public function __construct(private readonly Document $document, private readonly PdfOptions $options)
     {
     }
 
     public function toString(): string
     {
-        return $this->rendered ??= $this->document->render($this->options);
+        return $this->rendered ??= $this->document->toPdf($this->options)->bytes();
     }
 
     public function save(string $path): self

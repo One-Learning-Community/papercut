@@ -15,7 +15,7 @@ PHP 8.4+, `ext-mbstring`, `ext-zlib`, `ext-dom`. The only Composer dependency is
 ## Quick start
 
 Every example below is a complete snippet that leaves a `Papercut\Document` in `$document` (and, where needed, a
-`RenderOptions` in `$options`); the test suite runs each one (`tests/Feature/ReadmeTest.php`). Real code would end with `$document->save('out.pdf')`.
+`PdfOptions` in `$options`); the test suite runs each one (`tests/Feature/ReadmeTest.php`). Real code would end with `$document->toPdf()->save('out.pdf')`.
 
 ```php
 use Papercut\{Column, Document, Page, Text};
@@ -31,7 +31,7 @@ $document = Document::make(
 )->title('Hello');
 ```
 
-Output: `$document->save($path)`, `$document->render()` / `toString()` (a string of PDF bytes) or `stream()`
+Output: `$document->toPdf()` returns an `Output`: `->save($path)`, `->bytes()` (a string of PDF bytes) or `->stream()`
 (writes to output, returns the byte count).
 
 ## Elements
@@ -43,7 +43,7 @@ Output: `$document->save($path)`, `$document->render()` / `toString()` (a string
 | `Row::make(...)`, `Column::make(...)` | Flex containers (horizontal, vertical). |
 | `Spacer::flex()`, `Spacer::size($length)` | Flexible or fixed gap. |
 | `Text::make()`, `h1`-`h4`, `p`, `markup()`, `spans()` | Text, with inline spans. |
-| `Image::file()`, `bytes()`, `handle()` | Raster images, `fit()` modes. |
+| `Image::file()`, `bytes()` | Raster images, `fit()` modes. |
 | `Link::to($uri, ...$children)` | A clickable region around children. |
 | `Table::make()` | Page-aware table. |
 | `PageNumber::make('Page {page} of {total}')` | Page number and page count. |
@@ -91,7 +91,8 @@ Colours are `Color` values or strings: hex (`'#336699'`) or the bundled Tailwind
 Named styles live in the `Theme`; apply one by name:
 
 ```php
-use Papercut\{Column, Document, Page, RenderOptions, Text};
+use Papercut\{Column, Document, Page, Text};
+use Papercut\Export\PdfOptions;
 use Papercut\Style\{Style, Theme};
 use Papercut\Value\Color;
 use function Papercut\{mm, pt};
@@ -106,10 +107,10 @@ $document = Document::make(
         )->gap(pt(6)),
     ),
 );
-$options = new RenderOptions(theme: $theme); // pass to save()/render()
+$options = new PdfOptions(theme: $theme); // pass to toPdf()
 ```
 
-Pass `RenderOptions` as the second argument to `render()`, `toString()`, `save()` and `stream()`.
+Pass `PdfOptions` to `toPdf()`.
 
 ## Text and inline markup
 
@@ -233,21 +234,20 @@ $document = Document::make(
 ## Fonts
 
 Inter (Regular, Bold, Italic, BoldItalic) is bundled, subset and embedded; the 14 standard PDF fonts are never
-used. Register your own families on a `FontRegistry`, pick them with `font()`, and list fallback families for glyphs
+used. Add your own families with a `FontSet` of `FontFace`s, pick them with `font()`, and list fallback families for glyphs
 the primary font lacks.
 
 ```php
-use Papercut\{Column, Document, Page, RenderOptions, Text};
-use Papercut\Backend\PhpPdf\PhpPdfBackend;
-use Papercut\Text\{FontRegistry, FontStyle};
+use Papercut\{Column, Document, Page, Text};
+use Papercut\Export\PdfOptions;
+use Papercut\Text\{FontFace, FontRegistry, FontSet};
 use function Papercut\{mm, pt};
 
-$backend = new PhpPdfBackend();
-$fonts = FontRegistry::withDefaults($backend);
-// Register your own family (path to a TTF), here reusing the bundled file under another name:
+// Add your own family (paths to TTFs), here reusing the bundled files under another name:
 $inter = dirname((new ReflectionClass(FontRegistry::class))->getFileName(), 3) . '/resources/fonts/Inter';
-$fonts->register('Brand', $inter . '/Inter-Regular.ttf', 400, FontStyle::Normal);
-$fonts->register('Brand', $inter . '/Inter-Bold.ttf', 700, FontStyle::Normal);
+$fonts = (new FontSet())
+    ->with(new FontFace('Brand', $inter . '/Inter-Regular.ttf', 400), new FontFace('Brand', $inter . '/Inter-Bold.ttf', 700))
+    ->withFallbacks('Inter');
 
 $document = Document::make(
     Page::a4()->margin(mm(20))->body(
@@ -257,8 +257,8 @@ $document = Document::make(
         )->gap(pt(8)),
     ),
 );
-$options = new RenderOptions(backend: $backend, fonts: $fonts, fallbackFamilies: ['Inter']);
-// $document->save('out.pdf', $options);
+$options = new PdfOptions(fonts: $fonts);
+// $document->toPdf($options)->save('out.pdf');
 ```
 
 The backend shapes and reorders text within a single drawn run (kerning, ligatures). Right-to-left and bidirectional
@@ -275,11 +275,12 @@ unwritable directory, a symlinked or foreign-owned one, a corrupt file) falls ba
 output is identical either way.
 
 ```php
-use Papercut\{Document, Page, RenderOptions, Text};
+use Papercut\{Document, Page, Text};
+use Papercut\Export\PdfOptions;
 
 $document = Document::make(Page::a4()->body(Text::make('Hello')));
-$options = new RenderOptions(cacheDir: '/var/cache/myapp/papercut'); // your own directory
-$options = new RenderOptions(cacheDir: false);                       // no disk cache
+$options = new PdfOptions(cacheDir: '/var/cache/myapp/papercut'); // your own directory
+$options = new PdfOptions(cacheDir: false);                       // no disk cache
 ```
 
 ## Errors
@@ -294,7 +295,7 @@ Every error extends `Papercut\PapercutException` and says what is wrong and wher
 | `ImageUnreadable` | A file or bytes that are not a supported image. |
 | `LayoutOverflow` | Content that cannot fit on an empty page. |
 
-By default overflow throws. `new RenderOptions(overflow: OverflowMode::Clip)` clips instead and reports through
+By default overflow throws. `new PdfOptions(overflow: OverflowMode::Clip)` clips instead and reports through
 `onWarning`.
 
 ```php

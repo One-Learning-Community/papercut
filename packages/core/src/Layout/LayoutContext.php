@@ -84,9 +84,6 @@ final class LayoutContext
     {
         $source = $node->source();
         $value = $source['value'];
-        if ($value instanceof ImageHandle) {
-            return $value;
-        }
         if ($source['kind'] === 'file') {
             return $this->images['file:' . $value] ??= $this->backend->loadImageFile($value);
         }

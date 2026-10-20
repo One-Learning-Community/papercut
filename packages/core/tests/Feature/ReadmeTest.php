@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  * Executes every fenced ```php block of packages/core/README.md so the guide cannot rot.
  * Convention: a block is a complete snippet (it may start with `use` lines) that leaves a
  * Papercut\Document in `$document`
- * (and optionally a RenderOptions in `$options`); the harness saves it to a temp file and validates it.
+ * (and optionally a PdfOptions in `$options`); the harness saves it to a temp file and validates it.
  */
 final class ReadmeTest extends TestCase
 {
@@ -44,7 +44,7 @@ final class ReadmeTest extends TestCase
         $pdfPath = $dir . '/out.pdf';
         $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
         file_put_contents($script, "<?php\ndeclare(strict_types=1);\nrequire " . var_export($autoload, true) . ";\n"
-            . $code . "\n\$document->save(" . var_export($pdfPath, true) . ", \$options ?? null);\n");
+            . $code . "\n\$document->toPdf(\$options ?? null)->save(" . var_export($pdfPath, true) . ");\n");
 
         $output = [];
         $exit = -1;

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{Column, Document, Page, PageNumber, RenderOptions, Row, Spacer, Table, Text};
+use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, Text};
 use Papercut\Backend\PhpPdf\PhpPdfBackend;
+use Papercut\Export\PdfOptions;
 use Papercut\Style\Theme;
-use Papercut\Text\FontRegistry;
 use Papercut\Tests\Support\PdfInspector;
 use PHPUnit\Framework\TestCase;
 
@@ -32,7 +32,7 @@ final class EndToEndTest extends TestCase
 
     public function test_multi_page_transcript(): void
     {
-        $pdf = $this->transcript(120)->toString();
+        $pdf = $this->transcript(120)->toPdf()->bytes();
         PdfInspector::check($pdf);
         $pages = (int) PdfInspector::info($pdf)['Pages'];
         self::assertGreaterThanOrEqual(2, $pages);
@@ -48,14 +48,14 @@ final class EndToEndTest extends TestCase
 
     public function test_deterministic(): void
     {
-        self::assertSame($this->transcript(30)->toString(), $this->transcript(30)->toString());
+        self::assertSame($this->transcript(30)->toPdf()->bytes(), $this->transcript(30)->toPdf()->bytes());
     }
 
     public function test_save(): void
     {
         $path = sys_get_temp_dir() . '/papercut-e2e-' . getmypid() . '.pdf';
         try {
-            $this->transcript(5)->save($path);
+            $this->transcript(5)->toPdf()->save($path);
             self::assertFileExists($path);
             PdfInspector::check((string) file_get_contents($path));
         } finally {
@@ -67,48 +67,42 @@ final class EndToEndTest extends TestCase
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Directory does not exist');
-        $this->transcript(1)->save(sys_get_temp_dir() . '/papercut-no-such-dir-' . getmypid() . '/x.pdf');
+        $this->transcript(1)->toPdf()->save(sys_get_temp_dir() . '/papercut-no-such-dir-' . getmypid() . '/x.pdf');
     }
 
     public function test_stream_writes_output_and_returns_byte_count(): void
     {
         $doc = $this->transcript(5);
-        $expected = $doc->render();
+        $expected = $doc->toPdf()->bytes();
         ob_start();
-        $n = $doc->stream();
+        $n = $doc->toPdf()->stream();
         $out = (string) ob_get_clean();
         self::assertSame(strlen($expected), $n);
         self::assertSame($expected, $out);
-    }
-
-    public function test_render_and_to_string_are_equivalent(): void
-    {
-        $doc = $this->transcript(3);
-        self::assertSame($doc->render(), $doc->toString());
     }
 
     public function test_save_failure_names_the_path_and_the_error(): void
     {
         $path = sys_get_temp_dir(); // a directory: the write itself fails
         try {
-            $this->transcript(1)->save($path);
+            $this->transcript(1)->toPdf()->save($path);
             self::fail('saved');
         } catch (\RuntimeException $e) {
-            self::assertStringStartsWith(sprintf('Could not write PDF to "%s": ', $path), $e->getMessage());
-            self::assertGreaterThan(strlen(sprintf('Could not write PDF to "%s": ', $path)), strlen($e->getMessage()));
+            self::assertStringStartsWith(sprintf('Could not write output to "%s": ', $path), $e->getMessage());
+            self::assertGreaterThan(strlen(sprintf('Could not write output to "%s": ', $path)), strlen($e->getMessage()));
         }
     }
 
     public function test_render_with_custom_options(): void
     {
         $doc = Document::make(Page::a5()->body(Text::make('Hello options')))->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z'));
-        $default = $doc->render();
-        $themed = $doc->render(new RenderOptions(theme: Theme::default()->with(fontSize: 20.0)));
+        $default = $doc->toPdf()->bytes();
+        $themed = $doc->toPdf(new PdfOptions(theme: Theme::default()->with(fontSize: 20.0)))->bytes();
         PdfInspector::check($themed);
         self::assertNotSame($default, $themed);
 
         $backend = new PhpPdfBackend();
-        $pdf = $doc->render(new RenderOptions(backend: $backend, fonts: FontRegistry::withDefaults($backend)));
+        $pdf = $doc->toPdf(new PdfOptions(backend: $backend))->bytes();
         PdfInspector::check($pdf);
         self::assertStringContainsString('Hello options', PdfInspector::text($pdf));
     }

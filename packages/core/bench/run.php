@@ -15,11 +15,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $runs = max(1, (int) ($argv[1] ?? 5));
 $build = static fn (): Papercut\Document => require __DIR__ . '/transcript.php';
 
-$pdf = $build()->render(); // warm-up: autoload, OPcache, font parsing
+$pdf = $build()->toPdf()->bytes(); // warm-up: autoload, OPcache, font parsing
 $times = [];
 for ($i = 0; $i < $runs; $i++) {
     $start = hrtime(true);
-    $pdf = $build()->render();
+    $pdf = $build()->toPdf()->bytes();
     $times[] = (hrtime(true) - $start) / 1e6;
 }
 

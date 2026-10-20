@@ -210,7 +210,7 @@ final class HardeningTest extends TestCase
 
     public function test_cache_dir_config_reaches_render_options(): void
     {
-        $options = static function (mixed $value): \Papercut\RenderOptions {
+        $options = static function (mixed $value): \Papercut\Export\PdfOptions {
             config(['papercut.cache_dir' => $value]);
             app()->forgetInstance(PdfManager::class);
             Pdf::clearResolvedInstances();
@@ -273,7 +273,7 @@ final class HardeningTest extends TestCase
     public function test_facade_docblock_has_single_options_line(): void
     {
         $src = (string) file_get_contents(__DIR__ . '/../../src/Facades/Pdf.php');
-        self::assertSame(1, substr_count($src, 'static \Papercut\RenderOptions options()'));
+        self::assertSame(1, substr_count($src, 'static \Papercut\Export\PdfOptions options()'));
     }
 
     public function test_link_accepts_stringable_and_rejects_bad_href(): void
@@ -351,7 +351,7 @@ final class HardeningTest extends TestCase
     public function test_on_warning_writes_to_log(): void
     {
         $spy = Log::spy();
-        $cb = Pdf::options()->onWarning;
+        $cb = Pdf::options()->onWarning();
         self::assertNotNull($cb);
         $cb('careful');
         $spy->shouldHaveReceived('warning')->with('[papercut] careful')->once();

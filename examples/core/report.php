@@ -119,5 +119,5 @@ $document = Document::make(
         ->footer(PageNumber::make('{page} / {total}')->center()->size(pt(8))->color('slate-500')),
 )->title('Designing Papercut')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
 
-$document->save(__DIR__ . '/report.pdf');
+$document->toPdf()->save(__DIR__ . '/report.pdf');
 echo "Wrote examples/core/report.pdf\n";

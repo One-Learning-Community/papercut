@@ -2,47 +2,47 @@
 
 declare(strict_types=1);
 
-namespace Papercut;
+namespace Papercut\Export;
 
 use Papercut\Backend\Backend;
 use Papercut\Backend\PhpPdf\PhpPdfBackend;
+use Papercut\OverflowMode;
 use Papercut\Style\Theme;
-use Papercut\Text\FontRegistry;
+use Papercut\Text\FontSet;
 
-final readonly class RenderOptions
+final readonly class PdfOptions extends ExportOptions
 {
+    private ?Backend $backend;
+
     /**
-     * @param list<string> $fallbackFamilies families tried, in order, for glyphs the primary font lacks
+     * @param (\Closure(string, ?FidelityReport=): void)|null $onWarning
      * @param string|false|null $cacheDir directory for the default backend's font kerning cache
      *        (null = sys_get_temp_dir()/papercut-cache-<uid>, false = no disk cache); ignored when $backend is given
      */
     public function __construct(
-        private ?Backend $backend = null,
-        private ?FontRegistry $fonts = null,
-        private ?Theme $theme = null,
+        ?Theme $theme = null,
+        ?FontSet $fonts = null,
+        ?\Closure $onWarning = null,
+        bool $strict = false,
+        ?Backend $backend = null,
         public OverflowMode $overflow = OverflowMode::Throw,
-        public ?\Closure $onWarning = null,
-        public array $fallbackFamilies = [],
         public string|false|null $cacheDir = null,
     ) {
+        parent::__construct($theme, $fonts, $onWarning, $strict);
+        $this->backend = $backend;
     }
 
     /**
      * Returns the given backend, or a new PhpPdfBackend on each call.
-     * Callers (Document::render) should call this once and reuse the result.
+     * Callers should call this once and reuse the result.
      */
     public function backend(): Backend
     {
         return $this->backend ?? new PhpPdfBackend($this->cacheDir);
     }
 
-    public function fonts(Backend $backend): FontRegistry
+    public static function from(ExportOptions $o): self
     {
-        return $this->fonts ?? FontRegistry::withDefaults($backend);
-    }
-
-    public function theme(): Theme
-    {
-        return $this->theme ?? Theme::default();
+        return $o instanceof self ? $o : new self($o->theme(), $o->fonts(), $o->onWarning(), $o->strict);
     }
 }

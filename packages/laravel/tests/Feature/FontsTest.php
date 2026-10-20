@@ -78,14 +78,14 @@ final class FontsTest extends TestCase
 
         $options = Pdf::options();
 
-        $this->assertTrue($options->fonts($options->backend())->has('Brand'));
+        $this->assertTrue(\Papercut\Text\FontRegistry::fromSet($options->fonts(), $options->backend())->has('Brand'));
     }
 
     public function testOptionsForwardFallbackFonts(): void
     {
         $this->configure([], ['Brand']);
 
-        $this->assertSame(['Brand'], Pdf::options()->fallbackFamilies);
+        $this->assertSame(['Brand'], Pdf::options()->fonts()->fallbacks);
     }
 
     /** @return iterable<string, array{array<mixed>, string}> */

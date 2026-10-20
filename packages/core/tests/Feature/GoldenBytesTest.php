@@ -69,7 +69,7 @@ final class GoldenBytesTest extends TestCase
 
     private function pdfBytes(Document $d): string
     {
-        return $d->render();
+        return $d->toPdf()->bytes();
     }
 
     public function test_golden_keys_match_the_cases_exactly(): void

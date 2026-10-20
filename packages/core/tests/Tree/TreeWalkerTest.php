@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Tree;
 
-use Papercut\{Component, Document, Node, Page, PageNumber, RenderOptions, Row, Table, TableCell, Text};
+use Papercut\{Component, Document, Node, Page, PageNumber, Row, Table, TableCell, Text};
+use Papercut\Export\PdfOptions;
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Value\Color;
 use Papercut\Tests\Support\FakeBackend;
@@ -89,7 +90,7 @@ final class TreeWalkerTest extends TestCase
     public function test_bad_named_style_in_cell_matches_pdf_error(): void
     {
         $doc = Document::make(Page::a4()->body(Table::make()->row(TableCell::make('x')->apply('nope'))));
-        $pdfMsg = self::messageOf(fn () => $doc->render(new RenderOptions(backend: new FakeBackend())));
+        $pdfMsg = self::messageOf(fn () => $doc->toPdf(new PdfOptions(backend: new FakeBackend())));
         $walkMsg = self::messageOf(fn () => $this->walk($doc));
         self::assertNotSame('', $pdfMsg);
         self::assertSame($pdfMsg, $walkMsg);
@@ -98,7 +99,7 @@ final class TreeWalkerTest extends TestCase
     public function test_bad_named_style_in_body_view_matches_pdf_error(): void
     {
         $doc = Document::make(Page::a4()->body(Row::make(Text::make('x')->apply('nope'))));
-        $pdfMsg = self::messageOf(fn () => $doc->render(new RenderOptions(backend: new FakeBackend())));
+        $pdfMsg = self::messageOf(fn () => $doc->toPdf(new PdfOptions(backend: new FakeBackend())));
         self::assertNotSame('', $pdfMsg);
         self::assertSame($pdfMsg, self::messageOf(fn () => $this->walk($doc)));
     }

@@ -108,5 +108,5 @@ $document = Document::make(
 )->title('Invoice INV-2026-0142')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));
 
 $path = __DIR__ . '/invoice.pdf';
-$document->save($path);
+$document->toPdf()->save($path);
 echo "Wrote examples/core/invoice.pdf\n";

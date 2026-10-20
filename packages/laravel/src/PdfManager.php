@@ -11,14 +11,14 @@ use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Preview\PreviewRegistry;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
-use Papercut\RenderOptions;
+use Papercut\Export\PdfOptions;
 use Papercut\Style\{Style, Theme};
-use Papercut\Text\FontRegistry;
+use Papercut\Text\{FontFace, FontSet};
 use Papercut\Value\Color;
 
 final class PdfManager
 {
-    private ?RenderOptions $options = null;
+    private ?PdfOptions $options = null;
 
     public function __construct(private readonly NodeRegistry $registry, private readonly PreviewRegistry $previews)
     {
@@ -62,18 +62,18 @@ final class PdfManager
         return new PendingPdf($doc, $this->options());
     }
 
-    public function options(): RenderOptions
+    public function options(): PdfOptions
     {
         return $this->options ??= $this->buildOptions();
     }
 
-    private function buildOptions(): RenderOptions
+    private function buildOptions(): PdfOptions
     {
         $backend = new PhpPdfBackend(self::cacheDir());
-        $fonts = FontRegistry::withDefaults($backend);
-        foreach (FontConfig::faces() as $face) {
-            $fonts->register($face['family'], $face['path'], $face['weight'], $face['style']);
-        }
+        $fonts = (new FontSet(array_map(
+            static fn (array $face): FontFace => new FontFace($face['family'], $face['path'], $face['weight'], $face['style']),
+            FontConfig::faces(),
+        )))->withFallbacks(...FontConfig::fallbacks());
 
         $cfg = (array) config('papercut.theme', []);
         try {
@@ -108,12 +108,11 @@ final class PdfManager
             default => app()->environment('local', 'testing') ? OverflowMode::Throw : OverflowMode::Clip,
         };
 
-        return new RenderOptions(
+        return new PdfOptions(
             backend: $backend,
             fonts: $fonts,
             theme: $theme,
             overflow: $mode,
-            fallbackFamilies: FontConfig::fallbacks(),
             cacheDir: self::cacheDir(),
             onWarning: static function (string $msg): void {
                 logger()->warning('[papercut] ' . $msg);
