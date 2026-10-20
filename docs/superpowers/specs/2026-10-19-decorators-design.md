@@ -251,7 +251,7 @@ Names and starting values *(my call; the maintainer can tune them by eye)*. Colo
 | Name | Style |
 |---|---|
 | `card` | border 1pt `slate-300`, radius 4pt, gap 0 |
-| `card.title` | padding 6pt 10pt, background `slate-100`, bottom border 1pt `slate-300`, bold |
+| `card.title` | padding 6pt 10pt, background `slate-100`, radius 3pt (the card radius less its border), bottom border 1pt `slate-300`, bold |
 | `card.body` | padding 10pt, gap 6pt |
 | `callout` | padding 8pt 10pt, left border 3pt, radius 2pt, gap 4pt |
 | `callout.note` / `.tip` / `.warning` / `.danger` | border `sky-500` / `emerald-500` / `amber-500` / `red-500`; background the `-50` shade |
@@ -268,7 +268,8 @@ Names and starting values *(my call; the maintainer can tune them by eye)*. Colo
 | `field` | border 1pt `slate-300`, radius 3pt, padding 5pt 7pt |
 | `field.label` | font size 9pt, colour `slate-600` |
 | `field.placeholder` | italic, colour `slate-400` |
-| `choice` | gap 4pt (list); row gap 6pt |
+| `choice` | gap 4pt (list) |
+| `choice.option` | gap 6pt (each option row: marker and label) |
 | `choice.marker` | 9pt × 9pt, border 1pt `slate-400`, radius 1.5pt, margin-top 2.5pt (centres it on a 14pt line), centres its mark |
 | `choice.marker.radio` | radius 4.5pt |
 | `choice.marker.selected` | border `slate-800` |
@@ -277,7 +278,7 @@ Names and starting values *(my call; the maintainer can tune them by eye)*. Colo
 | `key-value` | no borders, cell padding 2pt 12pt 2pt 0 |
 | `key-value.label` | colour `slate-600` |
 | `key-value.value` | padding 2pt 0 |
-| `badge` | padding 1.5pt 6pt, radius 8pt, font size 9pt, bold |
+| `badge` | align-self start, padding 1.5pt 6pt, radius 8pt, font size 9pt, bold |
 | `badge.neutral` / `.note` / `.tip` / `.warning` / `.danger` | background `slate-100` / `sky-100` / `emerald-100` / `amber-100` / `red-100`; colour the `-800` shade |
 
 `font-size` only takes absolute lengths, so "smaller" text uses 9pt against the default theme's 10pt. An app with a

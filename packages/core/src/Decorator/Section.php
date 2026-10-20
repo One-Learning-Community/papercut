@@ -35,14 +35,14 @@ final class Section implements Decorator
     public function title(string|Node|Component $title): self
     {
         $clone = clone $this;
-        $clone->title = $title;
+        $clone->title = is_string($title) && trim($title) === '' ? null : $title;
         return $clone;
     }
 
     public function number(string|int $n): self
     {
         $clone = clone $this;
-        $clone->number = $n;
+        $clone->number = is_string($n) && trim($n) === '' ? null : $n;
         return $clone;
     }
 

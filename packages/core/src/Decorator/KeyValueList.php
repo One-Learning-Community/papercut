@@ -30,6 +30,13 @@ final class KeyValueList implements Decorator
         return $list;
     }
 
+    public function add(KeyValuePair ...$pairs): self
+    {
+        $clone = clone $this;
+        $clone->pairs = [...$this->pairs, ...array_values($pairs)];
+        return $clone;
+    }
+
     public function row(string|Node|Component $label, string|Node|Component $value): self
     {
         $clone = clone $this;

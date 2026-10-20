@@ -94,6 +94,13 @@ final class ThemeTest extends TestCase
         }
     }
 
+    public function test_with_style_rejects_whitespace_in_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("'my style'");
+        Theme::default()->withStyle('my style', Style::make());
+    }
+
     public function test_empty_name_throws(): void
     {
         $this->expectException(UnknownAttribute::class);

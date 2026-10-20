@@ -64,6 +64,7 @@ $responseItems = [
         ['I could follow the material without preparation.', 'Agree', 'note'],
         ['The workshop was long enough to cover the topics in depth.', 'Disagree', 'warning'],
     ]],
+    ['type' => 'quote', 'text' => 'I came for the PDFs and stayed for the pagination.', 'cite' => 'Jane Smith, closing round'],
 ];
 
 return [

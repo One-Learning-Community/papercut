@@ -28,6 +28,26 @@ final class FieldTest extends TestCase
         self::assertCount(1, $box->children());
     }
 
+    public function test_labelled_field_style_goes_on_outer_column_not_box(): void
+    {
+        $outer = Field::make('x')->label('L')->padding(pt(9))->apply('mine')->render();
+
+        self::assertSame(9.0, $outer->style()->padding?->top->points);
+        self::assertStringContainsString('mine', (string) $outer->styleName());
+        $box = $outer->children()[1];
+        self::assertInstanceOf(View::class, $box);
+        self::assertSame('field', $box->styleName());
+        self::assertNull($box->style()->padding);
+    }
+
+    public function test_blank_label_is_unset(): void
+    {
+        $box = Field::make('x')->label('  ')->render();
+
+        self::assertSame('field', $box->styleName());
+        self::assertCount(1, $box->children());
+    }
+
     public function test_label_wraps_box_in_column(): void
     {
         $outer = Field::make('Ada')->label('Name')->apply('mine')->render();

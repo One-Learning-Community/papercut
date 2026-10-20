@@ -24,7 +24,7 @@ final class Badge extends PapercutComponent
             try {
                 $badge = $badge->tone($type);
             } catch (\InvalidArgumentException $e) {
-                throw InvalidValue::for('type', $type)->because('expected a single word')->withContext('type')->within('on ' . Tag::of('badge'));
+                throw InvalidValue::for('type', $type)->because('expected a tone name')->withContext('type')->within('on ' . Tag::of('badge'));
             }
             $this->requireThemeStyles(['badge.' . $badge->toneName()]);
         }

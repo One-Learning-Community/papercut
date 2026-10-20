@@ -62,6 +62,9 @@ final class Theme
 
     public function withStyle(string $name, Style $style): self
     {
+        if (preg_match('/\s/', $name) === 1) {
+            throw new \InvalidArgumentException("Style name '$name' must not contain whitespace; it could never be resolved.");
+        }
         $styles = $this->styles;
         $styles[$name] = $style;
         return $this->withStyles($styles);

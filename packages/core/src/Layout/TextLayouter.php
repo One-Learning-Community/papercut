@@ -250,7 +250,7 @@ final class TextLayouter implements Layouter
         // Highlights sit behind the text: one rect per contiguous same-style run, including stretched spaces.
         foreach (self::group($placed, self::styleKey(...)) as $group) {
             $bg = $group[0]['item']->style->background;
-            if ($bg !== null) {
+            if ($bg !== null && !$bg->isTransparent()) {
                 $f->addOp(new Rect($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], fill: $bg));
             }
         }

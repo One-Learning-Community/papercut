@@ -46,7 +46,7 @@ final class Field implements Decorator
     public function label(string|Node|Component $label): self
     {
         $clone = clone $this;
-        $clone->label = $label;
+        $clone->label = is_string($label) && trim($label) === '' ? null : $label;
         return $clone;
     }
 

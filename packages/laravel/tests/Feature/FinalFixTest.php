@@ -14,6 +14,14 @@ use Papercut\Text;
 
 final class FinalFixTest extends TestCase
 {
+    public function test_whitespace_in_config_style_name_is_rejected(): void
+    {
+        config(['papercut.styles' => ['my style' => ['padding' => '4pt']]]);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("'my style'");
+        $this->app()->make(PapercutManager::class)->pdfOptions();
+    }
+
     public function test_bad_named_style_names_config_key(): void
     {
         config(['papercut.styles' => ['card' => ['bogus-attr' => 'x']]]);

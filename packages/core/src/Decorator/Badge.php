@@ -7,7 +7,6 @@ namespace Papercut\Decorator;
 use InvalidArgumentException;
 use Papercut\{Component, Node, Text, View};
 use Papercut\Concerns\HasStyle;
-use Papercut\Style\Align;
 
 /**
  * A small rounded label in a tone; block-level, sized to its text.
@@ -53,7 +52,6 @@ final class Badge implements Decorator
     public function render(): View
     {
         return View::make($this->content)
-            ->alignSelf(Align::Start)
             ->apply(trim('badge badge.' . $this->tone . ' ' . ($this->styleName() ?? '')))
             ->apply($this->style());
     }

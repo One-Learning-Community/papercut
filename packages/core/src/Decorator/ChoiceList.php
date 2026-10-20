@@ -7,7 +7,6 @@ namespace Papercut\Decorator;
 use Papercut\{Component, Node, Row, View};
 use Papercut\Concerns\HasStyle;
 
-use function Papercut\pt;
 
 /**
  * A list of options with drawn radio or checkbox markers.
@@ -75,7 +74,7 @@ final class ChoiceList implements Decorator
         $rows = [];
         foreach ($this->options as $option) {
             $rows[] = Row::make($this->marker($option->selected), $this->label($option))
-                ->gap(pt(6))
+                ->apply('choice.option')
                 ->keepTogether(true);
         }
 

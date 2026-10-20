@@ -4,16 +4,22 @@
         <x-doc::column gap="14pt">
             <x-doc::h2>Workshop feedback</x-doc::h2>
 
-            <x-doc::key-value label-width="30%">
-                <x-doc::kv label="Respondent">{{ $respondent }}</x-doc::kv>
-                <x-doc::kv label="Submitted">{{ $submitted }}</x-doc::kv>
-                <x-doc::kv label="Course">{{ $course }}</x-doc::kv>
-            </x-doc::key-value>
+            <x-doc::card title="Response details">
+                <x-doc::key-value label-width="30%">
+                    <x-doc::kv label="Respondent">{{ $respondent }}</x-doc::kv>
+                    <x-doc::kv label="Submitted">{{ $submitted }}</x-doc::kv>
+                    <x-doc::kv label="Course">{{ $course }}</x-doc::kv>
+                </x-doc::key-value>
+            </x-doc::card>
 
             @php($n = 0)
             @foreach ($items as $item)
                 @if ($item['type'] === 'instruction')
                     <x-doc::callout type="note" :title="$item['prompt']">{{ $item['text'] }}</x-doc::callout>
+                    @continue
+                @endif
+                @if ($item['type'] === 'quote')
+                    <x-doc::blockquote :cite="$item['cite']">{{ $item['text'] }}</x-doc::blockquote>
                     @continue
                 @endif
                 @php($n++)

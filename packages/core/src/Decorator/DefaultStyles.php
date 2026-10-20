@@ -54,6 +54,8 @@ final class DefaultStyles
         $s['card'] = Style::make(borderWidth: Edges::all(pt(1)), borderColor: self::c('slate-300'), radius: pt(4), gap: $zero);
         $s['card.title'] = Style::make(
             padding: Edges::of(pt(6), pt(10)),
+            // The card radius less its 1pt border, so the strip follows the inside of the corner.
+            radius: pt(3),
             background: self::c('slate-100'),
             borderWidth: Edges::of($zero, $zero, pt(1), $zero),
             borderColor: self::c('slate-300'),
@@ -86,6 +88,7 @@ final class DefaultStyles
         $s['blockquote.cite'] = Style::make(italic: false, fontSize: pt(9), color: self::c('slate-500'));
 
         $s['section'] = Style::make(gap: pt(6));
+        // The heading's row direction is fixed in Section; the entry is kept per the spec, but direction here has no effect.
         $s['section.heading'] = Style::make(direction: Direction::Row, gap: pt(4));
         $s['section.body'] = Style::make(gap: pt(6));
         $s['section.title'] = Style::make(fontWeight: 700);
@@ -106,6 +109,7 @@ final class DefaultStyles
         $s['field.placeholder'] = Style::make(italic: true, color: self::c('slate-400'));
 
         $s['choice'] = Style::make(gap: pt(4));
+        $s['choice.option'] = Style::make(gap: pt(6));
         $s['choice.marker'] = Style::make(
             width: pt(9),
             height: pt(9),
@@ -127,7 +131,7 @@ final class DefaultStyles
         $s['key-value.label'] = Style::make(padding: self::sides(2, 12, 2, 0), color: self::c('slate-600'));
         $s['key-value.value'] = Style::make(padding: Edges::of(pt(2), $zero));
 
-        $s['badge'] = Style::make(padding: Edges::of(pt(1.5), pt(6)), radius: pt(8), fontSize: pt(9), fontWeight: 700);
+        $s['badge'] = Style::make(alignSelf: Align::Start, padding: Edges::of(pt(1.5), pt(6)), radius: pt(8), fontSize: pt(9), fontWeight: 700);
         foreach (['neutral' => 'slate', 'note' => 'sky', 'tip' => 'emerald', 'warning' => 'amber', 'danger' => 'red'] as $tone => $hue) {
             $s['badge.' . $tone] = Style::make(background: self::c($hue . '-100'), color: self::c($hue . '-800'));
         }

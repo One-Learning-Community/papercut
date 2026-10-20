@@ -272,7 +272,7 @@ final class HtmlWriter implements TreeVisitor
         }
         $style = $text->child($span->style);
         $diff = $this->textCss($style, $text, $path);
-        if ($span->style->background !== null) {
+        if ($span->style->background !== null && !$span->style->background->isTransparent()) {
             $diff['background-color'] = Css::color($span->style->background);
         }
         $body = self::esc($span->text);

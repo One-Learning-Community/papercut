@@ -85,6 +85,34 @@ final class DecoratorComponentsTest extends TestCase
         }
     }
 
+    public function test_empty_type_says_tone_name_expected(): void
+    {
+        foreach (['callout', 'badge'] as $tag) {
+            try {
+                $this->nodeFrom('<x-doc::' . $tag . ' type="">x</x-doc::' . $tag . '>');
+                self::fail('expected InvalidValue');
+            } catch (InvalidValue $e) {
+                self::assertStringContainsString('expected a tone name', $e->getMessage());
+                self::assertStringNotContainsString('single word', $e->getMessage());
+            }
+        }
+    }
+
+    public function test_custom_tone_without_title_style_renders_untitled_callout(): void
+    {
+        config(['papercut.styles' => ['callout.hint' => ['padding' => '4pt']]]);
+        $c = $this->nodeFrom('<x-doc::callout type="hint">x</x-doc::callout>');
+        self::assertInstanceOf(Callout::class, $c);
+        self::assertSame('hint', $c->toneName());
+    }
+
+    public function test_titled_custom_tone_still_requires_title_style(): void
+    {
+        config(['papercut.styles' => ['callout.hint' => ['padding' => '4pt']]]);
+        $this->expectException(UnknownAttribute::class);
+        $this->nodeFrom('<x-doc::callout type="hint" title="T">x</x-doc::callout>');
+    }
+
     public function test_unknown_badge_type(): void
     {
         $this->expectException(UnknownAttribute::class);

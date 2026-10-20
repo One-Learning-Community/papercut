@@ -54,7 +54,9 @@ final class ChoiceListTest extends TestCase
         self::assertCount(2, $outer->children());
         [$row, , $label] = self::row($list);
         self::assertSame(Direction::Row, $row->style()->direction);
-        self::assertSame(6.0, $row->style()->gap?->points);
+        self::assertSame('choice.option', $row->styleName());
+        $theme = Theme::default();
+        self::assertSame(6.0, (new StyleResolver($theme))->resolve($row, ComputedStyle::root($theme))->gap);
         self::assertTrue($row->style()->keepTogether);
         self::assertSame(1.0, $label->style()->grow);
     }
@@ -141,9 +143,9 @@ final class ChoiceListTest extends TestCase
 
     public function test_renders_in_pdf_and_html(): void
     {
-        $doc = Document::make(Page::a4()->body(ChoiceList::radio()->option('A', true)->option('B')));
+        $doc = Document::make(Page::a4()->body(ChoiceList::radio()->option('Distinctive label', true)->option('B')));
         self::assertNotSame('', $doc->toPdf()->bytes());
-        self::assertStringContainsString('A', $doc->toHtml()->bytes());
+        self::assertStringContainsString('Distinctive label', $doc->toHtml()->bytes());
     }
 
     public function test_marker_aligns_with_first_line_of_wrapped_label(): void
@@ -156,6 +158,7 @@ final class ChoiceListTest extends TestCase
         [$marker, $label] = $row->children();
         self::assertGreaterThan(28.0, $label['fragment']->height, 'label wraps');
         self::assertLessThanOrEqual(200.0, $label['x'] + $label['fragment']->width);
-        self::assertEqualsWithDelta($label['y'], $marker['y'], 3.0);
+        self::assertEqualsWithDelta($label['y'] + 2.5, $marker['y'], 0.5);
+        self::assertEqualsWithDelta(9.0, $marker['fragment']->width, 0.01);
     }
 }

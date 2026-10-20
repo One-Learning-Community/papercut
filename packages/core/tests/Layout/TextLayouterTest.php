@@ -213,6 +213,13 @@ final class TextLayouterTest extends TestCase
         }
     }
 
+    public function test_transparent_span_background_paints_no_rect(): void
+    {
+        $t = Text::spans(Span::text('aa '), Span::text('bb', Style::make(background: Color::transparent())));
+        $ops = (new LayoutHarness())->layout($t, 100)->fragment?->ops() ?? [];
+        self::assertSame([], array_values(array_filter($ops, fn ($o) => $o instanceof Rect)));
+    }
+
     public function test_text_without_backgrounds_paints_no_rects(): void
     {
         $ops = (new LayoutHarness())->layout(Text::make('aa bb cc'), 25)->fragment?->ops() ?? [];

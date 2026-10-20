@@ -32,7 +32,11 @@ final class Card implements Decorator
     public function title(string|Node|Component $title): self
     {
         $clone = clone $this;
-        $clone->title = is_string($title) ? Text::make($title) : $title;
+        $clone->title = match (true) {
+            !is_string($title) => $title,
+            trim($title) === '' => null,
+            default => Text::make($title),
+        };
         return $clone;
     }
 

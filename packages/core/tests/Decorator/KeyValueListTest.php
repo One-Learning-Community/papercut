@@ -32,6 +32,15 @@ final class KeyValueListTest extends TestCase
         self::assertSame('key-value.value', $value->styleName());
     }
 
+    public function test_add_appends_pairs(): void
+    {
+        $list = KeyValueList::make(KeyValuePair::of('A', '1'));
+        $more = $list->add(KeyValuePair::of('B', '2'), KeyValuePair::of('C', '3'));
+
+        self::assertCount(1, $list->pairs());
+        self::assertCount(3, $more->pairs());
+    }
+
     public function test_label_width(): void
     {
         $table = KeyValueList::make(KeyValuePair::of('A', 'B'))->labelWidth(pt(120))->render();

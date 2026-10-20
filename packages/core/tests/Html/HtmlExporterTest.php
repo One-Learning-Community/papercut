@@ -124,6 +124,14 @@ final class HtmlExporterTest extends TestCase
         self::assertCount(1, $this->xpath($html, '//p/text()[starts-with(., "plain")]'));
     }
 
+    public function test_transparent_span_background_emits_no_css(): void
+    {
+        $doc = Document::make(Page::a4()->body(Text::spans(
+            Span::text('hot', Style::make(background: Color::transparent())),
+        )));
+        self::assertStringNotContainsString('background-color', $this->html($doc));
+    }
+
     public function test_highlighted_span_emits_background_color(): void
     {
         $doc = Document::make(Page::a4()->body(Text::spans(

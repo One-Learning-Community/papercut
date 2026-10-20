@@ -236,19 +236,19 @@ Define styles in `config/papercut.php`, using the same keys as tag attributes:
 
 ```php
 'styles' => [
-    'card' => ['padding' => '12pt', 'background' => 'slate-50', 'radius' => '8pt'],
+    'panel' => ['padding' => '12pt', 'background' => 'slate-50', 'radius' => '8pt'],
 ],
 ```
 
 ```blade
-<x-doc::column style="card">...</x-doc::column>
+<x-doc::column style="panel">...</x-doc::column>
 ```
 
 The named style is the base; attributes written on the tag override it for any property both set.
 
 ## Decorators
 
-Ready-made pieces that give content a look: `card`, `callout`, `blockquote`, `section`, `field`, `choices`, `key-value` and `badge`. They are plain Papercut components, so they work in PDF and HTML, take the usual [style attributes](#style-attributes) on their outer box, and get their look from [named styles](#named-styles) you can override.
+Ready-made pieces that give content a look: `card`, `callout`, `blockquote`, `section`, `field`, `choices`, `key-value` and `badge`. They are plain Papercut components, so they work in PDF and HTML, take the usual [style attributes](#style-attributes) on their outer box, and get their look from [named styles](#named-styles) you can override. Decorator style names (`card`, `card.title`, `callout.*`, `section.*`, `field.*`, `choice.*`, `key-value.*`, `badge.*`, `blockquote.*`) belong to the decorators: a theme or config style with the same name replaces the built-in one, so pick other names for your own styles.
 
 ```blade
 <x-doc::card title="Respondent">
@@ -275,11 +275,13 @@ A bordered box with an optional title strip. `callout` and `badge` share tone na
 <x-doc::section number="3"><x-slot:title><x-doc::markup :text="$prompt" /></x-slot:title> ... </x-doc::section>
 ```
 
-A section keeps its heading with the first of its content. The number is a string and Papercut adds no punctuation.
+A section keeps its heading with the first of its content. The number is a string and Papercut adds no punctuation. The heading is always laid out as a row (number beside title); a `direction` in the `section.heading` style has no effect. An empty title or number is treated as unset.
 
 ```blade
 <x-doc::field label="Comments" placeholder="No response" lines="3">{{ $text }}</x-doc::field>
 ```
+
+Without a label, style attributes apply to the box. With a label, they style the whole field (label and box together); style the box itself through the theme's `field` style.
 
 A bordered box that shows `placeholder` when its content is empty (no children, or only whitespace). `lines` sets a minimum height of that many lines of the default 14pt line; with a bigger base font size set `min-height` yourself.
 
@@ -309,14 +311,14 @@ Each decorator reads these names. Colours are palette names.
 
 | Style | Default |
 |---|---|
-| `card`, `card.title`, `card.body` | 1pt `slate-300` border, 4pt radius; `slate-100` bold title strip; 10pt body padding |
+| `card`, `card.title`, `card.body` | 1pt `slate-300` border, 4pt radius; `slate-100` bold title strip with 3pt corners; 10pt body padding |
 | `callout`, `callout.<tone>`, `callout.title`, `callout.title.<tone>` | 3pt left rule, tinted box in `sky`, `emerald`, `amber` or `red` (rule `-500`, background `-50`), bold title in the `-800` shade |
 | `blockquote`, `blockquote.cite` | 3pt `slate-300` left rule, italic `slate-700`; cite 9pt `slate-500`, not italic |
-| `section`, `section.heading`, `section.number`, `section.title`, `section.rule`, `section.body` | 6pt gap, bold title, bold `slate-500` number 18pt wide, 0.75pt `slate-200` rule |
+| `section`, `section.heading`, `section.number`, `section.title`, `section.rule`, `section.body` | 6pt gap, bold title, bold `slate-500` number 18pt wide, 0.75pt `slate-200` rule; the heading is always a row |
 | `field`, `field.label`, `field.placeholder` | 1pt `slate-300` border, 3pt radius; 9pt `slate-600` label; italic `slate-400` placeholder |
-| `choice`, `choice.marker`, `choice.marker.radio`, `choice.marker.selected`, `choice.mark`, `choice.mark.radio`, `choice.label.selected` | 9pt marker with 1pt `slate-400` border, round for radio; selected border `slate-800` and a 5pt inner mark; selected label bold |
+| `choice`, `choice.option`, `choice.marker`, `choice.marker.radio`, `choice.marker.selected`, `choice.mark`, `choice.mark.radio`, `choice.label.selected` | 9pt marker with 1pt `slate-400` border, round for radio; selected border `slate-800` and a 5pt inner mark; selected label bold; 6pt between marker and label |
 | `key-value`, `key-value.label`, `key-value.value` | no borders; `slate-600` label |
-| `badge`, `badge.<tone>` | 9pt bold pill in `slate`, `sky`, `emerald`, `amber` or `red` (background `-100`, text `-800`) |
+| `badge`, `badge.<tone>` | 9pt bold pill in `slate`, `sky`, `emerald`, `amber` or `red` (background `-100`, text `-800`), aligned to the start so it hugs its text |
 
 Every value is listed in section 6 of the [decorators design](../../docs/superpowers/specs/2026-10-19-decorators-design.md).
 

@@ -33,7 +33,7 @@ final class Blockquote implements Decorator
     public function cite(string|Node|Component $cite): self
     {
         $clone = clone $this;
-        $clone->cite = $cite;
+        $clone->cite = is_string($cite) && trim($cite) === '' ? null : $cite;
         return $clone;
     }
 

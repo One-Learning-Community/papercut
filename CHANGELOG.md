@@ -63,6 +63,8 @@ Migration from v0.1:
 - Core: highlighted text runs. Spans honour `background`, and `<mark>` in `Text::markup()` paints `yellow-200` behind the run (one rectangle per line fragment) in PDF and HTML.
 - Core: `Markup::html()` converts `<blockquote>` to `Blockquote` (a trailing `<cite>` or `<footer>` becomes the attribution) and `<mark>` to a highlight; `<span style="background-color">` keeps its colour in `StyleMode::Original`.
 - Laravel: `<x-doc::card>`, `<x-doc::callout>`, `<x-doc::blockquote>`, `<x-doc::section>`, `<x-doc::field>`, `<x-doc::choices>` / `<x-doc::choice>`, `<x-doc::key-value>` / `<x-doc::kv>` and `<x-doc::badge>`, plus a `responses` example and a "Decorators" section in the README.
+- Upgrade note: decorator style names (`card`, `card.title`, `callout.*`, `section.*`, `field.*`, `choice.*`, `key-value.*`, `badge.*`, `blockquote.*`) are used by the decorators, and a theme or config style with the same name replaces the built-in one. If you already define a style called `card`, rename it or expect it to restyle `<x-doc::card>`.
+- Core: `Theme::withStyle()` rejects a name containing whitespace, since it could never be resolved; `Callout::tone()` rejects internal whitespace; blank titles, numbers, labels and cites count as unset; a fully transparent span background paints nothing.
 
 ## [0.1.0] - unreleased
 

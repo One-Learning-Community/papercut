@@ -24,13 +24,14 @@ final class Callout extends PapercutComponent
             try {
                 $callout = $callout->tone($type);
             } catch (\InvalidArgumentException $e) {
-                throw InvalidValue::for('type', $type)->because('expected a single word')->withContext('type')->within('on ' . Tag::of('callout'));
+                throw InvalidValue::for('type', $type)->because('expected a tone name')->withContext('type')->within('on ' . Tag::of('callout'));
             }
-            $this->requireThemeStyles(['callout.' . $callout->toneName(), 'callout.title.' . $callout->toneName()]);
+            $this->requireThemeStyles(['callout.' . $callout->toneName()]);
         }
         $title = $this->slotOrAttribute($data, 'title');
         if ($title !== null) {
             $callout = $callout->title($title);
+            $this->requireThemeStyles(['callout.title.' . $callout->toneName()]);
         }
 
         return $this->styled($callout, $data);

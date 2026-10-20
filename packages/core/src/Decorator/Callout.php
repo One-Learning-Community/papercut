@@ -38,6 +38,9 @@ final class Callout implements Decorator
         if ($tone === '') {
             throw new InvalidArgumentException('Callout tone must not be empty.');
         }
+        if (preg_match('/\s/', $tone) === 1) {
+            throw new InvalidArgumentException("Callout tone must be a single word, got '$tone'.");
+        }
         $clone = clone $this;
         $clone->tone = $tone;
         return $clone;
@@ -51,7 +54,7 @@ final class Callout implements Decorator
     public function title(string|Node|Component $title): self
     {
         $clone = clone $this;
-        $clone->title = $title;
+        $clone->title = is_string($title) && trim($title) === '' ? null : $title;
         return $clone;
     }
 

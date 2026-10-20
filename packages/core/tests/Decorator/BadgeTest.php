@@ -26,7 +26,9 @@ final class BadgeTest extends TestCase
         $outer = Badge::make('Agree')->render();
 
         self::assertSame('badge badge.neutral', $outer->styleName());
-        self::assertSame(Align::Start, $outer->style()->alignSelf);
+        self::assertNull($outer->style()->alignSelf);
+        $theme = Theme::default();
+        self::assertSame(Align::Start, (new StyleResolver($theme))->resolve($outer, ComputedStyle::root($theme))->alignSelf);
         self::assertCount(1, $outer->children());
         self::assertInstanceOf(Text::class, $outer->children()[0]);
     }

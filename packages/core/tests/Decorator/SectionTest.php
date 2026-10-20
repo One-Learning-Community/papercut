@@ -8,7 +8,7 @@ use Papercut\{Column, Document, Page, Text, View};
 use Papercut\Decorator\{Decorator, Section};
 use Papercut\Paint\{Painter, TextRun};
 use Papercut\Value\Edges;
-use Papercut\Style\{ComputedStyle, Style, StyleResolver, Theme};
+use Papercut\Style\{ComputedStyle, Direction, Style, StyleResolver, Theme};
 use Papercut\Tests\Support\FakeBackend;
 use PHPUnit\Framework\TestCase;
 
@@ -60,6 +60,25 @@ final class SectionTest extends TestCase
         self::assertSame('section.title', $title->styleName());
         self::assertSame(1.0, $title->style()->grow);
         self::assertSame('Intro', $title->spanList()[0]->text);
+    }
+
+    public function test_heading_is_always_a_row(): void
+    {
+        $heading = self::view(Section::make()->title('T')->number(1)->render()->children()[0]);
+
+        self::assertSame(Direction::Row, $heading->style()->direction);
+    }
+
+    public function test_empty_number_and_title_are_unset(): void
+    {
+        $outer = Section::make('Body')->number('')->title('')->render();
+        self::assertCount(1, $outer->children());
+        self::assertSame('section.body', self::view($outer->children()[0])->styleName());
+
+        $heading = self::view(Section::make()->number('')->title('T')->render()->children()[0]);
+        self::assertCount(1, $heading->children());
+        $heading = self::view(Section::make()->number(2)->title(' ')->render()->children()[0]);
+        self::assertCount(1, $heading->children());
     }
 
     public function test_heading_without_rule(): void

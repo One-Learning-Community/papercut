@@ -29,6 +29,12 @@ final class CalloutTest extends TestCase
         self::assertCount(1, $outer->children());
     }
 
+    public function test_tone_rejects_internal_whitespace(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Callout::make()->tone('very bad');
+    }
+
     public function test_tone_and_title(): void
     {
         $outer = Callout::make('Body')->tone('warning')->title('Careful')->render();
