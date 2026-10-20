@@ -376,6 +376,39 @@ final class HardeningTest extends TestCase
         self::assertEqualsWithDelta(28.35, $page->margins()->top->points, 0.1);
     }
 
+    public function test_page_size_accepts_a_width_and_height(): void
+    {
+        $page = $this->nodeFrom('<x-doc::page size="8.5in 11in" orientation="landscape">x</x-doc::page>');
+        self::assertInstanceOf(\Papercut\Page::class, $page);
+        self::assertEqualsWithDelta([792.0, 612.0], [$page->width(), $page->height()], 0.01);
+
+        config(['papercut.paper' => '100mm 150mm']);
+        $doc = $this->nodeFrom('<x-doc::document><x-doc::text>x</x-doc::text></x-doc::document>');
+        self::assertInstanceOf(\Papercut\Document::class, $doc);
+        self::assertEqualsWithDelta(283.46, $doc->pages()[0]->width(), 0.01);
+    }
+
+    public function test_page_size_accepts_the_added_names(): void
+    {
+        $page = $this->nodeFrom('<x-doc::page size="Tabloid">x</x-doc::page>');
+        self::assertInstanceOf(\Papercut\Page::class, $page);
+        self::assertEqualsWithDelta([792.0, 1224.0], [$page->width(), $page->height()], 0.01);
+    }
+
+    public function test_unknown_page_size_lists_names_and_the_width_height_form(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('Invalid page size "foolscap" for size on <x-doc::page>: expected one of a0, a1, a2, a3, a4, a5, a6, b4, b5, letter, legal, tabloid, executive, or a width and height such as "8.5in 11in".');
+        $this->nodeFrom('<x-doc::page size="foolscap">x</x-doc::page>');
+    }
+
+    public function test_bad_page_dimensions_throw(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('size on <x-doc::page>');
+        $this->nodeFrom('<x-doc::page size="0mm 10mm">x</x-doc::page>');
+    }
+
     private function laravel(): \Illuminate\Foundation\Application
     {
         self::assertNotNull($this->app);

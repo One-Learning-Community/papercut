@@ -12,13 +12,21 @@ use function Papercut\mm;
 
 final class Page implements Node
 {
+    /** Portrait width and height in points. */
     private const SIZES = [
+        'a0' => [2383.94, 3370.39],
+        'a1' => [1683.78, 2383.94],
+        'a2' => [1190.55, 1683.78],
         'a3' => [841.89, 1190.55],
         'a4' => [595.28, 841.89],
         'a5' => [419.53, 595.28],
         'a6' => [297.64, 419.53],
+        'b4' => [708.66, 1000.63],
+        'b5' => [498.90, 708.66],
         'letter' => [612.0, 792.0],
         'legal' => [612.0, 1008.0],
+        'tabloid' => [792.0, 1224.0],
+        'executive' => [522.0, 756.0],
     ];
 
     private Edges $margins;
@@ -85,11 +93,18 @@ final class Page implements Node
         return new self($w->points, $h->points);
     }
 
+    /** @return list<string> the names Page::named() accepts */
+    public static function sizeNames(): array
+    {
+        return array_keys(self::SIZES);
+    }
+
     public static function named(string $name): self
     {
         $key = strtolower($name);
         if (!isset(self::SIZES[$key])) {
-            throw InvalidValue::for('page size', $name, 'a4');
+            throw InvalidValue::for('page size', $name)
+                ->because(sprintf('expected one of %s, or use Page::size() for any other size', implode(', ', self::sizeNames())));
         }
         return self::preset($key);
     }

@@ -62,6 +62,22 @@ final class Page extends PapercutComponent
         return self::configured([])->body(...$body);
     }
 
+    /** A paper name (`a4`) or a width and height (`8.5in 11in`). */
+    private static function sized(string $size): \Papercut\Page
+    {
+        $parts = preg_split('/\s+/', trim($size), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if (count($parts) === 2) {
+            return \Papercut\Page::size(Length::parse($parts[0]), Length::parse($parts[1]));
+        }
+        if (count($parts) === 1 && in_array(strtolower($parts[0]), \Papercut\Page::sizeNames(), true)) {
+            return \Papercut\Page::named($parts[0]);
+        }
+        throw InvalidValue::for('page size', $size)->because(sprintf(
+            'expected one of %s, or a width and height such as "8.5in 11in"',
+            implode(', ', \Papercut\Page::sizeNames()),
+        ));
+    }
+
     /** @param array<string, mixed> $own */
     private static function configured(array $own): \Papercut\Page
     {
@@ -71,7 +87,7 @@ final class Page extends PapercutComponent
             if (!is_string($size)) {
                 throw InvalidValue::for('page size', is_scalar($size) ? (string) $size : get_debug_type($size));
             }
-            $page = \Papercut\Page::named($size);
+            $page = self::sized($size);
         } catch (InvalidValue $e) {
             throw $e->withContext('size')->within($location);
         }

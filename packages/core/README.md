@@ -39,7 +39,7 @@ Output: `$document->toPdf()` returns an `Output`: `->save($path)`, `->bytes()` (
 | Element | Purpose |
 |---|---|
 | `Document::make(Page ...)` | Root. Metadata: `title`, `author`, `subject`, `keywords`, `lang`, `createdAt`. |
-| `Page::a4()` (also `a3 a5 a6 letter legal`, `size($w, $h)`, `named('a4')`) | A page. `landscape()`, `margin()`, `header()`, `footer()`, `background()`, `body()`. |
+| `Page::a4()` (also `a3 a5 a6 letter legal`, `size($w, $h)`, and `named()` for those plus `a0 a1 a2 b4 b5 tabloid executive`) | A page. `landscape()`, `margin()`, `header()`, `footer()`, `background()`, `body()`. |
 | `Row::make(...)`, `Column::make(...)` | Flex containers (horizontal, vertical). |
 | `Spacer::flex()`, `Spacer::size($length)` | Flexible or fixed gap. |
 | `Text::make()`, `h1`-`h4`, `p`, `markup()`, `spans()` | Text, with inline spans. |

@@ -59,7 +59,7 @@ This publishes `config/papercut.php`:
 | Key | Default | Meaning |
 |---|---|---|
 | `prefix` | `'doc'` | Blade tag prefix (`<x-doc::page>`): lowercase letters, digits and dashes. Read at boot |
-| `paper` | `'a4'` | Page size when `<x-doc::page>` has no `size`: `a3`, `a4`, `a5`, `a6`, `letter`, `legal` |
+| `paper` | `'a4'` | Page size when `<x-doc::page>` has no `size`: `a0`–`a6`, `b4`, `b5`, `letter`, `legal`, `tabloid`, `executive`, or a width and height such as `'8.5in 11in'` |
 | `margin` | `'20mm'` | Page margin when `<x-doc::page>` has no `margin` |
 | `fonts` | `[]` | Extra font families, see [Fonts](#fonts) |
 | `fallback_fonts` | `[]` | Family names tried, in order, for glyphs the primary font lacks |
@@ -171,7 +171,7 @@ Style attributes (next section) work on every tag marked "style" below. Values a
 | Tag | Own attributes | Notes |
 |---|---|---|
 | `<x-doc::document>` | `title`, `author`, `subject`, `keywords`, `lang` | Root. Children must be `<x-doc::page>`; with no page, content gets an implicit page. No style attributes. |
-| `<x-doc::page>` | `size`, `orientation` (`portrait`/`landscape`), `margin`, `header-gap`, `footer-gap` | Slots: `<x-slot:header>`, `<x-slot:footer>`, `<x-slot:background>`. No style attributes. |
+| `<x-doc::page>` | `size` (a paper name or `"<width> <height>"`), `orientation` (`portrait`/`landscape`), `margin`, `header-gap`, `footer-gap` | Slots: `<x-slot:header>`, `<x-slot:footer>`, `<x-slot:background>`. No style attributes. |
 | `<x-doc::view>` | `align` | Style. Generic container. |
 | `<x-doc::row>` | `align` | Style. Lays children out horizontally. |
 | `<x-doc::column>` | `align` | Style. Lays children out vertically. |

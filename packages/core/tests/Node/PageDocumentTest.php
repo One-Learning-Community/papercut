@@ -32,7 +32,27 @@ final class PageDocumentTest extends TestCase
         self::assertEqualsWithDelta([612.0, 792.0], [Page::named('LETTER')->width(), Page::named('letter')->height()], 0.01);
         self::assertSame(100.0, Page::size(pt(100), pt(200))->width());
         $this->expectException(InvalidValue::class);
-        Page::named('b5');
+        Page::named('b3');
+    }
+
+    public function test_more_named_page_sizes(): void
+    {
+        $sizes = [
+            'a0' => [2383.94, 3370.39], 'a1' => [1683.78, 2383.94], 'a2' => [1190.55, 1683.78],
+            'b4' => [708.66, 1000.63], 'b5' => [498.90, 708.66],
+            'tabloid' => [792.0, 1224.0], 'executive' => [522.0, 756.0],
+        ];
+        foreach ($sizes as $name => $wh) {
+            $p = Page::named(strtoupper($name));
+            self::assertEqualsWithDelta($wh, [$p->width(), $p->height()], 0.01, $name);
+        }
+    }
+
+    public function test_unknown_page_size_lists_the_names_and_the_escape_hatch(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('Invalid page size "foolscap": expected one of a0, a1, a2, a3, a4, a5, a6, b4, b5, letter, legal, tabloid, executive, or use Page::size() for any other size.');
+        Page::named('foolscap');
     }
 
     public function test_page_slots_and_margins(): void

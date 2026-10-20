@@ -4,7 +4,8 @@ return [
     // Blade tag prefix: <x-doc::page>, <x-doc::table>... Lowercase letters, digits and dashes.
     // Read at boot; templates written with another prefix fail with Blade's "Unable to locate a class or view".
     'prefix' => 'doc',
-    // Default page size used by <x-doc::page> when no size is given: a3|a4|a5|a6|letter|legal
+    // Default page size used by <x-doc::page> when no size is given: a0-a6, b4, b5, letter, legal,
+    // tabloid, executive, or a width and height such as '8.5in 11in'
     'paper' => 'a4',
     'margin' => '20mm',
     // Font families: name => [weight => ['normal' => path, 'italic' => path]]. Inter is always available.
