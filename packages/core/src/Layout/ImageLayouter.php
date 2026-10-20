@@ -32,7 +32,13 @@ final class ImageLayouter implements Layouter
         [$w, $h] = self::size($style, $c, $iw, $ih);
 
         if ($c->height !== null && $h > $c->height + 1e-9) {
-            return LayoutResult::doesNotFit();
+            // Like the width limit, an empty page's height shrinks the image, unless its height was set explicitly.
+            $explicit = BoxGeometry::resolve($style->height, $c->definiteHeight) !== null;
+            if (!$c->fresh || $explicit || $c->height <= $edgesV) {
+                return LayoutResult::doesNotFit();
+            }
+            $w = $edgesH + max(0.0, $w - $edgesH) * ($c->height - $edgesV) / ($h - $edgesV);
+            $h = $c->height;
         }
 
         $fragment = new Fragment($w, $h);

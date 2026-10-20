@@ -15,7 +15,7 @@ use Papercut\Text\FontRegistry;
 use PHPUnit\Framework\TestCase;
 use Papercut\Layout\{BreakToken, Constraints, Fragment, LayoutResult, Layouter};
 use Papercut\Node;
-use Papercut\Paint\Clip;
+use Papercut\Paint\{Clip, DrawImage};
 use Papercut\Style\{ComputedStyle, Style};
 
 use function Papercut\pt;
@@ -87,6 +87,18 @@ final class PaginatorTest extends TestCase
         $this->expectException(LayoutOverflow::class);
         $this->expectExceptionMessageMatches('/image/');
         $this->paginate(Document::make($this->small()->body(Image::bytes('x')->height(pt(500)))));
+    }
+
+    public function test_image_taller_than_the_body_moves_to_a_new_page_and_shrinks(): void
+    {
+        // 400pt wide => 180x90 after the width limit, taller than the 80pt body
+        $pages = $this->paginate(Document::make($this->small()->body('A', Image::bytes('x')->width(pt(400)))));
+        self::assertCount(2, $pages);
+        self::assertSame(['A'], $this->texts($pages[0]));
+        $images = array_values(array_filter($pages[1]->ops, fn ($o) => $o instanceof DrawImage));
+        self::assertCount(1, $images);
+        self::assertEqualsWithDelta([10.0, 10.0, 160.0, 80.0], [$images[0]->x, $images[0]->y, $images[0]->width, $images[0]->height], 1e-9);
+        self::assertSame([], $this->warnings);
     }
 
     public function test_overflow_path_starts_at_page(): void

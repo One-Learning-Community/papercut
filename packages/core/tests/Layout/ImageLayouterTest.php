@@ -61,14 +61,35 @@ final class ImageLayouterTest extends TestCase
         self::assertSame([0.0, 0.0, 40.0, 40.0], [$d->x, $d->y, $d->width, $d->height]);
     }
 
-    public function test_does_not_fit(): void
+    public function test_does_not_fit_below_other_content(): void
     {
-        self::assertSame(Status::DoesNotFit, (new LayoutHarness())->layout(Image::bytes('x'), 500, 10)->status);
+        self::assertSame(Status::DoesNotFit, (new LayoutHarness())->layout(Image::bytes('x'), 500, 10, null, false)->status);
     }
 
-    public function test_does_not_fit_even_when_fresh(): void
+    public function test_scales_down_to_an_empty_page_keeping_aspect(): void
     {
-        self::assertSame(Status::DoesNotFit, (new LayoutHarness())->layout(Image::bytes('x'), 500, 10, null, true)->status);
+        $res = (new LayoutHarness())->layout(Image::bytes('x'), 500, 10, null, true);
+        self::assertSame(Status::Complete, $res->status);
+        self::assertSame([20.0, 10.0], [$res->fragment?->width, $res->fragment?->height]);
+        $d = $this->draw($res->fragment);
+        self::assertSame([0.0, 0.0, 20.0, 10.0], [$d->x, $d->y, $d->width, $d->height]);
+    }
+
+    public function test_explicit_width_still_scales_down_to_an_empty_page(): void
+    {
+        $f = (new LayoutHarness())->layout(Image::bytes('x')->width(pt(60)), 500, 10, null, true)->fragment;
+        self::assertSame([20.0, 10.0], [$f?->width, $f?->height]);
+    }
+
+    public function test_scaling_to_the_page_keeps_padding_and_border(): void
+    {
+        $f = (new LayoutHarness())->layout(Image::bytes('x')->padding(pt(2)), 500, 14, null, true)->fragment;
+        self::assertSame([24.0, 14.0], [$f?->width, $f?->height]);
+    }
+
+    public function test_explicit_height_taller_than_an_empty_page_does_not_fit(): void
+    {
+        self::assertSame(Status::DoesNotFit, (new LayoutHarness())->layout(Image::bytes('x')->height(pt(40)), 500, 10, null, true)->status);
     }
 
     public function test_intrinsic_widths(): void
