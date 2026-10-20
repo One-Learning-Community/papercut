@@ -6,6 +6,7 @@ namespace Papercut\Decorator;
 
 use Papercut\{Component, Node, Text, View};
 use Papercut\Concerns\HasStyle;
+use Papercut\Style\Direction;
 
 /**
  * A heading kept with its content, with an optional number and rule.
@@ -66,6 +67,7 @@ final class Section implements Decorator
                     : View::make($this->title)->apply('section.title')->grow(1);
             }
             $parts[] = View::make(...$heading)
+                ->direction(Direction::Row)
                 ->apply($this->rule ? 'section.heading section.rule' : 'section.heading')
                 ->keepWithNext(true);
         }
