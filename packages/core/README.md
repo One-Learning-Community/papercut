@@ -43,7 +43,7 @@ Output: `$document->toPdf()` returns an `Output`: `->save($path)`, `->bytes()` (
 | `Row::make(...)`, `Column::make(...)` | Flex containers (horizontal, vertical). |
 | `Spacer::flex()`, `Spacer::size($length)` | Flexible or fixed gap. |
 | `Text::make()`, `h1`-`h4`, `p`, `markup()`, `spans()` | Text, with inline spans. |
-| `Image::file()`, `bytes()` | Raster images, `fit()` modes. Images shrink to fit the page width, and an image taller than an empty page shrinks to fit it, unless its height is set explicitly. |
+| `Image::file()`, `bytes()` | PNG and JPEG; WebP, GIF, BMP and AVIF with `ext-gd`. `fit()` modes. Images shrink to fit the page width, and an image taller than an empty page shrinks to fit it, unless its height is set explicitly. |
 | `Link::to($uri, ...$children)` | A clickable region around children. |
 | `Table::make()` | Page-aware table. |
 | `PageNumber::make('Page {page} of {total}')` | Page number and page count. |

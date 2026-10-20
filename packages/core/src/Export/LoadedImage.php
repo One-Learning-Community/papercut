@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Export;
 
 use Papercut\Backend\Backend;
+use Papercut\Backend\ImageFormat;
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Image;
 
@@ -30,19 +31,16 @@ final readonly class LoadedImage
             }
             // Read first for the exact PDF wording on missing files; the backend then validates by path like PDF does.
             $handle = $backend->loadImageFile($value);
-            $unsupported = sprintf('Cannot read image "%s": Unsupported image format (expected PNG or JPEG).', $value);
+            $unsupported = sprintf('Cannot read image "%s": %s', $value, ImageFormat::unsupported());
         } else {
             $bytes = $value;
             $handle = $backend->loadImageBytes($bytes);
-            $unsupported = 'Cannot read image bytes: Unsupported image format (expected PNG or JPEG).';
+            $unsupported = 'Cannot read image bytes: ' . ImageFormat::unsupported();
         }
 
-        // The unsupported arm only fires for non-default backends: PdfImage already rejects other formats.
-        $mime = match (true) {
-            str_starts_with($bytes, "\x89PNG\r\n\x1a\n") => 'image/png',
-            str_starts_with($bytes, "\xFF\xD8\xFF") => 'image/jpeg',
-            default => throw new ImageUnreadable($unsupported),
-        };
+        // HTML embeds the original bytes, which browsers display in every format the backend accepts.
+        // The null case only fires for non-default backends: the default one already refuses other formats.
+        $mime = ImageFormat::sniff($bytes) ?? throw new ImageUnreadable($unsupported);
 
         return new self($bytes, $mime, $handle->widthPx(), $handle->heightPx());
     }

@@ -12,6 +12,7 @@ use Dskripchenko\PhpPdf\Pdf\PdfFont;
 use Papercut\Backend\Backend;
 use Papercut\Backend\FontHandle;
 use Papercut\Backend\ImageHandle;
+use Papercut\Backend\ImageFormat;
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Paint\{Clip, DocumentMeta, DrawImage, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
@@ -25,14 +26,17 @@ final class PhpPdfBackend implements Backend
     /** @var array<string, PhpPdfFont> */
     private array $fonts = [];
     private readonly KerningCache $kerning;
+    private readonly GdImageConverter $gd;
 
     /**
      * $kerningCacheDir: where GPOS pair-kerning tables are cached across processes
      * (null = KerningCache::defaultDir(), false = no disk cache).
+     * $gd: converts WebP, GIF, BMP and AVIF (null = use GD when it is loaded).
      */
-    public function __construct(string|false|null $kerningCacheDir = null)
+    public function __construct(string|false|null $kerningCacheDir = null, ?GdImageConverter $gd = null)
     {
         $this->kerning = new KerningCache($kerningCacheDir === false ? null : ($kerningCacheDir ?? KerningCache::defaultDir()));
+        $this->gd = $gd ?? GdImageConverter::detect();
     }
 
     public function loadFont(string $path): FontHandle
@@ -61,7 +65,7 @@ final class PhpPdfBackend implements Backend
             throw new ImageUnreadable(sprintf('Cannot read image "%s": file not found or not readable', $path));
         }
         try {
-            return new PhpPdfImage(PdfImage::fromBytes($bytes), sha1($bytes));
+            return $this->image($bytes);
         } catch (\Throwable $e) {
             throw new ImageUnreadable(sprintf('Cannot read image "%s": %s', $path, $e->getMessage()), 0, $e);
         }
@@ -70,10 +74,21 @@ final class PhpPdfBackend implements Backend
     public function loadImageBytes(string $bytes): ImageHandle
     {
         try {
-            return new PhpPdfImage(PdfImage::fromBytes($bytes), sha1($bytes));
+            return $this->image($bytes);
         } catch (\Throwable $e) {
             throw new ImageUnreadable('Cannot read image bytes: ' . $e->getMessage(), 0, $e);
         }
+    }
+
+    /** PNG and JPEG go to php-pdf as they are; formats it cannot read are converted to PNG first. */
+    private function image(string $bytes): PhpPdfImage
+    {
+        $mime = ImageFormat::sniff($bytes);
+        if ($mime === null) {
+            throw new \RuntimeException(ImageFormat::unsupported());
+        }
+        $embed = $this->gd->handles($mime) ? $this->gd->toPng($bytes, $mime) : $bytes;
+        return new PhpPdfImage(PdfImage::fromBytes($embed), sha1($bytes));
     }
 
     public function render(DocumentMeta $meta, array $pages): string

@@ -49,6 +49,9 @@ Migration from v0.1:
 - A table cell outside a table (not in a row) is laid out as a column and warns `A table cell outside a table is laid out as a column`, in both PDF and HTML.
 - HTML font sources: `FontMode::Sources` with `HtmlOptions::fontSources`, an ordered stack of `FontSource` objects or closures (`GoogleFonts` for Google Fonts and Bunny Fonts, `LocalFonts::embed()` / `link()` for registered files). Full pages get `<link>` tags in `<head>`; fragments get `@import` rules first in `<style>`. Unsafe answers fall through to the next source with a warning, and a family nobody answers for is reported as `font not linked`.
 - `Papercut\Tree\Visit`: `TreeVisitor` callbacks now receive a `Visit` (path, index, parent, header and region context) instead of loose arguments.
+- Images: an image taller than an empty page shrinks to fit it, keeping its aspect ratio, as it already did for width (previously `LayoutOverflow`). An explicit `height` is still respected.
+- Images: WebP, GIF, BMP and AVIF are accepted when the GD extension is loaded (`ext-gd`, now in `suggest`). They are converted to PNG for PDF, which is lossless and keeps transparency; HTML export embeds the original bytes. PNG and JPEG never need GD. Without GD the error names the extension to install, and the unsupported-format message lists every accepted format.
+- Paper sizes: `Page::named()` adds `a0`, `a1`, `a2`, `b4`, `b5`, `tabloid` and `executive` (`Page::sizeNames()` lists them all), and an unknown name lists the valid ones. In Laravel, `<x-doc::page size>` and `papercut.paper` also accept a width and height, such as `"8.5in 11in"`.
 
 ## [0.1.0] - unreleased
 

@@ -179,8 +179,8 @@ final class HtmlTablesImagesTest extends TestCase
     {
         $cases = [
             [Image::file('/no/such/file.png'), 'Cannot read image "/no/such/file.png": file not found or not readable'],
-            [Image::bytes('GIF89a....'), 'Cannot read image bytes: Unsupported image format (expected PNG or JPEG).'],
-            [Image::bytes(''), 'Cannot read image bytes: Unsupported image format (expected PNG or JPEG).'],
+            [Image::bytes('GIF89a....'), 'Cannot read image bytes: Invalid GIF image data.'],
+            [Image::bytes(''), 'Cannot read image bytes: Unsupported image format (expected PNG, JPEG, WebP, GIF, BMP or AVIF).'],
         ];
         foreach ($cases as [$image, $message]) {
             try {
@@ -196,7 +196,7 @@ final class HtmlTablesImagesTest extends TestCase
             $this->html($this->body(Image::file($path)));
             self::fail('expected ImageUnreadable');
         } catch (ImageUnreadable $e) {
-            self::assertSame(sprintf('Cannot read image "%s": Unsupported image format (expected PNG or JPEG).', $path), $e->getMessage());
+            self::assertSame(sprintf('Cannot read image "%s": Unsupported image format (expected PNG, JPEG, WebP, GIF, BMP or AVIF).', $path), $e->getMessage());
         } finally {
             unlink($path);
         }
