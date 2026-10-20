@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Layout;
 
-use Papercut\{Column, Row, Text, View};
+use Papercut\{Column, Document, Page, Row, Table, Text, View};
 use Papercut\Decorator\Field;
 use Papercut\Layout\{Fragment, LayoutResult, Status};
 use Papercut\Tests\Support\LayoutHarness;
 use PHPUnit\Framework\TestCase;
 
-use function Papercut\pt;
+use function Papercut\{mm, percent, pt};
 
 /** min-height and max-height on boxes that size to their content. */
 final class MinMaxHeightTest extends TestCase
@@ -78,6 +78,64 @@ final class MinMaxHeightTest extends TestCase
 
         $fresh = $h->layout($box, 200, 50.0, null, true);
         self::assertEqualsWithDelta(50.0, self::frag($fresh)->height, 0.001, 'on a fresh page it is capped to the space');
+    }
+
+    public function test_max_height_box_does_not_split_near_a_page_break(): void
+    {
+        $h = new LayoutHarness();
+        $box = View::make(...array_map(fn (int $i) => Text::make("line $i"), range(1, 10)))->maxHeight(pt(20));
+
+        // 50pt left on a page with content: the capped 20pt box fits, so it is placed whole.
+        $placed = $h->layout($box, 200, 50.0, null, false);
+        self::assertSame(Status::Complete, $placed->status);
+        self::assertEqualsWithDelta(20.0, self::frag($placed)->height, 0.001);
+
+        // 10pt left: it moves to the next page rather than splitting.
+        self::assertSame(Status::DoesNotFit, $h->layout($box, 200, 10.0, null, false)->status);
+    }
+
+    public function test_text_with_height_or_max_height_does_not_split(): void
+    {
+        $h = new LayoutHarness();
+        $lines = Text::markup(implode('<br>', range(1, 10)));
+        foreach ([$lines->height(pt(20)), $lines->maxHeight(pt(20))] as $text) {
+            $r = $h->layout($text, 200, 50.0, null, false);
+            self::assertSame(Status::Complete, $r->status);
+            self::assertEqualsWithDelta(20.0, self::frag($r)->height, 0.001);
+            self::assertSame(Status::DoesNotFit, $h->layout($text, 200, 10.0, null, false)->status);
+        }
+    }
+
+    public function test_row_and_text_with_min_height_move_when_it_does_not_fit(): void
+    {
+        $h = new LayoutHarness();
+        self::assertSame(Status::DoesNotFit, $h->layout(Row::make(Text::make('x'))->minHeight(pt(80)), 200, 50.0, null, false)->status);
+        self::assertSame(Status::DoesNotFit, $h->layout(Text::make('x')->minHeight(pt(80)), 200, 50.0, null, false)->status);
+        self::assertEqualsWithDelta(50.0, self::frag($h->layout(Text::make('x')->minHeight(pt(80)), 200, 50.0, null, true))->height, 0.001);
+    }
+
+    public function test_min_height_wins_over_a_smaller_max_height(): void
+    {
+        $r = (new LayoutHarness())->layout(View::make(Text::make('x'))->minHeight(pt(60))->maxHeight(pt(30)), 200);
+        self::assertEqualsWithDelta(60.0, self::frag($r)->height, 0.001);
+    }
+
+    public function test_percent_min_height_without_a_definite_height_is_ignored(): void
+    {
+        $r = (new LayoutHarness())->layout(View::make(Text::make('x'))->minHeight(percent(50)), 200);
+        self::assertEqualsWithDelta(14.0, self::frag($r)->height, 0.001);
+    }
+
+    public function test_documents_with_tall_min_heights_terminate(): void
+    {
+        $filler = array_map(fn (int $i) => Text::make("filler $i"), range(1, 30));
+        $nested = View::make(View::make(Text::make('inner'))->minHeight(pt(5000)))->minHeight(pt(3000));
+        $table = Table::make()->columns('1fr')->row(View::make(Text::make('cell'))->minHeight(pt(5000)));
+
+        foreach ([$nested, $table, View::make(Text::make('x'))->minHeight(pt(5000))->keepTogether()] as $tall) {
+            $doc = Document::make(Page::a6()->margin(mm(10))->body(Column::make(...$filler, ...[$tall, Text::make('after')])));
+            self::assertStringStartsWith('%PDF', $doc->toPdf()->bytes());
+        }
     }
 
     private static function frag(LayoutResult $r): Fragment

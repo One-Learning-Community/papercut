@@ -53,9 +53,15 @@ final class TextLayouter implements Layouter
         $available = $c->height === null
             ? null
             : $c->height - ($box['first'] ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
-        $n = self::fittingLines($boxes, $start, $total, $available);
+        // Text with a height or max-height never splits: all its lines go in one box, which is then sized and placed.
+        $whole = $box['size'] !== null && ($box['size']['fixed'] !== null || BoxGeometry::hasMaxHeight($style, $c));
+        $n = $whole ? $total - $start : self::fittingLines($boxes, $start, $total, $available);
         if ($n >= $total - $start) {
-            return LayoutResult::complete($this->fragment($lines, $boxes, $start, $total, $style, $box, true));
+            $f = $this->fragment($lines, $boxes, $start, $total, $style, $box, true);
+            if ($whole && $c->height !== null && $f->height > $c->height + 1e-9 && !$c->fresh) {
+                return LayoutResult::doesNotFit();
+            }
+            return LayoutResult::complete($f);
         }
 
         $m = max(1, min($style->minLines, $total));
@@ -187,7 +193,9 @@ final class TextLayouter implements Layouter
             return max(0.0, min($size['fixed'], $size['c']->height ?? $size['fixed']) - $edges);
         }
         $height = $size['floor'] === null ? $lines : max($lines, $size['floor'] - $edges);
-        return BoxGeometry::capContent($style, $size['c'], $height);
+        $height = BoxGeometry::capContent($style, $size['c'], $height);
+        // On a fresh page an over-tall box is cut to the space; elsewhere layout() moves it to the next page.
+        return BoxGeometry::fitContent($style, $size['c'], $height) ?? $height;
     }
 
     /** @param array<int, array{baseline: float, height: float}> $boxes */

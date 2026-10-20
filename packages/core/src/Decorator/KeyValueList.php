@@ -48,7 +48,7 @@ final class KeyValueList implements Decorator
     public function labelWidth(Length|Percent $width): self
     {
         $clone = clone $this;
-        $clone->labelWidth = $width;
+        $clone->labelWidth = $width instanceof Length ? $width->absolute('label width') : $width;
         return $clone;
     }
 

@@ -19,6 +19,11 @@ final readonly class TrackList
         if ($tracks === []) {
             throw InvalidValue::for('column list', '');
         }
+        foreach ($tracks as $t) {
+            if ($t instanceof Length) {
+                $t->absolute('column width');
+            }
+        }
         return new self(array_values($tracks));
     }
 
@@ -36,7 +41,8 @@ final readonly class TrackList
                 };
             } catch (InvalidValue $e) {
                 if ($e->suggestion === null) {
-                    throw InvalidValue::for('column list', $input, null, $e);
+                    $wrapped = InvalidValue::for('column list', $input, null, $e);
+                    throw $e->reason !== null ? $wrapped->because($e->reason) : $wrapped;
                 }
                 $fixed = $tokens;
                 $fixed[$i] = $e->suggestion;

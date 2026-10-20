@@ -20,7 +20,7 @@ final class Spacer implements Styled
     public static function size(Length $l): self
     {
         $s = new self();
-        $s->fixed = $l;
+        $s->fixed = $l->absolute('spacer size');
         return $s;
     }
 

@@ -46,8 +46,10 @@ final class FlexLayouter implements Layouter
         }
         $fixedContent = $target === null ? null : max(0.0, $target - BoxGeometry::topEdge($style) - BoxGeometry::bottomEdge($style));
 
+        // A content-sized box with a max-height never splits: it is laid out whole, capped, then placed or moved.
+        $capped = $first && $fixed === null && BoxGeometry::hasMaxHeight($style, $c);
         $available = null;
-        if ($fixed === null && $c->height !== null) {
+        if ($fixed === null && !$capped && $c->height !== null) {
             $available = $c->height - ($first ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
         }
 
@@ -113,6 +115,13 @@ final class FlexLayouter implements Layouter
         $contentHeight = $fixed !== null ? (float) $fixedContent : ($last ? max($cursor, $fixedContent ?? 0.0) : $cursor);
         if ($fixed === null && $first && $last) {
             $contentHeight = BoxGeometry::capContent($style, $c, $contentHeight);
+        }
+        if ($capped) {
+            $fit = BoxGeometry::fitContent($style, $c, $contentHeight);
+            if ($fit === null) {
+                return LayoutResult::doesNotFit();
+            }
+            $contentHeight = $fit;
         }
         $f = new Fragment($borderWidth, BoxGeometry::outerHeight($style, $contentHeight, $first, $last));
         BoxGeometry::decorate($f, $style, $first, $last);

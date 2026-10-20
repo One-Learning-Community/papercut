@@ -283,7 +283,7 @@ A section keeps its heading with the first of its content. The number is a strin
 
 Without a label, style attributes apply to the box. With a label, they style the whole field (label and box together); style the box itself through the theme's `field` style.
 
-A bordered box that shows `placeholder` when its content is empty (no children, or only whitespace). `lines` reserves that many lines of the field's own text inside its padding, so it follows the theme's font size and line height.
+A bordered box that shows `placeholder` when its content is empty (no children, or only whitespace). `lines` reserves that many lines of the field's own text inside its padding, so it follows the theme's font size and line height. A field whose `lines` don't fit in the space left on a page moves to the next page as a whole, as any box with `min-height` does.
 
 ```blade
 <x-doc::choices type="checkbox" emphasize-selected>

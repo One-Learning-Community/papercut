@@ -87,6 +87,8 @@ final class Page implements Node
 
     public static function size(Length $w, Length $h): self
     {
+        $w->absolute('page size');
+        $h->absolute('page size');
         if (!is_finite($w->points) || !is_finite($h->points) || $w->points <= 0 || $h->points <= 0) {
             throw InvalidValue::for('page size', $w . ' ' . $h)->because('width and height must be positive');
         }
@@ -142,21 +144,21 @@ final class Page implements Node
             $edges = Edges::of(...$lengths);
         }
         $clone = clone $this;
-        $clone->margins = $edges;
+        $clone->margins = $edges->absolute('page margin');
         return $clone;
     }
 
     public function headerGap(Length $g): self
     {
         $clone = clone $this;
-        $clone->headerGap = $g;
+        $clone->headerGap = $g->absolute('header gap');
         return $clone;
     }
 
     public function footerGap(Length $g): self
     {
         $clone = clone $this;
-        $clone->footerGap = $g;
+        $clone->footerGap = $g->absolute('footer gap');
         return $clone;
     }
 

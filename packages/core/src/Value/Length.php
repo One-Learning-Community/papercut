@@ -44,6 +44,15 @@ final readonly class Length implements \Stringable
         return $this->relative !== null;
     }
 
+    /** This length, if it is absolute; em and lh are rejected outside style properties. */
+    public function absolute(string $kind = 'length'): self
+    {
+        if ($this->relative !== null) {
+            throw InvalidValue::for($kind, (string) $this)->because('em and lh only work in style properties');
+        }
+        return $this;
+    }
+
     /** This length in points, given the element's font size and line height (both in points). */
     public function resolve(float $em, float $lh): self
     {
@@ -114,13 +123,13 @@ final readonly class Length implements \Stringable
 
     public function plus(Length $other): self
     {
-        self::absolute($this, $other);
+        self::noArithmeticOnRelative($this, $other);
         return self::points($this->points + $other->points);
     }
 
     public function minus(Length $other): self
     {
-        self::absolute($this, $other);
+        self::noArithmeticOnRelative($this, $other);
         return self::points($this->points - $other->points);
     }
 
@@ -146,7 +155,7 @@ final readonly class Length implements \Stringable
         return ($n === '-0' ? '0' : $n) . ($this->relative ?? 'pt');
     }
 
-    private static function absolute(Length ...$lengths): void
+    private static function noArithmeticOnRelative(Length ...$lengths): void
     {
         foreach ($lengths as $l) {
             if ($l->relative !== null) {

@@ -48,7 +48,8 @@ final readonly class Edges
                 $lengths[] = Length::parse($tok, $relative);
             } catch (InvalidValue $e) {
                 if ($e->suggestion === null) {
-                    throw InvalidValue::for('edges', $input, null, $e);
+                    $wrapped = InvalidValue::for('edges', $input, null, $e);
+                    throw $e->reason !== null ? $wrapped->because($e->reason) : $wrapped;
                 }
                 $fixed = $tokens;
                 $fixed[$i] = $e->suggestion;
@@ -56,6 +57,15 @@ final readonly class Edges
             }
         }
         return self::of(...$lengths);
+    }
+
+    /** These edges, if every side is absolute; em and lh are rejected outside style properties. */
+    public function absolute(string $kind = 'edges'): self
+    {
+        foreach ([$this->top, $this->right, $this->bottom, $this->left] as $side) {
+            $side->absolute($kind);
+        }
+        return $this;
     }
 
     public function isRelative(): bool

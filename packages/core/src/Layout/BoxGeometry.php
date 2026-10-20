@@ -143,6 +143,24 @@ final class BoxGeometry
         return $min;
     }
 
+    public static function hasMaxHeight(ComputedStyle $s, Constraints $c): bool
+    {
+        return self::resolve($s->maxHeight, $c->definiteHeight) !== null;
+    }
+
+    /**
+     * The content height of an unsplittable box placed in the space left: unchanged when it fits, null
+     * (DoesNotFit) when it does not and the page already has content, cut to the space on a fresh page.
+     */
+    public static function fitContent(ComputedStyle $s, Constraints $c, float $contentHeight): ?float
+    {
+        $edges = self::topEdge($s) + self::bottomEdge($s);
+        if ($c->height === null || $contentHeight + $edges <= $c->height + 1e-9) {
+            return $contentHeight;
+        }
+        return $c->fresh ? max(0.0, $c->height - $edges) : null;
+    }
+
     /** Caps the content height of a content-sized, single-slice box so its border box fits max-height. */
     public static function capContent(ComputedStyle $s, Constraints $c, float $contentHeight): float
     {
