@@ -35,7 +35,8 @@ final readonly class Edges
         return new self($top, $right, $bottom, $left);
     }
 
-    public static function parse(string $input): self
+    /** @param bool $relative accept em and lh, which only style properties resolve */
+    public static function parse(string $input, bool $relative = false): self
     {
         $tokens = Tokens::split($input, 'edges');
         if (count($tokens) > 4) {
@@ -44,7 +45,7 @@ final readonly class Edges
         $lengths = [];
         foreach ($tokens as $i => $tok) {
             try {
-                $lengths[] = Length::parse($tok);
+                $lengths[] = Length::parse($tok, $relative);
             } catch (InvalidValue $e) {
                 if ($e->suggestion === null) {
                     throw InvalidValue::for('edges', $input, null, $e);
@@ -55,6 +56,20 @@ final readonly class Edges
             }
         }
         return self::of(...$lengths);
+    }
+
+    public function isRelative(): bool
+    {
+        return $this->top->isRelative() || $this->right->isRelative() || $this->bottom->isRelative() || $this->left->isRelative();
+    }
+
+    /** These edges in points, given the element's font size and line height. */
+    public function resolve(float $em, float $lh): self
+    {
+        if (!$this->isRelative()) {
+            return $this;
+        }
+        return new self($this->top->resolve($em, $lh), $this->right->resolve($em, $lh), $this->bottom->resolve($em, $lh), $this->left->resolve($em, $lh));
     }
 
     public function horizontal(): float

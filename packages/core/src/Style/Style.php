@@ -237,8 +237,8 @@ final readonly class Style
         }
 
         return match ($parser) {
-            'edges' => $v instanceof Edges ? $v : Edges::parse(self::str($v, 'edges')),
-            'length' => $v instanceof Length ? $v : Length::parse(self::str($v, 'length')),
+            'edges' => $v instanceof Edges ? $v : Edges::parse(self::str($v, 'edges'), relative: true),
+            'length' => $v instanceof Length ? $v : Length::parse(self::str($v, 'length'), relative: true),
             'lengthPercent' => self::parseLengthPercent($v, false),
             'lengthPercentAuto' => self::parseLengthPercent($v, true),
             'color' => $v instanceof Color ? $v : Color::parse(self::str($v, 'color')),
@@ -272,7 +272,7 @@ final readonly class Style
         if ($allowAuto && trim($s) === 'auto') {
             return Auto::instance();
         }
-        return str_ends_with(trim($s), '%') ? Percent::parse($s) : Length::parse($s);
+        return str_ends_with(trim($s), '%') ? Percent::parse($s) : Length::parse($s, relative: true);
     }
 
     private static function parseNumber(string|int|float|bool|object $v, string $kind, bool $integer, float $min): float
@@ -289,8 +289,8 @@ final readonly class Style
 
     private static function positiveLength(string|int|float|bool|object $v): Length
     {
-        $l = $v instanceof Length ? $v : Length::parse(self::str($v, 'length'));
-        if ($l->points <= 0.0) {
+        $l = $v instanceof Length ? $v : Length::parse(self::str($v, 'length'), relative: true);
+        if ($l->isRelative() ? $l->factor <= 0.0 : $l->points <= 0.0) {
             throw InvalidValue::for('length', (string) $l);
         }
         return $l;
