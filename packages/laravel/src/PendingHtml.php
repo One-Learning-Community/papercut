@@ -5,39 +5,55 @@ declare(strict_types=1);
 namespace Papercut\Laravel;
 
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\Support\Responsable;
 use Papercut\Export\Output;
 use Symfony\Component\HttpFoundation\Response;
 
-/** HTML output: embeds as a fragment in Blade, and exports, saves or responds as a full page. */
-final class PendingHtml extends PendingOutput implements Htmlable, \Stringable
+/**
+ * HTML output. `(string)`, `{{ }}` and `{!! !!}` print the embeddable fragment; `page()` and
+ * `fragment()` give a PendingOutput for explicit strings, files and downloads.
+ */
+final class PendingHtml implements Htmlable, \Stringable, Responsable
 {
-    private ?Output $fragmentOutput = null;
+    private ?PendingOutput $pageOutput = null;
+    private ?PendingOutput $fragmentOutput = null;
 
     /**
      * @param \Closure(): Output $fragment the embeddable `.papercut` fragment
      * @param \Closure(): Output $page the full HTML page
      */
-    public function __construct(private readonly \Closure $fragment, \Closure $page)
+    public function __construct(private readonly \Closure $fragment, private readonly \Closure $page)
     {
-        parent::__construct($page);
+    }
+
+    /** The full HTML page. */
+    public function page(): PendingOutput
+    {
+        return $this->pageOutput ??= new PendingOutput($this->page);
+    }
+
+    /** The embeddable `.papercut` fragment. */
+    public function fragment(): PendingOutput
+    {
+        return $this->fragmentOutput ??= new PendingOutput($this->fragment);
     }
 
     /** The fragment, for `{!! $doc->html() !!}` inside another Blade view. */
     public function toHtml(): string
     {
-        return ($this->fragmentOutput ??= ($this->fragment)())->bytes();
+        return $this->fragment()->toString();
     }
 
-    /** The fragment, unlike toString(), which is the full page. Lets `{!! $doc->html() !!}` print it. */
+    /** The fragment; lets `{{ $doc->html() }}` and `(string) $doc->html()` print it. */
     public function __toString(): string
     {
         return $this->toHtml();
     }
 
-    /** @param \Illuminate\Http\Request $request */
+    /** The full page as a bare 200 response, with no Content-Disposition. @param \Illuminate\Http\Request $request */
     public function toResponse($request): Response
     {
-        $output = $this->output();
+        $output = $this->page()->output();
 
         return new Response($output->bytes(), 200, [
             'Content-Type' => $output->mime(),

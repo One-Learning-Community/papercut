@@ -31,6 +31,7 @@ Migration from v0.1:
   - the bundled Inter is always registered.
 - Save failures now read `Directory does not exist: …` or `Could not write output to "…": …` (previously `Could not write PDF to …`).
 - In Laravel, all config errors (theme, styles, overflow, strict, fonts, including a missing or unreadable font file) now surface when the output is rendered, not at `view()`, `make()` or `Papercut::pdfOptions()`.
+- `->html()` returns a `PendingHtml` that no longer extends `PendingOutput` and has no `toString()`, `save()`, `download()`, `inline()` or `output()`. Use `->html()->page()` (full page) or `->html()->fragment()` (embeddable fragment), each a `PendingOutput` named `document.html`. `PendingOutput` is now `final`. Returning `->html()` from a route still sends the full page with no `Content-Disposition`.
 - `Output` and the export options expose methods, not properties: `$output->bytes()`, `mime()`, `extension()`; `$options->theme()`, `fonts()`, `onWarning()`, `strict()`, `overflow()`, `cacheDir()`.
 
 ### Added
@@ -38,8 +39,8 @@ Migration from v0.1:
 - `Papercut::make($document)` and `PendingDocument` (`document()`, `pdf()`); `PendingOutput` takes its `Content-Type` and default filename from the `Output`.
 - Core: `Exporter`/`Output` API, `PdfOptions`, `FontSet`, fidelity reporting (`Fidelity`, `FidelityReport`), strict mode (`UnsupportedFeature`) and `MissingExporter`.
 - Config key `papercut.strict` (default `false`).
-- HTML export: `Document::toHtml()` in core and `Papercut::view(...)->html()` in Laravel (`PendingHtml`: a fragment for `{!! $doc->html() !!}`, a full page for `toString()`, `save()`, `download()` and route responses).
-- Config key `papercut.html.fonts` (`none` default, or `embed`).
+- HTML export: `Document::toHtml()` in core and `Papercut::view(...)->html()` in Laravel (`PendingHtml`: `(string)` and `{{ }}` give the fragment for embedding, `page()` and `fragment()` each return a `PendingOutput`, and a route response is the full page).
+- Config key `papercut.html.fonts` (`none` default, `embed` or `link`), and `papercut.html.image_url` / `papercut.html.font_url`: invokable class names implementing `Papercut\Laravel\Html\ImageUrlResolver` / `FontUrlResolver`, built by the container (class names survive `config:cache`; closures are rejected). `link` needs `font_url`. Invalid `html.*` config is reported at the first `->html()` export.
 - Preview routes accept `?format=pdf|html`; any other value is a 404.
 - `Papercut::exportOptions()` (shared theme, fonts, warnings, strict) and `Papercut::htmlOptions()`; `pdfOptions()` builds on the shared options.
 - `HtmlOptions` (`fullPage`, `fontMode`, `imageUrl`, `fontUrl`), `FontMode` (`None`, `Embed`, `Link`) and the `imageUrl` / `fontUrl` callbacks: images embed as data URIs unless `imageUrl` returns a safe URL; fonts embed or link per `FontMode`.

@@ -10,7 +10,7 @@ use Papercut\Export\Output;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 
-class PendingOutput implements Responsable
+final class PendingOutput implements Responsable
 {
     private ?Output $output = null;
 

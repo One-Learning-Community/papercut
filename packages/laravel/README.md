@@ -67,7 +67,9 @@ This publishes `config/papercut.php`:
 | `styles` | `[]` | [Named styles](#named-styles) |
 | `overflow` | `null` | `'throw'`, `'clip'`, or `null` = throw in `local`/`testing`, clip elsewhere |
 | `strict` | `false` | `true` makes an export throw `UnsupportedFeature` for content a format cannot render, instead of dropping it with a warning. Consider `true` in tests |
-| `html.fonts` | `'none'` | Fonts in HTML output: `'none'` (a `system-ui` fallback stack, small files) or `'embed'` (base64 `@font-face`, large files) |
+| `html.fonts` | `'none'` | Fonts in HTML output: `'none'` (a `system-ui` fallback stack, small files), `'embed'` (base64 `@font-face`, large files) or `'link'` (`@font-face` with URLs from `html.font_url`; requires it) |
+| `html.image_url` | `null` | Class name implementing `Papercut\Laravel\Html\ImageUrlResolver`; `null` embeds images as data URIs (see [HTML URLs](#html-urls)) |
+| `html.font_url` | `null` | Class name implementing `Papercut\Laravel\Html\FontUrlResolver`; required when `html.fonts` is `'link'` |
 | `image_path` | `null` | Base directory for relative `<x-doc::image src>`; `null` = `public_path()` |
 | `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
@@ -82,11 +84,40 @@ The same document exports to HTML. `->html()` shares the theme, fonts, named sty
 return Papercut::view('pdf.invoice', $data)->html();
 
 // Download or save
-Papercut::view('pdf.invoice', $data)->html()->download('invoice.html');
-Papercut::view('pdf.invoice', $data)->html()->save(storage_path('invoice.html'));
+Papercut::view('pdf.invoice', $data)->html()->page()->download('invoice.html');
+Papercut::view('pdf.invoice', $data)->html()->page()->save(storage_path('invoice.html'));
+
+// The embeddable fragment as a string or file
+$fragment = Papercut::view('pdf.invoice', $data)->html()->fragment()->toString();
 ```
 
-Inside another Blade view, `{{ $doc->html() }}`, `{!! $doc->html() !!}` and `(string) $doc->html()` all give the embeddable fragment (one `.papercut` element, no `<html>`), where `$doc` is `Papercut::view(...)` or `Papercut::make($document)`. `toString()`, `save()`, `download()` and returning it from a route give the full page. HTML reports approximations through the same warning log as PDF. Every approximation is reported (for example fr column widths, the page box, and header and footer once per page), and HTML reports nothing as dropped, so `strict` does not throw for it.
+Inside another Blade view, `{{ $doc->html() }}`, `{!! $doc->html() !!}` and `(string) $doc->html()` all give the embeddable fragment (one `.papercut` element, no `<html>`), where `$doc` is `Papercut::view(...)` or `Papercut::make($document)`. Returning `->html()` from a route sends the full page. `PendingHtml` has no `toString()`, `save()` or `download()` of its own, so a string never means two things: `->html()->page()` and `->html()->fragment()` each return a `PendingOutput` (`toString()`, `save()`, `download()`, `inline()`, default name `document.html`). HTML reports approximations through the same warning log as PDF. Every approximation is reported (for example fr column widths, the page box, and header and footer once per page), and HTML reports nothing as dropped, so `strict` does not throw for it.
+
+### HTML URLs
+
+`html.image_url` and `html.font_url` name invokable classes, built by the container (constructor dependencies work). Use class names, not closures: a class name survives `php artisan config:cache`, and a closure in config is rejected with an error naming the key. Return `null` to embed an image as a data URI, or to skip a font face.
+
+```php
+namespace App\Pdf;
+
+use Papercut\Image;
+use Papercut\Laravel\Html\ImageUrlResolver;
+
+final class CdnImageUrl implements ImageUrlResolver
+{
+    public function __invoke(Image $image): ?string
+    {
+        ['kind' => $kind, 'value' => $value] = $image->source();
+
+        return $kind === 'file' ? asset('img/' . basename($value)) : null; // null = embed
+    }
+}
+
+// config/papercut.php
+'html' => ['fonts' => 'link', 'image_url' => \App\Pdf\CdnImageUrl::class, 'font_url' => \App\Pdf\CdnFontUrl::class],
+```
+
+Invalid `html.*` config is reported at the first `->html()` export, not at boot.
 
 Preview routes accept `?format=pdf` (default) or `?format=html`; any other value is a 404.
 

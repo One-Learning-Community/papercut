@@ -110,17 +110,21 @@ Plan: docs/superpowers/plans/2026-10-19-pdf-html-hardening.md. Each entry: what 
 - Ruling (H2): `PendingHtml` is `Htmlable`, `Stringable` and `Responsable`, no longer a `PendingOutput`; `page()` and `fragment()` return `PendingOutput`; `toResponse()` keeps the full-page response (200, text/html, no Content-Disposition) — a string must not mean two things — cost if wrong: callers rename `->html()->save()` to `->html()->page()->save()`
 - Ruling (H3): `html.image_url` and `html.font_url` name invokable classes; `html.fonts` accepts `link`; invalid `html.*` config is reported when HTML options are first built, not at boot, so artisan commands still run with a half-set config; `link` needs `html.font_url`; no code-level options hook in 0.2.0 — cost if wrong: a bad config surfaces at first export instead of boot
 - Ruling (H4): PDF's "Table columns need X but only Y" warning is not mirrored in HTML — the browser resolves column overflow itself, and mirroring it would need text measurement in HTML — cost if wrong: an HTML export of a too-narrow table gives no warning
+- Ruling: php-pdf's `PdfImage::fromBytes` accepts PNG/JPEG cut to 60%, so the truncated-image test asserts parity (same outcome and message) plus a header-only PNG both formats refuse; refusing truncated data is a php-pdf follow-up — cost if wrong: truncated images embed broken in both formats
+- Ruling: `FontSet::effectiveFaces` keeps an overridden face at its first-registration position (the old `FontFaces::faces` moved it to the end) — only `@font-face` order for overridden faces changes; no golden changed — cost if wrong: one ordering line
+- Ruling: `->html()->toResponse()` sends the full page with no Content-Disposition (as before); `->html()->page()->toResponse()` is a normal `PendingOutput` and sends `inline` — keeps route behaviour unchanged — cost if wrong: none
+- Ruling: a resolver class that the container cannot build is reported naming its config key (`Cannot build papercut.html.<key> resolver …`) — a bare container error does not say which key is wrong — cost if wrong: none
 
 ## Carry-overs (status after the hardening plan)
-- *Planned: hardening Task 2.* **Parked:** an image with a valid header but truncated data embeds as a broken `<img>` in HTML while PDF throws. Fix: validate every image through the `Backend` interface (`loadImageBytes`/`loadImageFile`) from a shared default backend factory; drop the `getimagesizefromstring()` gate and the hard-coded `PhpPdfBackend` in `ImageSource`.
-- *Planned: hardening Task 6 (H2).* Ask the maintainer: `PendingHtml` has `(string) $html` = fragment but `toString()` = full page (documented and tested). Consider explicit `fragment()`/`page()` methods before the 0.2.0 freeze.
-- *Planned: hardening Task 7 (H3).* Laravel has no per-call options hook, so `imageUrl`, `fontUrl` and `link` font mode are PHP-API only.
-- Add HTML (and DOCX) timings to the bench (spec §9). *HTML: planned, hardening Task 5. DOCX: waits for DOCX.*
-- *Planned: hardening Task 3.* Make WidthResolver the single source for track counting (HtmlWriter duplicates TableLayouter's rule); `FontSet::effectiveFaces()` to share face dedupe between FontRegistry and FontFaces.
+- *Done in hardening Task 2.* HTML and PDF now refuse the same images: both validate through the `Backend` interface, so a header-only PNG is refused by both. *Waits for php-pdf:* a PNG or JPEG truncated to about 60% is accepted by php-pdf's `PdfImage`, so it embeds broken in both formats.
+- *Done in hardening Task 6 (H2).* `PendingHtml` had `(string) $html` = fragment but `toString()` = full page; it now exposes explicit `page()` and `fragment()`, each a `PendingOutput`.
+- *Done in hardening Task 7 (H3).* Laravel has no per-call options hook, so `imageUrl`, `fontUrl` and `link` font mode were PHP-API only; they are now config keys naming invokable resolver classes.
+- Add HTML (and DOCX) timings to the bench (spec §9). *HTML: done in hardening Task 5. DOCX: waits for DOCX.*
+- *Done in hardening Task 3.* WidthResolver is the single source for track counting (HtmlWriter no longer duplicates TableLayouter's rule); `FontSet::effectiveFaces()` shares face dedupe between FontRegistry and FontFaces.
 - *Waits for DOCX* (only DOCX calls `WidthResolver`). WidthResolver carry-overs from Phase 0 still apply: node-path context for warnings, a cache policy for non-PDF exports, a `flexLines` direction guard.
 - Minor items:
-  - *Done in hardening Task 4:* cell `justify` space-between/around/evenly will be reported (`cell justify`).
+  - *Done in hardening Task 4:* cell `justify` space-between/around/evenly is reported (`cell justify`).
   - *Done in hardening Task 4 (ruling H4, not mirrored):* PDF's "Table columns need X but only Y" warning needs layout widths, so HTML does not mirror it.
   - *Done in hardening Task 4:* the `table()`/`tableRow()` decoration-override check.
-  - *Planned: hardening Task 3:* the reused-cell stray warning edge case.
-  - *Done in hardening Task 4:* the render.php `fontUrl` will return null for faces outside the repo.
+  - *Done in hardening Task 3:* the reused-cell stray warning edge case.
+  - *Done in hardening Task 4:* the render.php `fontUrl` returns null for faces outside the repo.

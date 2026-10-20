@@ -153,8 +153,15 @@ final class PapercutManager
         $mode = match (is_string($fonts) ? strtolower($fonts) : null) {
             'none' => FontMode::None,
             'embed' => FontMode::Embed,
-            default => throw new \InvalidArgumentException('Invalid papercut.html.fonts: ' . (is_scalar($fonts) ? var_export($fonts, true) : get_debug_type($fonts)) . '; expected none or embed'),
+            'link' => FontMode::Link,
+            default => throw new \InvalidArgumentException('Invalid papercut.html.fonts: ' . (is_scalar($fonts) ? var_export($fonts, true) : get_debug_type($fonts)) . '; expected none, embed or link'),
         };
+
+        $imageUrl = self::resolver('image_url', Html\ImageUrlResolver::class);
+        $fontUrl = self::resolver('font_url', Html\FontUrlResolver::class);
+        if ($mode === FontMode::Link && $fontUrl === null) {
+            throw new \InvalidArgumentException('papercut.html.fonts is link, which needs papercut.html.font_url');
+        }
 
         $base = $this->exportOptions();
 
@@ -164,7 +171,31 @@ final class PapercutManager
             onWarning: $base->onWarning(),
             strict: $base->strict(),
             fontMode: $mode,
+            imageUrl: $imageUrl,
+            fontUrl: $fontUrl,
         );
+    }
+
+    /**
+     * @param class-string<Html\ImageUrlResolver|Html\FontUrlResolver> $interface
+     */
+    private static function resolver(string $key, string $interface): ?\Closure
+    {
+        $class = config('papercut.html.' . $key);
+        if ($class === null) {
+            return null;
+        }
+        if (!is_string($class) || !is_subclass_of($class, $interface)) {
+            throw new \InvalidArgumentException("Invalid papercut.html.$key: " . (is_scalar($class) ? var_export($class, true) : get_debug_type($class)) . "; expected an invokable class name implementing $interface or null");
+        }
+        try {
+            /** @var Html\ImageUrlResolver|Html\FontUrlResolver $instance */
+            $instance = app($class);
+        } catch (\Illuminate\Contracts\Container\BindingResolutionException $e) {
+            throw new \InvalidArgumentException("Cannot build papercut.html.$key resolver " . var_export($class, true) . ': ' . $e->getMessage(), 0, $e);
+        }
+
+        return $instance(...);
     }
 
     private static function strict(): bool

@@ -1,7 +1,6 @@
 # dskripchenko/php-docx v1.15.0 - API map for a Papercut DOCX exporter
 
-Clone: /private/tmp/claude-501/-Users-serpentblade-work-olc-php-pdf/63bcf4ec-014c-4b31-8410-9d91463d8cc7/scratchpad/upstream/php-docx
-Probes: .../scratchpad/probe/probe.php, probe2.php, probe3.php, probe4.php (autoloader: autoload.php)
+Probe scripts were run against a read-only clone of php-docx v1.15.0.
 All paths below are relative to `src/`; namespace root `Dskripchenko\PhpDocx\`. "L" = line number.
 
 Headline: the model layer is a thin typed AST (readonly value objects). The writer (`Writer/BodyXmlBuilder.php`, `Writer/Word2007Writer.php`) is small and ignores several model fields. Anything outside what is listed below is NOT SUPPORTED.
@@ -140,7 +139,7 @@ Model fields the writer ignores: `ParagraphStyle::keepWithNext`, `pageBreakAfter
 - The package ships `Html\Converter` (HTML to AST) and `Reader` (DOCX to AST); neither is needed for a Papercut exporter. A Papercut AST can map straight onto Paragraph/Run/Table/Image.
 
 ## Probe: 1 section, header with PAGE/NUMPAGES, 2-col fixed table (2000/3000 + header row), hyperlink paragraph
-Script: .../scratchpad/probe/probe.php. Built with `DocumentBuilder` + `Word2007Writer::write`.
+Probe script: see the note at the top. Built with `DocumentBuilder` + `Word2007Writer::write`.
 - `write()` twice in the same process: byte strings IDENTICAL (2717 bytes). A third `write()` after `sleep(2)`: NOT identical (ZIP entry mtimes changed).
 - Entries (all mtime = time of write): `[Content_Types].xml`, `_rels/.rels`, `word/document.xml`, `word/_rels/document.xml.rels`, `word/header1.xml`, `word/styles.xml`. (No settings.xml, no core.xml, no header1.xml.rels since the header has no links/images.)
 

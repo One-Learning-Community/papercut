@@ -24,7 +24,13 @@ return [
     'cache_dir' => null,
     'html' => [
         // Fonts in HTML output: none (system-ui fallback stack) | embed (base64 @font-face, large)
+        // | link (@font-face with URLs from font_url; needs font_url)
         'fonts' => 'none',
+        // Class name implementing Papercut\Laravel\Html\ImageUrlResolver, built by the container.
+        // null embeds images as data URIs. Use a class, not a closure: class names survive `php artisan config:cache`.
+        'image_url' => null,
+        // Class name implementing Papercut\Laravel\Html\FontUrlResolver, built by the container. Needed when fonts is link.
+        'font_url' => null,
     ],
     'preview' => [
         'enabled' => env('PAPERCUT_PREVIEW', false),
