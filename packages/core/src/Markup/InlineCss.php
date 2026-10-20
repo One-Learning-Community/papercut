@@ -26,7 +26,7 @@ use Papercut\Value\Percent;
 final class InlineCss
 {
     /** Properties that apply to span-level elements. */
-    private const array TEXT = ['color', 'font-size', 'font-weight', 'font-style', 'text-decoration'];
+    private const array TEXT = ['color', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'background-color'];
 
     private const array BOX = [
         'width' => 'width', 'height' => 'height',

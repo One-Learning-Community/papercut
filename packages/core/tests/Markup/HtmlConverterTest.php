@@ -133,7 +133,6 @@ final class HtmlConverterTest extends TestCase
         self::assertInstanceOf(View::class, $v);
         self::assertSame(['ab', 'c'], array_map(fn (Text $t) => implode('', self::spanTexts($t->spanList())), self::texts($v)));
         self::assertSame([
-            [FidelityLevel::Approximated, 'markup <mark> (tag removed, content kept)', 'p[0] > mark[0]'],
             [FidelityLevel::Approximated, 'markup <script> (removed)', 'script[1]'],
         ], self::notes($v));
     }
@@ -141,7 +140,6 @@ final class HtmlConverterTest extends TestCase
     public function test_unknown_block_tags_end_the_paragraph_and_keep_their_content(): void
     {
         $cases = [
-            '<blockquote>Quote</blockquote>After' => [['Quote', 'After'], [[FidelityLevel::Approximated, 'markup <blockquote> (tag removed, content kept)', 'blockquote[0]']]],
             '<table><tr><th>Name</th><th>Score</th></tr><tr><td>Ann</td><td>9</td></tr></table>' => [['Name', 'Score', 'Ann', '9'], [
                 [FidelityLevel::Approximated, 'markup <table> (tag removed, content kept)', 'table[0]'],
                 [FidelityLevel::Approximated, 'markup <tbody> (tag removed, content kept)', 'table[0] > tbody[0]'],
@@ -177,9 +175,9 @@ final class HtmlConverterTest extends TestCase
 
     public function test_unknown_tag_notes_once_per_tag_name(): void
     {
-        $v = Markup::html('<p><mark>a</mark> <mark>b</mark></p><p><mark>c</mark><kbd>d</kbd></p>');
+        $v = Markup::html('<p><abbr>a</abbr> <abbr>b</abbr></p><p><abbr>c</abbr><kbd>d</kbd></p>');
         self::assertSame([
-            [FidelityLevel::Approximated, 'markup <mark> (tag removed, content kept)', 'p[0] > mark[0]'],
+            [FidelityLevel::Approximated, 'markup <abbr> (tag removed, content kept)', 'p[0] > abbr[0]'],
             [FidelityLevel::Approximated, 'markup <kbd> (tag removed, content kept)', 'p[1] > kbd[1]'],
         ], self::notes($v));
     }

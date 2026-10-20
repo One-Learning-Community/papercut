@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Markup;
 
 use Papercut\Backend\ImageFormat;
+use Papercut\Decorator\Blockquote;
 use Papercut\Export\FidelityLevel;
 use Papercut\Image;
 use Papercut\Link;
@@ -17,6 +18,7 @@ use Papercut\Style\ListMarker;
 use Papercut\Style\Style;
 use Papercut\Styled;
 use Papercut\Text;
+use Papercut\Value\Color;
 use Papercut\View;
 
 use function Papercut\px;
@@ -41,14 +43,14 @@ final class HtmlConverter
     private const array HEADINGS = ['h1' => 'h1', 'h2' => 'h2', 'h3' => 'h3', 'h4' => 'h4', 'h5' => 'h4', 'h6' => 'h4'];
 
     /** Elements that produce nodes of their own; any other element's `style` adds to its text style. */
-    private const array BLOCKS = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ol', 'ul', 'li', 'figure', 'img', 'iframe', 'video', 'audio'];
+    private const array BLOCKS = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ol', 'ul', 'li', 'figure', 'blockquote', 'img', 'iframe', 'video', 'audio'];
 
     /**
      * HTML block-level elements without a mapping: they end the paragraph around
      * them and their content becomes paragraphs of its own, so words never glue.
      */
     private const array UNKNOWN_BLOCKS = [
-        'address', 'article', 'aside', 'blockquote', 'dd', 'details', 'dialog', 'dl', 'dt', 'fieldset', 'footer',
+        'address', 'article', 'aside', 'dd', 'details', 'dialog', 'dl', 'dt', 'fieldset', 'footer',
         'form', 'header', 'hgroup', 'hr', 'main', 'nav', 'pre', 'section', 'summary', 'table', 'caption', 'thead',
         'tbody', 'tfoot', 'tr', 'td', 'th', 'center',
     ];
@@ -186,6 +188,9 @@ final class HtmlConverter
             case 'figure':
                 $this->styled($own, $preset, fn () => $this->figure($el, $style, $href, $preset));
                 return;
+            case 'blockquote':
+                $this->styled($own, $preset, fn () => $this->blockquote($el, $style, $href, $preset));
+                return;
             case 'img':
                 $this->image($el, $style, $href, $preset, $own);
                 return;
@@ -202,6 +207,7 @@ final class HtmlConverter
             'u' => new Style(underline: true),
             's', 'strike', 'del' => new Style(strike: true),
             'span' => new Style(),
+            'mark' => new Style(background: Color::named('yellow-200')),
             default => null,
         };
         if ($add !== null) {
@@ -387,6 +393,66 @@ final class HtmlConverter
             $items[] = ListItem::make(...self::unwrapped($pending));
         }
         $this->items = $items;
+    }
+
+    /**
+     * A blockquote is a Blockquote decorator, emitted as its rendered View. A
+     * `cite` or `footer` that is its last element child becomes the attribution;
+     * with nothing in it, it is nothing.
+     */
+    private function blockquote(\Dom\Element $el, Style $style, ?string $href, ?string $outer): void
+    {
+        $this->flush($outer);
+        $last = $el->lastElementChild;
+        $cite = null;
+        if ($last !== null && in_array($last->localName, ['cite', 'footer'], true)) {
+            $cite = $last;
+            for ($tail = $last->nextSibling; $tail !== null; $tail = $tail->nextSibling) {
+                if ($tail instanceof \Dom\Text && trim($tail->data, " \t\n\r\f") !== '') {
+                    $cite = null;
+                    break;
+                }
+            }
+        }
+        $attribution = null;
+        $content = $this->collect('p', function () use ($el, $style, $href, $cite, &$attribution): void {
+            $index = 0;
+            foreach ($el->childNodes as $node) {
+                if ($node !== $cite) {
+                    $this->child($node, $index, $style, $href, 'p');
+                    continue;
+                }
+                $this->flush('p');
+                $this->path[] = $cite->localName . '[' . $index++ . ']';
+                $own = $this->css($cite, true, false)['style'] ?? new Style();
+                $parts = $this->collect(null, fn () => $this->children($cite, $style->merge($own), $href, null));
+                array_pop($this->path);
+                $attribution = $parts === [] ? null : self::attribution($parts);
+            }
+        });
+        if ($content === [] && $attribution === null) {
+            return;
+        }
+        $quote = Blockquote::make(...$content);
+        $this->blocks[] = [($attribution === null ? $quote : $quote->cite($attribution))->render(), false];
+    }
+
+    /**
+     * The attribution for a Blockquote: a plain string when the text carries no
+     * styling of its own, else the Text.
+     *
+     * @param non-empty-list<Node> $parts
+     */
+    private static function attribution(array $parts): string|Node
+    {
+        if (count($parts) === 1 && $parts[0] instanceof Text) {
+            $plain = true;
+            foreach ($parts[0]->spanList() as $span) {
+                $plain = $plain && $span->style->isEmpty() && $span->href === null && !$span->lineBreak;
+            }
+            return $plain ? implode('', array_map(static fn (Span $s): string => $s->text, $parts[0]->spanList())) : $parts[0];
+        }
+        return View::make(...$parts);
     }
 
     /** A figure is a column of its content followed by its captions; with nothing in it, it is nothing. */

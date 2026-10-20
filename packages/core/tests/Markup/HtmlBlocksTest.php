@@ -17,6 +17,7 @@ use Papercut\Markup\StyleMode;
 use Papercut\Page;
 use Papercut\Span;
 use Papercut\Style\ListMarker;
+use Papercut\Value\Color;
 use Papercut\Tests\Support\TestImages;
 use Papercut\Text;
 use Papercut\View;
@@ -330,6 +331,71 @@ final class HtmlBlocksTest extends TestCase
         self::assertInstanceOf(View::class, $bad);
         self::assertSame([], $bad->children());
         self::assertSame([[FidelityLevel::Dropped, 'markup <iframe> (no usable src; removed)', 'iframe[0]']], self::notes($bad));
+    }
+
+    public function test_blockquote_becomes_a_rendered_blockquote_view(): void
+    {
+        $v = Markup::html('<blockquote><p>Q</p></blockquote>');
+        self::assertInstanceOf(View::class, $v);
+        $quote = self::only(View::class, $v->children());
+        self::assertSame('blockquote', $quote->htmlElement());
+        self::assertSame('blockquote', $quote->styleName());
+        self::assertSame('Q', self::plain(self::only(Text::class, $quote->children())));
+        self::assertSame([], self::notes($v));
+    }
+
+    public function test_blockquote_takes_a_last_footer_or_cite_as_its_attribution(): void
+    {
+        foreach (['footer', 'cite'] as $tag) {
+            $v = Markup::html("<blockquote><p>Q</p><$tag>Jane</$tag></blockquote>");
+            self::assertInstanceOf(View::class, $v);
+            $quote = self::only(View::class, $v->children());
+            self::assertCount(2, $quote->children(), $tag);
+            $q = $quote->children()[0];
+            $cite = $quote->children()[1];
+            self::assertInstanceOf(Text::class, $q);
+            self::assertInstanceOf(Text::class, $cite);
+            self::assertSame('Q', self::plain($q), $tag);
+            self::assertSame('blockquote.cite', $cite->styleName(), $tag);
+            self::assertSame('— Jane', self::plain($cite), $tag);
+            self::assertSame([], self::notes($v), $tag);
+        }
+    }
+
+    public function test_blockquote_cite_that_is_not_last_stays_inline(): void
+    {
+        $v = Markup::html('<blockquote><p>Q <cite>Jane</cite> said</p></blockquote>');
+        self::assertInstanceOf(View::class, $v);
+        $quote = self::only(View::class, $v->children());
+        self::assertSame('Q Jane said', self::plain(self::only(Text::class, $quote->children())));
+        $v = Markup::html('<blockquote><cite>Jane</cite><p>Q</p></blockquote>');
+        self::assertInstanceOf(View::class, $v);
+        $quote = self::only(View::class, $v->children());
+        self::assertCount(2, $quote->children());
+        self::assertSame('blockquote', $quote->styleName());
+    }
+
+    public function test_empty_blockquote_is_nothing(): void
+    {
+        $v = Markup::html('<blockquote></blockquote><p>x</p>');
+        self::assertInstanceOf(Text::class, $v);
+        self::assertSame('x', self::plain($v));
+        $none = Markup::html('<blockquote></blockquote>');
+        self::assertInstanceOf(View::class, $none);
+        self::assertSame([], $none->children());
+    }
+
+    public function test_mark_has_a_yellow_background_and_inline_css_wins(): void
+    {
+        $t = Markup::html('<p>a <mark>b</mark></p>');
+        self::assertInstanceOf(Text::class, $t);
+        self::assertEquals(Color::named('yellow-200'), $t->spanList()[1]->style->background);
+        self::assertNull($t->spanList()[0]->style->background);
+        $o = new MarkupOptions(styles: StyleMode::Original);
+        $t = Markup::html('<p>a <mark style="background-color: #ff0000">b</mark></p>', $o);
+        self::assertInstanceOf(Text::class, $t);
+        self::assertEquals(Color::hex('#ff0000'), $t->spanList()[1]->style->background);
+        self::assertSame([], self::notes($t));
     }
 
     /**
