@@ -8,6 +8,7 @@ use Papercut\{Column, Document, Link, Page, PageBreak, PageNumber, Row, Span, Sp
 use Papercut\Export\{FidelityReport, HtmlOptions};
 use Papercut\Exception\InvalidValue;
 use Papercut\Style\{Justify, Style};
+use Papercut\Value\Color;
 use PHPUnit\Framework\TestCase;
 
 use function Papercut\pt;
@@ -121,6 +122,17 @@ final class HtmlExporterTest extends TestCase
         self::assertCount(1, $this->xpath($html, '//p/br'));
         self::assertSame('https://example.com/?a=1&b=2', $this->attr($this->one($html, '//p/a'), 'href'));
         self::assertCount(1, $this->xpath($html, '//p/text()[starts-with(., "plain")]'));
+    }
+
+    public function test_highlighted_span_emits_background_color(): void
+    {
+        $doc = Document::make(Page::a4()->body(Text::spans(
+            Span::text('plain '),
+            Span::text('hot', Style::make(background: Color::named('yellow-200'))),
+        )));
+        $html = $this->html($doc);
+        self::assertSame('background-color:#fef08a', $this->attr($this->one($html, '//p/span'), 'style'));
+        self::assertCount(1, $this->xpath($html, '//p/span'));
     }
 
     public function test_block_link_and_spacers_and_flex_item(): void

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Layout;
 
 use Papercut\{Node, Text};
-use Papercut\Paint\{Line as LineOp, Link as LinkOp, TextRun};
+use Papercut\Paint\{Line as LineOp, Link as LinkOp, Rect, TextRun};
 use Papercut\Style\{ComputedStyle, TextAlign};
 use Papercut\Text\{FontStyle, InlineItem, Line, LineBreaker};
 use Papercut\Value\Length;
@@ -247,6 +247,13 @@ final class TextLayouter implements Layouter
         $runs = $justified
             ? array_map(static fn (array $p): array => [$p], array_values(array_filter($placed, static fn (array $p): bool => $p['item']->kind === 'word')))
             : self::group($placed, self::styleKey(...));
+        // Highlights sit behind the text: one rect per contiguous same-style run, including stretched spaces.
+        foreach (self::group($placed, self::styleKey(...)) as $group) {
+            $bg = $group[0]['item']->style->background;
+            if ($bg !== null) {
+                $f->addOp(new Rect($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], fill: $bg));
+            }
+        }
         foreach ($runs as $group) {
             $text = implode('', array_map(static fn (array $p): string => $p['item']->text, $group));
             if (trim($text) === '') {
@@ -352,6 +359,7 @@ final class TextLayouter implements Layouter
             (string) $s->letterSpacing,
             $s->underline ? 'u' : '',
             $s->strike ? 's' : '',
+            (string) $s->background,
             $i->href ?? '',
         ]);
     }

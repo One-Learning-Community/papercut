@@ -6,6 +6,7 @@ namespace Papercut\Tests\Text;
 
 use Papercut\Exception\InvalidValue;
 use Papercut\Text\InlineMarkup;
+use Papercut\Value\Color;
 use PHPUnit\Framework\TestCase;
 
 final class InlineMarkupTest extends TestCase
@@ -25,6 +26,24 @@ final class InlineMarkupTest extends TestCase
         self::assertSame(700, $s[2]->style->fontWeight);
         self::assertTrue($s[2]->style->italic);
         self::assertNull($s[3]->style->fontWeight);
+    }
+
+    public function test_mark_sets_a_yellow_background(): void
+    {
+        $s = InlineMarkup::parse('a <mark>b</mark> c');
+        self::assertSame(['a ', 'b', ' c'], array_map(fn ($x) => $x->text, $s));
+        self::assertNull($s[0]->style->background);
+        self::assertSame((string) Color::named('yellow-200'), (string) $s[1]->style->background);
+        self::assertNull($s[2]->style->background);
+    }
+
+    public function test_mark_combines_with_other_tags_and_rejects_attributes(): void
+    {
+        $s = InlineMarkup::parse('<mark><b>k</b></mark>');
+        self::assertSame(700, $s[0]->style->fontWeight);
+        self::assertSame((string) Color::named('yellow-200'), (string) $s[0]->style->background);
+        $this->expectException(InvalidValue::class);
+        InlineMarkup::parse('<mark x="1">k</mark>');
     }
 
     public function test_link_break_and_span_attrs(): void

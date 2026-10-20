@@ -197,6 +197,28 @@ final class TextLayouterTest extends TestCase
         );
     }
 
+    public function test_highlighted_span_paints_a_rect_per_line_before_its_text(): void
+    {
+        $yellow = Color::named('yellow-200');
+        $t = Text::spans(Span::text('aa '), Span::text('bb cc', Style::make(background: $yellow)));
+        $ops = (new LayoutHarness())->layout($t, 25)->fragment?->ops() ?? [];
+        $rects = array_values(array_filter($ops, fn ($o) => $o instanceof Rect));
+        self::assertCount(2, $rects);
+        self::assertSame((string) $yellow, (string) $rects[0]->fill);
+        self::assertSame([15.0, 0.0, 10.0, 14.0], [$rects[0]->x, $rects[0]->y, $rects[0]->width, $rects[0]->height]);
+        self::assertSame([0.0, 14.0, 10.0, 14.0], [$rects[1]->x, $rects[1]->y, $rects[1]->width, $rects[1]->height]);
+        foreach ($rects as $r) {
+            $at = array_search($r, $ops, true);
+            self::assertInstanceOf(TextRun::class, $ops[$at + 1]);
+        }
+    }
+
+    public function test_text_without_backgrounds_paints_no_rects(): void
+    {
+        $ops = (new LayoutHarness())->layout(Text::make('aa bb cc'), 25)->fragment?->ops() ?? [];
+        self::assertSame([], array_values(array_filter($ops, fn ($o) => $o instanceof Rect)));
+    }
+
     public function test_runs_split_on_style_change(): void
     {
         $t = Text::spans(Span::text('aa '), Span::text('bb', Style::make(color: Color::parse('red-500'))), Span::text(' cc'));

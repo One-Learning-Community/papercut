@@ -8,6 +8,7 @@ use Papercut\Exception\InvalidValue;
 use Papercut\Paint\Link as LinkOp;
 use Papercut\Span;
 use Papercut\Style\Style;
+use Papercut\Value\Color;
 
 /**
  * Parses the small inline tag vocabulary into spans. Tags are recognised
@@ -85,6 +86,7 @@ final class InlineMarkup
                 'b', 'strong' => self::noAttrs($attrs, $markup, $display, new Style(fontWeight: 700)),
                 'i', 'em' => self::noAttrs($attrs, $markup, $display, new Style(italic: true)),
                 'u' => self::noAttrs($attrs, $markup, $display, new Style(underline: true)),
+                'mark' => self::noAttrs($attrs, $markup, $display, new Style(background: Color::named('yellow-200'))),
                 's' => self::noAttrs($attrs, $markup, $display, new Style(strike: true)),
                 'a' => self::noAttrs(array_diff_key($attrs, ['href' => 1]), $markup, $display, new Style()),
                 'span' => self::spanStyle($attrs, $markup),
