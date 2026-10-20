@@ -124,7 +124,7 @@ final class HtmlConverterTest extends TestCase
         self::assertInstanceOf(Text::class, $t);
         self::assertSame('https://example.com', $t->spanList()[0]->href);
         self::assertNull($t->spanList()[2]->href);
-        self::assertSame([[FidelityLevel::Dropped, 'markup link "javascript:alert(1)" (unsafe scheme; link removed, content kept)', 'p[0] > a[1]']], self::notes($t));
+        self::assertSame([[FidelityLevel::Dropped, 'markup link "javascript:alert(1)" (unsupported link; link removed, content kept)', 'p[0] > a[1]']], self::notes($t));
     }
 
     public function test_unknown_and_removed_tags(): void
@@ -135,6 +135,52 @@ final class HtmlConverterTest extends TestCase
         self::assertSame([
             [FidelityLevel::Approximated, 'markup <mark> (tag removed, content kept)', 'p[0] > mark[0]'],
             [FidelityLevel::Approximated, 'markup <script> (removed)', 'script[1]'],
+        ], self::notes($v));
+    }
+
+    public function test_unknown_block_tags_end_the_paragraph_and_keep_their_content(): void
+    {
+        $cases = [
+            '<blockquote>Quote</blockquote>After' => [['Quote', 'After'], [[FidelityLevel::Approximated, 'markup <blockquote> (tag removed, content kept)', 'blockquote[0]']]],
+            '<table><tr><th>Name</th><th>Score</th></tr><tr><td>Ann</td><td>9</td></tr></table>' => [['Name', 'Score', 'Ann', '9'], [
+                [FidelityLevel::Approximated, 'markup <table> (tag removed, content kept)', 'table[0]'],
+                [FidelityLevel::Approximated, 'markup <tbody> (tag removed, content kept)', 'table[0] > tbody[0]'],
+                [FidelityLevel::Approximated, 'markup <tr> (tag removed, content kept)', 'table[0] > tbody[0] > tr[0]'],
+                [FidelityLevel::Approximated, 'markup <th> (tag removed, content kept)', 'table[0] > tbody[0] > tr[0] > th[0]'],
+                [FidelityLevel::Approximated, 'markup <td> (tag removed, content kept)', 'table[0] > tbody[0] > tr[1] > td[0]'],
+            ]],
+            '<section>One</section><section>Two</section>' => [['One', 'Two'], [[FidelityLevel::Approximated, 'markup <section> (tag removed, content kept)', 'section[0]']]],
+            '<dl><dt>Term</dt><dd>Def</dd></dl>' => [['Term', 'Def'], [
+                [FidelityLevel::Approximated, 'markup <dl> (tag removed, content kept)', 'dl[0]'],
+                [FidelityLevel::Approximated, 'markup <dt> (tag removed, content kept)', 'dl[0] > dt[0]'],
+                [FidelityLevel::Approximated, 'markup <dd> (tag removed, content kept)', 'dl[0] > dd[1]'],
+            ]],
+            'a<hr>b' => [['a', 'b'], [[FidelityLevel::Approximated, 'markup <hr> (tag removed, content kept)', 'hr[0]']]],
+        ];
+        foreach ($cases as $html => [$texts, $notes]) {
+            $v = Markup::html($html);
+            self::assertInstanceOf(View::class, $v, $html);
+            self::assertSame($texts, array_map(fn (Text $t) => implode('', self::spanTexts($t->spanList())), self::texts($v)), $html);
+            self::assertSame(array_fill(0, count($texts), 'p'), array_map(fn (Text $t) => $t->preset(), self::texts($v)), $html);
+            self::assertSame($notes, self::notes($v), $html);
+        }
+    }
+
+    public function test_pre_keeps_its_line_breaks(): void
+    {
+        $t = Markup::html("<pre>line  1\n<b>line</b> 2\n\nline 4\n</pre>");
+        self::assertInstanceOf(Text::class, $t);
+        self::assertSame(['line 1', '', 'line', ' 2', '', '', 'line 4'], self::spanTexts($t->spanList()));
+        self::assertSame([false, true, false, false, true, true, false], array_map(fn (Span $s) => $s->lineBreak, $t->spanList()));
+        self::assertSame([[FidelityLevel::Approximated, 'markup <pre> (tag removed, content kept)', 'pre[0]']], self::notes($t));
+    }
+
+    public function test_unknown_tag_notes_once_per_tag_name(): void
+    {
+        $v = Markup::html('<p><mark>a</mark> <mark>b</mark></p><p><mark>c</mark><kbd>d</kbd></p>');
+        self::assertSame([
+            [FidelityLevel::Approximated, 'markup <mark> (tag removed, content kept)', 'p[0] > mark[0]'],
+            [FidelityLevel::Approximated, 'markup <kbd> (tag removed, content kept)', 'p[1] > kbd[1]'],
         ], self::notes($v));
     }
 
@@ -215,7 +261,8 @@ final class HtmlConverterTest extends TestCase
             $depth = array_values(array_filter($v->notes(), fn (Note $n) => $n->feature === 'markup nesting deeper than 256 levels (flattened)'));
             self::assertCount(1, $depth, $tag);
             self::assertSame(FidelityLevel::Approximated, $depth[0]->level);
-            self::assertSame(implode(' > ', array_fill(0, 257, "{$tag}[0]")), $depth[0]->where, $tag);
+            $three = implode(' > ', array_fill(0, 3, "{$tag}[0]"));
+            self::assertSame($three . ' > … > ' . $three, $depth[0]->where, $tag);
             self::assertCount(1, $v->notes(), $tag);
         }
     }
@@ -225,7 +272,17 @@ final class HtmlConverterTest extends TestCase
         $t = Markup::html("<p><a href=\" https://e.com\n\">x</a><a href=\" javascript:x \">y</a></p>");
         self::assertInstanceOf(Text::class, $t);
         self::assertSame('https://e.com', $t->spanList()[0]->href);
-        self::assertSame([[FidelityLevel::Dropped, 'markup link "javascript:x" (unsafe scheme; link removed, content kept)', 'p[0] > a[1]']], self::notes($t));
+        self::assertSame([[FidelityLevel::Dropped, 'markup link "javascript:x" (unsupported link; link removed, content kept)', 'p[0] > a[1]']], self::notes($t));
+    }
+
+    public function test_unsupported_link_notes_shorten_the_href(): void
+    {
+        $href = 'data:text/html;base64,' . str_repeat('A', 5000);
+        $t = Markup::html('<p><a href="' . $href . '">x</a> <a href="/relative/page">y</a></p>');
+        self::assertSame([
+            [FidelityLevel::Dropped, 'markup link "' . substr($href, 0, 100) . '…" (unsupported link; link removed, content kept)', 'p[0] > a[0]'],
+            [FidelityLevel::Dropped, 'markup link "/relative/page" (unsupported link; link removed, content kept)', 'p[0] > a[1]'],
+        ], self::notes($t));
     }
 
     public function test_theme_ignores_style_and_original_applies_it(): void
@@ -251,7 +308,7 @@ final class HtmlConverterTest extends TestCase
         $image = $figure->children()[0];
         self::assertInstanceOf(Image::class, $image);
         self::assertEqualsWithDelta(px(100)->points, self::points($image->style()->width), 1e-9);
-        self::assertEqualsWithDelta(px(266)->points, self::points($image->style()->height), 1e-9);
+        self::assertNull($image->style()->height);
         self::assertSame([], $original->notes());
     }
 
@@ -361,6 +418,17 @@ final class HtmlConverterTest extends TestCase
         self::assertInstanceOf(Text::class, $text);
         self::assertNull($text->preset());
         self::assertSame('#ff0000', (string) $text->style()->color);
+    }
+
+    public function test_an_item_joined_by_a_loose_list_keeps_its_style(): void
+    {
+        $v = Markup::html('<ul><li style="color: #ff0000">a</li><ul><li>n</li></ul></ul>', new MarkupOptions(styles: StyleMode::Original));
+        self::assertInstanceOf(View::class, $v);
+        $list = $v->children()[0];
+        self::assertInstanceOf(ListNode::class, $list);
+        self::assertCount(1, $list->items());
+        self::assertCount(2, $list->items()[0]->children());
+        self::assertSame('#ff0000', (string) $list->items()[0]->style()->color);
     }
 
     private static function points(mixed $v): float

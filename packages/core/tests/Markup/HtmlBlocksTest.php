@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Markup;
 
+use Papercut\Document;
 use Papercut\Export\FidelityLevel;
+use Papercut\Export\PdfOptions;
 use Papercut\Image;
 use Papercut\Link;
 use Papercut\ListNode;
 use Papercut\Markup\Markup;
 use Papercut\Markup\MarkupOptions;
 use Papercut\Markup\Note;
+use Papercut\Markup\StyleMode;
+use Papercut\Page;
 use Papercut\Span;
 use Papercut\Style\ListMarker;
 use Papercut\Tests\Support\TestImages;
@@ -73,6 +77,30 @@ final class HtmlBlocksTest extends TestCase
         self::assertFalse($ul->isOrdered());
         self::assertSame(1, $ul->startNumber());
         self::assertNull($ul->markerStyle());
+    }
+
+    public function test_hostile_list_numbers_clamp_to_int32_and_export_quickly(): void
+    {
+        $cases = [
+            '<ol type="I"><li value="999999999999">a</li></ol>' => [2147483647],
+            '<ol type="i" start="100000000"><li>a</li></ol>' => [100000000],
+            '<ol start="9223372036854775807"><li>a</li><li>b</li></ol>' => [2147483647, 2147483648],
+            '<ol start="99999999999999999999999"><li>a</li></ol>' => [2147483647],
+            '<ol type="a" start="-99999999999"><li>a</li><li value="-5">b</li></ol>' => [-2147483648, -5],
+            '<ol start=" 03"><li>a</li><li value="7x">b</li></ol>' => [3, 7],
+        ];
+        foreach ($cases as $html => $numbers) {
+            $v = Markup::html($html);
+            self::assertInstanceOf(View::class, $v, $html);
+            $list = self::only(ListNode::class, $v->children());
+            self::assertSame($numbers, $list->numbers(), $html);
+
+            $start = microtime(true);
+            $doc = Document::make(Page::letter()->body($v));
+            $doc->toPdf(new PdfOptions(strict: true, cacheDir: false));
+            $doc->toHtml();
+            self::assertLessThan(1.0, microtime(true) - $start, $html);
+        }
     }
 
     public function test_list_item_paragraphs_loose_text_and_stray_li(): void
@@ -143,7 +171,7 @@ final class HtmlBlocksTest extends TestCase
         $image = self::only(Image::class, $figure->children());
         self::assertSame(['kind' => 'bytes', 'value' => TestImages::png()], $image->source());
         self::assertEquals(px(221), $image->style()->width);
-        self::assertEquals(px(266), $image->style()->height);
+        self::assertNull($image->style()->height);
         self::assertSame([], $v->notes());
 
         $px = Markup::html('<img src="a" width="40px" height="50%">', $o);
@@ -151,6 +179,36 @@ final class HtmlBlocksTest extends TestCase
         $sized = self::only(Image::class, $px->children());
         self::assertEquals(px(40), $sized->style()->width);
         self::assertNull($sized->style()->height);
+    }
+
+    public function test_size_attributes_keep_the_aspect_of_the_bytes_so_tall_images_shrink_to_the_page(): void
+    {
+        $o = new MarkupOptions(images: fn (string $s): string => TestImages::png(60, 140));
+        $v = Markup::html('<figure><img src="a.png" width="600" height="1400"></figure>', $o);
+        self::assertInstanceOf(View::class, $v);
+        $image = self::only(Image::class, self::only(View::class, $v->children())->children());
+        self::assertEquals(px(600), $image->style()->width);
+        self::assertNull($image->style()->height);
+
+        $doc = Document::make(Page::letter()->body($v));
+        $doc->toPdf(new PdfOptions(strict: true, cacheDir: false));
+        $html = $doc->toHtml()->bytes();
+        self::assertSame(1, preg_match('/<img [^>]*>/', $html, $tag));
+        self::assertStringNotContainsString('height', $tag[0] ?? '');
+
+        $tall = Markup::html('<img src="a.png" height="1400">', $o);
+        self::assertInstanceOf(View::class, $tall);
+        $image = self::only(Image::class, $tall->children());
+        self::assertEquals(px(600), $image->style()->width);
+        self::assertNull($image->style()->height);
+        Document::make(Page::letter()->body($tall))->toPdf(new PdfOptions(strict: true, cacheDir: false));
+
+        $original = new MarkupOptions(styles: StyleMode::Original, images: fn (string $s): string => TestImages::png(60, 140));
+        $css = Markup::html('<img src="a.png" height="1400" style="height: 70px">', $original);
+        self::assertInstanceOf(View::class, $css);
+        $image = self::only(Image::class, $css->children());
+        self::assertEquals(px(600), $image->style()->width);
+        self::assertEquals(px(70), $image->style()->height);
     }
 
     public function test_missing_images(): void
@@ -211,7 +269,7 @@ final class HtmlBlocksTest extends TestCase
         $unsafe = Markup::html('<a href="javascript:x"><img src="a.png"></a>', $o);
         self::assertInstanceOf(View::class, $unsafe);
         self::only(Image::class, $unsafe->children());
-        self::assertSame([[FidelityLevel::Dropped, 'markup link "javascript:x" (unsafe scheme; link removed, content kept)', 'a[0]']], self::notes($unsafe));
+        self::assertSame([[FidelityLevel::Dropped, 'markup link "javascript:x" (unsupported link; link removed, content kept)', 'a[0]']], self::notes($unsafe));
 
         $split = Markup::html('<p>before <img src="a.png"> after</p>', $o);
         self::assertInstanceOf(View::class, $split);

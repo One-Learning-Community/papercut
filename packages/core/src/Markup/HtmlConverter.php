@@ -43,6 +43,16 @@ final class HtmlConverter
     /** Elements that produce nodes of their own; any other element's `style` adds to its text style. */
     private const array BLOCKS = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ol', 'ul', 'li', 'figure', 'img', 'iframe', 'video', 'audio'];
 
+    /**
+     * HTML block-level elements without a mapping: they end the paragraph around
+     * them and their content becomes paragraphs of its own, so words never glue.
+     */
+    private const array UNKNOWN_BLOCKS = [
+        'address', 'article', 'aside', 'blockquote', 'dd', 'details', 'dialog', 'dl', 'dt', 'fieldset', 'footer',
+        'form', 'header', 'hgroup', 'hr', 'main', 'nav', 'pre', 'section', 'summary', 'table', 'caption', 'thead',
+        'tbody', 'tfoot', 'tr', 'td', 'th', 'center',
+    ];
+
     private const string NBSP = "\u{00A0}";
 
     /** Elements nested deeper than this contribute their text only. */
@@ -66,6 +76,9 @@ final class HtmlConverter
     private array $path = [];
 
     private bool $flattened = false;
+
+    /** How many `pre` elements enclose the current node; inside one, newlines are line breaks. */
+    private int $pre = 0;
 
     private function __construct(private readonly MarkupOptions $options)
     {
@@ -113,13 +126,21 @@ final class HtmlConverter
             if (count($this->path) > self::MAX_DEPTH) {
                 if (!$this->flattened) {
                     $this->flattened = true;
-                    $this->note(FidelityLevel::Approximated, 'markup nesting deeper than ' . self::MAX_DEPTH . ' levels (flattened)');
+                    $where = implode(' > ', [...array_slice($this->path, 0, 3), '…', ...array_slice($this->path, -3)]);
+                    $this->notes[] = new Note(FidelityLevel::Approximated, 'markup nesting deeper than ' . self::MAX_DEPTH . ' levels (flattened)', $where);
                 }
                 $this->textOnly($node, $style, $href);
             } else {
                 $this->element($node, $style, $href, $preset);
             }
             array_pop($this->path);
+        } elseif ($node instanceof \Dom\Text && $this->pre > 0) {
+            foreach (preg_split('/\r\n|\n|\r/', $node->data) ?: [] as $i => $line) {
+                if ($i > 0) {
+                    $this->run->break();
+                }
+                $this->run->text($line, $style, $href);
+            }
         } elseif ($node instanceof \Dom\Text) {
             $this->run->text($node->data, $style, $href);
         }
@@ -130,7 +151,7 @@ final class HtmlConverter
         $tag = $el->localName;
         $css = $tag === 'br' || in_array($tag, self::REMOVED, true)
             ? null
-            : $this->css($el, !in_array($tag, self::BLOCKS, true), $tag === 'ol' || $tag === 'ul');
+            : $this->css($el, !in_array($tag, self::BLOCKS, true) && !in_array($tag, self::UNKNOWN_BLOCKS, true), $tag === 'ol' || $tag === 'ul');
         $own = $css['style'] ?? new Style();
         switch ($tag) {
             case 'p':
@@ -192,8 +213,17 @@ final class HtmlConverter
             $this->note(FidelityLevel::Approximated, 'markup <' . $tag . '> (removed)');
             return;
         }
-        $this->note(FidelityLevel::Approximated, 'markup <' . $tag . '> (tag removed, content kept)');
-        $this->children($el, $style->merge($own), $href, $preset);
+        $this->noteOnce(FidelityLevel::Approximated, 'markup <' . $tag . '> (tag removed, content kept)');
+        if (!in_array($tag, self::UNKNOWN_BLOCKS, true)) {
+            $this->children($el, $style->merge($own), $href, $preset);
+            return;
+        }
+        $this->pre += $tag === 'pre' ? 1 : 0;
+        try {
+            $this->styled($own, $preset, fn () => $this->block($el, $style, $href, $preset, 'p'));
+        } finally {
+            $this->pre -= $tag === 'pre' ? 1 : 0;
+        }
     }
 
     /**
@@ -343,6 +373,7 @@ final class HtmlConverter
             if ($pending === [] && !$text && $items !== []) {
                 $last = array_pop($items);
                 $joined = ListItem::make(...[...$last->children(), $block]);
+                $joined = $last->style()->isEmpty() ? $joined : $joined->apply($last->style());
                 $value = $last->valueOverride();
                 $items[] = $value === null ? $joined : $joined->withValue($value);
             } elseif ($text && $pending !== []) {
@@ -387,7 +418,11 @@ final class HtmlConverter
         }
     }
 
-    /** $own, the img's own `style`, applies over its width and height attributes. */
+    /**
+     * $own, the img's own `style`, applies over its width and height attributes.
+     * The attributes only ever set a width, so the image keeps the aspect of its
+     * bytes and still shrinks to fit an empty page (an explicit height would not).
+     */
     private function image(\Dom\Element $el, Style $style, ?string $href, ?string $preset, Style $own): void
     {
         $src = $el->getAttribute('src') ?? '';
@@ -396,13 +431,9 @@ final class HtmlConverter
 
         if ($bytes !== null) {
             $image = Image::bytes($bytes);
-            $width = self::pixels($el->getAttribute('width'));
+            $width = self::attributeWidth($el, $bytes);
             if ($width !== null) {
                 $image = $image->width(px($width));
-            }
-            $height = self::pixels($el->getAttribute('height'));
-            if ($height !== null) {
-                $image = $image->height(px($height));
             }
             if (!$own->isEmpty()) {
                 $image = $image->apply($own);
@@ -419,6 +450,21 @@ final class HtmlConverter
         $this->run->text($alt, $style->merge(new Style(italic: true)), $href);
         $this->flush($preset);
         $this->note(FidelityLevel::Approximated, 'markup <img> "' . self::shortened($src) . '" (missing; shown as its alt text)');
+    }
+
+    /**
+     * The width in CSS pixels the img's attributes ask for: its `width`, or with
+     * only a `height`, the width that height gives at the bytes' intrinsic aspect.
+     */
+    private static function attributeWidth(\Dom\Element $el, string $bytes): ?float
+    {
+        $width = self::pixels($el->getAttribute('width'));
+        $height = self::pixels($el->getAttribute('height'));
+        if ($width !== null || $height === null) {
+            return $width;
+        }
+        $size = @getimagesizefromstring($bytes);
+        return $size !== false && $size[0] > 0 && $size[1] > 0 ? $height * $size[0] / $size[1] : null;
     }
 
     /** The image bytes for $src from the app's resolver, or null when there are none Papercut can read (or no src). */
@@ -485,7 +531,7 @@ final class HtmlConverter
         if (LinkPolicy::allowed($target)) {
             return $target;
         }
-        $this->note(FidelityLevel::Dropped, 'markup link "' . $target . '" (unsafe scheme; link removed, content kept)');
+        $this->note(FidelityLevel::Dropped, 'markup link "' . self::shortened($target) . '" (unsupported link; link removed, content kept)');
         return $href;
     }
 
@@ -515,6 +561,15 @@ final class HtmlConverter
         if (!isset($this->noted[$key])) {
             $this->noted[$key] = true;
             $this->notes[] = new Note($level, $feature, $where);
+        }
+    }
+
+    /** Records a note the first time $feature comes up in this conversion, wherever that is. */
+    private function noteOnce(FidelityLevel $level, string $feature): void
+    {
+        if (!isset($this->noted[$feature])) {
+            $this->noted[$feature] = true;
+            $this->notes[] = new Note($level, $feature, implode(' > ', $this->path));
         }
     }
 
@@ -565,17 +620,25 @@ final class HtmlConverter
         return $text->style()->isEmpty() ? $bare : $bare->apply($text->style());
     }
 
-    /** $src as shown in a note: at most 100 characters, so a data: URI does not fill the report. */
+    /** A src or href as shown in a note: at most 100 characters, so a data: URI does not fill the report. */
     private static function shortened(string $src): string
     {
         return mb_strlen($src) > 100 ? mb_substr($src, 0, 100) . '…' : $src;
     }
 
-    /** An HTML integer attribute (`start`, `value`), or null when absent or not an integer. */
+    /**
+     * An HTML integer attribute (`start`, `value`) by the HTML parsing rules
+     * (leading whitespace, optional sign, digits; anything after is ignored),
+     * clamped to the 32-bit range as browsers do; null when absent or without digits.
+     */
     private static function integer(?string $value): ?int
     {
-        $n = filter_var(trim($value ?? '', " \t\n\r\f"), FILTER_VALIDATE_INT);
-        return is_int($n) ? $n : null;
+        if ($value === null || preg_match('/^[ \t\n\r\f]*([+-]?)0*(\d+)/', $value, $m) !== 1) {
+            return null;
+        }
+        $n = strlen($m[2]) > 10 ? PHP_INT_MAX : (int) $m[2];
+        $n = $m[1] === '-' ? -$n : $n;
+        return max(-2147483648, min(2147483647, $n));
     }
 
     /** A `width`/`height` attribute in CSS pixels (`221` or `221px`), or null when absent or not a positive length. */

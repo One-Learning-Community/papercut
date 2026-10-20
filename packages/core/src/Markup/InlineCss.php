@@ -50,7 +50,9 @@ final class InlineCss
             }
             $colon = strpos($declaration, ':');
             $property = $colon === false ? '' : strtolower(trim(substr($declaration, 0, $colon)));
-            $value = $colon === false ? '' : trim(substr($declaration, $colon + 1));
+            // a trailing `!important` changes nothing for a single element's own style
+            $value = $colon === false ? '' : substr($declaration, $colon + 1);
+            $value = trim(preg_replace('/!\s*important\s*$/i', '', $value) ?? $value);
             if ($inline && !in_array($property, self::TEXT, true)) {
                 if ($property !== 'float' || strtolower($value) !== 'none') {
                     $dropped[] = $declaration;
@@ -86,12 +88,12 @@ final class InlineCss
     {
         $keyword = strtolower($value);
         if (isset(self::BOX[$property])) {
-            return [self::BOX[$property] => self::lengthOrPercent($value)];
+            return [self::BOX[$property] => self::lengthOrPercent(self::units($value))];
         }
         return match ($property) {
             'color' => ['color' => Color::parse($value)],
             'background-color' => ['background' => Color::parse($value)],
-            'font-size' => self::positive($value),
+            'font-size' => self::positive(self::units($value)),
             'font-weight' => self::weight($keyword),
             'font-style' => match ($keyword) {
                 'italic' => ['italic' => true],
@@ -105,8 +107,8 @@ final class InlineCss
                 default => null,
             },
             'text-align' => ($align = TextAlign::tryFrom($keyword)) === null ? null : ['textAlign' => $align],
-            'margin' => ['margin' => Edges::parse($value)],
-            'padding' => self::padding($value),
+            'margin' => ['margin' => Edges::parse(self::units($value))],
+            'padding' => self::padding(self::units($value)),
             'list-style-type' => $list && ($marker = ListMarker::tryFrom($keyword)) !== null ? ['marker' => $marker] : null,
             'float' => match ($keyword) {
                 'left', 'right' => ['float' => true],
@@ -115,6 +117,12 @@ final class InlineCss
             },
             default => null,
         };
+    }
+
+    /** Lowercases the unit after each number (`12PX` → `12px`); CSS units are case-insensitive. */
+    private static function units(string $value): string
+    {
+        return preg_replace_callback('/(\d)([a-z]+)/i', static fn (array $m): string => $m[1] . strtolower($m[2]), $value) ?? $value;
     }
 
     private static function lengthOrPercent(string $value): Length|Percent

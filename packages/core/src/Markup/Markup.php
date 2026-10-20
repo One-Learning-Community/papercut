@@ -17,7 +17,10 @@ use Papercut\View;
 /** Converts plain text and markup into Papercut nodes. */
 final class Markup
 {
-    /** Nothing becomes an empty View, one paragraph a preset-less Text, several a View of `p` Texts. */
+    /**
+     * Nothing becomes an empty View, one paragraph a preset-less Text, several a View of `p` Texts.
+     * $options is accepted for symmetry with html() and ignored: plain text has no styles, images or blank-paragraph markup.
+     */
     public static function text(?string $text, MarkupOptions $options = new MarkupOptions()): View|Text
     {
         return PlainText::convert($text);
@@ -29,7 +32,11 @@ final class Markup
         return HtmlConverter::convert($html, $options);
     }
 
-    /** Joins a converted result's text into one Text that can sit inside a line. */
+    /**
+     * Joins a converted result's text into one Text that can sit inside a line.
+     * Spans and notes are kept; Text-level styles of the parts (a paragraph's
+     * own style, say) are not, as with Text::append().
+     */
     public static function flatten(View|Text $converted): Text
     {
         if ($converted instanceof Text) {

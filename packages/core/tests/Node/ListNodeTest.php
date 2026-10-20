@@ -21,6 +21,32 @@ final class ListNodeTest extends TestCase
         self::assertSame(['•', '◦', '▪', '', '0.'], [ListMarker::Disc->label(1), ListMarker::Circle->label(1), ListMarker::Square->label(1), ListMarker::None->label(1), ListMarker::LowerAlpha->label(0)]);
     }
 
+    public function test_label_edges(): void
+    {
+        self::assertSame(['az.', 'zz.', 'AZ.', 'ZZ.'], [
+            ListMarker::LowerAlpha->label(52), ListMarker::LowerAlpha->label(702),
+            ListMarker::UpperAlpha->label(52), ListMarker::UpperAlpha->label(702),
+        ]);
+        foreach ([ListMarker::LowerAlpha, ListMarker::UpperAlpha, ListMarker::LowerRoman, ListMarker::UpperRoman] as $m) {
+            self::assertSame(['0.', '-1.', PHP_INT_MIN . '.'], [$m->label(0), $m->label(-1), $m->label(PHP_INT_MIN)], $m->value);
+        }
+        self::assertSame(['mmmcmxcix.', '4000.', 'MMMCMXCIX.', '4000.', PHP_INT_MAX . '.'], [
+            ListMarker::LowerRoman->label(3999), ListMarker::LowerRoman->label(4000),
+            ListMarker::UpperRoman->label(3999), ListMarker::UpperRoman->label(4000),
+            ListMarker::UpperRoman->label(PHP_INT_MAX),
+        ]);
+        $t = microtime(true);
+        self::assertSame('crpxnlskvljfhg.', ListMarker::LowerAlpha->label(PHP_INT_MAX));
+        self::assertLessThan(0.01, microtime(true) - $t);
+    }
+
+    public function test_numbers_never_overflow_to_float(): void
+    {
+        self::assertSame([PHP_INT_MAX - 1, PHP_INT_MAX, PHP_INT_MAX], ListNode::ordered('a', 'b', 'c')->start(PHP_INT_MAX - 1)->numbers());
+        self::assertSame([PHP_INT_MAX, PHP_INT_MAX, -3, -2], ListNode::ordered(ListItem::make('a')->withValue(PHP_INT_MAX), 'b', ListItem::make('c')->withValue(-3), 'd')->numbers());
+        self::assertSame([-5, -4], ListNode::ordered('a', 'b')->start(-5)->numbers());
+    }
+
     public function test_markers_by_depth_cycle(): void
     {
         self::assertSame([ListMarker::Decimal, ListMarker::LowerAlpha, ListMarker::LowerRoman, ListMarker::Decimal], array_map(fn ($d) => ListMarker::forDepth(true, $d), [1, 2, 3, 4]));

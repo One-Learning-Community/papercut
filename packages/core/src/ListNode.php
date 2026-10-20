@@ -70,7 +70,8 @@ final class ListNode implements Styled
     }
 
     /**
-     * One number per item: the start, counting up, reset by an item's value override.
+     * One number per item: the start, counting up, reset by an item's value
+     * override; counting stops at PHP_INT_MAX rather than overflowing.
      *
      * @return list<int>
      */
@@ -81,7 +82,7 @@ final class ListNode implements Styled
         foreach ($this->items as $item) {
             $n = $item->valueOverride() ?? $n;
             $out[] = $n;
-            $n++;
+            $n = $n === PHP_INT_MAX ? $n : $n + 1;
         }
         return $out;
     }

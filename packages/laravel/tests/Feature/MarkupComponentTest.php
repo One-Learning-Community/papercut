@@ -152,6 +152,16 @@ final class MarkupComponentTest extends TestCase
         $this->nodeFrom('<x-doc::markup :html="$h" styles="fancy" />', ['h' => '<p>a</p>']);
     }
 
+    public function test_numbers_are_cast_to_strings(): void
+    {
+        $html = $this->nodeFrom('<x-doc::markup :html="$v" />', ['v' => 123]);
+        self::assertInstanceOf(Text::class, $html);
+        self::assertSame(['123'], self::spans($html));
+        $text = $this->nodeFrom('<x-doc::markup :text="$v" />', ['v' => 1.5]);
+        self::assertInstanceOf(Text::class, $text);
+        self::assertSame(['1.5'], self::spans($text));
+    }
+
     public function test_exactly_one_of_html_or_text(): void
     {
         foreach (['<x-doc::markup :html="$h" :text="$h" />', '<x-doc::markup />'] as $blade) {

@@ -87,4 +87,15 @@ final class InlineCssTest extends TestCase
         self::assertSame(['list-style-type: georgian'], InlineCss::parse('list-style-type: georgian', inline: false, list: true)['dropped']);
         self::assertNull(InlineCss::parse('', inline: false, list: true)['marker']);
     }
+
+    public function test_important_is_stripped_and_units_are_case_insensitive(): void
+    {
+        $r = InlineCss::parse('color: #c00 !important; width: 12PX; margin: 0 8Px!IMPORTANT; font-size: 1.5PT', inline: false);
+        self::assertSame([], $r['dropped']);
+        self::assertSame('#cc0000', (string) $r['style']->color);
+        self::assertEqualsWithDelta(9.0, $r['style']->width instanceof Length ? $r['style']->width->points : -1, 1e-9);
+        self::assertEqualsWithDelta(6.0, $r['style']->margin?->right->points ?? 0, 1e-9);
+        self::assertEqualsWithDelta(1.5, $r['style']->fontSize->points ?? 0, 1e-9);
+        self::assertSame(['width: auto !important'], InlineCss::parse('width: auto !important', inline: false)['dropped']);
+    }
 }

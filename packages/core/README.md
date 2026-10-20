@@ -197,8 +197,8 @@ $document = Document::make(
 ```
 
 - `Markup::html(?string, MarkupOptions)` converts an HTML fragment (parsed with `ext-dom`; no network, no external entities).
-- `Markup::text(?string, MarkupOptions)` decodes entities, turns newlines into line breaks and a blank line into a paragraph break. `<` is an ordinary character.
-- `Markup::flatten($converted)` joins the result into one `Text` so it can sit inside a line. Block content is flattened with a report.
+- `Markup::text(?string, MarkupOptions)` decodes entities, turns newlines into line breaks and a blank line into a paragraph break. `<` is an ordinary character. It ignores its `MarkupOptions` (plain text has no styles, images or blank-paragraph markup); the parameter is there for symmetry with `html()`.
+- `Markup::flatten($converted)` joins the result into one `Text` so it can sit inside a line. Block content is flattened with a report; images and other non-text nodes are removed with a `dropped` report. Like `Text::append(Text)`, it keeps each part's spans (with their styles) and notes, but not a part's own Text-level style, such as a paragraph's `style="…"` in `Original` mode.
 - Both entry points return a `Text` (a single paragraph of inline content) or a `View`, and accept `null` and `''`, which produce nothing.
 
 `MarkupOptions`: `styles` (`StyleMode::Theme` default or `Original`), `images` (a `Closure(string $src): ?string`
@@ -211,12 +211,13 @@ returning image bytes) and `blankParagraphs` (`BlankParagraphs::Drop` default, o
 | `p`, `div` | A paragraph |
 | `h1`-`h4`; `h5`, `h6` | The theme's heading presets; `h5` and `h6` use `h4` |
 | `b`/`strong`, `i`/`em`, `u`, `s`/`strike`/`del`, `span`, `br` | Inline spans |
-| `a href` | A link around its content; unsafe schemes drop the link (see below) |
+| `a href` | A link around its content; other links are removed, content kept (see below) |
 | `ol`, `ul`, `li` | A `ListNode`; `start` and `type` (`1 a A i I`) on `ol` only, `value` on `li` |
 | `img` | An image through the resolver |
 | `figure`, `figcaption` | A block; the caption becomes a paragraph below |
 | `iframe`, `video`, `audio` | A paragraph linking to `src` (its `title` as text, else the URL) |
-| anything else, including `blockquote`, `pre`, `code`, `hr` | The tag is removed and its content kept |
+| other block-level tags (`blockquote`, `pre`, `section`, `table`/`tr`/`td`, `dl`/`dt`/`dd`, `hr`, …) | The tag is removed and its content kept as paragraphs of its own; `pre` keeps its line breaks |
+| anything else, including `code`, `mark`, `sup` | The tag is removed and its content kept inline |
 
 `script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed with their content. Classes,
 `id`, `data-*`, `target`, `rel`, blank paragraphs and zero-width characters are ignored without a report. Source
@@ -230,7 +231,9 @@ Papercut never reads an `<img src>` itself. The `images` closure gets the raw de
 bytes, or `null` for a missing image (a throw counts as missing). Bytes that are not a recognised image format
 (PNG, JPEG, and with `ext-gd` WebP, GIF, BMP, AVIF; sniffed at conversion time) are treated as missing too. A missing
 image shows its `alt` text in italics, or nothing without `alt`. `width` and `height` attributes apply in both style
-modes (CSS pixels at 0.75pt), and an `img` inside `a href` becomes a linked image.
+modes (CSS pixels at 0.75pt) as a width only: with both, the `width` wins; with only a `height`, the width follows
+from the image's own aspect ratio. The image keeps the aspect of its bytes, so a tall screenshot still shrinks to fit
+an empty page. An `img` inside `a href` becomes a linked image.
 
 ```php
 use Papercut\{Document, Page};
@@ -261,8 +264,9 @@ In `Original` mode these properties are understood; `px` converts at 0.75pt.
 | `width`, `height`, `min-*`, `max-*` | Blocks and images |
 | `list-style-type` | Lists |
 
-Every other declaration, and any value Papercut's parsers refuse, is dropped and reported by property. Known gaps:
-CSS colour keywords such as `red` and `hsl()` are not recognised yet, and `!important` declarations are dropped.
+Every other declaration, and any value Papercut's parsers refuse, is dropped and reported by declaration. A trailing
+`!important` is ignored and units are case-insensitive (`12PX`). Known gap: CSS colour keywords such as `red` and
+`hsl()` are not recognised yet.
 `float: left|right` renders a normal block (reported); floats set through classes are invisible and not reported.
 
 ### What gets reported
@@ -273,16 +277,20 @@ Conversion notes travel with the converted nodes and reach `onWarning` and the f
 | Case | Level | Fails a strict export |
 |---|---|---|
 | `iframe`, `video`, `audio` shown as a link | approximated | no |
+| `script`, `style`, `template`, `head`, `noscript`, `object`, `embed` removed with their content | approximated | no |
 | Missing image shown as its alt text | approximated | no |
 | Float rendered as a normal block | approximated | no |
-| Unknown tag removed, content kept | approximated | no |
+| Unknown tag removed, content kept (once per tag name, at its first occurrence) | approximated | no |
 | Block content flattened by `Markup::flatten()` | approximated | no |
 | Nesting deeper than 256 levels flattened to text (one report) | approximated | no |
 | Missing image with no alt | dropped | yes |
-| Unsafe link scheme: link removed, content kept | dropped | yes |
+| `iframe`, `video`, `audio` with no usable `src`: removed | dropped | yes |
+| Image or other non-text node removed by `Markup::flatten()` | dropped | yes |
+| Unsupported link (another scheme, or a relative URL): link removed, content kept | dropped | yes |
 | Unsupported inline CSS declaration | dropped | yes |
 
-Only the schemes `Link::allowed()` accepts survive in links.
+Only `http:`, `https:`, `mailto:` and `tel:` URLs and `#fragment` links survive; any other `href` (including a
+relative one) is removed with its content kept, and the same rule decides an `iframe`/`video`/`audio` `src`.
 
 ## Tables
 

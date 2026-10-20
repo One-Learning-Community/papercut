@@ -19,14 +19,18 @@ enum ListMarker: string
     case Square = 'square';
     case None = 'none';
 
+    /**
+     * The marker text for item number $n. Alphabetic markers fall back to
+     * decimal below 1, roman ones outside 1–3999 (the CSS counter-style range).
+     */
     public function label(int $n): string
     {
         return match ($this) {
             self::Decimal => $n . '.',
             self::LowerAlpha => $n < 1 ? $n . '.' : self::alpha($n) . '.',
             self::UpperAlpha => $n < 1 ? $n . '.' : strtoupper(self::alpha($n)) . '.',
-            self::LowerRoman => $n < 1 ? $n . '.' : self::roman($n) . '.',
-            self::UpperRoman => $n < 1 ? $n . '.' : strtoupper(self::roman($n)) . '.',
+            self::LowerRoman => $n < 1 || $n > 3999 ? $n . '.' : self::roman($n) . '.',
+            self::UpperRoman => $n < 1 || $n > 3999 ? $n . '.' : strtoupper(self::roman($n)) . '.',
             self::Disc => "\u{2022}",
             self::Circle => "\u{25E6}",
             self::Square => "\u{25AA}",

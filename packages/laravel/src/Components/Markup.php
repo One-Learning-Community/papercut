@@ -36,6 +36,8 @@ final class Markup extends PapercutComponent
         $source = $isHtml ? $this->html : $this->text;
         if ($source instanceof \Stringable || $source instanceof Htmlable) {
             $source = $source instanceof Htmlable ? $source->toHtml() : (string) $source;
+        } elseif (is_int($source) || is_float($source)) {
+            $source = (string) $source;
         } elseif ($source !== null && !is_string($source)) {
             throw new InvalidStructure(Tag::of('markup') . ' ' . ($isHtml ? 'html' : 'text') . ' must be a string or null');
         }

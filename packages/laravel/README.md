@@ -187,11 +187,11 @@ Style attributes (next section) work on every tag marked "style" below. Values a
 | `<x-doc::thead>` | none | Contains `<x-doc::th>`/`<x-doc::td>` cells (one header row) or `<x-doc::tr>` rows. |
 | `<x-doc::tr>` | none | Style. Contains `<x-doc::td>`/`<x-doc::th>`. |
 | `<x-doc::td>` / `<x-doc::th>` | `colspan`, `align` (`left`/`right`/`center`/`justify`) | Style. `th` is a header cell. |
-| `<x-doc::ol>` | `start`, `marker` | Style. Numbered list of `<x-doc::li>`. `marker` is `decimal`, `lower-alpha`, `upper-alpha`, `lower-roman` or `upper-roman`; unset follows nesting depth (`1.`, `a.`, `i.`). |
-| `<x-doc::ul>` | `marker` | Style. Bulleted list of `<x-doc::li>`. `marker` is `disc`, `circle`, `square` or `none`; unset follows nesting depth. |
+| `<x-doc::ol>` | `start`, `marker` | Style. Numbered list of `<x-doc::li>`. `marker` is any `ListMarker` value (`decimal`, `lower-alpha`, `upper-alpha`, `lower-roman`, `upper-roman`, `disc`, `circle`, `square`, `none`); unset follows nesting depth (`1.`, `a.`, `i.`). |
+| `<x-doc::ul>` | `marker` | Style. Bulleted list of `<x-doc::li>`. `marker` takes the same values as on `ol`; unset follows nesting depth (`•`, `◦`, `▪`). |
 | `<x-doc::li>` | `value` | Style. A list item; holds any block content, including nested lists. `value` sets its number. |
-| `<x-doc::markup>` | `html` or `text` (exactly one), `styles`, `blank-paragraphs` | Converts HTML or plain text to nodes, see [Rich text](#rich-text-from-your-database). Inside a text tag it contributes inline content and inherits the text style. `styles` and `blank-paragraphs` override the config per use. |
-| `<x-doc::node>` | `node` | Embeds a PHP-built `Node` or `Component` (anything else throws `InvalidValue`). As a block among blocks, or inline inside a text tag when the node is a `Text`. |
+| `<x-doc::markup>` | `html` or `text` (exactly one), `styles`, `blank-paragraphs` | Converts HTML or plain text to nodes, see [Rich text](#rich-text-from-your-database). A number is taken as its string. Inside a text tag it contributes inline content and inherits the text style. `styles` and `blank-paragraphs` override the config per use (with `html`; plain `text` ignores them). |
+| `<x-doc::node>` | `node` | Embeds a PHP-built `Node` or `Component` (anything else throws `InvalidValue`). As a block among blocks. Inside a text tag a `Text` joins the line; a `View` is flattened into it like `Markup::flatten()` (block content approximated, images and other nodes dropped, each reported). |
 | `<x-doc::spacer>` | `size` | `size="10mm"` is a fixed gap; with no `size` it is flexible (`grow`, default 1). Only `grow` is accepted besides `size`/`style`. |
 | `<x-doc::page-number>` | `format`, `align`, `size` | Style. `format` uses `{page}` and `{total}`; no content allowed. |
 | `<x-doc::page-break>` | none | Forces a new page. |
@@ -271,7 +271,8 @@ the tag on each side instead (`<b>x </b><x-doc::node :node="$t"/><b> y</b>`).
 
 Papercut never reads an `<img src>` itself. Name a resolver class in `papercut.markup.images`. It receives the raw
 decoded `src` and returns the image bytes, or `null` when the image is missing. The container builds it, so it can take
-dependencies. For example, an editor that stores uploads on the default disk and serves resized copies from
+dependencies. `src` is untrusted user input: the resolver decides what may be read, so never pass it to a disk or the
+filesystem unchecked. For example, an editor that stores uploads on the default disk and serves resized copies from
 `/public/images/{size}/files/uploaded/editor/...`:
 
 ```php
@@ -285,6 +286,10 @@ final class EditorImages implements ImageResolver
     public function __invoke(string $src): ?string
     {
         if (preg_match('#^/public/images/[^/]+/(files/uploaded/editor/.+)$#', $src, $m) !== 1) {
+            return null;
+        }
+        // Reject NUL and any `..` segment: the disk would normalise `editor/../../private/x` to `private/x`.
+        if (str_contains($m[1], "\0") || in_array('..', preg_split('#[/\\\\]#', $m[1]) ?: [], true)) {
             return null;
         }
         $disk = Storage::disk();
@@ -313,9 +318,9 @@ The element mapping, style modes, supported CSS properties and the full report-l
 (`styles="original"` also applies inline `style=""`: supported properties only, `px` at 0.75pt). Things that cannot be
 drawn are reported through `onWarning` and the fidelity report. `approximated` ones (an iframe shown as a link, a missing
 image shown as alt text, an unknown tag removed with its content kept) never fail a strict export. `dropped` ones (a
-missing image without alt text, an unsafe link scheme, an unsupported CSS declaration) do. Nesting deeper than 256
-levels is flattened to text with one report. Known gaps in `original` mode: CSS colour keywords such as `red` and
-`hsl()` are not recognised yet, and `!important` declarations are dropped.
+missing image without alt text, an unsupported link, an unsupported CSS declaration) do. Nesting deeper than 256
+levels is flattened to text with one report. Known gap in `original` mode: CSS colour keywords such as `red` and
+`hsl()` are not recognised yet (`!important` is ignored).
 
 ## Fonts
 

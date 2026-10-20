@@ -91,6 +91,7 @@ final class Text implements Styled, Annotated
         return $this->spans;
     }
 
+    /** Adds spans after this text's own; an appended Text gives its spans and notes, not its own Text-level style. */
     public function append(string|Span|Text ...$more): self
     {
         $clone = clone $this;
