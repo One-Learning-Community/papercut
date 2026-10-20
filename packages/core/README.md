@@ -303,9 +303,9 @@ A full page gets one `<link rel="stylesheet">` per stylesheet in `<head>`. A fra
 
 A source that answers with an unsafe URL (a scheme other than http or https, a protocol-relative `//host`, control characters, an empty face list) is skipped, a warning is sent to `onWarning`, and the next source is asked. A family no source answers for is reported as `font not linked` (an approximation) and the browser falls back to the `font-family` stack.
 
-**Privacy.** With a third-party host the visitor's browser sends its IP address to that host. LG München I (3 O 17493/20, January 2022) held that this can breach data protection law without consent. Moving to Bunny Fonts changes the host, not the question. The fully private routes are `LocalFonts`, `FontMode::Embed` and `FontMode::Link`, which serve fonts you control.
+**Privacy.** With a third-party host the visitor's browser sends its IP address to that host. LG München I (3 O 17493/20, January 2022) held that this can breach data protection law without consent. Bunny Fonts is a host that states it does not log IP addresses, but the request still reaches a third party: moving to it changes the host, not the question, and is no compliance guarantee. The fully private routes are `LocalFonts`, `FontMode::Embed` and `FontMode::Link`, which serve fonts you control.
 
-**Content Security Policy.** Allow the stylesheet host in `style-src` (for example `https://fonts.googleapis.com`) and the font host in `font-src` (`https://fonts.gstatic.com` for Google; `data:` for embedded faces).
+**Content Security Policy.** Three directives are involved: `style-src` for the stylesheet host; `font-src` for the font domain (Google: `fonts.googleapis.com` for styles, `fonts.gstatic.com` for fonts; Bunny: `fonts.bunny.net` for both); and `font-src data:` for embedded faces (`LocalFonts::embed`, and `FontMode::Embed`).
 
 **Limits.** The font stylesheets are built from the families and weights the document uses. Google rejects the stylesheet of a family it does not have, or of a weight it does not offer, and the browser then falls back silently. The library cannot see that, because it never fetches the stylesheet.
 

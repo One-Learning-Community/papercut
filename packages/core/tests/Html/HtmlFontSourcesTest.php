@@ -129,7 +129,7 @@ final class HtmlFontSourcesTest extends TestCase
         self::assertSame(FidelityLevel::Approximated, $reports[0]->level);
         self::assertSame('html', $reports[0]->format);
         self::assertSame('font not linked', $reports[0]->feature);
-        self::assertNotSame('', $reports[0]->path);
+        self::assertSame('document', $reports[0]->path);
     }
 
     public function test_identical_urls_emitted_once(): void

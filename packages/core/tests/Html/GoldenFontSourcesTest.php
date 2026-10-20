@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Html;
 
-use Papercut\Document;
+use Papercut\{Document, Page, Text};
 use Papercut\Export\{FontMode, HtmlOptions};
 use Papercut\Html\{GoogleFonts, LocalFonts};
 use Papercut\Text\FontFace;
@@ -23,13 +23,19 @@ final class GoldenFontSourcesTest extends TestCase
             LocalFonts::link(static fn (FontFace $f): string => 'fonts/' . basename($f->path), ['Inter']),
             new GoogleFonts(host: 'https://fonts.bunny.net'),
         ]];
+        yield 'mixed-fragment' => ['mixed-fragment', 'inline-mixed', false, [
+            LocalFonts::link(static fn (FontFace $f): string => 'fonts/' . basename($f->path), ['Inter']),
+            new GoogleFonts(host: 'https://fonts.bunny.net'),
+        ]];
     }
 
     /** @param list<mixed> $sources */
     #[DataProvider('cases')]
     public function test_matches_golden(string $name, string $example, bool $full, array $sources): void
     {
-        $document = (static fn () => require __DIR__ . "/../../../../examples/core/documents/$example.php")();
+        $document = $example === 'inline-mixed'
+            ? Document::make(Page::a4()->body(Text::make('Hello Inter'), Text::make('Hello Roboto')->font('Roboto')))
+            : (static fn () => require __DIR__ . "/../../../../examples/core/documents/$example.php")();
         self::assertInstanceOf(Document::class, $document);
         $document = $document->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z'));
         $html = $document->toHtml(new HtmlOptions(fullPage: $full, fontMode: FontMode::Sources, fontSources: $sources))->bytes();

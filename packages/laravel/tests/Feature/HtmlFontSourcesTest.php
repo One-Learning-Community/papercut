@@ -43,6 +43,17 @@ final class HtmlFontSourcesTest extends TestCase
         $this->assertStringContainsString('fonts.googleapis.com/css2?family=Inter', $this->page());
     }
 
+    public function test_fragment_imports_first_and_has_no_link(): void
+    {
+        $this->html(['fonts' => 'sources']);
+        $this->app()->forgetInstance(PapercutManager::class); // @phpstan-ignore method.notFound
+
+        $out = (string) Papercut::view('pdf.hello', ['name' => 'Ann'])->html();
+
+        $this->assertStringContainsString('<style>@import url("https://fonts.googleapis.com/css2?family=Inter', $out);
+        $this->assertStringNotContainsString('<link', $out);
+    }
+
     public function test_bunny_host_from_config(): void
     {
         $this->html(['fonts' => 'sources', 'google_fonts' => ['host' => 'https://fonts.bunny.net']]);
@@ -97,6 +108,7 @@ final class HtmlFontSourcesTest extends TestCase
         yield 'entry abstract' => [$s + ['font_sources' => [FontSource::class]], "Invalid papercut.html.font_sources.0: 'Papercut\\\\Html\\\\FontSource'; expected an invokable class name implementing Papercut\\Html\\FontSource"];
         yield 'entry unbuildable' => [$s + ['font_sources' => [\Papercut\Laravel\Tests\Support\NeedsScalarSource::class]], "Cannot build papercut.html.font_sources.0 resolver 'Papercut\\\\Laravel\\\\Tests\\\\Support\\\\NeedsScalarSource': "];
         yield 'host' => [$s + ['google_fonts' => ['host' => 'ftp://x']], "Invalid papercut.html.google_fonts.host: 'ftp://x'; expected an http or https URL with no query or fragment"];
+        yield 'host trailing space' => [$s + ['google_fonts' => ['host' => 'https://fonts.bunny.net ']], "Invalid papercut.html.google_fonts.host: 'https://fonts.bunny.net '; expected an http or https URL with no query or fragment"];
         yield 'host array' => [$s + ['google_fonts' => ['host' => []]], 'Invalid papercut.html.google_fonts.host: array; expected an http or https URL with no query or fragment'];
         yield 'display' => [$s + ['google_fonts' => ['display' => 'fast']], "Invalid papercut.html.google_fonts.display: 'fast'; expected auto, block, swap, fallback or optional"];
         yield 'google families' => [$s + ['google_fonts' => ['families' => 'Inter']], "Invalid papercut.html.google_fonts.families: 'Inter'; expected null or a list of family names"];

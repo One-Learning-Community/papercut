@@ -88,7 +88,7 @@ final class GoogleFontsTest extends TestCase
 
     public function test_invalid_host_and_display_throw(): void
     {
-        foreach (['ftp://x', 'https://x/?a=1', 'https://x/#f', 'fonts.googleapis.com'] as $host) {
+        foreach (['ftp://x', 'https://x/?a=1', 'https://x/#f', 'fonts.googleapis.com', 'https://fonts.bunny.net ', "https://x\n", 'https://x/a b', 'https://x/"', "https://x/'", 'https://x/<', 'https://x/>', 'https://x/\\a', ' https://x', ''] as $host) {
             try {
                 new GoogleFonts($host);
                 $this->fail("Host accepted: $host");

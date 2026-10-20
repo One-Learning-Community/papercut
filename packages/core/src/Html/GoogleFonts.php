@@ -39,10 +39,10 @@ final readonly class GoogleFonts implements FontSource
         $this->families = $families === null ? null : array_map('strtolower', $families);
     }
 
-    /** True for an http or https URL that has a host and no query or fragment. */
+    /** True for a clean http or https URL that has a host and no query, fragment, whitespace, quote, angle bracket or backslash. */
     public static function validHost(string $host): bool
     {
-        if (str_contains($host, '?') || str_contains($host, '#')) {
+        if (!Urls::clean($host) || preg_match('/[\s"\'<>\\\\]/', $host) === 1 || str_contains($host, '?') || str_contains($host, '#')) {
             return false;
         }
         $parts = parse_url($host);

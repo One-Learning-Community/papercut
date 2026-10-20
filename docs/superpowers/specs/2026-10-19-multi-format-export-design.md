@@ -105,7 +105,7 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
 - **n/a:** the feature has no meaning in the format (for example page numbers on screen). Left out silently, never reported, never thrown.
 
 **Options**
-- Options are readonly classes with private state and accessor methods: `theme()`, `fonts()`, `onWarning()`, `strict()`; `PdfOptions` adds `backend()`, `overflow()`, `cacheDir()`; `HtmlOptions` adds `fullPage()`, `fontMode()`, `imageUrl()`, `fontUrl()`. Each subclass has `from(ExportOptions)`.
+- Options are readonly classes with private state and accessor methods: `theme()`, `fonts()`, `onWarning()`, `strict()`; `PdfOptions` adds `backend()`, `overflow()`, `cacheDir()`; `HtmlOptions` adds `fullPage()`, `fontMode()`, `imageUrl()`, `fontUrl()`, `fontSources()`. Each subclass has `from(ExportOptions)`.
 - `ExportOptions` (shared): `theme`, `fonts: FontSet`, `onWarning: ?Closure`, `strict: bool = false`.
 - `PdfOptions extends ExportOptions`: `backend`, `cacheDir`, `overflow: OverflowMode`. This replaces `RenderOptions`.
 - `HtmlOptions extends ExportOptions`:

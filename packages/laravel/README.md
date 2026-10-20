@@ -67,7 +67,7 @@ This publishes `config/papercut.php`:
 | `styles` | `[]` | [Named styles](#named-styles) |
 | `overflow` | `null` | `'throw'`, `'clip'`, or `null` = throw in `local`/`testing`, clip elsewhere |
 | `strict` | `false` | `true` makes an export throw `UnsupportedFeature` for content a format cannot render, instead of dropping it with a warning. Consider `true` in tests |
-| `html.fonts` | `'none'` | Fonts in HTML output: `'none'` (a `system-ui` fallback stack, small files), `'embed'` (base64 `@font-face`, large files) `'link'` (`@font-face` with URLs from `html.font_url`; requires it) or `'sources'` (see [Font sources](#font-sources)) |
+| `html.fonts` | `'none'` | Fonts in HTML output: `'none'` (a `system-ui` fallback stack, small files), `'embed'` (base64 `@font-face`, large files), `'link'` (`@font-face` with URLs from `html.font_url`; requires it) or `'sources'` (see [Font sources](#font-sources)) |
 | `html.image_url` | `null` | Class name implementing `Papercut\Laravel\Html\ImageUrlResolver`; `null` embeds images as data URIs (see [HTML URLs](#html-urls)) |
 | `html.font_url` | `null` | Class name implementing `Papercut\Laravel\Html\FontUrlResolver`; required when `html.fonts` is `'link'` |
 | `html.font_sources` | `[GoogleFonts::class]` | Used when `html.fonts` is `'sources'`: an ordered list of class names implementing `Papercut\Html\FontSource` |
@@ -158,8 +158,8 @@ final class BrandFonts implements FontSource
 ```
 
 - **Order.** The first source that answers wins, so list specific sources first and catch-all hosts such as Google last.
-- **Privacy.** With `GoogleFonts` the visitor's browser fetches the stylesheet and fonts from the host, and so sends it their IP address. A German court held this can breach data protection law without consent (LG München I, 3 O 17493/20). Use Bunny Fonts, `LocalFonts`, or your own host to avoid it.
-- **CSP.** If your site sends a Content-Security-Policy, allow the host in `style-src` (stylesheet) and `font-src` (font files), for example `fonts.googleapis.com` and `fonts.gstatic.com`.
+- **Privacy.** With `GoogleFonts` the visitor's browser fetches the stylesheet and fonts from the host, and so sends it their IP address. A German court held this can breach data protection law without consent (LG München I, 3 O 17493/20). Bunny Fonts is a host that states it does not log IP addresses, but the request still reaches a third party and this is not a compliance guarantee. The fully private routes are `LocalFonts` (embed, or link to your own files) and the `'embed'` and `'link'` modes.
+- **CSP.** If your site sends a Content-Security-Policy, allow: `style-src` for the stylesheet host (`fonts.googleapis.com` for Google, `fonts.bunny.net` for Bunny); `font-src` for the font domain (`fonts.gstatic.com` for Google, `fonts.bunny.net` for Bunny); and `font-src data:` for embedded faces (`local_fonts` in its default `embed` mode).
 - **Config is checked lazily.** `font_sources` is read only when `html.fonts` is `'sources'`, and `google_fonts` and `local_fonts` only when their class is in the list, at the first `->html()` export. Class names only: closures are rejected naming the key and index, for example `papercut.html.font_sources.1`.
 
 Preview routes accept `?format=pdf` (default) or `?format=html`; any other value is a 404.

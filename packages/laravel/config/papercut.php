@@ -35,7 +35,10 @@ return [
         // Used when fonts is sources: an ordered list of classes implementing Papercut\Html\FontSource, built by the container.
         // Each font family goes to the first source that accepts it: list specific sources first, catch-all hosts such as Google last.
         // PRIVACY: with GoogleFonts the visitor's browser fetches the CSS and fonts from the host and sends it their IP address
-        // (see core's "Fonts in HTML"). To avoid that, use fonts.bunny.net below, or local_fonts. Check your CSP: style-src and font-src.
+        // (see core's "Fonts in HTML"). Bunny Fonts (fonts.bunny.net) is a host that states it does not log IP addresses, but the
+        // request still reaches a third party. Only local_fonts (your own files, embedded or linked), or fonts = embed or link,
+        // keeps it all on your side.
+        // Check your CSP: style-src, font-src and, for embedded fonts, font-src data:.
         // Class names only (they survive `php artisan config:cache`). Read only when fonts is sources.
         'font_sources' => [\Papercut\Html\GoogleFonts::class],
         // Settings for the GoogleFonts source. Checked only when GoogleFonts is in font_sources.
