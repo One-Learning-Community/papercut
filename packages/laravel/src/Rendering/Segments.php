@@ -7,6 +7,8 @@ namespace Papercut\Laravel\Rendering;
 use Papercut\Laravel\Tag;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Components\HeaderRows;
+use Papercut\Decorator\ChoiceOption;
+use Papercut\Decorator\KeyValuePair;
 use Papercut\ListItem;
 use Papercut\TableCell;
 use Papercut\TableRow;
@@ -21,6 +23,8 @@ final class Segments
         TableRow::class => ['tr', 'table'],
         HeaderRows::class => ['thead', 'table'],
         ListItem::class => ['li', 'ol|ul'],
+        ChoiceOption::class => ['choice', 'choices'],
+        KeyValuePair::class => ['kv', 'key-value'],
     ];
 
     /**
@@ -55,7 +59,7 @@ final class Segments
         $text = '';
         foreach ($segs as $seg) {
             if (!is_string($seg)) {
-                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>)");
+                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>)");
             }
             $text .= $seg;
         }
@@ -87,7 +91,7 @@ final class Segments
             } elseif ($seg instanceof Text || $seg instanceof View) {
                 $out = $out->append(Markup::flatten($seg));
             } else {
-                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>)");
+                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>)");
             }
         }
 

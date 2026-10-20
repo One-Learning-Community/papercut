@@ -75,7 +75,7 @@ abstract class PapercutComponent extends Component
     /**
      * Applies style attributes and a named style (string) or Style object, tagging errors with the tag.
      *
-     * @template T of \Papercut\ListNode|\Papercut\ListItem|\Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
+     * @template T of \Papercut\ListNode|\Papercut\ListItem|\Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell|\Papercut\Decorator\Decorator
      * @param T $node
      * @param array<string, mixed> $style
      * @return T
@@ -117,7 +117,7 @@ abstract class PapercutComponent extends Component
     }
 
     /**
-     * @template T of \Papercut\ListNode|\Papercut\ListItem|\Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell
+     * @template T of \Papercut\ListNode|\Papercut\ListItem|\Papercut\View|\Papercut\Link|\Papercut\Spacer|\Papercut\Text|\Papercut\PageNumber|\Papercut\Image|\Papercut\Table|\Papercut\TableRow|\Papercut\TableCell|\Papercut\Decorator\Decorator
      * @param T $node
      * @param array<string, mixed> $data
      * @return T
@@ -183,6 +183,107 @@ abstract class PapercutComponent extends Component
     protected function inlineText(array $data): \Papercut\Text
     {
         return Segments::inline(app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')), $this->tag());
+    }
+
+    /**
+     * A named slot's content as one inline Text, or null when the slot is absent.
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function slotText(array $data, string $name): ?\Papercut\Text
+    {
+        $slots = $this->namedSlots($data);
+        if (!isset($slots[$name])) {
+            return null;
+        }
+
+        return Segments::inline(app(NodeRegistry::class)->segments($slots[$name]), $this->tag());
+    }
+
+    /**
+     * The slot named $name, else the own attribute of that name (a string), else null.
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function slotOrAttribute(array $data, string $name): \Papercut\Text|string|null
+    {
+        $slot = $this->slotText($data, $name);
+        if ($slot !== null) {
+            return $slot;
+        }
+        $value = $this->attrs($data)['own'][$name] ?? null;
+
+        return $value === null ? null : $this->scalarOwn($value, $name);
+    }
+
+    /**
+     * For tags that take only their own attributes: any other attribute (or `style`) is an error
+     * with a suggestion drawn from the tag's own attribute names.
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function rejectStyleAttributes(array $data): void
+    {
+        ['own' => $own, 'style' => $style] = $this->attrs($data);
+        $unknown = array_keys($style);
+        if (array_key_exists('style', $own)) {
+            $unknown[] = 'style';
+        }
+        foreach ($unknown as $key) {
+            $key = (string) $key;
+            $best = null;
+            $bestDistance = 3;
+            foreach ($this->ownAttributes() as $candidate) {
+                $d = levenshtein($key, $candidate);
+                if ($d < $bestDistance) {
+                    $best = $candidate;
+                    $bestDistance = $d;
+                }
+            }
+            throw UnknownAttribute::for($key, $best)->within('on ' . Tag::of($this->tag()));
+        }
+    }
+
+    protected function scalarOwn(mixed $value, string $name): string
+    {
+        if (!is_scalar($value)) {
+            throw InvalidValue::for($name, get_debug_type($value))->withContext($name)->within('on ' . Tag::of($this->tag()));
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * Fails early, tagged with this tag, when a theme style name does not exist.
+     *
+     * @param list<string> $names
+     */
+    protected function requireThemeStyles(array $names): void
+    {
+        $theme = app(PapercutManager::class)->pdfOptions()->theme();
+        try {
+            foreach ($names as $name) {
+                $theme->named($name);
+            }
+        } catch (UnknownAttribute $e) {
+            throw $e->within('on ' . Tag::of($this->tag()));
+        }
+    }
+
+    /**
+     * Parses a boolean own attribute with the style bool rules (bare attribute, true/false, 1/0).
+     */
+    protected function boolOwn(mixed $value, string $name): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        try {
+            return Style::fromAttributes(['keep-together' => $value])->keepTogether ?? true;
+        } catch (InvalidValue $e) {
+            $re = InvalidValue::for($e->kind, $e->input, $e->suggestion)->withContext($name);
+            throw ($e->reason !== null ? $re->because($e->reason) : $re)->within('on ' . Tag::of($this->tag()));
+        }
     }
 
     /**
