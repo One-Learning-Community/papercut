@@ -76,6 +76,9 @@ This publishes `config/papercut.php`:
 | `html.google_fonts.families` | `null` | `null` = every family, or a list of family names (allowlist) |
 | `html.local_fonts.mode` | `'embed'` | `LocalFonts` source: `'embed'` (base64) or `'link'` (URLs from `html.font_url`; requires it) |
 | `html.local_fonts.families` | `null` | `null` = every registered family, or a list of family names |
+| `markup.images` | `null` | Class name implementing `Papercut\Laravel\Markup\ImageResolver`; `null` treats every `<img>` in markup as missing (see [Rich text](#rich-text-from-your-database)) |
+| `markup.styles` | `'theme'` | `'theme'` (HTML gives structure, the theme styles it) or `'original'` (inline `style=""` applied on top) |
+| `markup.blank_paragraphs` | `'drop'` | `'drop'` or `'keep'` paragraphs that hold only `&nbsp;` or `<br>` |
 | `image_path` | `null` | Base directory for relative `<x-doc::image src>`; `null` = `public_path()` |
 | `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
@@ -184,6 +187,11 @@ Style attributes (next section) work on every tag marked "style" below. Values a
 | `<x-doc::thead>` | none | Contains `<x-doc::th>`/`<x-doc::td>` cells (one header row) or `<x-doc::tr>` rows. |
 | `<x-doc::tr>` | none | Style. Contains `<x-doc::td>`/`<x-doc::th>`. |
 | `<x-doc::td>` / `<x-doc::th>` | `colspan`, `align` (`left`/`right`/`center`/`justify`) | Style. `th` is a header cell. |
+| `<x-doc::ol>` | `start`, `marker` | Style. Numbered list of `<x-doc::li>`. `marker` is `decimal`, `lower-alpha`, `upper-alpha`, `lower-roman` or `upper-roman`; unset follows nesting depth (`1.`, `a.`, `i.`). |
+| `<x-doc::ul>` | `marker` | Style. Bulleted list of `<x-doc::li>`. `marker` is `disc`, `circle`, `square` or `none`; unset follows nesting depth. |
+| `<x-doc::li>` | `value` | Style. A list item; holds any block content, including nested lists. `value` sets its number. |
+| `<x-doc::markup>` | `html` or `text` (exactly one), `styles`, `blank-paragraphs` | Converts HTML or plain text to nodes, see [Rich text](#rich-text-from-your-database). Inside a text tag it contributes inline content and inherits the text style. `styles` and `blank-paragraphs` override the config per use. |
+| `<x-doc::node>` | `node` | Embeds a PHP-built `Node` or `Component` (anything else throws `InvalidValue`). As a block among blocks, or inline inside a text tag when the node is a `Text`. |
 | `<x-doc::spacer>` | `size` | `size="10mm"` is a fixed gap; with no `size` it is flexible (`grow`, default 1). Only `grow` is accepted besides `size`/`style`. |
 | `<x-doc::page-number>` | `format`, `align`, `size` | Style. `format` uses `{page}` and `{total}`; no content allowed. |
 | `<x-doc::page-break>` | none | Forces a new page. |
@@ -237,6 +245,77 @@ Define styles in `config/papercut.php`, using the same keys as tag attributes:
 ```
 
 The named style is the base; attributes written on the tag override it for any property both set.
+
+## Rich text from your database
+
+`<x-doc::markup>` converts stored HTML or plain text into document nodes. Pass the value bound (`:html`), so Blade
+does not escape it.
+
+```blade
+<x-doc::markup :html="$slide->body" />
+<x-doc::markup :text="$prompt" />
+<x-doc::markup :html="$slide->body" styles="original" blank-paragraphs="keep" />
+```
+
+Used inside a text tag it joins the line and inherits the surrounding style:
+
+```blade
+<x-doc::text bold>× <x-doc::markup :html="$label" /></x-doc::text>
+```
+
+To embed a node you built in PHP, use `<x-doc::node :node="$node" />`. Limitation: in Blade an inline tag cannot span
+an embedded node. `<x-doc::text><b>x <x-doc::node :node="$t"/> y</b></x-doc::text>` throws "<b> is not closed"; close
+the tag on each side instead (`<b>x </b><x-doc::node :node="$t"/><b> y</b>`).
+
+### Images
+
+Papercut never reads an `<img src>` itself. Name a resolver class in `papercut.markup.images`. It receives the raw
+decoded `src` and returns the image bytes, or `null` when the image is missing. The container builds it, so it can take
+dependencies. For example, an editor that stores uploads on the default disk and serves resized copies from
+`/public/images/{size}/files/uploaded/editor/...`:
+
+```php
+namespace App\Markup;
+
+use Illuminate\Support\Facades\Storage;
+use Papercut\Laravel\Markup\ImageResolver;
+
+final class EditorImages implements ImageResolver
+{
+    public function __invoke(string $src): ?string
+    {
+        if (preg_match('#^/public/images/[^/]+/(files/uploaded/editor/.+)$#', $src, $m) !== 1) {
+            return null;
+        }
+        $disk = Storage::disk();
+
+        return $disk->exists($m[1]) ? $disk->get($m[1]) : null;
+    }
+}
+```
+
+```php
+// config/papercut.php
+'markup' => [
+    'images' => \App\Markup\EditorImages::class,
+    'styles' => 'theme',
+    'blank_paragraphs' => 'drop',
+],
+```
+
+A missing image (`null`, a throw, or bytes that are not a recognised image format) shows its `alt` text in italics, or
+nothing without `alt`, and is reported. Invalid `markup.*` config is reported at first use.
+
+### What is converted and reported
+
+The element mapping, style modes, supported CSS properties and the full report-level table are in
+[core's README](../core/README.md#markup-input). In short: structure comes from the HTML and the look from your theme
+(`styles="original"` also applies inline `style=""`: supported properties only, `px` at 0.75pt). Things that cannot be
+drawn are reported through `onWarning` and the fidelity report. `approximated` ones (an iframe shown as a link, a missing
+image shown as alt text, an unknown tag removed with its content kept) never fail a strict export. `dropped` ones (a
+missing image without alt text, an unsafe link scheme, an unsupported CSS declaration) do. Nesting deeper than 256
+levels is flattened to text with one report. Known gaps in `original` mode: CSS colour keywords such as `red` and
+`hsl()` are not recognised yet, and `!important` declarations are dropped.
 
 ## Fonts
 

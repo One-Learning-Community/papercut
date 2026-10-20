@@ -140,3 +140,26 @@ Design: docs/superpowers/specs/2026-10-19-html-font-sources-design.md. Each entr
 - Ruling (S4): opt-in only; the default stays `none` and `Sources` with an empty stack throws; the privacy note (visitors' browsers contact the host, which sees their IP address; LG München I, 3 O 17493/20) is stated where people turn it on; Bunny is shown as a host change, with no claim about anyone's compliance — a third-party request must never come from a default configuration — cost if wrong: an app enables Google without reading the note
 - Ruling (S5): Laravel `html.font_sources` is a list of classes, built by the container and validated against `Papercut\Html\FontSource`; the Google and local-fonts sources are bound from `html.google_fonts` and `html.local_fonts` and built only in `sources` mode — class names survive `config:cache`, and a typo in an unused block must not break exports — cost if wrong: a custom source needing config of its own must read it itself
 - Ruling (planner): `FontRequest` carries the export's `FontSet`, so `LocalFonts` needs no `FontSet` constructor argument (design §5.7 left this choice open) — the Laravel binding then needs no `FontSet` at build time — cost if wrong: `FontRequest` is slightly larger
+
+# Rulings made during HTML and text input, 2026-10-19
+
+Design: docs/superpowers/specs/2026-10-19-html-input-design.md. Each entry: what was decided — why — cost if wrong.
+
+## html-input
+- Ruling: unordered markers go disc `•`, circle `◦`, square `▪` by depth, then repeat — matches browsers — cost if wrong: a different glyph order
+- Ruling: marker depth counts nesting of lists of the same kind only (an `<ul>` inside an `<ol>` starts at disc) — simplest rule that reads like an outline — cost if wrong: nested mixed lists show a different marker than a browser would
+- Ruling: the marker gutter is sized per list from its widest marker — `9.` and `10.` line up without a global width — cost if wrong: sibling lists can have different indents
+- Ruling: core names are `Markup::html()`, `text()` and `flatten()` with `MarkupOptions`, and Blade names are `<x-doc::markup :html|:text>` and `<x-doc::node :node>` — one way in, notes survive the join, mirrors `<x-doc::image src|data>` — cost if wrong: a rename before 0.2.0
+- Ruling: in plain text mode a blank line is a paragraph break and a single newline is a line break — matches how prompts are written — cost if wrong: prompts with hard-wrapped lines show extra breaks
+- Ruling: default style mode is `theme` (inline `style=""` ignored silently); `original` is opt-in — pasted editor HTML carries styles that fight the document's look — cost if wrong: apps wanting editor fidelity set one option
+- Ruling: conversion notes are pure data on immutable nodes and each export reports them afresh, once — exporters need nothing from the converter, and `Fidelity` does not change — cost if wrong: none
+- Ruling: `<x-doc::node>` is inline inside a text tag when the node is a `Text`, and a block otherwise — the only inline case that makes sense — cost if wrong: an inline `Span` list needs wrapping in `Text`
+- Ruling: Laravel config keys are `markup.images`, `markup.styles` and `markup.blank_paragraphs`; tag attributes override them per use — mirrors the `html.*` keys — cost if wrong: a rename before 0.2.0
+- Ruling: `blockquote`, `pre`, `code` and `hr` follow the unknown-tag rule (tag removed, content kept, approximated report) — no simple mapping is faithful enough yet — cost if wrong: such content loses its indent, monospace or rule
+- Ruling: resolver bytes whose format `ImageFormat::sniff()` cannot recognise at conversion time count as a missing image (alt text or nothing, with a report) instead of failing at export — one bad upload must not fail the render — cost if wrong: a corrupt-but-recognisable image still fails at export
+- Ruling (R1): `figure` always converts to a View column, and the single-paragraph unwrap applies only when the top level is exactly one paragraph — Task 8 needs a node to carry figure styles — cost if wrong: one extra wrapper View per figure
+- Ruling (Task 3): list marker aligns with the baseline of the item's first line of text, not top-aligned — spec §4.3 binds; top alignment only holds for same-size text — cost if wrong: a small fragment walk to find the first TextRun baseline
+- Ruling (Task 6): HtmlConverter caps element depth at 256; deeper descendants contribute text only, with one approximated report — untrusted content, and ~8000 levels caused an uncatchable OOM — cost if wrong: pathological documents lose structure past level 256
+- Ruling (Task 7): `start` and `type` are honored on `<ol>` only, `type` covers `1 a A i I` — legacy `<ul type="square">` values are not specified — cost if wrong: legacy ul type attributes are ignored (default bullets by depth)
+- Ruling (Task 8): `InlineCss::parse(..., bool $list = false)` and the `marker` result key — `list-style-type` is not a `Style` property; backward compatible — cost if wrong: none
+- Ruling (Task 9): GoldenBytesTest skips the new markup-slide fixture via `NEWER_FIXTURES`, and ContentParityTest adds browser-drawn list markers to `<li>` text — no v0.1 baseline exists for the new fixture; a parity harness gap, not an exporter difference — cost if wrong: markup-slide PDF bytes are unpinned (HTML golden and PNG snapshots still guard it)

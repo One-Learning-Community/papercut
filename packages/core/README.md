@@ -44,6 +44,8 @@ Output: `$document->toPdf()` returns an `Output`: `->save($path)`, `->bytes()` (
 | `Spacer::flex()`, `Spacer::size($length)` | Flexible or fixed gap. |
 | `Text::make()`, `h1`-`h4`, `p`, `markup()`, `spans()` | Text, with inline spans. |
 | `Image::file()`, `bytes()` | PNG and JPEG; WebP, GIF, BMP and AVIF with `ext-gd`. `fit()` modes. Images shrink to fit the page width, and an image taller than an empty page shrinks to fit it, unless its height is set explicitly. |
+| `ListNode::ordered()`, `unordered()` | Numbered or bulleted [lists](#lists) of `ListItem`s. |
+| `Markup::html()`, `text()`, `flatten()` | [HTML and plain text](#markup-input) converted to nodes. |
 | `Link::to($uri, ...$children)` | A clickable region around children. |
 | `Table::make()` | Page-aware table. |
 | `PageNumber::make('Page {page} of {total}')` | Page number and page count. |
@@ -137,6 +139,150 @@ $document = Document::make(
     ),
 );
 ```
+
+## Lists
+
+`ListNode::ordered(...)` and `ListNode::unordered(...)` take `ListItem`s (strings and nodes are wrapped for you).
+An item holds any block content, including another list. `start(int)` sets the first number, `marker(ListMarker)`
+picks the style, and `ListItem::withValue(int)` sets one item's number.
+
+Without a marker, the style follows the nesting depth (counting only lists of the same kind): ordered lists use
+`1.`, `a.`, `i.` and then repeat; unordered lists use `•`, `◦`, `▪` and then repeat. Markers sit in a right-aligned
+gutter sized to the list's widest marker (so `9.` and `10.` line up) and align with the baseline of the item's first
+line. An item can split across pages; its marker stays with its first line. HTML export writes real `<ol>`/`<ul>`/`<li>`.
+
+| `ListMarker` | Shows |
+|---|---|
+| `Decimal`, `LowerAlpha`, `UpperAlpha`, `LowerRoman`, `UpperRoman` | `1.` `a.` `A.` `i.` `I.` |
+| `Disc`, `Circle`, `Square` | `•` `◦` `▪` |
+| `None` | No marker (the gutter stays) |
+
+```php
+use Papercut\{Document, ListItem, ListNode, Page};
+use Papercut\Style\ListMarker;
+use function Papercut\mm;
+
+$document = Document::make(
+    Page::a4()->margin(mm(20))->body(
+        ListNode::ordered(
+            ListItem::make('Plan', ListNode::unordered('Scope', 'Budget')),
+            'Build',
+            ListItem::make('Ship')->withValue(10),
+        )->start(3)->marker(ListMarker::UpperAlpha),
+    ),
+);
+```
+
+## Markup input
+
+`Markup` turns text that came from elsewhere (a database column, an editor, an LLM prompt) into nodes. It is not a
+browser: it maps a small, useful subset of HTML and reports the rest.
+
+```php
+use Papercut\{Column, Document, Page, Text};
+use Papercut\Markup\{Markup, MarkupOptions, StyleMode};
+use function Papercut\{mm, pt};
+
+$slide = '<h2>Agenda</h2><p>Welcome to <b>Papercut</b>.</p><ol start="3"><li>Intro</li><li>Demo</li></ol>';
+
+$document = Document::make(
+    Page::a4()->margin(mm(20))->body(
+        Column::make(
+            Markup::html($slide, new MarkupOptions(styles: StyleMode::Theme)),
+            Markup::text("Line one\nLine two\n\nA new paragraph."),
+            Text::make('× ')->bold()->append(Markup::flatten(Markup::html('<i>label</i>'))),
+        )->gap(pt(8)),
+    ),
+);
+```
+
+- `Markup::html(?string, MarkupOptions)` converts an HTML fragment (parsed with `ext-dom`; no network, no external entities).
+- `Markup::text(?string, MarkupOptions)` decodes entities, turns newlines into line breaks and a blank line into a paragraph break. `<` is an ordinary character.
+- `Markup::flatten($converted)` joins the result into one `Text` so it can sit inside a line. Block content is flattened with a report.
+- Both entry points return a `Text` (a single paragraph of inline content) or a `View`, and accept `null` and `''`, which produce nothing.
+
+`MarkupOptions`: `styles` (`StyleMode::Theme` default or `Original`), `images` (a `Closure(string $src): ?string`
+returning image bytes) and `blankParagraphs` (`BlankParagraphs::Drop` default, or `Keep`).
+
+### What is converted
+
+| HTML | Becomes |
+|---|---|
+| `p`, `div` | A paragraph |
+| `h1`-`h4`; `h5`, `h6` | The theme's heading presets; `h5` and `h6` use `h4` |
+| `b`/`strong`, `i`/`em`, `u`, `s`/`strike`/`del`, `span`, `br` | Inline spans |
+| `a href` | A link around its content; unsafe schemes drop the link (see below) |
+| `ol`, `ul`, `li` | A `ListNode`; `start` and `type` (`1 a A i I`) on `ol` only, `value` on `li` |
+| `img` | An image through the resolver |
+| `figure`, `figcaption` | A block; the caption becomes a paragraph below |
+| `iframe`, `video`, `audio` | A paragraph linking to `src` (its `title` as text, else the URL) |
+| anything else, including `blockquote`, `pre`, `code`, `hr` | The tag is removed and its content kept |
+
+`script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed with their content. Classes,
+`id`, `data-*`, `target`, `rel`, blank paragraphs and zero-width characters are ignored without a report. Source
+whitespace collapses as in a browser; `&nbsp;` is kept. Blank paragraphs (`<p></p>`, `<p><br></p>`,
+`<p><i>&nbsp;</i></p>`) are dropped unless `BlankParagraphs::Keep`, which keeps those holding only `&nbsp;` or `<br>`
+as one blank line each. A truly empty `<p></p>` is dropped in both modes.
+
+### Images
+
+Papercut never reads an `<img src>` itself. The `images` closure gets the raw decoded `src` and returns the image
+bytes, or `null` for a missing image (a throw counts as missing). Bytes that are not a recognised image format
+(PNG, JPEG, and with `ext-gd` WebP, GIF, BMP, AVIF; sniffed at conversion time) are treated as missing too. A missing
+image shows its `alt` text in italics, or nothing without `alt`. `width` and `height` attributes apply in both style
+modes (CSS pixels at 0.75pt), and an `img` inside `a href` becomes a linked image.
+
+```php
+use Papercut\{Document, Page};
+use Papercut\Markup\{Markup, MarkupOptions};
+use function Papercut\mm;
+
+$png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+$markup = new MarkupOptions(images: fn (string $src): ?string => $src === 'logo.png' ? $png : null);
+
+$document = Document::make(
+    Page::a4()->margin(mm(20))->body(
+        Markup::html('<p><img src="logo.png" width="40" height="40"></p><p><img src="gone.png" alt="Missing logo"></p>', $markup),
+    ),
+);
+```
+
+### Style modes
+
+- `Theme` (default): the HTML supplies structure only. `style="…"` attributes are ignored silently; `img width/height`, `ol start/type` and `li value` still apply.
+- `Original`: each element's inline `style="…"` is applied on top of the theme.
+
+In `Original` mode these properties are understood; `px` converts at 0.75pt.
+
+| CSS | Applies to |
+|---|---|
+| `color`, `font-size`, `font-weight`, `font-style`, `text-decoration` (`underline`, `line-through`, `none`) | All elements, including spans |
+| `background-color`, `text-align`, `margin`, `padding` | Blocks |
+| `width`, `height`, `min-*`, `max-*` | Blocks and images |
+| `list-style-type` | Lists |
+
+Every other declaration, and any value Papercut's parsers refuse, is dropped and reported by property. Known gaps:
+CSS colour keywords such as `red` and `hsl()` are not recognised yet, and `!important` declarations are dropped.
+`float: left|right` renders a normal block (reported); floats set through classes are invisible and not reported.
+
+### What gets reported
+
+Conversion notes travel with the converted nodes and reach `onWarning` and the fidelity report of every export
+(once per export, with the node path). Strict mode throws only for the `dropped` ones, as everywhere else.
+
+| Case | Level | Fails a strict export |
+|---|---|---|
+| `iframe`, `video`, `audio` shown as a link | approximated | no |
+| Missing image shown as its alt text | approximated | no |
+| Float rendered as a normal block | approximated | no |
+| Unknown tag removed, content kept | approximated | no |
+| Block content flattened by `Markup::flatten()` | approximated | no |
+| Nesting deeper than 256 levels flattened to text (one report) | approximated | no |
+| Missing image with no alt | dropped | yes |
+| Unsafe link scheme: link removed, content kept | dropped | yes |
+| Unsupported inline CSS declaration | dropped | yes |
+
+Only the schemes `Link::allowed()` accepts survive in links.
 
 ## Tables
 
