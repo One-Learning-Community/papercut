@@ -10,7 +10,14 @@ use Papercut\Style\{Direction, Justify};
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Export\{HtmlOptions, PdfOptions};
 use Papercut\Style\ImageFit;
+use Papercut\Backend\{Backend, FontHandle, ImageHandle};
+use Papercut\Backend\PhpPdf\PhpPdfBackend;
+use Papercut\Export\Fidelity;
+use Papercut\Html\HtmlWriter;
+use Papercut\Paint\DocumentMeta;
+use Papercut\Style\StyleResolver;
 use Papercut\Tests\Support\TestImages;
+use Papercut\Tree\TreeWalker;
 use PHPUnit\Framework\TestCase;
 
 use function Papercut\pt;
@@ -401,8 +408,7 @@ final class HtmlTablesImagesTest extends TestCase
     public function test_corrupt_images_with_valid_magic_bytes_throw_like_pdf(): void
     {
         // The HTML path asks the PDF backend's parser why, so the text is identical for every corruption it can detect.
-        // Not covered: a file getimagesizefromstring() accepts but the PDF parser refuses (e.g. unsupported PNG variants);
-        // HTML would embed those as the browser can show them.
+        // A header-only PNG (signature + IHDR) is covered in test_truncated_png_and_jpeg_throw_like_pdf.
         foreach (["\x89PNG\r\n\x1a\n garbage", "\xFF\xD8\xFF garbage"] as $bytes) {
             $doc = $this->body(Image::bytes($bytes));
             $messages = [];
@@ -430,6 +436,103 @@ final class HtmlTablesImagesTest extends TestCase
             }
             self::assertCount(2, $messages);
             self::assertSame($messages[1] ?? null, $messages[0] ?? null);
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function test_truncated_png_and_jpeg_throw_like_pdf(): void
+    {
+        // Header-only PNG: getimagesizefromstring() (the old HTML gate) accepts it, PdfImage refuses it, so HTML must too.
+        // A 60% cut of a PNG or JPEG is accepted by PdfImage (pinned below), so there HTML and PDF both succeed.
+        $png = TestImages::png(40, 20);
+        $cases = [
+            'png header only' => [substr($png, 0, 33), true],
+            'png 60%' => [substr($png, 0, (int) (strlen($png) * 0.6)), false],
+            'jpeg 60%' => [substr(TestImages::jpeg(40, 20), 0, (int) (strlen(TestImages::jpeg(40, 20)) * 0.6)), false],
+        ];
+        foreach ($cases as $name => [$bytes, $refused]) {
+            $path = tempnam(sys_get_temp_dir(), 'pc') ?: throw new \RuntimeException('tmp');
+            file_put_contents($path, $bytes);
+            try {
+                foreach (['bytes' => Image::bytes($bytes), 'file' => Image::file($path)] as $form => $image) {
+                    $doc = $this->body($image);
+                    $label = $name . ' ' . $form;
+                    if (!$refused) {
+                        $doc->toPdf();
+                        self::assertStringContainsString('<img', $doc->toHtml()->bytes(), $label);
+                        continue;
+                    }
+                    try {
+                        $doc->toPdf();
+                        self::fail($label . ': toPdf() did not throw');
+                    } catch (ImageUnreadable $pdf) {
+                    }
+                    try {
+                        $doc->toHtml();
+                        self::fail($label . ': toHtml() did not throw');
+                    } catch (ImageUnreadable $html) {
+                        self::assertSame($pdf->getMessage(), $html->getMessage(), $label);
+                    }
+                }
+            } finally {
+                unlink($path);
+            }
+        }
+    }
+
+    /** @return \Papercut\Backend\Backend&object{loads: int} */
+    private function countingBackend(string $method): \Papercut\Backend\Backend
+    {
+        return new class ($method) implements Backend {
+            public int $loads = 0;
+            private readonly Backend $inner;
+
+            public function __construct(private readonly string $counted)
+            {
+                $this->inner = new PhpPdfBackend(false);
+            }
+
+            public function loadFont(string $path): FontHandle
+            {
+                return $this->inner->loadFont($path);
+            }
+
+            public function loadImageFile(string $path): ImageHandle
+            {
+                $this->counted === 'file' && $this->loads++;
+                return $this->inner->loadImageFile($path);
+            }
+
+            public function loadImageBytes(string $bytes): ImageHandle
+            {
+                $this->counted === 'bytes' && $this->loads++;
+                return $this->inner->loadImageBytes($bytes);
+            }
+
+            public function render(DocumentMeta $meta, array $pages): string
+            {
+                return $this->inner->render($meta, $pages);
+            }
+        };
+    }
+
+    public function test_image_used_many_times_is_loaded_once(): void
+    {
+        $png = TestImages::png(40, 20);
+        $path = tempnam(sys_get_temp_dir(), 'pc') ?: throw new \RuntimeException('tmp');
+        file_put_contents($path, $png);
+        try {
+            foreach (['bytes' => static fn (): Image => Image::bytes($png), 'file' => static fn (): Image => Image::file($path)] as $kind => $make) {
+                $backend = $this->countingBackend($kind);
+                $doc = $this->body(...array_map($make, range(1, 50)));
+                $options = HtmlOptions::from(new HtmlOptions());
+                $writer = new HtmlWriter($doc, new Fidelity('html', $options), $options, $backend);
+                (new TreeWalker(new StyleResolver($options->theme())))->walk($doc, $writer);
+
+                self::assertSame(50, substr_count($writer->html(), '<img'), $kind);
+                self::assertSame(1, $backend->loads, $kind);
+            }
         } finally {
             unlink($path);
         }
@@ -511,5 +614,46 @@ final class HtmlTablesImagesTest extends TestCase
             $messages[] = $m;
         }));
         self::assertCount(1, array_filter($messages, static fn (string $m): bool => str_contains($m, 'text decoration override')));
+    }
+
+    public function test_cell_space_justify_is_approximated(): void
+    {
+        foreach ([Justify::SpaceBetween, Justify::SpaceAround, Justify::SpaceEvenly, Justify::Center, Justify::End] as $j) {
+            $messages = [];
+            $this->html($this->body(Table::make()->columns('1fr')->row(TableCell::make('a')->attributes(['justify' => $j]))), new HtmlOptions(onWarning: function (string $m) use (&$messages): void {
+                $messages[] = $m;
+            }));
+            $found = array_values(array_filter($messages, static fn (string $m): bool => str_contains($m, 'cell justify')));
+            if (in_array($j, [Justify::Center, Justify::End], true)) {
+                self::assertSame([], $found, $j->value);
+            } else {
+                self::assertCount(1, $found, $j->value);
+                self::assertStringStartsWith('html: approximated cell justify at ', $found[0]);
+                self::assertStringEndsWith('table[0] > tr[0] > td[0]', $found[0]);
+            }
+        }
+    }
+
+    public function test_table_and_row_decoration_override_is_approximated(): void
+    {
+        $run = function (Table $t): array {
+            $messages = [];
+            $this->html($this->body($t), new HtmlOptions(onWarning: function (string $m) use (&$messages): void {
+                $messages[] = $m;
+            }));
+
+            return array_values(array_filter($messages, static fn (string $m): bool => str_contains($m, 'text decoration override')));
+        };
+        $table = $run(Table::make()->columns('1fr')->row('a')->underline(false));
+        self::assertCount(0, $table);
+        $outer = Column::make(Table::make()->columns('1fr')->row('a')->underline(false))->underline();
+        $messages = [];
+        $this->html($this->body($outer), new HtmlOptions(onWarning: function (string $m) use (&$messages): void {
+            $messages[] = $m;
+        }));
+        self::assertContains('html: approximated text decoration override at page > body > column[0] > table[0]', $messages);
+        $row = $run(Table::make()->columns('1fr')->underline()->bodyRow(TableRow::make('a')->underline(false)));
+        self::assertCount(1, $row);
+        self::assertStringEndsWith('table[0] > tr[0]', $row[0]);
     }
 }

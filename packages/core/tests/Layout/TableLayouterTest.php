@@ -394,4 +394,22 @@ final class TableLayouterTest extends TestCase
         self::assertStringContainsString('page > body', $stray[0]);
         self::assertSame($plain, $withHook);
     }
+
+    public function test_reused_cell_warns_when_used_bare_after_a_table(): void
+    {
+        $cell = TableCell::make('x')->padding(pt(3)); // own padding: theme defaults change nothing
+        $doc = \Papercut\Document::make(\Papercut\Page::a4()->body(
+            Table::make()->columns('1fr')->row($cell),
+            \Papercut\View::make($cell),
+        ));
+        $warnings = [];
+        $doc->toPdf(new \Papercut\Export\PdfOptions(
+            backend: new \Papercut\Tests\Support\FakeBackend(),
+            onWarning: function (string $m) use (&$warnings): void { $warnings[] = $m; },
+        ));
+
+        $stray = array_values(array_filter($warnings, static fn (string $m): bool => str_ends_with($m, 'A table cell outside a table is laid out as a column')));
+        self::assertCount(1, $stray);
+        self::assertStringContainsString('body > column[1] > td[0]]', $stray[0]);
+    }
 }

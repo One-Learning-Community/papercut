@@ -169,7 +169,7 @@ final class TableLayouter implements Layouter
         }
         $table = self::table($node);
         $columns = $this->columnContent($table, $style, $engine);
-        $tracks = self::tracks($table, count($columns));
+        $tracks = self::trackList($table);
         $min = 0.0;
         $max = 0.0;
         foreach ($columns as $k => $size) {
@@ -234,7 +234,7 @@ final class TableLayouter implements Layouter
         if ($given !== null && $given !== $n) {
             $engine->context()->warn(sprintf('Table has %d columns but %d tracks', $n, $given));
         }
-        $tracks = self::tracks($table, $n);
+        $tracks = self::trackList($table);
 
         $widths = array_fill(0, $n, 0.0);
         $auto = [];
@@ -340,11 +340,8 @@ final class TableLayouter implements Layouter
         }
 
         $rows = self::allRows($table);
-        $n = 0;
-        foreach ($rows as $row) {
-            $n = max($n, array_sum(array_map(static fn (TableCell $cell): int => $cell->span(), $row->cells())));
-        }
-        $tracks = self::tracks($table, $n);
+        $tracks = self::trackList($table);
+        $n = count($tracks);
         $columns = array_fill(0, $n, ['min' => 0.0, 'max' => 0.0]);
         /** @var list<array{col: int, span: int, min: float, max: float}> $spanning */
         $spanning = [];
@@ -569,12 +566,17 @@ final class TableLayouter implements Layouter
     }
 
     /**
-     * The given tracks for $n columns: missing tracks are 1fr, extra ones dropped.
+     * One track per column: the column count is the widest row's total span; missing tracks
+     * are 1fr, extra ones ignored.
      *
      * @return list<Length|Percent|Fr|Auto>
      */
-    private static function tracks(Table $table, int $n): array
+    public static function trackList(Table $table): array
     {
+        $n = 0;
+        foreach (self::allRows($table) as $row) {
+            $n = max($n, array_sum(array_map(static fn (TableCell $cell): int => $cell->span(), $row->cells())));
+        }
         $given = $table->trackList()->tracks ?? [];
         $tracks = [];
         for ($k = 0; $k < $n; $k++) {
@@ -600,6 +602,7 @@ final class TableLayouter implements Layouter
     // StyleResolver applies the same defaults as its lowest layer; applying them twice changes nothing.
     private static function withThemeDefaults(TableCell $cell, Theme $theme): TableCell
     {
+        $source = $cell;
         $own = $cell->style();
         $named = new Style();
         $name = $cell->styleName();
@@ -616,7 +619,8 @@ final class TableLayouter implements Layouter
         if ($cell->header() && $own->fontWeight === null && $named->fontWeight === null) {
             $cell = $cell->weight(700);
         }
-        return $cell;
+        // Always a distinct instance: the source cell is never marked inTable, so a bare reuse still warns.
+        return $cell === $source ? clone $cell : $cell;
     }
 
     /** @return list<TableRow> */

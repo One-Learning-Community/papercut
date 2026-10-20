@@ -5,7 +5,8 @@
             "median_ms": 59.77,
             "php": "8.4.23",
             "opcache": true,
-            "recorded": "2026-10-19"
+            "recorded": "2026-10-19",
+            "html_median_ms": 20.37
         }
     }
 }

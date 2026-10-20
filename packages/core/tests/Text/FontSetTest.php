@@ -42,4 +42,20 @@ final class FontSetTest extends TestCase
         self::assertSame([400, 400, 700, 700], array_map(static fn (FontFace $f): int => $f->weight, $faces));
         self::assertSame([FontStyle::Normal, FontStyle::Italic, FontStyle::Normal, FontStyle::Italic], array_map(static fn (FontFace $f): FontStyle => $f->style, $faces));
     }
+
+    public function test_effective_faces_dedupe_case_insensitively_last_wins(): void
+    {
+        $custom = __DIR__ . '/../../resources/fonts/Inter/Inter-Italic.ttf';
+        $set = (new FontSet())->with(
+            new FontFace('Brand', self::INTER),
+            new FontFace('inter', $custom, 700),
+        );
+        $faces = $set->effectiveFaces();
+
+        self::assertCount(5, $faces);
+        self::assertSame(['Inter', 'Inter', 'Inter', 'Inter', 'Brand'], array_map(static fn (FontFace $f): string => $f->family === 'inter' ? 'Inter' : $f->family, $faces));
+        self::assertSame(['inter', 700, FontStyle::Normal, $custom], [$faces[2]->family, $faces[2]->weight, $faces[2]->style, $faces[2]->path]);
+        self::assertSame(FontSet::bundled()[0]->path, $faces[0]->path);
+        self::assertSame(self::INTER, $faces[4]->path);
+    }
 }

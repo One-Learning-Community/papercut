@@ -101,11 +101,26 @@ Plan: docs/superpowers/plans/2026-10-19-multi-format-phase1-html.md. Each entry:
 - Ruling: content parity compares word multisets with table-header-row words removed from both sides — header rows repeat per page in PDF (n/a in HTML); mutation-checked to catch every dropped body row — cost if wrong: a body row made only of header words could drop undetected
 - Ruling: cheap reviewer Minors were folded into fix rounds where they touched the same lines — cost if wrong: none
 
-## Carry-overs for the Phase 2 plan
-- **Parked:** an image with a valid header but truncated data embeds as a broken `<img>` in HTML while PDF throws. Fix: validate every image through the `Backend` interface (`loadImageBytes`/`loadImageFile`) from a shared default backend factory; drop the `getimagesizefromstring()` gate and the hard-coded `PhpPdfBackend` in `ImageSource`.
-- Ask the maintainer: `PendingHtml` has `(string) $html` = fragment but `toString()` = full page (documented and tested). Consider explicit `fragment()`/`page()` methods before the 0.2.0 freeze.
-- Laravel has no per-call options hook, so `imageUrl`, `fontUrl` and `link` font mode are PHP-API only.
-- Add HTML (and DOCX) timings to the bench (spec §9).
-- Make WidthResolver the single source for track counting (HtmlWriter duplicates TableLayouter's rule); `FontSet::effectiveFaces()` to share face dedupe between FontRegistry and FontFaces.
-- WidthResolver carry-overs from Phase 0 still apply: node-path context for warnings, a cache policy for non-PDF exports, a `flexLines` direction guard.
-- Minor: cell `justify` space-between/around has no effect in HTML and isn't reported; PDF's "Table columns need X but only Y" warning isn't mirrored (needs layout widths); `table()`/`tableRow()` skip the decoration-override check; the reused-cell stray warning edge case; the render.php `fontUrl` should return null for faces outside the repo.
+# Rulings made during PDF/HTML hardening, 2026-10-19
+
+Plan: docs/superpowers/plans/2026-10-19-pdf-html-hardening.md. Each entry: what was decided — why — cost if wrong.
+
+## hardening
+- Ruling (H1): DOCX is on hold until php-docx has the features listed in docs/superpowers/php-docx-1.15-gaps.md — the §5.3 mapping cannot be met on 1.15 — cost if wrong: DOCX starts later than needed
+- Ruling (H2): `PendingHtml` is `Htmlable`, `Stringable` and `Responsable`, no longer a `PendingOutput`; `page()` and `fragment()` return `PendingOutput`; `toResponse()` keeps the full-page response (200, text/html, no Content-Disposition) — a string must not mean two things — cost if wrong: callers rename `->html()->save()` to `->html()->page()->save()`
+- Ruling (H3): `html.image_url` and `html.font_url` name invokable classes; `html.fonts` accepts `link`; invalid `html.*` config is reported when HTML options are first built, not at boot, so artisan commands still run with a half-set config; `link` needs `html.font_url`; no code-level options hook in 0.2.0 — cost if wrong: a bad config surfaces at first export instead of boot
+- Ruling (H4): PDF's "Table columns need X but only Y" warning is not mirrored in HTML — the browser resolves column overflow itself, and mirroring it would need text measurement in HTML — cost if wrong: an HTML export of a too-narrow table gives no warning
+
+## Carry-overs (status after the hardening plan)
+- *Planned: hardening Task 2.* **Parked:** an image with a valid header but truncated data embeds as a broken `<img>` in HTML while PDF throws. Fix: validate every image through the `Backend` interface (`loadImageBytes`/`loadImageFile`) from a shared default backend factory; drop the `getimagesizefromstring()` gate and the hard-coded `PhpPdfBackend` in `ImageSource`.
+- *Planned: hardening Task 6 (H2).* Ask the maintainer: `PendingHtml` has `(string) $html` = fragment but `toString()` = full page (documented and tested). Consider explicit `fragment()`/`page()` methods before the 0.2.0 freeze.
+- *Planned: hardening Task 7 (H3).* Laravel has no per-call options hook, so `imageUrl`, `fontUrl` and `link` font mode are PHP-API only.
+- Add HTML (and DOCX) timings to the bench (spec §9). *HTML: planned, hardening Task 5. DOCX: waits for DOCX.*
+- *Planned: hardening Task 3.* Make WidthResolver the single source for track counting (HtmlWriter duplicates TableLayouter's rule); `FontSet::effectiveFaces()` to share face dedupe between FontRegistry and FontFaces.
+- *Waits for DOCX* (only DOCX calls `WidthResolver`). WidthResolver carry-overs from Phase 0 still apply: node-path context for warnings, a cache policy for non-PDF exports, a `flexLines` direction guard.
+- Minor items:
+  - *Done in hardening Task 4:* cell `justify` space-between/around/evenly will be reported (`cell justify`).
+  - *Done in hardening Task 4 (ruling H4, not mirrored):* PDF's "Table columns need X but only Y" warning needs layout widths, so HTML does not mirror it.
+  - *Done in hardening Task 4:* the `table()`/`tableRow()` decoration-override check.
+  - *Planned: hardening Task 3:* the reused-cell stray warning edge case.
+  - *Done in hardening Task 4:* the render.php `fontUrl` will return null for faces outside the repo.

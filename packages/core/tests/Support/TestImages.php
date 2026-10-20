@@ -23,4 +23,17 @@ final class TestImages
         imagepng($im);
         return (string) ob_get_clean();
     }
+
+    /**
+     * @param int<1, max> $w
+     * @param int<1, max> $h
+     */
+    public static function jpeg(int $w = 40, int $h = 20): string
+    {
+        $im = imagecreatetruecolor($w, $h) ?: throw new \RuntimeException('gd failure');
+        imagefill($im, 0, 0, (int) imagecolorallocate($im, 30, 90, 200));
+        ob_start();
+        imagejpeg($im);
+        return (string) ob_get_clean();
+    }
 }

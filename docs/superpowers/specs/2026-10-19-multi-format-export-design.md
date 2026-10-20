@@ -1,7 +1,7 @@
 # Papercut: Multi-Format Export (PDF, HTML, DOCX) — Design Spec
 
 **Date:** 2026-10-19
-**Status:** Draft for review
+**Status:** Approved; DOCX on hold (amendment H1; 0.2.0 waits for DOCX)
 **Target release:** 0.2.0 (`papercut/core`, `papercut/laravel`, new `papercut/docx`)
 **Builds on:** [2026-10-18-papercut-design.md](2026-10-18-papercut-design.md) (v0.1) and [RULINGS.md](../RULINGS.md)
 
@@ -110,7 +110,7 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
 - `PdfOptions extends ExportOptions`: `backend`, `cacheDir`, `overflow: OverflowMode`. This replaces `RenderOptions`.
 - `HtmlOptions extends ExportOptions`:
   - `fullPage: bool = false`
-  - `fontMode: FontMode = none` (`none`|`embed`|`link`). `embed` and `link` are opt-in. The Laravel config key `html.fonts` accepts `none` or `embed`; `link` needs the `fontUrl` callback and is set through the PHP API.
+  - `fontMode: FontMode = none` (`none`|`embed`|`link`). `embed` and `link` are opt-in. The Laravel config key `html.fonts` accepts `none`, `embed` or `link`; `link` needs the `fontUrl` callback; in Laravel, `link` requires `html.font_url` (§8.2).
   - `fontUrl: ?Closure(FontFace): ?string`: used by `link`; a null return skips that face.
   - `imageUrl: ?Closure(Image): ?string` (null, or a null return, means embed as a data URI)
 - `DocxOptions extends ExportOptions`: no extra settings in 0.2.0.
@@ -163,7 +163,13 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
   - Block `link` applies its hyperlink to the text runs inside it (≈). Images inside a link are not linked.
 - **Colors:** an alpha below 1 is blended onto white (≈).
 
-**Upstream dependency:** `w:cantSplit` (and `w:keepLines` if absent) is contributed to php-docx. If that isn't merged and released by the end of phase 2 (§10), `Papercut\Docx` adds it with a small, tested post-processing step on the XML, kept inside the package, until it is. This follows the pattern of the contained php-pdf workaround in the rulings.
+**Upstream dependency (amendment H1, 2026-10-19):** php-docx 1.15 lacks several features this mapping relies on. They are being contributed upstream, and `papercut/docx` starts once a release has them. The gaps, confirmed against 1.15 on 2026-10-19, are listed in [php-docx-1.15-gaps.md](../php-docx-1.15-gaps.md):
+- per-page sections and custom page sizes
+- multiple line spacing
+- `Normal`/`pStyle` styles and `w:lang`
+- `keepNext`, `keepLines`, `cantSplit`, widow control and `pageBreakBefore`
+- exact row heights
+- fixed ZIP timestamps
 
 ### 5.4 Error handling
 
@@ -273,11 +279,16 @@ return Papercut::view('invoices.show', $data)->html();   // full-page response
 
 - `PdfManager` → `PapercutManager`; facade `Pdf` → `Papercut`.
 - `view()` and `make(Document)` return a `PendingDocument`. It resolves the Blade markers once and holds the node tree.
-- `->pdf()`, `->docx()` and `->html()` return a `PendingOutput`: `toString()`, `save()`, `download()`, `inline()`, and `Responsable` (inline by default).
-- `PendingHtml extends PendingOutput` also implements `Htmlable`. `toHtml()` returns the fragment. `toResponse()` returns the full page.
+- `->pdf()` and `->docx()` return a `PendingOutput`: `toString()`, `save()`, `download()`, `inline()`, and `Responsable` (inline by default). `->html()` returns a `PendingHtml` (next bullet).
+- **`PendingHtml` (amendment H2):** `->html()` returns a `PendingHtml` that is `Htmlable`, `Stringable` and `Responsable`. It does not extend `PendingOutput`.
+  - `toHtml()` and `(string)` give the fragment, so `{{ $doc->html() }}` prints it unescaped.
+  - `toResponse()` keeps the full-page response: 200, `text/html; charset=UTF-8`, no `Content-Disposition`.
+  - `page()` and `fragment()` each return a `PendingOutput` (`toString()`, `save()`, `download()`, `inline()`), with the default name `document.html`.
+  - `PendingHtml` has no `toString()`, `save()` or `download()` of its own, so a string never means two things.
 - `->docx()` without `papercut/docx` installed throws `MissingExporter`.
 - **Tags:** `<x-doc::*>`. The prefix is the config key `papercut.prefix` (default `doc`); the service provider registers the component namespace from it. App components in `components/doc/` (`<x-doc.foo>`) do not conflict.
-- **Config additions:** `prefix`, `strict` (default `false`; the docs suggest `true` in tests), `html.fonts` (`none|embed`; `link` is available through the PHP API only). Laravel's `onWarning` logs `Dropped` as a warning and `Approximated` as debug.
+- **Config additions:** `prefix`, `strict` (default `false`; the docs suggest `true` in tests), `html.fonts` (`none|embed|link`), `html.image_url` and `html.font_url` (amendment H3). Laravel's `onWarning` logs `Dropped` as a warning and `Approximated` as debug.
+- **HTML callbacks (amendment H3):** `html.image_url` and `html.font_url` name invokable classes, resolved from the container, that implement `Papercut\Laravel\Html\ImageUrlResolver` and `Papercut\Laravel\Html\FontUrlResolver`. Class names survive `config:cache`; a closure does not, and is rejected with an error naming the key. `html.fonts = link` requires `html.font_url`. Invalid `html.*` config is reported when HTML options are first built (the first `->html()` export), not at boot. There is no code-level options hook in 0.2.0.
 - **Preview route:** `/_papercut/{view}?format=pdf|html|docx` (default `pdf`).
 
 ### 8.3 Migration from v0.1
@@ -344,9 +355,10 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
 |---|---|---|
 | **0. Seams and renames** | §5.2 core units, `Image::handle` removed, options split, `Document` API, `WidthResolver`, Laravel renames (`x-doc`, `Papercut`, `PendingDocument`/`PendingOutput`, `prefix` config) | PDF byte-identical to v0.1; full suite green after renames; `WidthResolver` tested on its own against layout fragment widths |
 | **1. HTML** | `HtmlExporter`, `HtmlOptions`, Laravel `->html()`, preview `?format=html` | Examples render close to the PDF (reviewed in a browser via `examples/html/render.php`); every HTML capability row has a test; content parity PDF ↔ HTML |
-| **1b. Upstream (runs alongside phase 1)** | php-docx PR: `cantSplit`, and `keepLines` if absent | Merged and released, or the contained fallback in §5.3 is triggered at the end of phase 2 |
-| **2. DOCX** | `papercut/docx`, `DocxExporter`, Laravel `->docx()` and `MissingExporter`, `docx.yml` | Schema-valid; golden and XPath tests green; content parity across all three; manual checklist passed |
-| **3. Docs and release** | README "one template, three formats" (the invoice in all three), capability table in the docs, migration table, version bumps, 0.2.0 tags | Docs reviewed; tags pushed by the maintainer |
+| **1b. Upstream (runs alongside phase 1)** | php-docx PRs for the gaps listed in §5.3 | A php-docx release that has them |
+| **1c. PDF/HTML hardening** | Carry-overs that don't need DOCX, plus H2 and H3: [plan](plans/2026-10-19-pdf-html-hardening.md) | Plan exit check passes |
+| **2. DOCX** (on hold: blocked on upstream php-docx, H1) | `papercut/docx`, `DocxExporter`, Laravel `->docx()` and `MissingExporter`, `docx.yml` | Schema-valid; golden and XPath tests green; content parity across all three; manual checklist passed |
+| **3. Docs and release** (0.2.0 waits for DOCX, H1) | README "one template, three formats" (the invoice in all three), capability table in the docs, migration table, version bumps, 0.2.0 tags | Docs reviewed; tags pushed by the maintainer |
 
 **Why the order:**
 - HTML first is cheap, needs no new dependency, and proves the tree is independent of layout.
@@ -357,6 +369,7 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
 - **php-docx is young and has one maintainer** (created 2026-05, 1 star), the same maintainer as our PDF backend.
   - Mitigation: the import rule (§8.1), a pinned version, and DOCX golden and contract tests that any replacement writer must pass.
   - The upstream relationship is also a channel for fixes.
+  - The gaps were confirmed against 1.15 on 2026-10-19 ([gaps](../php-docx-1.15-gaps.md)); DOCX waits for a release that closes them.
 - **Word's text metrics differ from ours,** so fixed-height rows can cut off text and page breaks drift. Fixed height is documented as ≈. Page-break drift is a documented non-goal.
 - **Font substitution in DOCX** changes how wide text runs within our fixed column widths. Font embedding is a follow-up to contribute upstream (OOXML obfuscated embedded TrueType fonts; Word honors them, Google Docs ignores them).
 - **Host CSS leaking into HTML fragments.** Mitigation: inline styles plus the `.papercut` reset. Documented as "close enough".

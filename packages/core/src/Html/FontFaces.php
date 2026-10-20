@@ -23,7 +23,7 @@ final class FontFaces
         }
         $used = array_map('strtolower', $families);
         $out = '';
-        foreach (self::faces($set) as $face) {
+        foreach ($set->effectiveFaces() as $face) {
             if (!in_array(strtolower($face->family), $used, true)) {
                 continue;
             }
@@ -36,19 +36,6 @@ final class FontFaces
         }
 
         return $out;
-    }
-
-    /** @return list<FontFace> bundled then custom faces; the last registration of a family, weight and style wins */
-    private static function faces(FontSet $set): array
-    {
-        $byKey = [];
-        foreach ([...FontSet::bundled(), ...$set->faces] as $face) {
-            $key = strtolower($face->family) . '|' . $face->weight . '|' . $face->style->value;
-            unset($byKey[$key]);
-            $byKey[$key] = $face;
-        }
-
-        return array_values($byKey);
     }
 
     private static function data(FontFace $face): string

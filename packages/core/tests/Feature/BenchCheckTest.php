@@ -52,9 +52,13 @@ final class BenchCheckTest extends TestCase
         file_put_contents($this->baseline, json_encode(['machines' => ['test' => ['median_ms' => $median]]]));
     }
 
-    private static function benchResult(float $median, int $pages = 10): string
+    private static function benchResult(float $median, int $pages = 10, ?float $html = null): string
     {
-        return (string) json_encode(['median_ms' => $median, 'runs_ms' => [$median], 'pages' => $pages, 'bytes' => 1, 'opcache' => true, 'php' => '8.4.0']);
+        $result = ['median_ms' => $median, 'runs_ms' => [$median], 'pages' => $pages, 'bytes' => 1, 'opcache' => true, 'php' => '8.4.0'];
+        if ($html !== null) {
+            $result['html_median_ms'] = $html;
+        }
+        return (string) json_encode($result);
     }
 
     public function test_missing_baseline_writes_an_entry_and_passes(): void
@@ -81,6 +85,37 @@ final class BenchCheckTest extends TestCase
         $this->writeBaseline(100.0);
         self::assertSame(1, $this->check(self::benchResult(121.0))['exit']);
         self::assertSame(0, $this->check(self::benchResult(119.0))['exit']);
+    }
+
+    public function test_html_more_than_20_percent_slower_fails(): void
+    {
+        file_put_contents($this->baseline, json_encode(['machines' => ['test' => ['median_ms' => 100.0, 'html_median_ms' => 20.0]]]));
+        $run = $this->check(self::benchResult(100.0, html: 24.5));
+        self::assertSame(1, $run['exit'], $run['out']);
+        self::assertStringContainsString('check: FAIL: html median 24.50 ms exceeds 24.00 ms (baseline 20.00 ms + 20%)', $run['out']);
+        self::assertSame(0, $this->check(self::benchResult(100.0, html: 23.0))['exit']);
+    }
+
+    public function test_missing_html_baseline_is_added_to_the_entry(): void
+    {
+        $this->writeBaseline(100.0);
+        $run = $this->check(self::benchResult(100.0, html: 18.25));
+        self::assertSame(0, $run['exit'], $run['out']);
+        self::assertStringContainsString('no html baseline', $run['out']);
+        $written = json_decode((string) file_get_contents($this->baseline), true);
+        self::assertIsArray($written);
+        self::assertSame(18.25, $written['machines']['test']['html_median_ms']);
+        self::assertEquals(100.0, $written['machines']['test']['median_ms']);
+    }
+
+    public function test_result_without_html_key_is_unchanged_behavior(): void
+    {
+        $contents = json_encode(['machines' => ['test' => ['median_ms' => 100.0, 'html_median_ms' => 20.0]]]);
+        file_put_contents($this->baseline, $contents);
+        $run = $this->check(self::benchResult(100.0));
+        self::assertSame(0, $run['exit'], $run['out']);
+        self::assertStringNotContainsString('html', $run['out']);
+        self::assertSame($contents, file_get_contents($this->baseline));
     }
 
     public function test_a_document_that_is_not_ten_pages_fails(): void

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Html;
 
-use Papercut\Backend\PhpPdf\PhpPdfBackend;
-use Papercut\Exception\ImageUnreadable;
+use Papercut\Backend\Backend;
+use Papercut\Export\LoadedImage;
 use Papercut\Image;
 use Papercut\Paint\Link;
 
@@ -15,8 +15,9 @@ final class ImageSource
     /**
      * @param (\Closure(Image): ?string)|null $imageUrl
      * @param (\Closure(): void)|null $onRefused called when the callback's URL is unsafe and the image is embedded instead
+     * @param (\Closure(Image): LoadedImage)|null $load how to load an image to embed; when given it takes precedence over $backend; defaults to loading through the backend each time
      */
-    public static function uri(Image $image, ?\Closure $imageUrl, ?\Closure $onRefused = null): string
+    public static function uri(Image $image, ?\Closure $imageUrl, Backend $backend, ?\Closure $onRefused = null, ?\Closure $load = null): string
     {
         if ($imageUrl !== null) {
             $url = $imageUrl($image);
@@ -28,35 +29,9 @@ final class ImageSource
             }
         }
 
-        ['kind' => $kind, 'value' => $value] = $image->source();
-        if ($kind === 'file') {
-            $bytes = is_file($value) && is_readable($value) ? file_get_contents($value) : false;
-            if ($bytes === false) {
-                throw new ImageUnreadable(sprintf('Cannot read image "%s": file not found or not readable', $value));
-            }
-            $mime = self::mime($bytes) ?? throw new ImageUnreadable(sprintf('Cannot read image "%s": Unsupported image format (expected PNG or JPEG).', $value));
-        } else {
-            $bytes = $value;
-            $mime = self::mime($bytes) ?? throw new ImageUnreadable('Cannot read image bytes: Unsupported image format (expected PNG or JPEG).');
-        }
+        $loaded = $load !== null ? $load($image) : LoadedImage::load($image, $backend);
 
-        if (@getimagesizefromstring($bytes) === false) {
-            // Ask the PDF backend's own parser, so both formats refuse a corrupt image with the same exception and text.
-            $backend = new PhpPdfBackend(false);
-            $kind === 'file' ? $backend->loadImageFile($value) : $backend->loadImageBytes($bytes);
-            throw new ImageUnreadable($kind === 'file' ? sprintf('Cannot read image "%s": Invalid image data', $value) : 'Cannot read image bytes: Invalid image data');
-        }
-
-        return 'data:' . $mime . ';base64,' . base64_encode($bytes);
-    }
-
-    private static function mime(string $bytes): ?string
-    {
-        return match (true) {
-            str_starts_with($bytes, "\x89PNG\r\n\x1a\n") => 'image/png',
-            str_starts_with($bytes, "\xFF\xD8\xFF") => 'image/jpeg',
-            default => null,
-        };
+        return 'data:' . $loaded->mime . ';base64,' . base64_encode($loaded->bytes);
     }
 
     /** An allowed link scheme, a data:image/ URI, or a relative path. Control characters and edge whitespace are refused: browsers drop them inside schemes. */

@@ -30,7 +30,7 @@ final class FontRegistry
     public static function fromSet(FontSet $set, Backend $backend): self
     {
         $registry = self::withDefaults($backend);
-        foreach ($set->faces as $face) {
+        foreach ($set->effectiveFaces() as $face) {
             $registry->register($face->family, $face->path, $face->weight, $face->style);
         }
         return $registry;

@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Html;
 
+use Papercut\Backend\Backend;
+use Papercut\Export\LoadedImage;
 use Papercut\{Document, Image, Link, Node, Page, PageBreak, PageNumber, Spacer, Table, TableCell, TableRow, Text, View};
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
+use Papercut\Layout\WidthResolver;
 use Papercut\Style\{ComputedStyle, Justify};
 use Papercut\Value\{Auto, Fr, Length, Percent};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
@@ -34,11 +37,14 @@ final class HtmlWriter implements TreeVisitor
     private float $regionWidth = 0.0;
     /** Open block links and span-link-bearing paragraphs inside them; an inner link cannot be an anchor. */
     private int $linkDepth = 0;
+    /** @var array<string, LoadedImage> images already loaded this export, by source */
+    private array $images = [];
 
     public function __construct(
         Document $doc,
         private readonly Fidelity $fidelity,
         private readonly HtmlOptions $options,
+        private readonly Backend $backend,
     ) {
         $this->strays = new \WeakMap();
         $this->pageCount = count($doc->pages());
@@ -246,6 +252,14 @@ final class HtmlWriter implements TreeVisitor
         return '';
     }
 
+    private function loadImage(Image $n): LoadedImage
+    {
+        ['kind' => $kind, 'value' => $value] = $n->source();
+        $key = $kind === 'file' ? 'file:' . $value : 'bytes:' . sha1($value);
+
+        return $this->images[$key] ??= LoadedImage::load($n, $this->backend);
+    }
+
     private function image(Image $n, ComputedStyle $s, Visit $at): string
     {
         $decls = Css::box($s);
@@ -253,7 +267,7 @@ final class HtmlWriter implements TreeVisitor
             $decls += Css::flexItem($s);
         }
         $decls['object-fit'] = $n->fitMode()->value;
-        $this->out .= '<img src="' . self::esc(ImageSource::uri($n, $this->options->imageUrl(), fn () => $this->fidelity->warn(sprintf('[%s] imageUrl returned an unsafe URL; the image was embedded instead', $at->path())))) . '" alt=""' . self::styleAttr($decls) . '>';
+        $this->out .= '<img src="' . self::esc(ImageSource::uri($n, $this->options->imageUrl(), $this->backend, fn () => $this->fidelity->warn(sprintf('[%s] imageUrl returned an unsafe URL; the image was embedded instead', $at->path())), $this->loadImage(...))) . '" alt=""' . self::styleAttr($decls) . '>';
 
         return '';
     }
@@ -262,7 +276,8 @@ final class HtmlWriter implements TreeVisitor
     {
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);
-        $tracks = self::tracks($n);
+        $this->checkDecoration($s, $parent, $at->path());
+        $tracks = WidthResolver::tracks($n);
         $given = $n->trackList()?->count();
         if ($given !== null && $given !== count($tracks)) {
             $this->fidelity->warn(sprintf('[%s] Table has %d columns but %d tracks', $at->path(), count($tracks), $given));
@@ -315,26 +330,6 @@ final class HtmlWriter implements TreeVisitor
         return Css::num($share * max(0.0, 100 - $percent - $fixedPercent)) . '%';
     }
 
-    /**
-     * One track per column, as the PDF layout counts them: the widest row's total span; missing tracks are 1fr, extra ones ignored.
-     *
-     * @return list<Length|Percent|Fr|Auto>
-     */
-    private static function tracks(Table $table): array
-    {
-        $columns = 0;
-        foreach ([...$table->headerRows(), ...$table->bodyRows()] as $row) {
-            $columns = max($columns, array_sum(array_map(static fn (TableCell $c): int => $c->span(), $row->cells())));
-        }
-        $given = $table->trackList()->tracks ?? [];
-        $tracks = [];
-        for ($k = 0; $k < $columns; $k++) {
-            $tracks[] = $given[$k] ?? Fr::of(1);
-        }
-
-        return $tracks;
-    }
-
     private function tableRow(TableRow $n, ComputedStyle $s, Visit $at): string
     {
         if (!$at->parent() instanceof Table) {
@@ -342,6 +337,7 @@ final class HtmlWriter implements TreeVisitor
         }
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);
+        $this->checkDecoration($s, $parent, $at->path());
         $want = $at->inHeader() ? 'thead' : 'tbody';
         $open = end($this->sections);
         if ($open !== $want) {
@@ -374,6 +370,8 @@ final class HtmlWriter implements TreeVisitor
             $td['vertical-align'] = 'middle';
         } elseif ($s->justify === Justify::End) {
             $td['vertical-align'] = 'bottom';
+        } elseif ($s->justify === Justify::SpaceBetween || $s->justify === Justify::SpaceAround || $s->justify === Justify::SpaceEvenly) {
+            $this->fidelity->approximated('cell justify', $at->path());
         }
         // The cell's children are laid out as a column; a td cannot be a flex container, so a div inside it is.
         $column = array_diff_key(Css::flexContainer($s), ['display' => 1, 'flex-direction' => 1]);

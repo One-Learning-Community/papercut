@@ -11,9 +11,13 @@ use Papercut\Text\FontFace;
 
 // Font files are referenced by their path relative to this directory (no base64), so the HTML stays small. Open it from a checkout.
 $root = (string) realpath(__DIR__ . '/../..');
-$fontUrl = static function (FontFace $face) use ($root): string {
+$fontUrl = static function (FontFace $face) use ($root): ?string {
     $path = (string) (realpath($face->path) ?: $face->path);
-    return '../../' . ltrim(str_starts_with($path, $root) ? substr($path, strlen($root)) : $path, '/');
+    // A face outside the repository has no relative URL that works elsewhere; null skips it.
+    if (!str_starts_with($path, $root . '/')) {
+        return null;
+    }
+    return '../../' . ltrim(substr($path, strlen($root)), '/');
 };
 
 // The document files assign their own variables, so each is loaded inside a function scope.

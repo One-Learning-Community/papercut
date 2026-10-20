@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Layout;
 
 use Papercut\{OverflowMode, Table, View};
-use Papercut\Backend\PhpPdf\PhpPdfBackend;
+use Papercut\Backend\DefaultBackend;
 use Papercut\Export\ExportOptions;
 use Papercut\Text\FontRegistry;
 use Papercut\Style\ComputedStyle;
@@ -26,7 +26,7 @@ final class WidthResolver
      */
     public static function for(ExportOptions $options): self
     {
-        $backend = new PhpPdfBackend();
+        $backend = DefaultBackend::make();
         $fonts = $options->fonts();
         $ctx = new LayoutContext(
             FontRegistry::fromSet($fonts, $backend),
@@ -53,6 +53,16 @@ final class WidthResolver
             $lines[] = array_map(static fn (array $item): FlexSlot => new FlexSlot($item['index'], $item['x'], $item['main']), $line);
         }
         return $lines;
+    }
+
+    /**
+     * One track per column as the PDF layout counts them.
+     *
+     * @return list<\Papercut\Value\Length|\Papercut\Value\Percent|\Papercut\Value\Fr|\Papercut\Value\Auto>
+     */
+    public static function tracks(Table $table): array
+    {
+        return TableLayouter::trackList($table);
     }
 
     /**

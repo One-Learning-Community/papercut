@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Export;
 
+use Papercut\Backend\DefaultBackend;
 use Papercut\Document;
 use Papercut\Html\{Css, FontFaces, HtmlWriter, Stylesheet};
 use Papercut\Style\StyleResolver;
@@ -18,7 +19,7 @@ final class HtmlExporter implements Exporter
             throw new \InvalidArgumentException('FontMode::Link needs a fontUrl callback');
         }
         $styles = new StyleResolver($options->theme());
-        $writer = new HtmlWriter($doc, new Fidelity('html', $options), $options);
+        $writer = new HtmlWriter($doc, new Fidelity('html', $options), $options, DefaultBackend::make(false));
         (new TreeWalker($styles))->walk($doc, $writer);
 
         $meta = $doc->meta();

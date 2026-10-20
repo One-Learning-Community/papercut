@@ -29,6 +29,22 @@ final readonly class FontSet
         ];
     }
 
+    /**
+     * Bundled then custom faces, one per family (case-insensitive), weight and style: the last
+     * registration wins, and survivors keep the order their key was first registered in.
+     *
+     * @return list<FontFace>
+     */
+    public function effectiveFaces(): array
+    {
+        $byKey = [];
+        foreach ([...self::bundled(), ...$this->faces] as $face) {
+            $byKey[strtolower($face->family) . '|' . $face->weight . '|' . $face->style->value] = $face;
+        }
+
+        return array_values($byKey);
+    }
+
     public function with(FontFace ...$faces): self
     {
         return new self([...$this->faces, ...array_values($faces)], $this->fallbacks);

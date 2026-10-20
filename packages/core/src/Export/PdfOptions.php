@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Export;
 
 use Papercut\Backend\Backend;
-use Papercut\Backend\PhpPdf\PhpPdfBackend;
+use Papercut\Backend\DefaultBackend;
 use Papercut\OverflowMode;
 use Papercut\Style\Theme;
 use Papercut\Text\FontSet;
@@ -38,7 +38,7 @@ final readonly class PdfOptions extends ExportOptions
      */
     public function backend(): Backend
     {
-        return $this->backend ?? new PhpPdfBackend($this->cacheDir);
+        return $this->backend ?? DefaultBackend::make($this->cacheDir);
     }
 
     public function overflow(): OverflowMode

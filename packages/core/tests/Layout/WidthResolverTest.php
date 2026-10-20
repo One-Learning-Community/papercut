@@ -139,4 +139,23 @@ final class WidthResolverTest extends TestCase
 
         self::assertGreaterThan($widthOf('ab'), $widthOf('abcdefghijklmnop'));
     }
+
+    public function test_tracks_match_layout_for_spans_missing_and_extra_tracks(): void
+    {
+        $fr1 = \Papercut\Value\Fr::of(1);
+        $fr2 = \Papercut\Value\Fr::of(2);
+
+        $missing = Table::make()->columns('30mm 2fr')->row('a', 'b', 'c');
+        self::assertEquals([mm(30), $fr2, $fr1], WidthResolver::tracks($missing));
+
+        $spanned = Table::make()->columns('10pt 2fr')->row(TableCell::make('wide')->colspan(3));
+        self::assertEquals([pt(10), $fr2, $fr1], WidthResolver::tracks($spanned));
+
+        $extra = Table::make()->columns('10pt 20pt 30pt 40pt 50pt')->row('a', 'b');
+        self::assertEquals([pt(10), pt(20)], WidthResolver::tracks($extra));
+
+        $h = new LayoutHarness();
+        $style = $h->engine->styleOf($missing, ComputedStyle::root(Theme::default()));
+        self::assertCount(count(WidthResolver::tracks($missing)), (new WidthResolver($h->engine))->tableColumns($missing, $style, 400.0));
+    }
 }
