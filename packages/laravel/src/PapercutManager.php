@@ -11,6 +11,7 @@ use Papercut\Laravel\Preview\PreviewRegistry;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
 use Papercut\Export\{ExportOptions, FidelityLevel, FidelityReport, FontMode, HtmlOptions, PdfOptions};
+use Papercut\Html\FontSource;
 use Papercut\Style\{Style, Theme};
 use Papercut\Text\{FontFace, FontSet};
 use Papercut\Value\Color;
@@ -154,14 +155,17 @@ final class PapercutManager
             'none' => FontMode::None,
             'embed' => FontMode::Embed,
             'link' => FontMode::Link,
-            default => throw new \InvalidArgumentException('Invalid papercut.html.fonts: ' . (is_scalar($fonts) ? var_export($fonts, true) : get_debug_type($fonts)) . '; expected none, embed or link'),
+            'sources' => FontMode::Sources,
+            default => throw new \InvalidArgumentException('Invalid papercut.html.fonts: ' . (is_scalar($fonts) ? var_export($fonts, true) : get_debug_type($fonts)) . '; expected none, embed, link or sources'),
         };
 
         $imageUrl = self::resolver('image_url', Html\ImageUrlResolver::class);
-        $fontUrl = self::resolver('font_url', Html\FontUrlResolver::class);
+        $fontUrl = self::fontUrlResolver();
         if ($mode === FontMode::Link && $fontUrl === null) {
             throw new \InvalidArgumentException('papercut.html.fonts is link, which needs papercut.html.font_url');
         }
+
+        $sources = $mode === FontMode::Sources ? self::fontSources() : [];
 
         $base = $this->exportOptions();
 
@@ -173,7 +177,52 @@ final class PapercutManager
             fontMode: $mode,
             imageUrl: $imageUrl,
             fontUrl: $fontUrl,
+            fontSources: $sources,
         );
+    }
+
+    /** The `html.font_url` resolver, or null when unset. Also used by the LocalFonts binding. */
+    public static function fontUrlResolver(): ?\Closure
+    {
+        return self::resolver('font_url', Html\FontUrlResolver::class);
+    }
+
+    /** @return list<FontSource> */
+    private static function fontSources(): array
+    {
+        $classes = config('papercut.html.font_sources', [\Papercut\Html\GoogleFonts::class]);
+        if (!is_array($classes) || !array_is_list($classes)) {
+            throw new \InvalidArgumentException('Invalid papercut.html.font_sources: ' . (is_scalar($classes) ? var_export($classes, true) : get_debug_type($classes)) . '; expected a list of class names implementing ' . FontSource::class);
+        }
+        if ($classes === []) {
+            throw new \InvalidArgumentException('papercut.html.fonts is sources, which needs at least one class in papercut.html.font_sources');
+        }
+        $sources = [];
+        foreach ($classes as $i => $class) {
+            $key = "font_sources.$i";
+            if (!is_string($class) || !is_subclass_of($class, FontSource::class)) {
+                throw new \InvalidArgumentException("Invalid papercut.html.$key: " . (is_scalar($class) ? var_export($class, true) : get_debug_type($class)) . '; expected an invokable class name implementing ' . FontSource::class);
+            }
+            /** @var FontSource $instance */
+            $instance = self::build($key, $class);
+            $sources[] = $instance;
+        }
+
+        return $sources;
+    }
+
+    /** Builds a class through the container; a factory's own InvalidArgumentException passes through unchanged. */
+    private static function build(string $key, string $class): object
+    {
+        try {
+            return app($class);
+        } catch (\Illuminate\Contracts\Container\BindingResolutionException $e) {
+            $inner = $e->getPrevious();
+            if ($inner instanceof \InvalidArgumentException) {
+                throw $inner;
+            }
+            throw new \InvalidArgumentException("Cannot build papercut.html.$key resolver " . var_export($class, true) . ': ' . $e->getMessage(), 0, $e);
+        }
     }
 
     /**
@@ -188,12 +237,8 @@ final class PapercutManager
         if (!is_string($class) || !is_subclass_of($class, $interface)) {
             throw new \InvalidArgumentException("Invalid papercut.html.$key: " . (is_scalar($class) ? var_export($class, true) : get_debug_type($class)) . "; expected an invokable class name implementing $interface or null");
         }
-        try {
-            /** @var Html\ImageUrlResolver|Html\FontUrlResolver $instance */
-            $instance = app($class);
-        } catch (\Illuminate\Contracts\Container\BindingResolutionException $e) {
-            throw new \InvalidArgumentException("Cannot build papercut.html.$key resolver " . var_export($class, true) . ': ' . $e->getMessage(), 0, $e);
-        }
+        /** @var Html\ImageUrlResolver|Html\FontUrlResolver $instance */
+        $instance = self::build($key, $class);
 
         return $instance(...);
     }

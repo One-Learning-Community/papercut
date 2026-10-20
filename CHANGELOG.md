@@ -41,6 +41,7 @@ Migration from v0.1:
 - Config key `papercut.strict` (default `false`).
 - HTML export: `Document::toHtml()` in core and `Papercut::view(...)->html()` in Laravel (`PendingHtml`: `(string)` and `{{ }}` give the fragment for embedding, `page()` and `fragment()` each return a `PendingOutput`, and a route response is the full page).
 - Config key `papercut.html.fonts` (`none` default, `embed` or `link`), and `papercut.html.image_url` / `papercut.html.font_url`: invokable class names implementing `Papercut\Laravel\Html\ImageUrlResolver` / `FontUrlResolver`, built by the container (class names survive `config:cache`; closures are rejected). `link` needs `font_url`. Invalid `html.*` config is reported at the first `->html()` export.
+- Laravel: `papercut.html.fonts = sources`, with `html.font_sources` (default `[GoogleFonts::class]`), `html.google_fonts` (`host`, `display`, `families`) and `html.local_fonts` (`mode`, `families`). The service provider binds `GoogleFonts` and `LocalFonts` from config. Checked lazily at the first `->html()` export, and only when used.
 - Preview routes accept `?format=pdf|html`; any other value is a 404.
 - `Papercut::exportOptions()` (shared theme, fonts, warnings, strict) and `Papercut::htmlOptions()`; `pdfOptions()` builds on the shared options.
 - `HtmlOptions` (`fullPage`, `fontMode`, `imageUrl`, `fontUrl`), `FontMode` (`None`, `Embed`, `Link`) and the `imageUrl` / `fontUrl` callbacks: images embed as data URIs unless `imageUrl` returns a safe URL; fonts embed or link per `FontMode`.

@@ -25,12 +25,30 @@ return [
     'html' => [
         // Fonts in HTML output: none (system-ui fallback stack) | embed (base64 @font-face, large)
         // | link (@font-face with URLs from font_url; needs font_url)
+        // | sources (each family goes to the first class in font_sources that accepts it; works as is, via Google)
         'fonts' => 'none',
         // Class name implementing Papercut\Laravel\Html\ImageUrlResolver, built by the container.
         // null embeds images as data URIs. Use a class, not a closure: class names survive `php artisan config:cache`.
         'image_url' => null,
         // Class name implementing Papercut\Laravel\Html\FontUrlResolver, built by the container. Needed when fonts is link.
         'font_url' => null,
+        // Used when fonts is sources: an ordered list of classes implementing Papercut\Html\FontSource, built by the container.
+        // Each font family goes to the first source that accepts it: list specific sources first, catch-all hosts such as Google last.
+        // PRIVACY: with GoogleFonts the visitor's browser fetches the CSS and fonts from the host and sends it their IP address
+        // (see core's "Fonts in HTML"). To avoid that, use fonts.bunny.net below, or local_fonts. Check your CSP: style-src and font-src.
+        // Class names only (they survive `php artisan config:cache`). Read only when fonts is sources.
+        'font_sources' => [\Papercut\Html\GoogleFonts::class],
+        // Settings for the GoogleFonts source. Checked only when GoogleFonts is in font_sources.
+        'google_fonts' => [
+            'host' => 'https://fonts.googleapis.com', // or https://fonts.bunny.net
+            'display' => 'swap', // auto|block|swap|fallback|optional
+            'families' => null, // null = every family; or a list of names (allowlist)
+        ],
+        // Settings for the LocalFonts source (families registered in papercut.fonts). Checked only when LocalFonts is in font_sources.
+        'local_fonts' => [
+            'mode' => 'embed', // embed | link (link uses font_url)
+            'families' => null, // null = every registered family; or a list of names
+        ],
     ],
     'preview' => [
         'enabled' => env('PAPERCUT_PREVIEW', false),

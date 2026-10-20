@@ -67,9 +67,15 @@ This publishes `config/papercut.php`:
 | `styles` | `[]` | [Named styles](#named-styles) |
 | `overflow` | `null` | `'throw'`, `'clip'`, or `null` = throw in `local`/`testing`, clip elsewhere |
 | `strict` | `false` | `true` makes an export throw `UnsupportedFeature` for content a format cannot render, instead of dropping it with a warning. Consider `true` in tests |
-| `html.fonts` | `'none'` | Fonts in HTML output: `'none'` (a `system-ui` fallback stack, small files), `'embed'` (base64 `@font-face`, large files) or `'link'` (`@font-face` with URLs from `html.font_url`; requires it) |
+| `html.fonts` | `'none'` | Fonts in HTML output: `'none'` (a `system-ui` fallback stack, small files), `'embed'` (base64 `@font-face`, large files) `'link'` (`@font-face` with URLs from `html.font_url`; requires it) or `'sources'` (see [Font sources](#font-sources)) |
 | `html.image_url` | `null` | Class name implementing `Papercut\Laravel\Html\ImageUrlResolver`; `null` embeds images as data URIs (see [HTML URLs](#html-urls)) |
 | `html.font_url` | `null` | Class name implementing `Papercut\Laravel\Html\FontUrlResolver`; required when `html.fonts` is `'link'` |
+| `html.font_sources` | `[GoogleFonts::class]` | Used when `html.fonts` is `'sources'`: an ordered list of class names implementing `Papercut\Html\FontSource` |
+| `html.google_fonts.host` | `'https://fonts.googleapis.com'` | Host of the `GoogleFonts` source; `'https://fonts.bunny.net'` for Bunny Fonts |
+| `html.google_fonts.display` | `'swap'` | `font-display`: `auto`, `block`, `swap`, `fallback` or `optional` |
+| `html.google_fonts.families` | `null` | `null` = every family, or a list of family names (allowlist) |
+| `html.local_fonts.mode` | `'embed'` | `LocalFonts` source: `'embed'` (base64) or `'link'` (URLs from `html.font_url`; requires it) |
+| `html.local_fonts.families` | `null` | `null` = every registered family, or a list of family names |
 | `image_path` | `null` | Base directory for relative `<x-doc::image src>`; `null` = `public_path()` |
 | `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
@@ -118,6 +124,43 @@ final class CdnImageUrl implements ImageUrlResolver
 ```
 
 Invalid `html.*` config is reported at the first `->html()` export, not at boot.
+
+### Font sources
+
+`html.fonts = 'sources'` sends each font family to the first source in `html.font_sources` that accepts it. It works with no other setting: the default list is Google Fonts, so each family becomes a `<link>` to `fonts.googleapis.com`. For how sources, answers and fallbacks work, see "Fonts in HTML" in the [core README](../core/README.md).
+
+```php
+// Bunny Fonts instead of Google: a host change
+'html' => ['fonts' => 'sources', 'google_fonts' => ['host' => 'https://fonts.bunny.net']],
+
+// Fonts registered in papercut.fonts embedded; anything else from Google
+'html' => [
+    'fonts' => 'sources',
+    'font_sources' => [\Papercut\Html\LocalFonts::class, \Papercut\Html\GoogleFonts::class],
+    'local_fonts' => ['families' => ['Acme']], // null = every registered family
+],
+```
+
+A custom source is a class implementing `Papercut\Html\FontSource`, built by the container, so constructor dependencies work:
+
+```php
+use Papercut\Html\{FontAnswer, FontRequest, FontSource};
+
+final class BrandFonts implements FontSource
+{
+    public function __invoke(FontRequest $request): ?FontAnswer
+    {
+        return $request->family === 'Acme' ? FontAnswer::stylesheet('https://brand.example/fonts.css') : null; // null = ask the next source
+    }
+}
+
+'font_sources' => [\App\Pdf\BrandFonts::class, \Papercut\Html\GoogleFonts::class],
+```
+
+- **Order.** The first source that answers wins, so list specific sources first and catch-all hosts such as Google last.
+- **Privacy.** With `GoogleFonts` the visitor's browser fetches the stylesheet and fonts from the host, and so sends it their IP address. A German court held this can breach data protection law without consent (LG München I, 3 O 17493/20). Use Bunny Fonts, `LocalFonts`, or your own host to avoid it.
+- **CSP.** If your site sends a Content-Security-Policy, allow the host in `style-src` (stylesheet) and `font-src` (font files), for example `fonts.googleapis.com` and `fonts.gstatic.com`.
+- **Config is checked lazily.** `font_sources` is read only when `html.fonts` is `'sources'`, and `google_fonts` and `local_fonts` only when their class is in the list, at the first `->html()` export. Class names only: closures are rejected naming the key and index, for example `papercut.html.font_sources.1`.
 
 Preview routes accept `?format=pdf` (default) or `?format=html`; any other value is a 404.
 

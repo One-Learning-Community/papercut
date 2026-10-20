@@ -150,7 +150,7 @@ final class HtmlTest extends TestCase
         config(['papercut.html.fonts' => 'bogus']);
         $this->app()->forgetInstance(PapercutManager::class); // @phpstan-ignore method.notFound
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid papercut.html.fonts: 'bogus'; expected none, embed or link");
+        $this->expectExceptionMessage("Invalid papercut.html.fonts: 'bogus'; expected none, embed, link or sources");
         $this->app()->make(PapercutManager::class)->htmlOptions();
     }
 
