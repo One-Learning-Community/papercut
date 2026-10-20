@@ -377,4 +377,21 @@ final class TableLayouterTest extends TestCase
         }
         return $cells;
     }
+
+    public function test_bare_cell_warns_once_and_bytes_are_unchanged(): void
+    {
+        $doc = fn () => \Papercut\Document::make(\Papercut\Page::a4()->body(\Papercut\View::make(TableCell::th('x'))));
+        $warnings = [];
+        $withHook = $doc()->toPdf(new \Papercut\Export\PdfOptions(
+            backend: new \Papercut\Tests\Support\FakeBackend(),
+            onWarning: function (string $m) use (&$warnings): void { $warnings[] = $m; },
+        ))->bytes();
+        $plain = $doc()->toPdf(new \Papercut\Export\PdfOptions(backend: new \Papercut\Tests\Support\FakeBackend()))->bytes();
+
+        $stray = array_values(array_filter($warnings, static fn (string $m): bool => str_ends_with($m, 'A table cell outside a table is laid out as a column')));
+        self::assertCount(1, $stray);
+        self::assertStringStartsWith('[', $stray[0]);
+        self::assertStringContainsString('page > body', $stray[0]);
+        self::assertSame($plain, $withHook);
+    }
 }

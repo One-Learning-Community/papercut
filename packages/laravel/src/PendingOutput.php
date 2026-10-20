@@ -55,13 +55,13 @@ class PendingOutput implements Responsable
     private function respond(string $disposition, ?string $filename): Response
     {
         $output = $this->output();
-        $default = $this->basename . '.' . $output->extension;
+        $default = $this->basename . '.' . $output->extension();
         $filename = str_replace(['/', '\\'], '-', $filename ?? $default);
 
-        return new Response($output->bytes, 200, [
-            'Content-Type' => $output->mime,
+        return new Response($output->bytes(), 200, [
+            'Content-Type' => $output->mime(),
             'Content-Disposition' => HeaderUtils::makeDisposition($disposition, $filename, self::asciiFallback($filename, $default)),
-            'Content-Length' => (string) strlen($output->bytes),
+            'Content-Length' => (string) strlen($output->bytes()),
         ]);
     }
 

@@ -21,7 +21,7 @@ interface TreeVisitor
      * Return false to skip this node's children. leave() is still called for
      * the node, so every enter() is matched by exactly one leave().
      */
-    public function enter(Node $node, ComputedStyle $style, string $path): bool;
+    public function enter(Node $node, ComputedStyle $style, Visit $at): bool;
 
-    public function leave(Node $node, ComputedStyle $style, string $path): void;
+    public function leave(Node $node, ComputedStyle $style, Visit $at): void;
 }

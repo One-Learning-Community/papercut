@@ -27,19 +27,19 @@ final class OptionsFromConfigTest extends TestCase
     public function test_overflow_null_is_throw_in_testing_and_clip_in_production(): void
     {
         config(['papercut.overflow' => null]);
-        self::assertSame(OverflowMode::Throw, $this->fresh()->pdfOptions()->overflow);
+        self::assertSame(OverflowMode::Throw, $this->fresh()->pdfOptions()->overflow());
 
         app()->instance('env', 'production');
-        self::assertSame(OverflowMode::Clip, $this->fresh()->pdfOptions()->overflow);
+        self::assertSame(OverflowMode::Clip, $this->fresh()->pdfOptions()->overflow());
     }
 
     public function test_cache_dir_false_and_string_pass_through(): void
     {
         config(['papercut.cache_dir' => false]);
-        self::assertFalse($this->fresh()->pdfOptions()->cacheDir);
+        self::assertFalse($this->fresh()->pdfOptions()->cacheDir());
 
         config(['papercut.cache_dir' => '/tmp/pc-x']);
-        self::assertSame('/tmp/pc-x', $this->fresh()->pdfOptions()->cacheDir);
+        self::assertSame('/tmp/pc-x', $this->fresh()->pdfOptions()->cacheDir());
 
         config(['papercut.cache_dir' => 5]);
         $this->expectException(\InvalidArgumentException::class);
@@ -49,10 +49,10 @@ final class OptionsFromConfigTest extends TestCase
 
     public function test_strict_config_reaches_options_and_rejects_non_bool(): void
     {
-        self::assertFalse($this->fresh()->pdfOptions()->strict);
+        self::assertFalse($this->fresh()->pdfOptions()->strict());
 
         config(['papercut.strict' => true]);
-        self::assertTrue($this->fresh()->pdfOptions()->strict);
+        self::assertTrue($this->fresh()->pdfOptions()->strict());
 
         config(['papercut.strict' => 'yes']);
         $this->expectException(\InvalidArgumentException::class);

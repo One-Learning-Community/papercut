@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Tree;
 
-use Papercut\{Component, Document, Node, Page, PageNumber, Row, Table, TableCell, Text};
+use Papercut\{Component, Document, Node, Page, PageNumber, Row, Table, TableCell, TableRow, Text};
 use Papercut\Export\PdfOptions;
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Value\Color;
 use Papercut\Tests\Support\FakeBackend;
-use Papercut\Tree\{Region, TreeVisitor, TreeWalker};
+use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
 use PHPUnit\Framework\TestCase;
 
 final class TreeWalkerTest extends TestCase
@@ -140,6 +140,41 @@ final class TreeWalkerTest extends TestCase
         self::assertEquals($theme->cellPadding, $visitor->styles[spl_object_id($td)]->padding);
     }
 
+    public function test_visit_reports_index_parent_and_region(): void
+    {
+        $row = Row::make(Text::make('a'), Text::make('b'));
+        $doc = Document::make(Page::a4()->body($row));
+        $visitor = $this->recorder();
+        (new TreeWalker(new StyleResolver(Theme::default())))->walk($doc, $visitor);
+        $texts = array_values(array_filter($visitor->nodes, fn ($n) => $n instanceof Text));
+        $at = $visitor->visits[spl_object_id($texts[1])];
+        self::assertSame(1, $at->index());
+        self::assertSame($row, $at->parent());
+        self::assertSame(Region::Body, $at->region());
+        self::assertFalse($at->inHeader());
+        self::assertSame('page > body > row[0] > text[1]', $at->path());
+        $top = $visitor->visits[spl_object_id($row)];
+        self::assertNull($top->parent());
+        self::assertSame(0, $top->index());
+    }
+
+    public function test_header_rows_and_their_cells_are_in_header(): void
+    {
+        $doc = Document::make(Page::a4()->body(Table::make()->head('H')->row('a')->row('b')));
+        $visitor = $this->recorder();
+        (new TreeWalker(new StyleResolver(Theme::default())))->walk($doc, $visitor);
+        $rows = array_values(array_filter($visitor->nodes, fn ($n) => $n instanceof TableRow));
+        self::assertCount(3, $rows);
+        self::assertSame([true, false, false], array_map(fn ($r) => $visitor->visits[spl_object_id($r)]->inHeader(), $rows));
+        self::assertSame([0, 1, 2], array_map(fn ($r) => $visitor->visits[spl_object_id($r)]->index(), $rows));
+        $cells = array_values(array_filter($visitor->nodes, fn ($n) => $n instanceof TableCell));
+        self::assertSame([true, false, false], array_map(fn ($c) => $visitor->visits[spl_object_id($c)]->inHeader(), $cells));
+        self::assertSame($rows[0], $visitor->visits[spl_object_id($cells[0])]->parent());
+        $texts = array_values(array_filter($visitor->nodes, fn ($n) => $n instanceof Text));
+        self::assertTrue($visitor->visits[spl_object_id($texts[0])]->inHeader());
+        self::assertFalse($visitor->visits[spl_object_id($texts[1])]->inHeader());
+    }
+
     /** @return list<string> */
     private function walk(Document $doc): array
     {
@@ -172,6 +207,8 @@ final class RecordingVisitor implements TreeVisitor
     public array $nodes = [];
     /** @var array<int, ComputedStyle> */
     public array $styles = [];
+    /** @var array<int, Visit> */
+    public array $visits = [];
 
     public function __construct(private readonly ?string $skip)
     {
@@ -197,16 +234,17 @@ final class RecordingVisitor implements TreeVisitor
         $this->log[] = 'leaveRegion:' . $region->value;
     }
 
-    public function enter(Node $node, ComputedStyle $style, string $path): bool
+    public function enter(Node $node, ComputedStyle $style, Visit $at): bool
     {
-        $this->log[] = 'enter:' . $path;
+        $this->log[] = 'enter:' . $at->path();
+        $this->visits[spl_object_id($node)] = $at;
         $this->nodes[] = $node;
         $this->styles[spl_object_id($node)] = $style;
         return $node->debugName() !== $this->skip;
     }
 
-    public function leave(Node $node, ComputedStyle $style, string $path): void
+    public function leave(Node $node, ComputedStyle $style, Visit $at): void
     {
-        $this->log[] = 'leave:' . $path;
+        $this->log[] = 'leave:' . $at->path();
     }
 }

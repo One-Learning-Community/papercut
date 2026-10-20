@@ -19,11 +19,16 @@ readonly class ExportOptions
         ?Theme $theme = null,
         ?FontSet $fonts = null,
         ?\Closure $onWarning = null,
-        public bool $strict = false,
+        private bool $strict = false,
     ) {
         $this->theme = $theme;
         $this->fonts = $fonts;
         $this->onWarning = $onWarning;
+    }
+
+    public function strict(): bool
+    {
+        return $this->strict;
     }
 
     public function theme(): Theme

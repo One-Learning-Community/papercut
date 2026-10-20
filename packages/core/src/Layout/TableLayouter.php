@@ -39,6 +39,10 @@ final class TableLayouter implements Layouter
     private \WeakMap $prepared;
     /** @var \WeakMap<TableCell, View> the block container each cell is laid out as */
     private \WeakMap $columns;
+    /** @var \WeakMap<TableCell, true> prepared cells, which belong to a table */
+    private \WeakMap $inTable;
+    /** @var \WeakMap<TableCell, true> bare cells already warned about */
+    private \WeakMap $strayWarned;
 
     public function __construct(private readonly BlockLayouter $block)
     {
@@ -47,11 +51,14 @@ final class TableLayouter implements Layouter
         $this->headerWarned = new \WeakMap();
         $this->prepared = new \WeakMap();
         $this->columns = new \WeakMap();
+        $this->inTable = new \WeakMap();
+        $this->strayWarned = new \WeakMap();
     }
 
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
         if ($node instanceof TableCell) {
+            $this->warnStray($node, $engine);
             return $this->block->layout($this->column($node), $style, $c, $token, $engine);
         }
         $table = self::table($node);
@@ -154,6 +161,7 @@ final class TableLayouter implements Layouter
     public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array
     {
         if ($node instanceof TableCell) {
+            $this->warnStray($node, $engine);
             return $this->block->intrinsic($this->column($node), $style, $engine);
         }
         if ($style->width instanceof Length) {
@@ -581,7 +589,12 @@ final class TableLayouter implements Layouter
      */
     private function prepare(TableCell $cell, Theme $theme): TableCell
     {
-        return $this->prepared[$cell] ??= self::withThemeDefaults($cell, $theme);
+        if (!isset($this->prepared[$cell])) {
+            $prepared = self::withThemeDefaults($cell, $theme);
+            $this->prepared[$cell] = $prepared;
+            $this->inTable[$prepared] = true; // the engine lays this one out; it is not a stray cell
+        }
+        return $this->prepared[$cell];
     }
 
     // StyleResolver applies the same defaults as its lowest layer; applying them twice changes nothing.
@@ -610,6 +623,14 @@ final class TableLayouter implements Layouter
     private static function allRows(Table $table): array
     {
         return [...$table->headerRows(), ...$table->bodyRows()];
+    }
+
+    private function warnStray(TableCell $cell, LayoutEngine $engine): void
+    {
+        if (!isset($this->inTable[$cell]) && !isset($this->strayWarned[$cell])) {
+            $this->strayWarned[$cell] = true;
+            $engine->context()->warn('A table cell outside a table is laid out as a column');
+        }
     }
 
     private function column(TableCell $cell): View

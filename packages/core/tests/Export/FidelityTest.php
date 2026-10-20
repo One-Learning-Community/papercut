@@ -69,4 +69,23 @@ final class FidelityTest extends TestCase
         self::assertNotSame([], $warnings);
         self::assertStringContainsString('Missing glyphs', $warnings[0]);
     }
+
+    public function test_one_parameter_native_callable_gets_one_argument(): void
+    {
+        /** @var \Closure(string, ?FidelityReport=): void $strlen */
+        $strlen = \Closure::fromCallable('strlen');
+        $f = new Fidelity('html', new ExportOptions(onWarning: $strlen));
+        $f->approximated('page box', 'page');
+        self::assertCount(1, $f->reports());
+    }
+
+    public function test_two_parameter_closure_gets_the_report(): void
+    {
+        $seen = [];
+        $f = new Fidelity('html', new ExportOptions(onWarning: function (string $m, ?FidelityReport $r = null) use (&$seen): void {
+            $seen[] = $r;
+        }));
+        $f->approximated('page box', 'page');
+        self::assertSame($f->reports(), $seen);
+    }
 }

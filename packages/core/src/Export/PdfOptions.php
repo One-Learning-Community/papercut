@@ -25,8 +25,8 @@ final readonly class PdfOptions extends ExportOptions
         ?\Closure $onWarning = null,
         bool $strict = false,
         ?Backend $backend = null,
-        public OverflowMode $overflow = OverflowMode::Throw,
-        public string|false|null $cacheDir = null,
+        private OverflowMode $overflow = OverflowMode::Throw,
+        private string|false|null $cacheDir = null,
     ) {
         parent::__construct($theme, $fonts, $onWarning, $strict);
         $this->backend = $backend;
@@ -41,8 +41,18 @@ final readonly class PdfOptions extends ExportOptions
         return $this->backend ?? new PhpPdfBackend($this->cacheDir);
     }
 
+    public function overflow(): OverflowMode
+    {
+        return $this->overflow;
+    }
+
+    public function cacheDir(): string|false|null
+    {
+        return $this->cacheDir;
+    }
+
     public static function from(ExportOptions $o): self
     {
-        return $o instanceof self ? $o : new self($o->theme(), $o->fonts(), $o->onWarning(), $o->strict);
+        return $o instanceof self ? $o : new self($o->theme(), $o->fonts(), $o->onWarning(), $o->strict());
     }
 }

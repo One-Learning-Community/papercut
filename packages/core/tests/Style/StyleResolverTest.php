@@ -70,4 +70,27 @@ final class StyleResolverTest extends TestCase
         self::assertSame($r->resolveInTable($cell, $r->root()), $r->resolveInTable($cell, $r->root()));
         self::assertNotSame($r->resolve($cell, $r->root()), $r->resolveInTable($cell, $r->root()));
     }
+
+    public function test_resolve_in_table_matches_table_layouter_defaults(): void
+    {
+        $theme = Theme::default()
+            ->withStyle('roomy', Style::make(padding: Edges::all(pt(9))))
+            ->withStyle('light', Style::make(fontWeight: 300));
+        $r = new StyleResolver($theme);
+        $prepare = new \ReflectionMethod(\Papercut\Layout\TableLayouter::class, 'withThemeDefaults');
+        $cells = [
+            'td' => TableCell::make('a'),
+            'th' => TableCell::th('a'),
+            'own padding' => TableCell::th('a')->padding(pt(1)),
+            'own weight' => TableCell::th('a')->weight(400),
+            'named padding' => TableCell::th('a')->apply('roomy'),
+            'named weight' => TableCell::th('a')->apply('light'),
+        ];
+        foreach ($cells as $label => $cell) {
+            $viaTable = $r->resolve($prepare->invoke(null, $cell, $theme), $r->root());
+            $viaResolver = $r->resolveInTable($cell, $r->root());
+            self::assertEquals($viaTable->padding, $viaResolver->padding, "$label padding");
+            self::assertSame($viaTable->fontWeight, $viaResolver->fontWeight, "$label weight");
+        }
+    }
 }

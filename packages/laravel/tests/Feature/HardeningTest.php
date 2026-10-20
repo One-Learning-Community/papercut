@@ -205,7 +205,7 @@ final class HardeningTest extends TestCase
     public function test_overflow_config_is_validated_case_insensitively(): void
     {
         config(['papercut.overflow' => 'CLIP']);
-        self::assertSame(OverflowMode::Clip, Papercut::pdfOptions()->overflow);
+        self::assertSame(OverflowMode::Clip, Papercut::pdfOptions()->overflow());
     }
 
     public function test_cache_dir_config_reaches_pdf_options(): void
@@ -217,9 +217,9 @@ final class HardeningTest extends TestCase
 
             return Papercut::pdfOptions();
         };
-        self::assertNull($options(null)->cacheDir);
-        self::assertFalse($options(false)->cacheDir);
-        self::assertSame('/tmp/pc-x', $options('/tmp/pc-x')->cacheDir);
+        self::assertNull($options(null)->cacheDir());
+        self::assertFalse($options(false)->cacheDir());
+        self::assertSame('/tmp/pc-x', $options('/tmp/pc-x')->cacheDir());
     }
 
     public function test_invalid_overflow_throws(): void
@@ -233,11 +233,11 @@ final class HardeningTest extends TestCase
     public function test_overflow_default_depends_on_environment(): void
     {
         config(['papercut.overflow' => null]);
-        self::assertSame(OverflowMode::Throw, Papercut::pdfOptions()->overflow);
+        self::assertSame(OverflowMode::Throw, Papercut::pdfOptions()->overflow());
         $this->laravel()->forgetInstance(PapercutManager::class);
         \Illuminate\Support\Facades\Facade::clearResolvedInstance(PapercutManager::class);
         $this->setEnv('production');
-        self::assertSame(OverflowMode::Clip, Papercut::pdfOptions()->overflow);
+        self::assertSame(OverflowMode::Clip, Papercut::pdfOptions()->overflow());
     }
 
     public function test_non_string_page_size_throws(): void

@@ -24,7 +24,7 @@ final class PdfExporter implements Exporter
             FontRegistry::fromSet($fonts, $backend),
             $options->theme(),
             $backend,
-            $options->overflow,
+            $options->overflow(),
             $options->onWarning(),
             $fonts->fallbacks,
         );

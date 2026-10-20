@@ -9,6 +9,14 @@ use PHPUnit\Framework\TestCase;
 
 final class OutputTest extends TestCase
 {
+    public function test_accessors_return_the_constructor_values(): void
+    {
+        $out = new Output('abc', 'text/html; charset=UTF-8', 'html');
+        self::assertSame('abc', $out->bytes());
+        self::assertSame('text/html; charset=UTF-8', $out->mime());
+        self::assertSame('html', $out->extension());
+    }
+
     public function test_save_writes_bytes_and_missing_directory_throws(): void
     {
         $out = new Output('%PDF-abc', 'application/pdf', 'pdf');

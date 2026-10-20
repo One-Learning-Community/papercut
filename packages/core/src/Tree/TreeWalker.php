@@ -33,7 +33,7 @@ final class TreeWalker
                 }
                 $visitor->enterRegion($region, $root);
                 foreach ($nodes as $j => $node) {
-                    $this->visit(Expander::expand($node), $root, $name . ' > ' . $region->value, $j, $visitor);
+                    $this->visit(Expander::expand($node), $root, $name . ' > ' . $region->value, $j, $visitor, $region);
                 }
                 $visitor->leaveRegion($region);
             }
@@ -52,7 +52,7 @@ final class TreeWalker
         ];
     }
 
-    private function visit(Node $node, ComputedStyle $parent, string $parentPath, int $index, TreeVisitor $visitor, ?ComputedStyle $rowStyle = null): void
+    private function visit(Node $node, ComputedStyle $parent, string $parentPath, int $index, TreeVisitor $visitor, Region $region, ?Node $parentNode = null, bool $inHeader = false, ?ComputedStyle $rowStyle = null): void
     {
         $provisional = $parentPath . ' > ' . NodePath::segment($node, null, $index);
         try {
@@ -64,25 +64,27 @@ final class TreeWalker
         }
         $path = $parentPath . ' > ' . NodePath::segment($node, $style, $index);
 
-        if ($visitor->enter($node, $style, $path)) {
-            $this->children($node, $style, $path, $visitor);
+        $at = new Visit($path, $index, $parentNode, $inHeader, $region);
+        if ($visitor->enter($node, $style, $at)) {
+            $this->children($node, $style, $path, $visitor, $region, $inHeader);
         }
-        $visitor->leave($node, $style, $path);
+        $visitor->leave($node, $style, $at);
     }
 
-    private function children(Node $node, ComputedStyle $style, string $path, TreeVisitor $visitor): void
+    private function children(Node $node, ComputedStyle $style, string $path, TreeVisitor $visitor, Region $region, bool $inHeader): void
     {
         if ($node instanceof View || $node instanceof Link || $node instanceof TableCell) {
             foreach ($node->children() as $i => $child) {
-                $this->visit(Expander::expand($child), $style, $path, $i, $visitor);
+                $this->visit(Expander::expand($child), $style, $path, $i, $visitor, $region, $node, $inHeader);
             }
         } elseif ($node instanceof Table) {
+            $headers = count($node->headerRows());
             foreach ([...$node->headerRows(), ...$node->bodyRows()] as $r => $row) {
-                $this->visit($row, $style, $path, $r, $visitor);
+                $this->visit($row, $style, $path, $r, $visitor, $region, $node, $r < $headers);
             }
         } elseif ($node instanceof TableRow) {
             foreach ($node->cells() as $j => $cell) {
-                $this->visit($cell, $style, $path, $j, $visitor, $style);
+                $this->visit($cell, $style, $path, $j, $visitor, $region, $node, $inHeader, $style);
             }
         }
     }

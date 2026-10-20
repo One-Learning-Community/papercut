@@ -7,15 +7,25 @@ namespace Papercut\Export;
 final readonly class Output
 {
     public function __construct(
-        public string $bytes,
-        public string $mime,
-        public string $extension,
+        private string $bytes,
+        private string $mime,
+        private string $extension,
     ) {
     }
 
     public function bytes(): string
     {
         return $this->bytes;
+    }
+
+    public function mime(): string
+    {
+        return $this->mime;
+    }
+
+    public function extension(): string
+    {
+        return $this->extension;
     }
 
     public function save(string $path): void

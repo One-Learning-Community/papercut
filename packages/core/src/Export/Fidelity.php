@@ -12,10 +12,16 @@ final class Fidelity
     /** @var list<FidelityReport> */
     private array $reports = [];
 
+    /** True when the callback takes one parameter and so cannot be handed the report. */
+    private readonly bool $messageOnly;
+
     public function __construct(
         private readonly string $format,
         private readonly ExportOptions $options,
     ) {
+        $onWarning = $options->onWarning();
+        $reflection = $onWarning === null ? null : new \ReflectionFunction($onWarning);
+        $this->messageOnly = $reflection !== null && $reflection->getNumberOfParameters() === 1 && !$reflection->isVariadic();
     }
 
     public function approximated(string $feature, string $path): void
@@ -27,7 +33,7 @@ final class Fidelity
     public function dropped(string $feature, string $path): void
     {
         $report = new FidelityReport(FidelityLevel::Dropped, $this->format, $feature, $path);
-        if ($this->options->strict) {
+        if ($this->options->strict()) {
             throw UnsupportedFeature::from($report);
         }
         $this->record($report);
@@ -44,7 +50,7 @@ final class Fidelity
         $this->reports[] = $report;
         $onWarning = $this->options->onWarning();
         if ($onWarning !== null) {
-            $onWarning($report->message(), $report);
+            $this->messageOnly ? $onWarning($report->message()) : $onWarning($report->message(), $report);
         }
     }
 }
