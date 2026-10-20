@@ -193,6 +193,17 @@ final class TableLayouter implements Layouter
     }
 
     /**
+     * Column widths in pt for a table whose border box is offered $available,
+     * without pagination.
+     *
+     * @return list<float>
+     */
+    public function columns(Table $table, ComputedStyle $style, float $available, LayoutEngine $engine): array
+    {
+        return $this->grid($table, $style, BoxGeometry::contentWidth($style, $available), $engine)['widths'];
+    }
+
+    /**
      * Column widths and x offsets for content width $width, computed once per
      * table, style and width; column warnings are emitted only then.
      *
@@ -573,6 +584,7 @@ final class TableLayouter implements Layouter
         return $this->prepared[$cell] ??= self::withThemeDefaults($cell, $theme);
     }
 
+    // StyleResolver applies the same defaults as its lowest layer; applying them twice changes nothing.
     private static function withThemeDefaults(TableCell $cell, Theme $theme): TableCell
     {
         $own = $cell->style();

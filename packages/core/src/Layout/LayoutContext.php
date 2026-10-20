@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Image, Node, OverflowMode, Styled, Text};
+use Papercut\{Image, Node, OverflowMode};
 use Papercut\Backend\{Backend, ImageHandle};
-use Papercut\Style\{ComputedStyle, Style, Theme};
+use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Text\{FontRegistry, Itemizer};
 
 /**
@@ -22,14 +22,7 @@ final class LayoutContext
     private array $images = [];
     /** Path of the deepest node that returned DoesNotFit under fresh constraints; the paginator resets it. */
     public private(set) ?string $lastFailurePath = null;
-    private ?ComputedStyle $root = null;
-    /**
-     * Computed styles memoized per node and parent style (both by identity).
-     * Nodes are immutable, so a node under the same parent always resolves the same.
-     *
-     * @var \WeakMap<Node, \WeakMap<ComputedStyle, ComputedStyle>>
-     */
-    private \WeakMap $styles;
+    public readonly StyleResolver $styles;
 
     public function __construct(
         public readonly FontRegistry $fonts,
@@ -40,13 +33,13 @@ final class LayoutContext
         /** @var list<string> */
         private readonly array $fallbackFamilies = [],
     ) {
-        $this->styles = new \WeakMap();
+        $this->styles = new StyleResolver($theme);
     }
 
     /** The theme's root style, computed once per layout run so memoized child styles are shared across pages. */
     public function rootStyle(): ComputedStyle
     {
-        return $this->root ??= ComputedStyle::root($this->theme);
+        return $this->styles->root();
     }
 
     public function itemizer(): Itemizer
@@ -100,34 +93,8 @@ final class LayoutContext
         return $this->images['bytes:' . sha1($value)] ??= $this->backend->loadImageBytes($value);
     }
 
-    /**
-     * Theme preset (Text h1-h4/p), then the named theme style, then the
-     * node's own style, all applied on top of the parent's computed style.
-     */
     public function resolveStyle(Node $node, ComputedStyle $parent): ComputedStyle
     {
-        $byParent = $this->styles[$node] ?? null;
-        if ($byParent === null) {
-            /** @var \WeakMap<ComputedStyle, ComputedStyle> $byParent */
-            $byParent = new \WeakMap();
-            $this->styles[$node] = $byParent;
-        }
-        return $byParent[$parent] ??= $this->computeStyle($node, $parent);
-    }
-
-    private function computeStyle(Node $node, ComputedStyle $parent): ComputedStyle
-    {
-        $style = new Style();
-        if ($node instanceof Text && $node->preset() !== null) {
-            $preset = $node->preset();
-            $style = $style->merge($preset === 'p' ? $this->theme->paragraph() : $this->theme->heading((int) substr($preset, 1)));
-        }
-        if ($node instanceof Styled) {
-            $name = $node->styleName();
-            if (is_string($name)) {
-                $style = $style->merge($this->theme->named($name));
-            }
-        }
-        return $parent->child($style->merge($node->style()));
+        return $this->styles->resolve($node, $parent);
     }
 }

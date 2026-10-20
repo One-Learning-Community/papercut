@@ -6,6 +6,7 @@ namespace Papercut\Layout;
 
 use Papercut\{Node, PageBreak, Spacer, View};
 use Papercut\Style\{Align, ComputedStyle};
+use Papercut\Tree\Expander;
 use Papercut\Value\{Auto, Length};
 
 /**
@@ -121,7 +122,7 @@ final class FlexLayouter implements Layouter
         $max = 0.0;
         $n = 0;
         foreach (self::children($node) as $i => $child) {
-            $child = LayoutEngine::expand($child);
+            $child = Expander::expand($child);
             if ($child instanceof PageBreak) {
                 continue;
             }
@@ -141,6 +142,18 @@ final class FlexLayouter implements Layouter
     }
 
     /**
+     * Flex lines for a row whose border box is offered $available, without
+     * pagination: the same items and line resolution layout() uses.
+     *
+     * @return list<list<array{node: Node, style: ComputedStyle, index: int, x: float, main: float}>>
+     */
+    public function lines(Node $node, ComputedStyle $style, float $available, LayoutEngine $engine): array
+    {
+        $contentWidth = BoxGeometry::contentWidth($style, $available);
+        return self::resolveLines($this->items($node, $style, $contentWidth, $engine), $style, $contentWidth);
+    }
+
+    /**
      * Flex items with their hypothetical main sizes (border box) and clamps.
      *
      * @return list<array{node: Node, style: ComputedStyle, index: int, base: float, hyp: float, min: float, max: float, margin: float}>
@@ -149,7 +162,7 @@ final class FlexLayouter implements Layouter
     {
         $items = [];
         foreach (self::children($node) as $i => $child) {
-            $child = LayoutEngine::expand($child);
+            $child = Expander::expand($child);
             if ($child instanceof PageBreak) {
                 if ($warn) {
                     $engine->context()->warn('PageBreak inside a row is ignored');
