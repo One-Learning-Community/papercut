@@ -70,7 +70,7 @@ Migration from v0.1:
 
 ### Fixed
 
-- `min-height` and `max-height` now apply to boxes and text that size to their content in the PDF (the HTML export already had them). A `min-height` that does not fit in the space left on a page moves the box to the next page (on an empty page it is cut to the page). A box with `max-height`, like one with a `height`, never splits: it is placed whole or moved. Text also honours an explicit `height`.
+- `min-height` and `max-height` now apply to boxes and text that size to their content in the PDF (the HTML export already had them). A `min-height` that does not fit in the space left on a page moves the box to the next page (on an empty page it is cut to the page). A box with `max-height` (and text with a `height`) is kept whole and placed or moved, like a fixed-height box; only a cap taller than an empty page lets it split, so no content is cut off. Text also honours an explicit `height`.
 - Visual change: `Field::lines(n)` now counts lines inside the padding, so a field with `lines` is taller by its padding and border (`lines="2"` goes from 28pt to 40pt at the default size).
 
 ## [0.1.0] - unreleased

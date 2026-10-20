@@ -138,6 +138,23 @@ final class MinMaxHeightTest extends TestCase
         }
     }
 
+    public function test_cap_taller_than_an_empty_page_splits_instead_of_losing_content(): void
+    {
+        $h = new LayoutHarness();
+        $lines = array_map(fn (int $i) => Text::make("line $i"), range(1, 100));
+        foreach ([View::make(...$lines)->maxHeight(pt(5000)), Column::make(...$lines)->maxHeight(pt(5000)), Text::markup(implode('<br>', range(1, 100)))->height(pt(5000))] as $box) {
+            $r = $h->layout($box, 200, 300.0, null, true);
+            self::assertSame(Status::Partial, $r->status, 'splits across pages');
+            self::assertLessThanOrEqual(300.0, self::frag($r)->height);
+        }
+    }
+
+    public function test_table_cell_grows_to_min_height(): void
+    {
+        $r = (new LayoutHarness())->layout(Table::make()->columns('1fr')->row(View::make(Text::make('cell'))->minHeight(pt(60))), 200);
+        self::assertGreaterThanOrEqual(60.0, self::frag($r)->height);
+    }
+
     private static function frag(LayoutResult $r): Fragment
     {
         self::assertNotNull($r->fragment);

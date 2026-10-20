@@ -53,8 +53,10 @@ final class TextLayouter implements Layouter
         $available = $c->height === null
             ? null
             : $c->height - ($box['first'] ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
-        // Text with a height or max-height never splits: all its lines go in one box, which is then sized and placed.
-        $whole = $box['size'] !== null && ($box['size']['fixed'] !== null || BoxGeometry::hasMaxHeight($style, $c));
+        // Text with a height or max-height that fits the space is laid out whole, then sized and placed; taller ones split.
+        $fixed = $box['size']['fixed'] ?? null;
+        $whole = $box['size'] !== null
+            && (($fixed !== null && ($c->height === null || $fixed <= $c->height + 1e-9 || !$c->fresh)) || BoxGeometry::capsWhole($style, $c));
         $n = $whole ? $total - $start : self::fittingLines($boxes, $start, $total, $available);
         if ($n >= $total - $start) {
             $f = $this->fragment($lines, $boxes, $start, $total, $style, $box, true);

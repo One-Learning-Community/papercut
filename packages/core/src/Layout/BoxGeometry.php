@@ -143,9 +143,15 @@ final class BoxGeometry
         return $min;
     }
 
-    public static function hasMaxHeight(ComputedStyle $s, Constraints $c): bool
+    /**
+     * Whether a content-sized box is kept whole and capped by its max-height: when the max-height
+     * fits the space, or the page already has content (the box then moves on). Only a max-height
+     * taller than an empty page lets the box split, so nothing is ever cut off.
+     */
+    public static function capsWhole(ComputedStyle $s, Constraints $c): bool
     {
-        return self::resolve($s->maxHeight, $c->definiteHeight) !== null;
+        $max = self::resolve($s->maxHeight, $c->definiteHeight);
+        return $max !== null && ($c->height === null || $max <= $c->height + 1e-9 || !$c->fresh);
     }
 
     /**

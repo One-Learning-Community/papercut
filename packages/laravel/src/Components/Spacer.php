@@ -32,7 +32,7 @@ final class Spacer extends PapercutComponent
         if (isset($own['size'])) {
             $size = $own['size'];
             try {
-                $length = $size instanceof Length ? $size : Length::parse((string) $size);
+                $length = ($size instanceof Length ? $size : Length::parse((string) $size))->absolute('spacer size');
             } catch (InvalidValue $e) {
                 throw $e->withContext('size')->within($location);
             }

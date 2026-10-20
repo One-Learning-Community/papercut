@@ -33,8 +33,14 @@ final class KeyValue extends PapercutComponent
         $list = KeyValueList::make(...$pairs);
         if (isset($own['label-width'])) {
             $raw = $own['label-width'];
-            if ($raw instanceof Length || $raw instanceof Percent) {
+            if ($raw instanceof Percent) {
                 $width = $raw;
+            } elseif ($raw instanceof Length) {
+                try {
+                    $width = $raw->absolute('label width');
+                } catch (InvalidValue $e) {
+                    throw $e->withContext('label-width')->within('on ' . Tag::of('key-value'));
+                }
             } else {
                 $text = trim($this->scalarOwn($raw, 'label-width'));
                 try {

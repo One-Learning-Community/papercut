@@ -46,8 +46,8 @@ final class FlexLayouter implements Layouter
         }
         $fixedContent = $target === null ? null : max(0.0, $target - BoxGeometry::topEdge($style) - BoxGeometry::bottomEdge($style));
 
-        // A content-sized box with a max-height never splits: it is laid out whole, capped, then placed or moved.
-        $capped = $first && $fixed === null && BoxGeometry::hasMaxHeight($style, $c);
+        // A content-sized box whose max-height fits the space is laid out whole and capped (taller ones split).
+        $capped = $first && $fixed === null && BoxGeometry::capsWhole($style, $c);
         $available = null;
         if ($fixed === null && !$capped && $c->height !== null) {
             $available = $c->height - ($first ? BoxGeometry::topEdge($style) : 0.0) - BoxGeometry::bottomEdge($style);
