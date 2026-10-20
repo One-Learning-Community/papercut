@@ -98,8 +98,9 @@ Options:
 
 ### 4.5 Blade
 
-`<x-doc::list type="ol|ul" start="3" marker="lower-roman">` containing `<x-doc::item>` children. An item takes any
-block content. Style attributes as on other block tags.
+`<x-doc::ol start="3" marker="lower-roman">` and `<x-doc::ul>` containing `<x-doc::li>` children. An item takes any
+block content. Style attributes as on other block tags. (Not `<x-doc::list>`: Blade maps tags to class names, and PHP
+reserves `List`.)
 
 ## 5. Part 3 — Markup converter
 
@@ -110,8 +111,10 @@ block content. Style attributes as on other block tags.
 Core *(my call on names)*:
 - `Markup::html(?string $html, MarkupOptions $options = new MarkupOptions()): Node`
 - `Markup::text(?string $text, MarkupOptions $options = new MarkupOptions()): Node`
-- `Markup::inlineHtml(...)` / `Markup::inlineText(...)` returning `list<Span>`, for joining a line inside an existing
-  `Text` (the `× <label>` case). Block content passed here is flattened into the line with a warning.
+- `Markup::flatten(View|Text $converted): Text`, for joining a line inside an existing `Text` (the `× <label>` case):
+  `Text::make('× ')->append(Markup::flatten(Markup::html($label)))`. `Text::append()` accepts a `Text` and keeps its
+  conversion notes. Block content is flattened into the line with a warning. *(Replaces the earlier
+  `inlineHtml`/`inlineText` idea: one way in, and notes survive the join.)*
 
 Blade *(my call on names)*: `<x-doc::markup :html="$slide" />` or `<x-doc::markup :text="$prompt" />`, exactly one of
 the two, mirroring `<x-doc::image src|data>`. Used inside a text tag (`<x-doc::text>× <x-doc::markup :html="$label"
@@ -244,7 +247,7 @@ Today the only path is `NodeRegistry::register()`, which is internal.
 
 ## 7. Laravel surface
 
-- `<x-doc::list>`, `<x-doc::item>`, `<x-doc::markup>`, `<x-doc::node>` as above.
+- `<x-doc::ol>`, `<x-doc::ul>`, `<x-doc::li>`, `<x-doc::markup>`, `<x-doc::node>` as above.
 - Config block `papercut.markup` *(my call on names)*:
   - `images`: an invokable class implementing `Papercut\Laravel\Markup\ImageResolver` (`__invoke(string $src): ?string`),
     built by the container, like `html.image_url`. Default `null` (every `img` is missing).

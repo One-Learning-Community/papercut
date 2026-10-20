@@ -7,6 +7,7 @@ namespace Papercut\Export;
 use Papercut\Document;
 use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
 use Papercut\Paint\Painter;
+use Papercut\Style\StyleResolver;
 use Papercut\Text\FontRegistry;
 
 final class PdfExporter implements Exporter
@@ -20,6 +21,7 @@ final class PdfExporter implements Exporter
         $options = PdfOptions::from($options);
         $backend = $options->backend();
         $fonts = $options->fonts();
+        NoteReporter::report($doc, new StyleResolver($options->theme()), new Fidelity('pdf', $options));
         $ctx = new LayoutContext(
             FontRegistry::fromSet($fonts, $backend),
             $options->theme(),

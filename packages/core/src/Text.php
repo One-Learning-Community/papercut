@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Papercut;
 
-use Papercut\Concerns\HasStyle;
+use Papercut\Concerns\{HasNotes, HasStyle};
 use Papercut\Style\Style;
 
-final class Text implements Styled
+final class Text implements Styled, Annotated
 {
     use HasStyle;
+    use HasNotes;
 
     private const array PRESETS = ['h1', 'h2', 'h3', 'h4', 'p'];
 
@@ -90,10 +91,15 @@ final class Text implements Styled
         return $this->spans;
     }
 
-    public function append(string|Span ...$more): self
+    public function append(string|Span|Text ...$more): self
     {
         $clone = clone $this;
         foreach ($more as $m) {
+            if ($m instanceof Text) {
+                array_push($clone->spans, ...$m->spans);
+                array_push($clone->notes, ...$m->notes);
+                continue;
+            }
             $clone->spans[] = is_string($m) ? Span::text($m) : $m;
         }
         return $clone;

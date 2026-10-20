@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Papercut;
 
-use Papercut\Concerns\HasStyle;
+use Papercut\Concerns\{HasNotes, HasStyle};
 use Papercut\Style\{Align, Direction, Justify, Style};
 use Papercut\Value\Length;
 
-final class View implements Styled
+final class View implements Styled, Annotated
 {
     use HasStyle;
+    use HasNotes;
 
     /** @var list<Node|Component> */
     private array $children = [];

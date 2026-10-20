@@ -23,6 +23,7 @@ final class HtmlExporter implements Exporter
         }
         $styles = new StyleResolver($options->theme());
         $fidelity = new Fidelity('html', $options);
+        NoteReporter::report($doc, $styles, $fidelity);
         $writer = new HtmlWriter($doc, $fidelity, $options, DefaultBackend::make(false));
         (new TreeWalker($styles))->walk($doc, $writer);
 
