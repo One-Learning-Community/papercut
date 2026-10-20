@@ -200,7 +200,7 @@ On `row`, `column` and `view`, `align` is a shorthand for `align-items`. On text
 
 ## Style attributes
 
-These attributes are accepted by every tag marked "style" above. Lengths are `pt`, `mm`, `cm`, `in` or `px`; percentages are where noted; colors are palette names such as `slate-500`, hex, or other forms Papercut's `Color::parse` accepts.
+These attributes are accepted by every tag marked "style" above. Lengths are `pt`, `mm`, `cm`, `in` or `px`, or relative to the element: `em` (its font size) and `lh` (its line height, font size × line-height), so `padding="0.5em"` or `min-height="4lh"` follow the theme; percentages are where noted; colors are palette names such as `slate-500`, hex, or other forms Papercut's `Color::parse` accepts.
 
 | Attribute | Example | Notes |
 |---|---|---|
@@ -283,7 +283,7 @@ A section keeps its heading with the first of its content. The number is a strin
 
 Without a label, style attributes apply to the box. With a label, they style the whole field (label and box together); style the box itself through the theme's `field` style.
 
-A bordered box that shows `placeholder` when its content is empty (no children, or only whitespace). `lines` sets a minimum height of that many lines of the default 14pt line; with a bigger base font size set `min-height` yourself.
+A bordered box that shows `placeholder` when its content is empty (no children, or only whitespace). `lines` reserves that many lines of the field's own text inside its padding, so it follows the theme's font size and line height.
 
 ```blade
 <x-doc::choices type="checkbox" emphasize-selected>
@@ -292,7 +292,7 @@ A bordered box that shows `placeholder` when its content is empty (no children, 
 </x-doc::choices>
 ```
 
-`type` is `checkbox` (default) or `radio`. Markers are drawn shapes, not glyphs, so they look the same in every font. They sit level with the first line of a label because `choice.marker` has a top margin that centres it on a 14pt line; with bigger label text, override that margin (see below). `<x-doc::choice>` is only valid inside `<x-doc::choices>`.
+`type` is `checkbox` (default) or `radio`. Markers are drawn shapes, not glyphs, so they look the same in every font. Markers are sized from the text (`0.75em`) and centred in a slot one line tall, so they sit level with the first line of a label at any font size. `<x-doc::choice>` is only valid inside `<x-doc::choices>`.
 
 ```blade
 <x-doc::key-value label-width="30%">
@@ -313,12 +313,12 @@ Each decorator reads these names. Colours are palette names.
 |---|---|
 | `card`, `card.title`, `card.body` | 1pt `slate-300` border, 4pt radius; `slate-100` bold title strip with 3pt corners; 10pt body padding |
 | `callout`, `callout.<tone>`, `callout.title`, `callout.title.<tone>` | 3pt left rule, tinted box in `sky`, `emerald`, `amber` or `red` (rule `-500`, background `-50`), bold title in the `-800` shade |
-| `blockquote`, `blockquote.cite` | 3pt `slate-300` left rule, italic `slate-700`; cite 9pt `slate-500`, not italic |
+| `blockquote`, `blockquote.cite` | 3pt `slate-300` left rule, italic `slate-700`; cite `0.9em` `slate-500`, not italic |
 | `section`, `section.heading`, `section.number`, `section.title`, `section.rule`, `section.body` | 6pt gap, bold title, bold `slate-500` number 18pt wide, 0.75pt `slate-200` rule; the heading is always a row |
-| `field`, `field.label`, `field.placeholder` | 1pt `slate-300` border, 3pt radius; 9pt `slate-600` label; italic `slate-400` placeholder |
-| `choice`, `choice.option`, `choice.marker`, `choice.marker.radio`, `choice.marker.selected`, `choice.mark`, `choice.mark.radio`, `choice.label.selected` | 9pt marker with 1pt `slate-400` border, round for radio; selected border `slate-800` and a 5pt inner mark; selected label bold; 6pt between marker and label |
+| `field`, `field.label`, `field.placeholder` | 1pt `slate-300` border, 3pt radius; `0.9em` `slate-600` label; italic `slate-400` placeholder |
+| `choice`, `choice.option`, `choice.marker`, `choice.marker.radio`, `choice.marker.selected`, `choice.mark`, `choice.mark.radio`, `choice.label.selected` | `0.75em` marker with 1pt `slate-400` border, round for radio; selected border `slate-800` and a `0.42em` inner mark; selected label bold; 6pt between marker and label |
 | `key-value`, `key-value.label`, `key-value.value` | no borders; `slate-600` label |
-| `badge`, `badge.<tone>` | 9pt bold pill in `slate`, `sky`, `emerald`, `amber` or `red` (background `-100`, text `-800`), aligned to the start so it hugs its text |
+| `badge`, `badge.<tone>` | `0.9em` bold pill in `slate`, `sky`, `emerald`, `amber` or `red` (background `-100`, text `-800`), aligned to the start so it hugs its text |
 
 Every value is listed in section 6 of the [decorators design](../../docs/superpowers/specs/2026-10-19-decorators-design.md).
 
@@ -334,7 +334,7 @@ Define a style with the same name in `config/papercut.php`. It replaces the buil
 ],
 ```
 
-In PHP, `$theme->withStyle('callout.warning', Style::make(...))` does the same. To add a tone, define `callout.<tone>` and `callout.title.<tone>` (as `success` above), then write `type="success"`; a badge tone needs `badge.<tone>`. To change the marker offset, redefine `choice.marker` with a different `margin` (and the rest of its properties). Style names can also be combined in a `style` attribute, space-separated: `style="callout callout.success"`.
+In PHP, `$theme->withStyle('callout.warning', Style::make(...))` does the same. To add a tone, define `callout.<tone>` and `callout.title.<tone>` (as `success` above), then write `type="success"`; a badge tone needs `badge.<tone>`. Style names can also be combined in a `style` attribute, space-separated: `style="callout callout.success"`.
 
 ## Rich text from your database
 

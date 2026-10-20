@@ -171,9 +171,9 @@ Field::make(...$children)->label('Comments')->placeholder('No response')->lines(
 ```
 Renders: optional label `Text` (`field.label`, keep-with-next) → box `View` (`field`). **Empty** means no children,
 or only `Text` children whose spans are all whitespace (`Markup::text('')` counts). An empty field shows the
-placeholder as `Text` (`field.placeholder`); with no placeholder set it is an empty box. `lines(n)` sets
-`min-height` to n × 14pt, one line of the default theme (10pt × 1.4). Components render without the theme, so this
-is fixed; an app with a bigger base size sets `min-height` itself. *(my call)* Text in a Field wraps and splits across pages like any `View`.
+placeholder as `Text` (`field.placeholder`); with no placeholder set it is an empty box. `lines(n)` puts the
+content in an inner area with `min-height: n lh`, so it reserves n lines of the field's own text inside the padding
+and follows the theme. *(revised 2026-10-20: was a fixed n × 14pt before `em`/`lh` lengths existed)* Text in a Field wraps and splits across pages like any `View`.
 
 ### 5.6 ChoiceList
 
@@ -194,9 +194,9 @@ ChoiceList::radio()                                   // or ::checkbox()
 Markers are **drawn boxes, not glyphs** *(my call)*: a bordered square (checkbox) or circle (radio, radius half the
 size) with a filled inner square or dot when selected. This avoids depending on ☐/☒/○/● being in the document font,
 and looks the same in PDF and HTML. Each option is a row: marker `View` (`choice.marker` or
-`choice.marker.radio`, plus `choice.marker.selected`), label column (grows). The marker is nudged down so it lines up
-with the first line of the label by the theme's `choice.marker` margin-top (2.5pt centres it on a 14pt line); an app with
-bigger label text overrides that style. Rows keep each option whole;
+`choice.marker.radio`, plus `choice.marker.selected`) inside a slot `1lh` tall that centres it, then the label
+column (grows). The marker is `0.75em`, so it scales with the text and stays level with the label's first line at any
+font size or line height. *(revised 2026-10-20: was a fixed 9pt marker with a 2.5pt top margin)* Rows keep each option whole;
 the list may split between options. Blade: `<x-doc::choice>` is only valid inside `<x-doc::choices>` (same parent
 check as `<x-doc::li>`).
 
@@ -258,7 +258,7 @@ Names and starting values *(my call; the maintainer can tune them by eye)*. Colo
 | `callout.title` | bold |
 | `callout.title.<tone>` | colour the `-800` shade |
 | `blockquote` | padding 2pt 0 2pt 12pt, left border 3pt `slate-300`, colour `slate-700`, italic, gap 4pt |
-| `blockquote.cite` | not italic, font size 9pt, colour `slate-500` |
+| `blockquote.cite` | not italic, font size 0.9em, colour `slate-500` |
 | `section` | gap 6pt |
 | `section.heading` | row, gap 4pt |
 | `section.body` | gap 6pt |
@@ -266,23 +266,23 @@ Names and starting values *(my call; the maintainer can tune them by eye)*. Colo
 | `section.number` | bold, colour `slate-500`, min-width 18pt |
 | `section.rule` | bottom border 0.75pt `slate-200`, padding-bottom 3pt |
 | `field` | border 1pt `slate-300`, radius 3pt, padding 5pt 7pt |
-| `field.label` | font size 9pt, colour `slate-600` |
+| `field.label` | font size 0.9em, colour `slate-600` |
 | `field.placeholder` | italic, colour `slate-400` |
 | `choice` | gap 4pt (list) |
 | `choice.option` | gap 6pt (each option row: marker and label) |
-| `choice.marker` | 9pt × 9pt, border 1pt `slate-400`, radius 1.5pt, margin-top 2.5pt (centres it on a 14pt line), centres its mark |
-| `choice.marker.radio` | radius 4.5pt |
+| `choice.marker` | 0.75em × 0.75em, border 1pt `slate-400`, radius 0.125em, centres its mark (Choice centres the marker in a 1lh slot) |
+| `choice.marker.radio` | radius 0.375em |
 | `choice.marker.selected` | border `slate-800` |
-| `choice.mark` / `choice.mark.radio` | 5pt × 5pt, background `slate-800`, radius 1pt / 2.5pt |
+| `choice.mark` / `choice.mark.radio` | 0.42em × 0.42em, background `slate-800`, radius 0.08em / 0.21em |
 | `choice.label.selected` | bold |
 | `key-value` | no borders, cell padding 2pt 12pt 2pt 0 |
 | `key-value.label` | colour `slate-600` |
 | `key-value.value` | padding 2pt 0 |
-| `badge` | align-self start, padding 1.5pt 6pt, radius 8pt, font size 9pt, bold |
+| `badge` | align-self start, padding 1.5pt 6pt, radius 8pt, font size 0.9em, bold |
 | `badge.neutral` / `.note` / `.tip` / `.warning` / `.danger` | background `slate-100` / `sky-100` / `emerald-100` / `amber-100` / `red-100`; colour the `-800` shade |
 
-`font-size` only takes absolute lengths, so "smaller" text uses 9pt against the default theme's 10pt. An app with a
-larger base size overrides those styles.
+Smaller text uses `0.9em` and markers `0.75em`, so they scale with the theme's base size. *(revised 2026-10-20 when
+`em`/`lh` lengths were added; previously fixed at 9pt.)*
 
 ## 7. Markup converter
 

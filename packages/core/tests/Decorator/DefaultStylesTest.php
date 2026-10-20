@@ -7,6 +7,7 @@ namespace Papercut\Tests\Decorator;
 use Papercut\Decorator\DefaultStyles;
 use Papercut\Style\Style;
 use Papercut\Value\{Color, Edges};
+use Papercut\Value\Length;
 use PHPUnit\Framework\TestCase;
 
 use function Papercut\pt;
@@ -48,8 +49,8 @@ final class DefaultStylesTest extends TestCase
     public function test_choice_marker(): void
     {
         $m = DefaultStyles::get('choice.marker');
-        self::assertEquals(pt(9), $m?->width);
-        self::assertEquals(pt(9), $m?->height);
-        self::assertEquals(pt(2.5), $m?->margin?->top);
+        self::assertSame('0.75em', (string) $m?->width);
+        self::assertSame('0.75em', (string) $m?->height);
+        self::assertNull($m?->margin, 'the one-line slot centres the marker; no hand-tuned offset');
     }
 }

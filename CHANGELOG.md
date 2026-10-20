@@ -65,6 +65,12 @@ Migration from v0.1:
 - Laravel: `<x-doc::card>`, `<x-doc::callout>`, `<x-doc::blockquote>`, `<x-doc::section>`, `<x-doc::field>`, `<x-doc::choices>` / `<x-doc::choice>`, `<x-doc::key-value>` / `<x-doc::kv>` and `<x-doc::badge>`, plus a `responses` example and a "Decorators" section in the README.
 - Upgrade note: decorator style names (`card`, `card.title`, `callout.*`, `section.*`, `field.*`, `choice.*`, `key-value.*`, `badge.*`, `blockquote.*`) are used by the decorators, and a theme or config style with the same name replaces the built-in one. If you already define a style called `card`, rename it or expect it to restyle `<x-doc::card>`.
 - Core: `Theme::withStyle()` rejects a name containing whitespace, since it could never be resolved; `Callout::tone()` rejects internal whitespace; blank titles, numbers, labels and cites count as unset; a fully transparent span background paints nothing.
+- Core: `em` and `lh` lengths in styles (`padding="0.5em"`, `min-height="4lh"`, `Length::em()`, `Length::lh()`): `em` is the element's font size and `lh` its line height, resolved to points when styles are computed. A relative `font-size` is a share of the parent's. Page margins, table tracks and editor-HTML CSS stay absolute.
+- Decorators follow the theme's size: `Field::lines(n)` reserves n lines of the field's own text inside its padding, choice markers are `0.75em` and centred on the first line of their label, and the field label, badge and blockquote cite use `0.9em` instead of 9pt.
+
+### Fixed
+
+- `min-height` and `max-height` now apply to boxes and text that size to their content in the PDF (the HTML export already had them). A `min-height` that does not fit in the space left on a page moves the box to the next page. Text also honours an explicit `height`.
 
 ## [0.1.0] - unreleased
 

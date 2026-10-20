@@ -6,6 +6,8 @@ namespace Papercut\Decorator;
 
 use Papercut\{Component, Node, Row, View};
 use Papercut\Concerns\HasStyle;
+use Papercut\Style\Justify;
+use Papercut\Value\Length;
 
 
 /**
@@ -90,7 +92,8 @@ final class ChoiceList implements Decorator
         if ($selected) {
             $marker = View::make(View::make()->apply('choice.mark' . ($this->radio ? ' choice.mark.radio' : '')));
         }
-        return $marker->apply($name);
+        // A slot one line tall centres the marker on the label's first line at any font size or line height.
+        return View::make($marker->apply($name))->height(Length::lh(1))->justify(Justify::Center)->shrink(0);
     }
 
     private function label(ChoiceOption $option): View

@@ -162,7 +162,17 @@ final class DecoratorComponentsTest extends TestCase
     {
         $f = $this->nodeFrom('<x-doc::field lines="3">x</x-doc::field>');
         self::assertInstanceOf(Field::class, $f);
-        self::assertNotNull($f->render()->style()->minHeight);
+        $inner = $f->render()->children()[0];
+        self::assertInstanceOf(\Papercut\View::class, $inner);
+        self::assertSame('3lh', (string) $inner->style()->minHeight);
+    }
+
+    public function test_style_attributes_accept_em_and_lh(): void
+    {
+        $v = $this->nodeFrom('<x-doc::view padding="0.5em" min-height="4lh">x</x-doc::view>');
+        self::assertInstanceOf(\Papercut\View::class, $v);
+        self::assertSame('0.5em', (string) $v->style()->padding?->top);
+        self::assertSame('4lh', (string) $v->style()->minHeight);
     }
 
     public function test_text_tag_renders_mark_as_highlight(): void

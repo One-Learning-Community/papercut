@@ -85,7 +85,7 @@ final class DefaultStyles
             italic: true,
             gap: pt(4),
         );
-        $s['blockquote.cite'] = Style::make(italic: false, fontSize: pt(9), color: self::c('slate-500'));
+        $s['blockquote.cite'] = Style::make(italic: false, fontSize: Length::em(0.9), color: self::c('slate-500'));
 
         $s['section'] = Style::make(gap: pt(6));
         // The heading's row direction is fixed in Section; the entry is kept per the spec, but direction here has no effect.
@@ -105,33 +105,33 @@ final class DefaultStyles
             radius: pt(3),
             padding: Edges::of(pt(5), pt(7)),
         );
-        $s['field.label'] = Style::make(fontSize: pt(9), color: self::c('slate-600'));
+        $s['field.label'] = Style::make(fontSize: Length::em(0.9), color: self::c('slate-600'));
         $s['field.placeholder'] = Style::make(italic: true, color: self::c('slate-400'));
 
         $s['choice'] = Style::make(gap: pt(4));
         $s['choice.option'] = Style::make(gap: pt(6));
+        // Sized from the text (0.75em: 9pt at 12pt); Choice centres it in a one-line slot.
         $s['choice.marker'] = Style::make(
-            width: pt(9),
-            height: pt(9),
+            width: Length::em(0.75),
+            height: Length::em(0.75),
             borderWidth: Edges::all(pt(1)),
             borderColor: self::c('slate-400'),
-            radius: pt(1.5),
-            margin: Edges::of(pt(2.5), $zero, $zero, $zero),
+            radius: Length::em(0.125),
             alignItems: Align::Center,
             justify: Justify::Center,
             shrink: 0.0,
         );
-        $s['choice.marker.radio'] = Style::make(radius: pt(4.5));
+        $s['choice.marker.radio'] = Style::make(radius: Length::em(0.375));
         $s['choice.marker.selected'] = Style::make(borderColor: self::c('slate-800'));
-        $s['choice.mark'] = Style::make(width: pt(5), height: pt(5), background: self::c('slate-800'), radius: pt(1));
-        $s['choice.mark.radio'] = Style::make(radius: pt(2.5));
+        $s['choice.mark'] = Style::make(width: Length::em(0.42), height: Length::em(0.42), background: self::c('slate-800'), radius: Length::em(0.08));
+        $s['choice.mark.radio'] = Style::make(radius: Length::em(0.21));
         $s['choice.label.selected'] = Style::make(fontWeight: 700);
 
         $s['key-value'] = Style::make();
         $s['key-value.label'] = Style::make(padding: self::sides(2, 12, 2, 0), color: self::c('slate-600'));
         $s['key-value.value'] = Style::make(padding: Edges::of(pt(2), $zero));
 
-        $s['badge'] = Style::make(alignSelf: Align::Start, padding: Edges::of(pt(1.5), pt(6)), radius: pt(8), fontSize: pt(9), fontWeight: 700);
+        $s['badge'] = Style::make(alignSelf: Align::Start, padding: Edges::of(pt(1.5), pt(6)), radius: pt(8), fontSize: Length::em(0.9), fontWeight: 700);
         foreach (['neutral' => 'slate', 'note' => 'sky', 'tip' => 'emerald', 'warning' => 'amber', 'danger' => 'red'] as $tone => $hue) {
             $s['badge.' . $tone] = Style::make(background: self::c($hue . '-100'), color: self::c($hue . '-800'));
         }

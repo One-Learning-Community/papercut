@@ -64,8 +64,8 @@ final class MinMaxHeightTest extends TestCase
     public function test_empty_field_with_lines_is_that_tall(): void
     {
         $r = (new LayoutHarness())->layout(Field::make()->lines(4), 200);
-        // lines(4) = 56pt min-height on the box; border and padding sit inside it.
-        self::assertEqualsWithDelta(56.0, self::frag($r)->height, 0.001);
+        // lines(4) = four 14pt lines inside the field's 5pt padding and 1pt border: 56 + 10 + 2.
+        self::assertEqualsWithDelta(68.0, self::frag($r)->height, 0.001);
     }
 
     public function test_min_height_that_does_not_fit_moves_to_the_next_page(): void

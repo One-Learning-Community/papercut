@@ -7,9 +7,8 @@ namespace Papercut\Decorator;
 use InvalidArgumentException;
 use Papercut\{Component, Node, Text, View};
 use Papercut\Concerns\HasStyle;
-use Papercut\Style\Style;
+use Papercut\Value\Length;
 
-use function Papercut\pt;
 
 /**
  * A bordered value box with a placeholder when empty and an optional label above.
@@ -22,9 +21,6 @@ use function Papercut\pt;
 final class Field implements Decorator
 {
     use HasStyle;
-
-    /** Height of one line in the default theme: 10pt text at 1.4 line height. */
-    private const float LINE_HEIGHT = 14.0;
 
     /** @var list<Node|Component> */
     private array $children;
@@ -82,10 +78,10 @@ final class Field implements Decorator
             $parts = [Text::make($this->placeholder)->apply('field.placeholder')];
         }
 
-        $box = View::make(...$parts);
-        if ($this->lines !== null) {
-            $box = $box->apply(Style::make(minHeight: pt($this->lines * self::LINE_HEIGHT)));
-        }
+        // lines(n) is n lines of the field's own text inside its padding, so it follows the theme's size.
+        $box = $this->lines === null
+            ? View::make(...$parts)
+            : View::make(View::make(...$parts)->minHeight(Length::lh($this->lines)));
 
         if ($this->label === null) {
             return $box

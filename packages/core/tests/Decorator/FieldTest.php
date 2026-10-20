@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Papercut\{Image, Span, Text, View};
 use Papercut\Decorator\{Decorator, Field};
 use Papercut\Markup\Markup;
+use Papercut\Value\Length;
 use PHPUnit\Framework\TestCase;
 
 use function Papercut\pt;
@@ -129,14 +130,18 @@ final class FieldTest extends TestCase
 
     public function test_lines_sets_min_height(): void
     {
-        self::assertEquals(pt(42), Field::make()->lines(3)->render()->style()->minHeight);
+        $inner = Field::make()->lines(3)->render()->children()[0];
+        self::assertInstanceOf(View::class, $inner);
+        self::assertSame('3lh', (string) $inner->style()->minHeight, 'n lines of the field\'s own text, inside its padding');
     }
 
     public function test_lines_applies_to_inner_box_with_label(): void
     {
         $box = Field::make()->label('L')->lines(2)->render()->children()[1];
         self::assertInstanceOf(View::class, $box);
-        self::assertEquals(pt(28), $box->style()->minHeight);
+        $inner = $box->children()[0];
+        self::assertInstanceOf(View::class, $inner);
+        self::assertSame('2lh', (string) $inner->style()->minHeight);
     }
 
     public function test_lines_below_one_rejected(): void

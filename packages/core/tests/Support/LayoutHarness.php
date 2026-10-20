@@ -14,18 +14,20 @@ final class LayoutHarness
     /** @var list<string> */
     public array $warnings = [];
     public LayoutEngine $engine;
+    private Theme $theme;
 
     /** @param list<string> $fallbackFamilies */
     public function __construct(?Theme $theme = null, OverflowMode $overflow = OverflowMode::Throw, ?FakeBackend $backend = null, ?FontRegistry $fonts = null, array $fallbackFamilies = [])
     {
         $backend ??= new FakeBackend();
+        $this->theme = $theme ?? Theme::default();
         $ctx = new LayoutContext($fonts ?? FontRegistry::withDefaults($backend), $theme ?? Theme::default(), $backend, $overflow, function (string $w): void { $this->warnings[] = $w; }, $fallbackFamilies);
         $this->engine = new LayoutEngine($ctx);
     }
 
     public function layout(Node|Component $node, float $width, ?float $height = null, ?BreakToken $token = null, bool $fresh = true): LayoutResult
     {
-        return $this->engine->layout($node, ComputedStyle::root(Theme::default()), new Constraints($width, $height, $fresh), $token);
+        return $this->engine->layout($node, ComputedStyle::root($this->theme), new Constraints($width, $height, $fresh), $token);
     }
 
     /**
