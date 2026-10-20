@@ -151,7 +151,12 @@ final class BoxGeometry
     public static function capsWhole(ComputedStyle $s, Constraints $c): bool
     {
         $max = self::resolve($s->maxHeight, $c->definiteHeight);
-        return $max !== null && ($c->height === null || $max <= $c->height + 1e-9 || !$c->fresh);
+        if ($max === null) {
+            return false;
+        }
+        // min-height wins over a smaller max-height, so the box can be as tall as the larger of the two.
+        $cap = max($max, self::resolve($s->minHeight, $c->definiteHeight) ?? 0.0);
+        return $c->height === null || $cap <= $c->height + 1e-9 || !$c->fresh;
     }
 
     /**

@@ -142,7 +142,7 @@ final class MinMaxHeightTest extends TestCase
     {
         $h = new LayoutHarness();
         $lines = array_map(fn (int $i) => Text::make("line $i"), range(1, 100));
-        foreach ([View::make(...$lines)->maxHeight(pt(5000)), Column::make(...$lines)->maxHeight(pt(5000)), Text::markup(implode('<br>', range(1, 100)))->height(pt(5000))] as $box) {
+        foreach ([View::make(...$lines)->maxHeight(pt(5000)), Column::make(...$lines)->maxHeight(pt(5000)), Text::markup(implode('<br>', range(1, 100)))->height(pt(5000)), View::make(...$lines)->minHeight(pt(5000))->maxHeight(pt(100)), Text::markup(implode('<br>', range(1, 100)))->minHeight(pt(5000))->maxHeight(pt(100))] as $box) {
             $r = $h->layout($box, 200, 300.0, null, true);
             self::assertSame(Status::Partial, $r->status, 'splits across pages');
             self::assertLessThanOrEqual(300.0, self::frag($r)->height);
