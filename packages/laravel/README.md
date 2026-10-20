@@ -246,6 +246,94 @@ Define styles in `config/papercut.php`, using the same keys as tag attributes:
 
 The named style is the base; attributes written on the tag override it for any property both set.
 
+## Decorators
+
+Ready-made pieces that give content a look: `card`, `callout`, `blockquote`, `section`, `field`, `choices`, `key-value` and `badge`. They are plain Papercut components, so they work in PDF and HTML, take the usual [style attributes](#style-attributes) on their outer box, and get their look from [named styles](#named-styles) you can override.
+
+```blade
+<x-doc::card title="Respondent">
+  <x-doc::text>Jane Smith</x-doc::text>
+</x-doc::card>
+<x-doc::card><x-slot:title><x-doc::text>Rich <b>title</b></x-doc::text></x-slot:title> ... </x-doc::card>
+```
+
+A bordered box with an optional title strip. `callout` and `badge` share tone names, so you can pair them:
+
+```blade
+<x-doc::callout type="warning" title="Before you start">Answers cannot be changed.</x-doc::callout>
+<x-doc::badge type="tip">Agree</x-doc::badge>
+```
+
+`callout` types: `note` (default), `tip`, `warning`, `danger`. `badge` types: `neutral` (default), `note`, `tip`, `warning`, `danger`. A badge is a block that hugs its text; it cannot sit inside a line.
+
+```blade
+<x-doc::blockquote cite="Jane Smith, 2024">Quoted words.</x-doc::blockquote>
+
+<x-doc::section number="3" title="Search terms" rule keep-together>
+  ...content...
+</x-doc::section>
+<x-doc::section number="3"><x-slot:title><x-doc::markup :text="$prompt" /></x-slot:title> ... </x-doc::section>
+```
+
+A section keeps its heading with the first of its content. The number is a string and Papercut adds no punctuation.
+
+```blade
+<x-doc::field label="Comments" placeholder="No response" lines="3">{{ $text }}</x-doc::field>
+```
+
+A bordered box that shows `placeholder` when its content is empty (no children, or only whitespace). `lines` sets a minimum height of that many lines of the default 14pt line; with a bigger base font size set `min-height` yourself.
+
+```blade
+<x-doc::choices type="checkbox" emphasize-selected>
+  <x-doc::choice selected>Library catalogue</x-doc::choice>
+  <x-doc::choice>Web search</x-doc::choice>
+</x-doc::choices>
+```
+
+`type` is `checkbox` (default) or `radio`. Markers are drawn shapes, not glyphs, so they look the same in every font. They sit level with the first line of a label because `choice.marker` has a top margin that centres it on a 14pt line; with bigger label text, override that margin (see below). `<x-doc::choice>` is only valid inside `<x-doc::choices>`.
+
+```blade
+<x-doc::key-value label-width="30%">
+  <x-doc::kv label="Respondent">Jane Smith</x-doc::kv>
+  <x-doc::kv label="I can use this at work"><x-doc::badge type="tip">Agree</x-doc::badge></x-doc::kv>
+</x-doc::key-value>
+```
+
+Aligned label and value rows. `label-width` fixes the first column so long labels wrap.
+
+`<mark>` works in any text tag and in `<x-doc::markup>`: `<x-doc::text>a <mark>key</mark> word</x-doc::text>` paints a `yellow-200` background behind the run. In `<x-doc::markup :html>`, `<span style="background-color: ...">` keeps its own colour only when `markup.styles` is `'original'`; in `'theme'` mode inline styles are ignored.
+
+### Built-in styles
+
+Each decorator reads these names. Colours are palette names.
+
+| Style | Default |
+|---|---|
+| `card`, `card.title`, `card.body` | 1pt `slate-300` border, 4pt radius; `slate-100` bold title strip; 10pt body padding |
+| `callout`, `callout.<tone>`, `callout.title`, `callout.title.<tone>` | 3pt left rule, tinted box in `sky`, `emerald`, `amber` or `red` (rule `-500`, background `-50`), bold title in the `-800` shade |
+| `blockquote`, `blockquote.cite` | 3pt `slate-300` left rule, italic `slate-700`; cite 9pt `slate-500`, not italic |
+| `section`, `section.heading`, `section.number`, `section.title`, `section.rule`, `section.body` | 6pt gap, bold title, bold `slate-500` number 18pt wide, 0.75pt `slate-200` rule |
+| `field`, `field.label`, `field.placeholder` | 1pt `slate-300` border, 3pt radius; 9pt `slate-600` label; italic `slate-400` placeholder |
+| `choice`, `choice.marker`, `choice.marker.radio`, `choice.marker.selected`, `choice.mark`, `choice.mark.radio`, `choice.label.selected` | 9pt marker with 1pt `slate-400` border, round for radio; selected border `slate-800` and a 5pt inner mark; selected label bold |
+| `key-value`, `key-value.label`, `key-value.value` | no borders; `slate-600` label |
+| `badge`, `badge.<tone>` | 9pt bold pill in `slate`, `sky`, `emerald`, `amber` or `red` (background `-100`, text `-800`) |
+
+Every value is listed in section 6 of the [decorators design](../../docs/superpowers/specs/2026-10-19-decorators-design.md).
+
+### Restyle or add a tone
+
+Define a style with the same name in `config/papercut.php`. It replaces the built-in one entirely, so restate every property you want:
+
+```php
+'styles' => [
+    'callout.warning' => ['border-color' => 'orange-500', 'background' => 'orange-50'],
+    'callout.success' => ['border-color' => 'green-600', 'background' => 'green-50'],
+    'callout.title.success' => ['color' => 'green-800'],
+],
+```
+
+In PHP, `$theme->withStyle('callout.warning', Style::make(...))` does the same. To add a tone, define `callout.<tone>` and `callout.title.<tone>` (as `success` above), then write `type="success"`; a badge tone needs `badge.<tone>`. To change the marker offset, redefine `choice.marker` with a different `margin` (and the rest of its properties). Style names can also be combined in a `style` attribute, space-separated: `style="callout callout.success"`.
+
 ## Rich text from your database
 
 `<x-doc::markup>` converts stored HTML or plain text into document nodes. Pass the value bound (`:html`), so Blade

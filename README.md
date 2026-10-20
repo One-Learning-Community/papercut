@@ -53,6 +53,7 @@ return $invoice->html();                           // full HTML page
 - Keep-together and keep-with-next, so a heading is not stranded at the bottom of a page.
 - Page numbers with a page count: `Page {page} of {total}`.
 - Real fonts: every document embeds fonts (Inter is bundled; register your own families), with subsetting and fallback families. The 14 standard PDF fonts are not used.
+- Decorators: ready-made card, callout, blockquote, section, field, choice list, key-value list and badge, restyled from the theme (`<x-doc::callout type="warning">`).
 - Composition: your own Blade components can contain `<x-doc::*>` tags (see `examples/laravel/views/components`).
 - Strict, readable errors for unknown attributes, bad values and invalid structure.
 

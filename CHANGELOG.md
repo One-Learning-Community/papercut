@@ -57,6 +57,12 @@ Migration from v0.1:
 - Images: an image taller than an empty page shrinks to fit it, keeping its aspect ratio, as it already did for width (previously `LayoutOverflow`). An explicit `height` is still respected.
 - Images: WebP, GIF, BMP and AVIF are accepted when the GD extension is loaded (`ext-gd`, now in `suggest`). They are converted to PNG for PDF, which is lossless and keeps transparency; HTML export embeds the original bytes. PNG and JPEG never need GD. Without GD the error names the extension to install, and the unsupported-format message lists every accepted format.
 - Paper sizes: `Page::named()` adds `a0`, `a1`, `a2`, `b4`, `b5`, `tabloid` and `executive` (`Page::sizeNames()` lists them all), and an unknown name lists the valid ones. In Laravel, `<x-doc::page size>` and `papercut.paper` also accept a width and height, such as `"8.5in 11in"`.
+- Core: decorator components in `Papercut\Decorator`: `Card`, `Callout`, `Blockquote`, `Section`, `Field`, `ChoiceList`, `KeyValueList` and `Badge`. They render from existing nodes, so PDF and HTML export both work, and their look comes from built-in named styles (`card`, `callout.warning`, `choice.marker`, `badge.tip`, …) that any `Theme` resolves and `withStyle()` can override.
+- Core: `Theme` accepts space-separated style names (`apply('callout callout.warning')`), merged left to right; an unknown name in the list is reported with a suggestion.
+- Core: `View::htmlTag()` sets the element HTML export writes (`div`, `section`, `aside`, `blockquote`, `header`, `footer`, `figure`); PDF ignores it.
+- Core: highlighted text runs. Spans honour `background`, and `<mark>` in `Text::markup()` paints `yellow-200` behind the run (one rectangle per line fragment) in PDF and HTML.
+- Core: `Markup::html()` converts `<blockquote>` to `Blockquote` (a trailing `<cite>` or `<footer>` becomes the attribution) and `<mark>` to a highlight; `<span style="background-color">` keeps its colour in `StyleMode::Original`.
+- Laravel: `<x-doc::card>`, `<x-doc::callout>`, `<x-doc::blockquote>`, `<x-doc::section>`, `<x-doc::field>`, `<x-doc::choices>` / `<x-doc::choice>`, `<x-doc::key-value>` / `<x-doc::kv>` and `<x-doc::badge>`, plus a `responses` example and a "Decorators" section in the README.
 
 ## [0.1.0] - unreleased
 

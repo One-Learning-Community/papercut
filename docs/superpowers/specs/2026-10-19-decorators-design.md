@@ -195,7 +195,8 @@ Markers are **drawn boxes, not glyphs** *(my call)*: a bordered square (checkbox
 size) with a filled inner square or dot when selected. This avoids depending on ☐/☒/○/● being in the document font,
 and looks the same in PDF and HTML. Each option is a row: marker `View` (`choice.marker` or
 `choice.marker.radio`, plus `choice.marker.selected`), label column (grows). The marker is nudged down so it lines up
-with the first line of the label (offset from the label's font size and line height). Rows keep each option whole;
+with the first line of the label by the theme's `choice.marker` margin-top (2.5pt centres it on a 14pt line); an app with
+bigger label text overrides that style. Rows keep each option whole;
 the list may split between options. Blade: `<x-doc::choice>` is only valid inside `<x-doc::choices>` (same parent
 check as `<x-doc::li>`).
 

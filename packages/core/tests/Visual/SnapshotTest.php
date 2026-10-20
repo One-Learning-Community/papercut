@@ -52,7 +52,7 @@ final class SnapshotTest extends TestCase
         $update = getenv('UPDATE_SNAPSHOTS') === '1';
         if ($update) {
             @mkdir($snapshotDir, 0777, true);
-            foreach (glob("$snapshotDir/$name-*.png") ?: [] as $stale) {
+            foreach (glob("$snapshotDir/$name-[0-9]*.png") ?: [] as $stale) {
                 unlink($stale);
             }
         }
@@ -74,7 +74,7 @@ final class SnapshotTest extends TestCase
                 $failures[] = $this->saveFailure("$name-" . ($index + 1), $expected, $actual, $ratio);
             }
         }
-        if (!$update && count(glob("$snapshotDir/$name-*.png") ?: []) > count($pages)) {
+        if (!$update && count(glob("$snapshotDir/$name-[0-9]*.png") ?: []) > count($pages)) {
             $failures[] = "$name rendered " . count($pages) . ' page(s) but more snapshots exist; delete the stale ones or refresh with UPDATE_SNAPSHOTS=1.';
         }
 

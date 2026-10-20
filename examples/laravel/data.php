@@ -52,6 +52,20 @@ for ($i = 1; $i <= 80; $i++) {
     $scenarios[] = [$i, sprintf('Sample scenario %d: %s', $i, $kinds[$i % 4]), 1 + $i % 9, 10 + ($i * 37) % 90];
 }
 
+// --- responses -------------------------------------------------------------
+$responseItems = [
+    ['type' => 'instruction', 'prompt' => 'Before you continue', 'text' => 'Answer from your own experience in the workshop. Skip anything you did not attend.'],
+    ['type' => 'text', 'prompt' => 'What did you find most useful?', 'answer' => 'The pagination session. Seeing a table split across pages with a repeated header answered a question we had been stuck on for weeks.'],
+    ['type' => 'text', 'prompt' => 'What should we change for next time?', 'answer' => ''],
+    ['type' => 'choices', 'multiple' => true, 'prompt' => 'Which sessions did you attend?', 'options' => ['Layout basics', 'Pagination', 'Fonts and HTML export', 'Templates in Blade'], 'selected' => ['Layout basics', 'Pagination']],
+    ['type' => 'choices', 'multiple' => false, 'prompt' => 'How would you rate the pace?', 'options' => ['Too slow', 'About right', 'Too fast'], 'selected' => ['About right']],
+    ['type' => 'ratings', 'prompt' => 'How far do you agree?', 'rows' => [
+        ['The examples matched problems I have at work.', 'Strongly agree', 'tip'],
+        ['I could follow the material without preparation.', 'Agree', 'note'],
+        ['The workshop was long enough to cover the topics in depth.', 'Disagree', 'warning'],
+    ]],
+];
+
 return [
     'invoice' => [
         'items' => $items,
@@ -74,5 +88,11 @@ return [
             ['Fragment', 'The part of a node that fits on one page.'],
             ['Track', 'A column width definition in a table.'],
         ],
+    ],
+    'responses' => [
+        'respondent' => 'Jane Smith',
+        'submitted' => '2026-03-02 14:30',
+        'course' => 'Papercut workshop, spring cohort',
+        'items' => $responseItems,
     ],
 ];
