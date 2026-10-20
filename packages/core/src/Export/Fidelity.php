@@ -39,6 +39,12 @@ final class Fidelity
         $this->record($report);
     }
 
+    /** A plain warning that is not a fidelity report; the callback is handed the message only. */
+    public function warn(string $message): void
+    {
+        $this->options->onWarning()?->__invoke($message);
+    }
+
     /** @return list<FidelityReport> */
     public function reports(): array
     {

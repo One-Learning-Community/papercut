@@ -39,7 +39,7 @@ final class ExamplesTest extends TestCase
 
     public function test_report_example_makes_no_unbacked_claims(): void
     {
-        $source = (string) file_get_contents(dirname(__DIR__, 4) . '/examples/core/report.php');
+        $source = (string) file_get_contents(dirname(__DIR__, 4) . '/examples/core/documents/report.php');
         foreach (['PAGES PER SECOND', '38 KB', 'Benchmark', 'shrinking', 'every modifier also accepts a string'] as $claim) {
             self::assertStringNotContainsString($claim, $source);
         }
@@ -47,7 +47,7 @@ final class ExamplesTest extends TestCase
 
     public function test_transcript_heading_is_a_sibling_of_the_summary_and_courses_are_distinct(): void
     {
-        $source = (string) file_get_contents(dirname(__DIR__, 4) . '/examples/core/transcript.php');
+        $source = (string) file_get_contents(dirname(__DIR__, 4) . '/examples/core/documents/transcript.php');
         self::assertDoesNotMatchRegularExpression('/\$summary = Column::make\(\s*Text::h3/', $source);
         self::assertStringContainsString("Text::h3('Cumulative summary')->keepWithNext(), \$summary", $source);
         $root = dirname(__DIR__, 4);

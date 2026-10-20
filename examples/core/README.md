@@ -8,4 +8,6 @@ php examples/core/transcript.php   # multi-page transcript with a repeating tabl
 php examples/core/report.php       # justified prose, stat cards, an 80-row table, appendix
 ```
 
+Each script requires its Document from `documents/<name>.php`, which just returns it, so the same documents can be rendered by other exporters. `php examples/html/render.php` writes `examples/html/{invoice,transcript,report}.html` (full pages with fonts linked by relative path, so open them from a checkout).
+
 Each script writes `examples/core/<name>.pdf` (git-ignored) and prints its name. `hello.php` is a low-level backend demo.

@@ -89,10 +89,10 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
 |---|---|---|
 | `Expander` | Turns `Component`s into `Node`s, with the existing depth guard. Moved out of `LayoutEngine::expand`. | Node |
 | `StyleResolver` | `(Node, parent ComputedStyle) → ComputedStyle`: theme presets, named styles, the node's own style, inheritance. Moved out of `LayoutContext::resolveStyle`, keeping its per-node cache. `LayoutEngine` uses it unchanged. | Node, Style |
-| `TreeWalker` | Depth-first walk that yields `(Node, ComputedStyle, path)` for page body, header, footer and background. Builds node paths (`page > row[2] > column[0]`) the same way layout does, and attaches them to `InvalidValue` / `UnknownAttribute`. | Expander, StyleResolver |
+| `TreeWalker` | Depth-first walk that yields `(Node, ComputedStyle, path)` for page body, header, footer and background. Builds node paths (`page > row[2] > column[0]`) the same way layout does, and attaches them to `InvalidValue` / `UnknownAttribute`. `TreeVisitor::enter`/`leave` receive the node, its `ComputedStyle`, and a `Visit` carrying the path, sibling index, parent node, header flag and region. Exporters keep their own parent-style stack. | Expander, StyleResolver |
 | `WidthResolver` | The layout engine's horizontal calculation exposed on its own: given a node and an available width, it returns the resolved widths of flex children (basis, grow, shrink, gap) and table columns (fixed, fr, auto via content min/max). No pagination. Uses `FontRegistry` for content-dependent widths. | Layout, Text |
 | `Exporter` | `export(Document $doc, ExportOptions $opts): Output` | — |
-| `Output` | `bytes(): string`, `mime(): string`, `extension(): string`, `save(string $path): void`, `stream(): int` | — |
+| `Output` | `bytes(): string`, `mime(): string`, `extension(): string`, `save(string $path): void`, `stream(): int` (all state private; public accessors are methods) | — |
 | `Fidelity` | Collects `FidelityReport(level, format, feature, path)`. Levels: `Approximated`, `Dropped`. Forwards to `onWarning`. In strict mode, throws `UnsupportedFeature` on the first `Dropped`. | — |
 | `FontSet` | Format-neutral font configuration: family → file per weight and italic, plus fallback families. PDF loads it into `FontRegistry`; HTML emits `@font-face`; DOCX writes family names. | Value |
 | `PdfExporter` | Wraps the existing pipeline (`Paginator` → `Painter` → `Backend`). | Layout, Paint, Backend |
@@ -105,11 +105,13 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
 - **n/a:** the feature has no meaning in the format (for example page numbers on screen). Left out silently, never reported, never thrown.
 
 **Options**
+- Options are readonly classes with private state and accessor methods: `theme()`, `fonts()`, `onWarning()`, `strict()`; `PdfOptions` adds `backend()`, `overflow()`, `cacheDir()`; `HtmlOptions` adds `fullPage()`, `fontMode()`, `imageUrl()`, `fontUrl()`. Each subclass has `from(ExportOptions)`.
 - `ExportOptions` (shared): `theme`, `fonts: FontSet`, `onWarning: ?Closure`, `strict: bool = false`.
-- `PdfOptions extends ExportOptions`: `backend`, `fallbackFamilies`, `cacheDir`, `overflow: OverflowMode`. This replaces `RenderOptions`.
+- `PdfOptions extends ExportOptions`: `backend`, `cacheDir`, `overflow: OverflowMode`. This replaces `RenderOptions`.
 - `HtmlOptions extends ExportOptions`:
   - `fullPage: bool = false`
-  - `fontMode: 'link'|'embed'|'none' = 'embed'` (Laravel config key `html.fonts`)
+  - `fontMode: FontMode = none` (`none`|`embed`|`link`; Laravel config key `html.fonts`). `embed` and `link` are opt-in.
+  - `fontUrl: ?Closure(FontFace): ?string`: used by `link`; a null return skips that face.
   - `imageUrl: ?Closure(Image): ?string` (null, or a null return, means embed as a data URI)
 - `DocxOptions extends ExportOptions`: no extra settings in 0.2.0.
 
@@ -192,7 +194,7 @@ Node tree ─► Expander + StyleResolver (shared, no layout) ─► TreeWalker
   - Units are emitted in `pt`.
 - **Print CSS:** `@page` size and margins from the first page; `break-before: page` for page breaks and `break-before`/`break-after`; `break-inside: avoid` for `keep-together` and table rows. The page box's screen styling is removed in print.
 - **Page-only features:** `page-number`, keep rules and `min-lines` are n/a on screen. Page numbers are left out of the output, not rendered as "1".
-- **Fonts (`fontMode`):** `embed` (default) inlines each used `FontSet` file as a base64 `@font-face`. `link` uses a URL from the font config. `none` emits family names only.
+- **Fonts (`fontMode`):** `none` (default) emits family names only, falling back to `system-ui, sans-serif`. `embed` is opt-in and inlines each used `FontSet` file as a base64 `@font-face`. `link` is opt-in and uses the URL the `fontUrl` callback returns for each face (a null return skips that face). Google Fonts in `link` mode is future work (§12).
 - **Images:** data URIs by default; an `imageUrl` callback can return a URL instead. Laravel embeds by default too.
 - **Security:**
   - All text and attribute values are escaped.
@@ -311,7 +313,7 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
 - **XPath assertions** per capability row.
 - **Validity:** no HTML5 parse errors. Full-page output has doctype, `lang`, charset and `<title>`.
 - **Security:** escaping `<script>` in text and attributes, rejecting `javascript:` hrefs, and building data URIs only from file or byte sources.
-- **Visual (optional, never blocks CI):** headless Chromium screenshots of the examples, uploaded as CI artifacts for a person to review. No pixel comparison against the PDF.
+- **Visual (local, never blocks CI):** `examples/html/render.php` writes the example documents as HTML for a person to open in a browser and review. No pixel comparison against the PDF. CI screenshots of the examples arrive with Phase 2's `docx.yml`.
 
 **DOCX**
 - **Golden XML:** unzip the output, canonicalize each part (C14N), and compare `document.xml`, `styles.xml`, header and footer parts, `_rels`, and `[Content_Types].xml` with approved copies.
@@ -341,7 +343,7 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
 | Phase | Delivers | Exit criteria |
 |---|---|---|
 | **0. Seams and renames** | §5.2 core units, `Image::handle` removed, options split, `Document` API, `WidthResolver`, Laravel renames (`x-doc`, `Papercut`, `PendingDocument`/`PendingOutput`, `prefix` config) | PDF byte-identical to v0.1; full suite green after renames; `WidthResolver` tested on its own against layout fragment widths |
-| **1. HTML** | `HtmlExporter`, `HtmlOptions`, Laravel `->html()`, preview `?format=html` | Examples render close to the PDF (screenshots reviewed); every HTML capability row has a test; content parity PDF ↔ HTML |
+| **1. HTML** | `HtmlExporter`, `HtmlOptions`, Laravel `->html()`, preview `?format=html` | Examples render close to the PDF (reviewed in a browser via `examples/html/render.php`); every HTML capability row has a test; content parity PDF ↔ HTML |
 | **1b. Upstream (runs alongside phase 1)** | php-docx PR: `cantSplit`, and `keepLines` if absent | Merged and released, or the contained fallback in §5.3 is triggered at the end of phase 2 |
 | **2. DOCX** | `papercut/docx`, `DocxExporter`, Laravel `->docx()` and `MissingExporter`, `docx.yml` | Schema-valid; golden and XPath tests green; content parity across all three; manual checklist passed |
 | **3. Docs and release** | README "one template, three formats" (the invoice in all three), capability table in the docs, migration table, version bumps, 0.2.0 tags | Docs reviewed; tags pushed by the maintainer |
@@ -363,6 +365,7 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
 
 ## 12. Future work (the design leaves room)
 
+- **Google Fonts in HTML `link` mode:** a built-in `fontUrl` that maps bundled and common families to Google Fonts URLs, instead of requiring a callback.
 - **Raw HTML input** (`<x-doc::html>`): convert HTML into Papercut nodes once, when the tree is built, using php-pdf's `HtmlParser` and CSS cascade as the front end plus a translator from its elements (`Paragraph`, `Run`, `Table`, `ListNode`) to `Text`/`Span`/`Table`. The result works in every format. It reverses v0.1's "no HTML parser" stance, so it needs its own spec. It would likely also bring a list node.
 - **Font embedding in DOCX** (upstream).
 - **An editable DOCX mode** (fewer layout tables, more native paragraphs), as a contribution.

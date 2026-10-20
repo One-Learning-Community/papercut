@@ -20,12 +20,11 @@ final class FontRegistry
 
     public static function withDefaults(Backend $backend): self
     {
-        $dir = __DIR__ . '/../../resources/fonts/Inter';
-        return (new self($backend))
-            ->register('Inter', "$dir/Inter-Regular.ttf", 400)
-            ->register('Inter', "$dir/Inter-Italic.ttf", 400, FontStyle::Italic)
-            ->register('Inter', "$dir/Inter-Bold.ttf", 700)
-            ->register('Inter', "$dir/Inter-BoldItalic.ttf", 700, FontStyle::Italic);
+        $registry = new self($backend);
+        foreach (FontSet::bundled() as $face) {
+            $registry->register($face->family, $face->path, $face->weight, $face->style);
+        }
+        return $registry;
     }
 
     public static function fromSet(FontSet $set, Backend $backend): self

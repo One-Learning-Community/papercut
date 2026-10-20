@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut;
 
-use Papercut\Export\{ExportOptions, Exporter, Output, PdfExporter, PdfOptions};
+use Papercut\Export\{ExportOptions, Exporter, HtmlExporter, HtmlOptions, Output, PdfExporter, PdfOptions};
 use Papercut\Paint\DocumentMeta;
 
 final class Document
@@ -93,5 +93,10 @@ final class Document
     public function toPdf(?PdfOptions $options = null): Output
     {
         return $this->export(new PdfExporter(), $options);
+    }
+
+    public function toHtml(?HtmlOptions $options = null): Output
+    {
+        return $this->export(new HtmlExporter(), $options);
     }
 }

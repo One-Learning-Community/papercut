@@ -30,4 +30,16 @@ final class FontSetTest extends TestCase
         self::assertSame([], $a->fallbacks);
         self::assertCount(1, $b->faces);
     }
+
+    public function test_bundled_lists_the_four_inter_faces(): void
+    {
+        $faces = FontSet::bundled();
+        self::assertCount(4, $faces);
+        foreach ($faces as $face) {
+            self::assertSame('Inter', $face->family);
+            self::assertFileExists($face->path);
+        }
+        self::assertSame([400, 400, 700, 700], array_map(static fn (FontFace $f): int => $f->weight, $faces));
+        self::assertSame([FontStyle::Normal, FontStyle::Italic, FontStyle::Normal, FontStyle::Italic], array_map(static fn (FontFace $f): FontStyle => $f->style, $faces));
+    }
 }
