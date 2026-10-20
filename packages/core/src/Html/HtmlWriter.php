@@ -150,7 +150,7 @@ final class HtmlWriter implements TreeVisitor
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);
         $closer = match (true) {
-            $node instanceof View => $this->view($style, $parent, $at),
+            $node instanceof View => $this->view($node, $style, $parent, $at),
             $node instanceof Text => $this->text($node, $style, $parent, $at),
             $node instanceof Link => $this->link($node, $style, $parent, $at),
             $node instanceof Spacer => $this->spacer($node, $style),
@@ -196,17 +196,18 @@ final class HtmlWriter implements TreeVisitor
         return Css::text($s, $parent, $this->options->fonts()->fallbacks);
     }
 
-    private function view(ComputedStyle $s, ComputedStyle $parent, Visit $at): string
+    private function view(View $n, ComputedStyle $s, ComputedStyle $parent, Visit $at): string
     {
         $this->checkDecoration($s, $parent, $at->path());
-        $decls = [...Css::box($s), ...Css::flexContainer($s)];
+        $tag = $n->htmlElement();
+        $decls = [...($tag === 'div' ? [] : ['margin' => '0']), ...Css::box($s), ...Css::flexContainer($s)];
         if ($this->parentIsFlex($at)) {
             $decls += Css::flexItem($s);
         }
         $decls = [...$decls, ...Css::pagination($s, $parent), ...$this->textCss($s, $parent, $at->path())];
-        $this->out .= '<div' . self::styleAttr($decls) . '>';
+        $this->out .= '<' . $tag . self::styleAttr($decls) . '>';
 
-        return '</div>';
+        return '</' . $tag . '>';
     }
 
     private function list(ListNode $n, ComputedStyle $s, ComputedStyle $parent, Visit $at): string

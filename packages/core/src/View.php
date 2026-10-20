@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Papercut;
 
 use Papercut\Concerns\{HasNotes, HasStyle};
+use Papercut\Exception\InvalidValue;
 use Papercut\Style\{Align, Direction, Justify, Style};
+use Papercut\Support\Suggest;
 use Papercut\Value\Length;
 
 final class View implements Styled, Annotated
@@ -16,6 +18,9 @@ final class View implements Styled, Annotated
     /** @var list<Node|Component> */
     private array $children = [];
     private bool $explicitDirection = false;
+    private string $htmlTag = 'div';
+
+    private const HTML_TAGS = ['div', 'section', 'aside', 'blockquote', 'header', 'footer', 'figure'];
 
     private function __construct()
     {
@@ -58,6 +63,25 @@ final class View implements Styled, Annotated
         $clone = clone $this;
         $clone->children = self::normalize($children);
         return $clone;
+    }
+
+    /**
+     * Hints the HTML element this view exports as; PDF ignores it.
+     */
+    public function htmlTag(string $tag): self
+    {
+        $normalized = strtolower($tag);
+        if (!in_array($normalized, self::HTML_TAGS, true)) {
+            throw InvalidValue::for('html element', $tag, Suggest::closest($normalized, self::HTML_TAGS));
+        }
+        $clone = clone $this;
+        $clone->htmlTag = $normalized;
+        return $clone;
+    }
+
+    public function htmlElement(): string
+    {
+        return $this->htmlTag;
     }
 
     public function debugName(): string

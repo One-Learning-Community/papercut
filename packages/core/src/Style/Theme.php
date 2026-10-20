@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Style;
 
+use Papercut\Decorator\DefaultStyles;
 use Papercut\Exception\UnknownAttribute;
 use Papercut\Support\Suggest;
 use Papercut\Value\{Color, Edges, Length};
@@ -66,12 +67,26 @@ final class Theme
         return $this->withStyles($styles);
     }
 
-    public function named(string $name): Style
+    /**
+     * One style or several, space-separated and merged left to right. Theme
+     * styles shadow the built-in decorator defaults of the same name.
+     */
+    public function named(string $names): Style
     {
-        if (isset($this->styles[$name])) {
-            return $this->styles[$name];
+        $parts = preg_split('/\s+/', trim($names), -1, PREG_SPLIT_NO_EMPTY);
+        if ($parts === false || $parts === []) {
+            throw UnknownAttribute::for($names, null, 'style');
         }
-        throw UnknownAttribute::for($name, Suggest::closest($name, array_map(strval(...), array_keys($this->styles))), 'style');
+        $merged = null;
+        foreach ($parts as $name) {
+            $style = $this->styles[$name] ?? DefaultStyles::get($name)
+                ?? throw UnknownAttribute::for($name, Suggest::closest($name, [
+                    ...array_map(strval(...), array_keys($this->styles)),
+                    ...DefaultStyles::names(),
+                ]), 'style');
+            $merged = $merged === null ? $style : $merged->merge($style);
+        }
+        return $merged;
     }
 
     public function with(
