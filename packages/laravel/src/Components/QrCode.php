@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
-use Papercut\Barcode\ErrorCorrection;
+use Papercut\Barcode\{ErrorCorrection, QrEyes, QrGradient, QrShape};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Tag;
+use Papercut\Value\Color;
 
 final class QrCode extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
-        return ['value', 'level', 'quiet-zone'];
+        return ['value', 'level', 'quiet-zone', 'shape', 'eyes', 'eye-color', 'gradient', 'gradient-type'];
     }
 
     protected function build(array $data): object
@@ -42,8 +43,64 @@ final class QrCode extends PapercutComponent
             }
             $node = $node->quietZone((int) $zone);
         }
+        if (isset($own['shape'])) {
+            $node = $node->shape(self::choice($own['shape'], 'shape', QrShape::class, 'square, rounded or dots'));
+        }
+        if (isset($own['eyes'])) {
+            $node = $node->eyes(self::choice($own['eyes'], 'eyes', QrEyes::class, 'square, dot or pointy'));
+        }
+        if (isset($own['eye-color'])) {
+            $node = $node->eyeColor(self::color($own['eye-color'], 'eye-color'));
+        }
+        if (isset($own['gradient'])) {
+            $node = $node->gradient(...self::gradient($own['gradient']), type: isset($own['gradient-type'])
+                ? self::choice($own['gradient-type'], 'gradient-type', QrGradient::class, 'horizontal, vertical, diagonal, inverse-diagonal or radial')
+                : QrGradient::Diagonal);
+        } elseif (isset($own['gradient-type'])) {
+            throw self::invalid('gradient-type', $own['gradient-type'], 'it needs a gradient, such as gradient="#4f46e5 #0e7490"');
+        }
 
         return $this->styled($node, $data);
+    }
+
+    /**
+     * @template T of \BackedEnum
+     * @param class-string<T> $enum
+     * @return T
+     */
+    private static function choice(mixed $value, string $attribute, string $enum, string $expected): \BackedEnum
+    {
+        $choice = is_string($value) ? $enum::tryFrom(strtolower(trim($value))) : null;
+
+        return $choice ?? throw self::invalid($attribute, $value, "expected $expected");
+    }
+
+    private static function color(mixed $value, string $attribute): Color
+    {
+        if ($value instanceof Color) {
+            return $value;
+        }
+        if (!is_string($value)) {
+            throw self::invalid($attribute, $value, 'expected a color');
+        }
+
+        return Color::parse($value);
+    }
+
+    /** @return array{Color, Color} two colors separated by a space; a color's own spaces sit inside brackets */
+    private static function gradient(mixed $value): array
+    {
+        $colors = is_string($value) ? preg_split('/\s+(?![^(]*\))/', trim($value)) : false;
+        if ($colors === false || count($colors) !== 2) {
+            throw self::invalid('gradient', $value, 'expected two colors separated by a space, such as "#4f46e5 #0e7490"');
+        }
+
+        return [self::color($colors[0], 'gradient'), self::color($colors[1], 'gradient')];
+    }
+
+    private static function invalid(string $attribute, mixed $value, string $because): InvalidValue
+    {
+        return InvalidValue::for($attribute, is_scalar($value) ? (string) $value : get_debug_type($value))->because($because)->withContext($attribute)->within('on ' . Tag::of('qr-code'));
     }
 
     private static function level(mixed $level): ErrorCorrection

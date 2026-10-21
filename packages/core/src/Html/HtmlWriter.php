@@ -7,6 +7,7 @@ namespace Papercut\Html;
 use Papercut\Backend\Backend;
 use Papercut\Export\LoadedImage;
 use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
+use Papercut\Barcode\Bacon\BaconQrSvg;
 use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
@@ -352,12 +353,20 @@ final class HtmlWriter implements TreeVisitor
         }
         $decls['display'] = 'block';
         $decls['aspect-ratio'] = '1';
+        $label = $n->value() === null ? 'QR code' : 'QR code: ' . $n->value();
+        $design = $n->design();
+        if ($design !== null) {
+            // An image, like other SVG: its gradient ids cannot clash with another code's on the page.
+            $xml = BaconQrSvg::svg($n->modules(), $n->quietZoneModules(), $n->level(), $design, $s->color);
+            $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($xml) . '" alt="' . self::esc($label) . '"' . self::styleAttr($decls) . '>';
+
+            return '';
+        }
         $q = $n->quietZoneModules();
         $d = '';
         foreach (ModuleRects::of($n->modules()) as $r) {
             $d .= sprintf('M%d %dh%dv%dh-%dz', $r['x'] + $q, $r['y'] + $q, $r['w'], $r['h'], $r['w']);
         }
-        $label = $n->value() === null ? 'QR code' : 'QR code: ' . $n->value();
         $this->out .= sprintf(
             '<svg viewBox="0 0 %1$d %1$d" role="img" aria-label="%2$s" shape-rendering="crispEdges"%3$s><path d="%4$s" fill="%5$s"/></svg>',
             $n->span(),

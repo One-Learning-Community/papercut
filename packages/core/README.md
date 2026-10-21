@@ -395,6 +395,22 @@ use function Papercut\mm;
 $document = Document::make(Page::a4()->body(QrCode::make('https://acme.test/pay/INV-142')->width(mm(30))));
 ```
 
+With the optional `bacon/bacon-qr-code` package installed, you can style a code: `shape(QrShape::Rounded|Dots)`, `eyes(QrEyes::Dot|Pointy)`, `eyeColor($color)` and `gradient($from, $to, QrGradient $type = Diagonal)`. Papercut still encodes the modules, and Bacon draws them as an SVG. Without the package, styling throws `MissingPackage` with the `composer require` command. Dots and rounded modules are harder to scan, so they raise the error correction to `Quartile` (up to 151 bytes), re-encoding the text, unless it is already `High`; `errorCorrection()` won't take such a code lower. `new BaconQrEncoder()` (in `Papercut\Barcode\Bacon`) encodes up to 2,953 bytes when passed as the third argument to `make()`. HTML exports show a styled code as an SVG image.
+
+```php
+use Papercut\{Document, Page, QrCode};
+use Papercut\Barcode\{QrEyes, QrShape};
+use function Papercut\mm;
+
+$qr = QrCode::make('https://acme.test/pay/INV-142')
+    ->shape(QrShape::Dots)
+    ->eyes(QrEyes::Dot)
+    ->eyeColor('rose-600')
+    ->gradient('indigo-600', 'cyan-700')
+    ->width(mm(35));
+$document = Document::make(Page::a4()->body($qr));
+```
+
 ## SVG
 
 `Svg::file($path)` and `Svg::fromString($markup)` draw an SVG as vector paths, so it stays sharp at any size. It is sized like an image: the SVG's `width` and `height` (or its `viewBox`, one unit to a pixel) give the natural size, setting one side keeps the aspect ratio, and it shrinks to fit the page width. With both sides set, the SVG's `preserveAspectRatio` places the drawing in the box, and anything outside the box is cut off. An SVG never splits across pages.

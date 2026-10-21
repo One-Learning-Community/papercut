@@ -152,6 +152,71 @@ The squares use the text color, so `color="indigo-700"` works. Keep the contrast
 | `level` | `QrCode::make($value, ErrorCorrection::High)` | How much damage the code survives: `L`, `M` (the default), `Q` or `H`. Higher levels hold less text. |
 | `quiet-zone` | `->quietZone(2)` | The blank margin in modules. Lower it only if the code already sits on a plain background. |
 
-QR codes hold up to 213 characters at the default level, which is plenty for URLs and payment references. Longer text throws an error saying how much fits. To encode more, you can plug in another encoder, such as BaconQrCode's, by implementing `Papercut\Barcode\QrEncoder`, or pass a grid you've encoded yourself to `QrCode::fromModules()`.
+QR codes hold up to 213 characters at the default level, which is plenty for URLs and payment references. Longer text throws an error saying how much fits. If you need more, see [Longer text](#longer-text) below.
 
 In HTML exports, a QR code becomes an inline SVG.
+
+### Styled QR codes
+
+You can give a QR code round dots, different eyes (the three squares in the corners), a color for the eyes, or a gradient. Styled codes are drawn by [BaconQrCode](https://github.com/Bacon/BaconQrCode), which is optional, so install it first:
+
+```bash
+composer require bacon/bacon-qr-code
+```
+
+If it isn't installed, styling a code throws an error with that command in it. Plain codes never need it.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::qr-code
+    :value="route('invoices.pay', $invoice)"
+    shape="dots"
+    eyes="dot"
+    eye-color="rose-600"
+    gradient="indigo-600 cyan-700"
+    width="35mm"
+/>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page, QrCode};
+use Papercut\Barcode\{QrEyes, QrShape};
+use function Papercut\mm;
+
+$document = Document::make(Page::a4()->body(
+    QrCode::make('https://acme.test/pay/INV-142')
+        ->shape(QrShape::Dots)
+        ->eyes(QrEyes::Dot)
+        ->eyeColor('rose-600')
+        ->gradient('indigo-600', 'cyan-700')
+        ->width(mm(35)),
+));
+```
+:::
+
+| Attribute | PHP | What it does |
+|---|---|---|
+| `shape` | `->shape(QrShape::Dots)` | How the modules are drawn: `square` (the default), `rounded` or `dots`. Rounded and dots raise `level` to `Q`. |
+| `eyes` | `->eyes(QrEyes::Dot)` | How the corner eyes are drawn: `square` (the default), `dot` (a square ring around a round dot) or `pointy` (a rounded ring with one square corner facing the middle). |
+| `eye-color` | `->eyeColor('rose-600')` | A color for the eyes. Without it they match the modules. |
+| `gradient` | `->gradient('indigo-600', 'cyan-700')` | Two colors, separated by a space, that the modules fade between instead of using the text color. |
+| `gradient-type` | `->gradient($from, $to, QrGradient::Radial)` | Which way the gradient runs: `diagonal` (the default, from the top left), `inverse-diagonal`, `horizontal`, `vertical` or `radial` (from the centre outwards). |
+
+The code still encodes the same modules as a plain one; only the drawing changes. Dots and rounded modules leave less ink for a scanner to find, so they raise the error correction level to `Q`, unless you've chosen `H`. That holds less text: up to 151 characters instead of 213, and a longer value throws an error that explains why. Eye shapes, eye colors and gradients leave the level alone. Keep every color dark against the background, and test a printed code with a few phones before you send it out.
+
+In HTML exports, a styled code becomes an SVG image with the value as its alt text.
+
+### Longer text
+
+With BaconQrCode installed, you can also use its encoder, which holds up to 2,953 bytes at level `L`. Pass it as the third argument:
+
+```php
+use Papercut\Barcode\Bacon\BaconQrEncoder;
+use Papercut\Barcode\ErrorCorrection;
+use Papercut\QrCode;
+
+$qr = QrCode::make($longText, ErrorCorrection::Medium, new BaconQrEncoder());
+```
+
+You can also plug in any other encoder by implementing `Papercut\Barcode\QrEncoder`, or pass a grid you've encoded yourself to `QrCode::fromModules()`.
