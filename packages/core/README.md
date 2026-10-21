@@ -383,6 +383,17 @@ $document = Document::make(Page::a4()->body(Column::make(
 
 `new PdfOptions(encryption: Encryption::password('secret'))` encrypts the PDF with AES-256 so it opens only with that password; readers may print and copy but not edit. `new Encryption($userPassword, $ownerPassword, print:, copy:, modify:, annotate:, assemble:)` sets the permissions. An empty user password lets anyone open the document while the permissions apply. Without an owner password a random one is generated, so the permissions cannot be lifted. Screen-reader access is always allowed. Signing and merging are left to php-pdf's `PdfSigner` and `PdfMerger`, which work on Papercut's output.
 
+## QR codes
+
+`QrCode::make($value, ErrorCorrection $level = Medium)` draws a QR code as vector squares in the text color. It is square: `width()` (or `height()`) sets the side, 25mm by default, quiet zone included (`quietZone(n)`, 4 modules by default). php-pdf's encoder holds up to 213 bytes at Medium; implement `Papercut\Barcode\QrEncoder` to use another, or pass a grid to `QrCode::fromModules()`. HTML exports draw it as an inline SVG.
+
+```php
+use Papercut\{Document, Page, QrCode};
+use function Papercut\mm;
+
+$document = Document::make(Page::a4()->body(QrCode::make('https://acme.test/pay/INV-142')->width(mm(30))));
+```
+
 ## Images and links
 
 ```php

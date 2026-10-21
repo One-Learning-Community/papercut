@@ -182,6 +182,7 @@ Style attributes (next section) work on every tag marked "style" below. Values a
 | `<x-doc::text>` | `align`, `size` | Style. Inline markup allowed: `<b>`, `<i>`, `<u>`, `<s>`, `<a href>`, `<br>`, `<span>`. |
 | `<x-doc::h1>` ... `<x-doc::h4>` | `align`, `size` | Style. Heading presets. |
 | `<x-doc::p>` | `align`, `size` | Style. Paragraph preset. |
+| `<x-doc::qr-code>` | `value`, `level` (`L`/`M`/`Q`/`H`), `quiet-zone` | Style. A square QR code drawn as vectors in the text color; `width` sets its size (25mm by default). No content. |
 | `<x-doc::image>` | `src`, `data`, `fit` (`contain`/`cover`/`fill`) | Style. Exactly one of `src` or `data` (raw bytes). PNG and JPEG; WebP, GIF, BMP and AVIF need `ext-gd`. An image taller than the page shrinks to fit unless it has an explicit `height`. Absolute and scheme paths (`/x.png`, `C:\x.png`, `file://`) are trusted as given; relative paths are contained to `papercut.image_path` (`..` cannot escape it). Remote URLs are not supported. Never pass untrusted input to `src`. |
 | `<x-doc::link>` | `href` | Style. Required `href`. |
 | `<x-doc::table>` | `columns`, `repeat-header` | Style. Children: one optional `<x-doc::thead>` first, then `<x-doc::tr>`. `columns` is a track list such as `"3fr 25mm 20mm"`. `repeat-header` defaults to on. |

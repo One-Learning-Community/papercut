@@ -6,7 +6,8 @@ namespace Papercut\Html;
 
 use Papercut\Backend\Backend;
 use Papercut\Export\LoadedImage;
-use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, Spacer, Table, TableCell, TableRow, Text, View};
+use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, QrCode, Spacer, Table, TableCell, TableRow, Text, View};
+use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
 use Papercut\Layout\WidthResolver;
@@ -158,6 +159,7 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof PageBreak => $this->pageBreak(),
             $node instanceof PageNumber => '',
             $node instanceof Image => $this->image($node, $style, $at),
+            $node instanceof QrCode => $this->qrCode($node, $style, $at),
             $node instanceof Table => $this->table($node, $style, $at),
             $node instanceof TableRow => $this->tableRow($node, $style, $at),
             $node instanceof TableCell => $this->tableCell($node, $style, $at),
@@ -335,6 +337,36 @@ final class HtmlWriter implements TreeVisitor
         $key = $kind === 'file' ? 'file:' . $value : 'bytes:' . sha1($value);
 
         return $this->images[$key] ??= LoadedImage::load($n, $this->backend);
+    }
+
+    /** An inline SVG in module units, so it scales with the box and stays crisp. */
+    private function qrCode(QrCode $n, ComputedStyle $s, Visit $at): string
+    {
+        $decls = Css::box($s);
+        if ($this->parentIsFlex($at)) {
+            $decls += Css::flexItem($s);
+        }
+        if (!isset($decls['width']) && !isset($decls['height'])) {
+            $decls['width'] = '25mm';
+        }
+        $decls['display'] = 'block';
+        $decls['aspect-ratio'] = '1';
+        $q = $n->quietZoneModules();
+        $d = '';
+        foreach (ModuleRects::of($n->modules()) as $r) {
+            $d .= sprintf('M%d %dh%dv%dh-%dz', $r['x'] + $q, $r['y'] + $q, $r['w'], $r['h'], $r['w']);
+        }
+        $label = $n->value() === null ? 'QR code' : 'QR code: ' . $n->value();
+        $this->out .= sprintf(
+            '<svg viewBox="0 0 %1$d %1$d" role="img" aria-label="%2$s" shape-rendering="crispEdges"%3$s><path d="%4$s" fill="%5$s"/></svg>',
+            $n->span(),
+            self::esc($label),
+            self::styleAttr($decls),
+            $d,
+            self::esc(Css::color($s->color)),
+        );
+
+        return '';
     }
 
     private function image(Image $n, ComputedStyle $s, Visit $at): string

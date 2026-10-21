@@ -36,6 +36,7 @@ Migration from v0.1:
 
 ### Added
 
+- QR codes: `QrCode::make($value)` and `<x-doc::qr-code value="…">` draw a QR code as vector squares in the text color, square, 25mm by default, with error-correction level and quiet zone. Encoded with php-pdf's encoder (up to 213 bytes at Medium) behind a `QrEncoder` interface, or from your own grid with `QrCode::fromModules()`. HTML exports draw an inline SVG.
 - Encryption: `PdfOptions(encryption: Encryption::password('secret'))` and Laravel's `->encrypt()` write AES-256 PDFs that open only with the password. `Encryption` sets print, copy, modify, annotate and assemble permissions; a missing owner password is generated at random so the permissions hold, and screen-reader access is always allowed.
 - Bookmarks: headings `h1`–`h4` fill the PDF's bookmarks panel, nested by level. `bookmark($title, $level)` (Blade `bookmark`, `bookmark-level`) adds or retitles one on any component, `bookmark(false)` removes a heading's, and `PdfOptions(bookmarks: false)` / `papercut.bookmarks` turns them off. Headers, footers and backgrounds never add bookmarks.
 - `php artisan papercut:fonts:install <family>` downloads a family from Google Fonts into the app for use in PDFs, and prints its `fonts` config entry.
