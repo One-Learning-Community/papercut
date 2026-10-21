@@ -56,6 +56,11 @@ abstract class PapercutComponent extends Component
         $style = [];
         foreach ($all as $key => $value) {
             $key = (string) $key;
+            // Blade passes bound and echoed values through e() on their way into the bag; undo it,
+            // so a URL's "&" reaches a QR code or link as "&", not "&amp;".
+            if (is_string($value)) {
+                $value = htmlspecialchars_decode($value, ENT_QUOTES);
+            }
             if ($key === 'style' || in_array($key, $this->ownAttributes(), true)) {
                 $own[$key] = $value;
             } else {
