@@ -70,6 +70,28 @@ final class PdfPageTest extends TestCase
         self::assertStringContainsString('Template', self::textOf($pdf), 'its text stays text');
     }
 
+    public function test_a_rotated_page_is_drawn_upright(): void
+    {
+        $dir = sys_get_temp_dir() . '/papercut-rotate-' . bin2hex(random_bytes(4));
+        mkdir($dir);
+        try {
+            file_put_contents("$dir/in.pdf", self::template());
+            exec(sprintf('qpdf --rotate=+90:1 %s %s 2>&1', escapeshellarg("$dir/in.pdf"), escapeshellarg("$dir/out.pdf")), $out, $code);
+            self::assertSame(0, $code, implode("\n", $out));
+            $page = Page::template(PdfPage::file("$dir/out.pdf"))->margin(pt(0));
+            $image = Raster::of(Document::make($page->body(Text::make('x')))->toPdf()->bytes());
+        } finally {
+            array_map('unlink', glob("$dir/*") ?: []);
+            rmdir($dir);
+        }
+
+        // Turned a quarter clockwise, the 200 x 100 page stands 100 x 200 and the square moves to the top-right corner.
+        self::assertEqualsWithDelta(100.0, $page->width(), 1e-6);
+        self::assertEqualsWithDelta(200.0, $page->height(), 1e-6);
+        self::assertTrue(Raster::ink($image, 75, 25));
+        self::assertFalse(Raster::ink($image, 25, 25));
+    }
+
     public function test_scales_to_the_width_it_is_given(): void
     {
         $image = Raster::of(self::pdf(PdfPage::bytes(self::template())->width(pt(100))));
