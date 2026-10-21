@@ -36,6 +36,7 @@ Migration from v0.1:
 
 ### Added
 
+- `php artisan papercut:fonts:install <family>` downloads a family from Google Fonts into the app for use in PDFs, and prints its `fonts` config entry.
 - `PendingOutput::store($path, $disk = null, $options = [])` writes a PDF or HTML export to a Laravel filesystem disk.
 - `Papercut::make($document)` and `PendingDocument` (`document()`, `pdf()`); `PendingOutput` takes its `Content-Type` and default filename from the `Output`.
 - Core: `Exporter`/`Output` API, `PdfOptions`, `FontSet`, fidelity reporting (`Fidelity`, `FidelityReport`), strict mode (`UnsupportedFeature`) and `MissingExporter`.
