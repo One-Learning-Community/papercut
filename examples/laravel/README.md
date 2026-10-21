@@ -1,6 +1,6 @@
 # Papercut Blade examples
 
-Blade versions of the plain-PHP examples in `examples/core`: `invoice`, `transcript` and `report`. It also has `responses` (no core counterpart), a feedback-form record built from the decorator tags (`section`, `field`, `choices`, `key-value`, `badge`, `callout`).
+Blade versions of the plain-PHP examples in `examples/core`: `invoice`, `transcript` and `report`. It also has `responses`, a feedback-form record built from the decorator tags (`card`, `key-value`, `callout`, `section`, `field`, `choices`, `badge`, `blockquote`); `examples/core/documents/responses.php` builds the same document in PHP.
 `views/components/` holds two app components (`<x-stat-card>`, `<x-line-item-row>`) that wrap `<x-doc::*>` tags.
 Sample data lives in `data.php`; the report's table is generated filler, not measurements.
 

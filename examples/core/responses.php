@@ -1,0 +1,11 @@
+<?php
+
+declare(strict_types=1);
+
+// Run: php examples/core/responses.php
+require __DIR__ . '/../../packages/core/vendor/autoload.php';
+
+$document = require __DIR__ . '/documents/responses.php';
+
+$document->toPdf()->save(__DIR__ . '/responses.pdf');
+echo "Wrote examples/core/responses.pdf\n";
