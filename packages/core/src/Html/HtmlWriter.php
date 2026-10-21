@@ -6,7 +6,7 @@ namespace Papercut\Html;
 
 use Papercut\Backend\Backend;
 use Papercut\Export\LoadedImage;
-use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
+use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
 use Papercut\Barcode\Bacon\BaconQrSvg;
 use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
@@ -117,11 +117,15 @@ final class HtmlWriter implements TreeVisitor
         if ($page->backgroundNodes() !== []) {
             $this->fidelity->approximated('background layer', $path);
         }
+        if ($page->overlayPlaces() !== []) {
+            $this->fidelity->approximated('overlay positions', $path);
+        }
         $m = $page->margins();
         $this->out .= '<section class="pc-page" style="' . self::attr([
             'max-width' => Css::pt($page->width()),
             'min-height' => Css::pt($page->height()),
             'padding' => Css::pt($m->top->points) . ' ' . Css::pt($m->right->points) . ' ' . Css::pt($m->bottom->points) . ' ' . Css::pt($m->left->points),
+            ...($page->overlayPlaces() === [] ? [] : ['position' => 'relative']),
         ]) . '">';
     }
 
@@ -140,6 +144,7 @@ final class HtmlWriter implements TreeVisitor
         $style = match ($region) {
             Region::Header => ' style="margin-bottom:' . Css::pt($this->page?->headerGapLength()->points ?? 0.0) . '"',
             Region::Footer => ' style="margin-top:' . Css::pt($this->page?->footerGapLength()->points ?? 0.0) . '"',
+            Region::Overlay => ' style="position:absolute;inset:0"',
             default => '',
         };
         $this->out .= '<div class="pc-' . $region->value . '"' . $style . '>';
@@ -166,6 +171,7 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof QrCode => $this->qrCode($node, $style, $at),
             $node instanceof Svg => $this->svg($node, $style, $at),
             $node instanceof PdfPage => $this->pdfPage($at),
+            $node instanceof Place => $this->place($node),
             $node instanceof Table => $this->table($node, $style, $at),
             $node instanceof TableRow => $this->tableRow($node, $style, $at),
             $node instanceof TableCell => $this->tableCell($node, $style, $at),
@@ -412,6 +418,25 @@ final class HtmlWriter implements TreeVisitor
         $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($svg->xml) . '" alt="' . self::esc($svg->title) . '"' . self::styleAttr($decls) . '>';
 
         return '';
+    }
+
+    /** Positioned in the page section; a percentage of the page height is of the section's height. */
+    private function place(Place $n): string
+    {
+        $css = static fn (Length|Percent $v): string => $v instanceof Percent ? (string) $v : Css::pt($v->points);
+        $anchor = $n->anchorPoint();
+        $width = $n->boxWidth();
+        $decls = ['position' => 'absolute', 'left' => $css($n->x()), 'top' => $css($n->y())];
+        if ($width !== null) {
+            $decls['width'] = $css($width);
+        }
+        if ($anchor->across() !== 0.0 || $anchor->down() !== 0.0) {
+            $shift = static fn (float $f): string => $f === 0.0 ? '0' : '-' . ($f * 100) . '%';
+            $decls['transform'] = 'translate(' . $shift($anchor->across()) . ',' . $shift($anchor->down()) . ')';
+        }
+        $this->out .= '<div' . self::styleAttr($decls) . '>';
+
+        return '</div>';
     }
 
     /** A browser cannot draw a page of a PDF inline, so it is left out. */

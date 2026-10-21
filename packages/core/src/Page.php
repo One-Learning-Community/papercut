@@ -43,6 +43,8 @@ final class Page implements Node
     private array $background = [];
     /** @var list<Node|Component> */
     private array $body = [];
+    /** @var list<Place> */
+    private array $overlay = [];
 
     private function __construct(private float $w, private float $h)
     {
@@ -209,6 +211,17 @@ final class Page implements Node
         return $clone;
     }
 
+    /**
+     * Content placed at points on the page, drawn over everything else, on every page this
+     * template makes. Margins do not apply: positions are from the page's top-left corner.
+     */
+    public function overlay(Place ...$places): self
+    {
+        $clone = clone $this;
+        $clone->overlay = [...$this->overlay, ...array_values($places)];
+        return $clone;
+    }
+
     public function body(Node|Component|string ...$nodes): self
     {
         $clone = clone $this;
@@ -283,6 +296,12 @@ final class Page implements Node
     public function templatePage(): ?PdfPage
     {
         return $this->template;
+    }
+
+    /** @return list<Place> */
+    public function overlayPlaces(): array
+    {
+        return $this->overlay;
     }
 
     /** @return list<Node|Component> */
