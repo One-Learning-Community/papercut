@@ -18,6 +18,7 @@ final readonly class PdfOptions extends ExportOptions
      * @param (\Closure(string, ?FidelityReport=): void)|null $onWarning
      * @param string|false|null $cacheDir directory for the default backend's font kerning cache
      *        (null = sys_get_temp_dir()/papercut-cache-<uid>, false = no disk cache); ignored when $backend is given
+     * @param bool $bookmarks false leaves the PDF without a bookmarks panel, even for headings
      */
     public function __construct(
         ?Theme $theme = null,
@@ -27,6 +28,7 @@ final readonly class PdfOptions extends ExportOptions
         ?Backend $backend = null,
         private OverflowMode $overflow = OverflowMode::Throw,
         private string|false|null $cacheDir = null,
+        private bool $bookmarks = true,
     ) {
         parent::__construct($theme, $fonts, $onWarning, $strict);
         $this->backend = $backend;
@@ -44,6 +46,11 @@ final readonly class PdfOptions extends ExportOptions
     public function overflow(): OverflowMode
     {
         return $this->overflow;
+    }
+
+    public function bookmarks(): bool
+    {
+        return $this->bookmarks;
     }
 
     public function cacheDir(): string|false|null

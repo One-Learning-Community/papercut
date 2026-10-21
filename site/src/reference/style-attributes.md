@@ -48,3 +48,10 @@ Every tag marked **Style** in the [tag reference](./blade-tags.md) accepts these
 | `keep-with-next` | `keep-with-next` | a boolean. Keeps the block on the same page as the next one. |
 | `break-before`, `break-after` | `break-before` | a boolean. Starts a new page. |
 | `min-lines` | `min-lines="2"` | an integer, 1 or more. The minimum lines of a paragraph on each side of a page break. |
+
+## Bookmarks
+
+| Attribute | Example | Accepts |
+|---|---|---|
+| `bookmark` | `bookmark="Summary"` | a title for the PDF's bookmarks panel. Headings get one automatically; `:bookmark="false"` removes it. |
+| `bookmark-level` | `bookmark-level="2"` | an integer, 1 or more. How deeply the bookmark is nested. |

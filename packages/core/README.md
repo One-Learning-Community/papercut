@@ -365,6 +365,20 @@ $document = Document::make(
 );
 ```
 
+## Bookmarks
+
+Headings `h1` to `h4` become entries in the PDF's bookmarks panel, nested by level. Any component can add one with `bookmark($title, $level = null)`, and `bookmark(false)` takes a heading out. Headers, footers and backgrounds never add bookmarks. `new PdfOptions(bookmarks: false)` leaves the panel empty.
+
+```php
+use Papercut\{Column, Document, Page, Text};
+
+$document = Document::make(Page::a4()->body(Column::make(
+    Text::h1('Annual report'),
+    Text::h2('A long heading that reads badly in a sidebar')->bookmark('Summary'),
+    Column::make(Text::make('…'))->bookmark('Appendix', 1),
+)));
+```
+
 ## Images and links
 
 ```php

@@ -30,6 +30,7 @@ final class PdfExporter implements Exporter
             $options->onWarning(),
             $fonts->fallbacks,
         );
+        $ctx->bookmarks = $options->bookmarks();
         $placed = (new Paginator(new LayoutEngine($ctx), $ctx))->paginate($doc);
 
         return new Output($backend->render($doc->meta(), Painter::paint($placed)), 'application/pdf', 'pdf');

@@ -17,6 +17,7 @@ php artisan vendor:publish --tag=papercut-config
 | `styles` | `[]` | [Named styles](/guide/styles.md#named-styles), using the same names as tag attributes. |
 | `fonts` | `[]` | Extra font families. See [Fonts](/guide/fonts.md). |
 | `fallback_fonts` | `[]` | Families to try, in order, for characters the main font doesn't have. |
+| `bookmarks` | `true` | Builds the PDF's [bookmarks panel](/guide/pages.md#bookmarks) from headings. `false` leaves it empty. |
 | `image_path` | `null` | The base directory for relative `<x-doc::image src>` paths. `null` means `public_path()`. |
 | `cache_dir` | `null` | Where to cache kerning data. `null` uses the system temp directory, and `false` turns the disk cache off. |
 

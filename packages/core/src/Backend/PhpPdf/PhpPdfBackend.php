@@ -15,12 +15,15 @@ use Papercut\Backend\ImageHandle;
 use Papercut\Backend\ImageFormat;
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
-use Papercut\Paint\{Clip, DocumentMeta, DrawImage, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
+use Papercut\Paint\{Bookmark, Clip, DocumentMeta, DrawImage, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
 use Papercut\Text\CachedFont;
 use Papercut\Value\Color;
 
 final class PhpPdfBackend implements Backend
 {
+    /** The document being rendered, for outline entries. */
+    private ?PdfDocument $doc = null;
+    private int $outlineLevel = 0;
     private const array TEXT_STATE_PROPERTIES = ['lastFillR', 'lastFillG', 'lastFillB', 'lastCharSpacing'];
 
     /** @var array<string, PhpPdfFont> */
@@ -100,6 +103,8 @@ final class PhpPdfBackend implements Backend
             $font->pdfFont()->reset();
         }
         $doc = PdfDocument::new();
+        $this->doc = $doc;
+        $this->outlineLevel = 0;
         $doc->metadata(
             title: $meta->title,
             author: $meta->author,
@@ -112,11 +117,15 @@ final class PhpPdfBackend implements Backend
         if ($meta->lang !== null) {
             $doc->setLang($meta->lang);
         }
-        foreach ($pages as $page) {
-            $pdfPage = $doc->addPage(customDimensionsPt: [$page->width, $page->height]);
-            $this->drawOps($pdfPage, $page->height, $page->ops);
+        try {
+            foreach ($pages as $page) {
+                $pdfPage = $doc->addPage(customDimensionsPt: [$page->width, $page->height]);
+                $this->drawOps($pdfPage, $page->height, $page->ops);
+            }
+            return $doc->toBytes();
+        } finally {
+            $this->doc = null;
         }
-        return $doc->toBytes();
     }
 
     /** @param list<Op> $ops */
@@ -130,10 +139,19 @@ final class PhpPdfBackend implements Backend
                 $op instanceof DrawImage => $p->drawImage($this->pdfImage($op), $op->x, $h - $op->y - $op->height, $op->width, $op->height),
                 $op instanceof Clip => $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawOps($p, $h, $op->ops, $inherited))),
                 $op instanceof Opacity => $this->drawOpacity($p, $h, $op, $inherited),
+                $op instanceof Bookmark => $this->bookmark($p, $h, $op),
                 $op instanceof Link => $p->addExternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, $op->uri),
                 default => throw new \LogicException('Unsupported op ' . $op::class),
             };
         }
+    }
+
+    /** Nests under the previous entry at most one level deeper, so an h3 straight after an h1 sits under it. */
+    private function bookmark(PdfPage $p, float $h, Bookmark $b): void
+    {
+        $level = min($b->level, $this->outlineLevel + 1);
+        $this->outlineLevel = $level;
+        $this->doc?->registerOutlineEntry($level, $b->title, $p, $b->x, $h - $b->y);
     }
 
     private function drawText(PdfPage $p, float $h, TextRun $t, float $inherited): void

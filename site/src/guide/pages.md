@@ -91,6 +91,38 @@ $document = Document::make(
 );
 ```
 
+## Bookmarks
+
+PDF viewers show a bookmarks panel beside the page, and Papercut fills it in for you. Every heading from `h1` to `h4` becomes a bookmark, nested by level, that jumps straight to that heading.
+
+To bookmark something that isn't a heading, or to change a heading's entry, set `bookmark`:
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::h1>Annual report</x-doc::h1>
+<x-doc::h2 bookmark="Summary">A long heading that reads badly in a sidebar</x-doc::h2>
+<x-doc::h2 :bookmark="false">Left out of the panel</x-doc::h2>
+<x-doc::card title="Terms" bookmark="Terms and conditions">…</x-doc::card>
+```
+@tab PHP
+```php
+use Papercut\{Column, Document, Page, Text};
+use Papercut\Decorator\Card;
+
+$document = Document::make(Page::a4()->body(Column::make(
+    Text::h1('Annual report'),
+    Text::h2('A long heading that reads badly in a sidebar')->bookmark('Summary'),
+    Text::h2('Left out of the panel')->bookmark(false),
+    Card::make(Text::make('…'))->title('Terms')->bookmark('Terms and conditions'),
+)));
+```
+:::
+
+Bookmarks you add are top-level unless you give them a level, with `bookmark-level="2"` in Blade or `->bookmark('Terms', 2)` in PHP. If a level skips one, like an `h3` straight after an `h1`, it's nested one step down instead of leaving a gap. Headings in headers, footers and backgrounds are ignored, since they repeat on every page.
+
+To leave the panel empty, pass `bookmarks: false` to `PdfOptions`, or set `'bookmarks' => false` in the Laravel config. HTML exports don't have a bookmarks panel, so this only affects PDFs.
+
 ## Content that doesn't fit
 
 Occasionally something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page. By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.

@@ -79,6 +79,7 @@ This publishes `config/papercut.php`:
 | `markup.images` | `null` | Class name implementing `Papercut\Laravel\Markup\ImageResolver`; `null` treats every `<img>` in markup as missing (see [Rich text](#rich-text-from-your-database)) |
 | `markup.styles` | `'theme'` | `'theme'` (HTML gives structure, the theme styles it) or `'original'` (inline `style=""` applied on top) |
 | `markup.blank_paragraphs` | `'drop'` | `'drop'` or `'keep'` paragraphs that hold only `&nbsp;` or `<br>` |
+| `bookmarks` | `true` | Headings and `bookmark="…"` build the PDF's bookmarks panel; `false` leaves it empty |
 | `image_path` | `null` | Base directory for relative `<x-doc::image src>`; `null` = `public_path()` |
 | `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
@@ -227,6 +228,8 @@ These attributes are accepted by every tag marked "style" above. Lengths are `pt
 | `keep-together`, `keep-with-next` | `keep-together` | boolean; do not split the block / stay on the page with the next block |
 | `break-before`, `break-after` | `break-before` | boolean; force a page break |
 | `min-lines` | `min-lines="2"` | integer 1 or more (widow/orphan control) |
+| `bookmark` | `bookmark="Summary"` | title for the PDF's bookmarks panel; headings get one automatically, `:bookmark="false"` removes it |
+| `bookmark-level` | `bookmark-level="2"` | integer 1 or more; nesting depth of the bookmark |
 
 Boolean values: bare attribute or `true`/`1`/`false`/`0`. Any attribute not listed here (or in the tag's own attributes) throws `UnknownAttribute`, with the tag named and a suggestion when one is close.
 

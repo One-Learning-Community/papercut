@@ -35,7 +35,7 @@ Papercut is at v0.1, and a few things aren't supported yet:
 - SVG images
 - form filling, signing, encryption and PDF/A
 - editing or merging existing PDFs
-- tables of contents and bookmarks
+- tables of contents
 
 Kerning and ligatures do work.
 

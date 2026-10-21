@@ -36,6 +36,7 @@ Migration from v0.1:
 
 ### Added
 
+- Bookmarks: headings `h1`–`h4` fill the PDF's bookmarks panel, nested by level. `bookmark($title, $level)` (Blade `bookmark`, `bookmark-level`) adds or retitles one on any component, `bookmark(false)` removes a heading's, and `PdfOptions(bookmarks: false)` / `papercut.bookmarks` turns them off. Headers, footers and backgrounds never add bookmarks.
 - `php artisan papercut:fonts:install <family>` downloads a family from Google Fonts into the app for use in PDFs, and prints its `fonts` config entry.
 - `PendingOutput::store($path, $disk = null, $options = [])` writes a PDF or HTML export to a Laravel filesystem disk.
 - `Papercut::make($document)` and `PendingDocument` (`document()`, `pdf()`); `PendingOutput` takes its `Content-Type` and default filename from the `Output`.

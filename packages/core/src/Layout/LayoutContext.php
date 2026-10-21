@@ -25,6 +25,8 @@ final class LayoutContext
     private array $images = [];
     /** Path of the deepest node that returned DoesNotFit under fresh constraints; the paginator resets it. */
     public private(set) ?string $lastFailurePath = null;
+    /** Off while laying out headers, footers and backgrounds, which repeat on every page. */
+    public bool $bookmarks = true;
     public readonly StyleResolver $styles;
 
     public function __construct(

@@ -78,7 +78,7 @@ final class Paginator
 
         $background = null;
         if ($page->backgroundNodes() !== []) {
-            $background = $this->engine->layout(Column::make(...$page->backgroundNodes()), $root, new Constraints($w, null, true, $h), pathName: 'background')->fragment;
+            $background = $this->withoutBookmarks(fn (): ?Fragment => $this->engine->layout(Column::make(...$page->backgroundNodes()), $root, new Constraints($w, null, true, $h), pathName: 'background')->fragment);
         }
 
         /** @var list<array{x: float, y: float, fragment: Fragment}> $before */
@@ -147,6 +147,22 @@ final class Paginator
         if ($nodes === []) {
             return null;
         }
-        return $this->engine->layout(Column::make(...$nodes), $root, new Constraints($width, null, true), pathName: $pathName)->fragment;
+        return $this->withoutBookmarks(fn (): ?Fragment => $this->engine->layout(Column::make(...$nodes), $root, new Constraints($width, null, true), pathName: $pathName)->fragment);
+    }
+
+    /**
+     * Repeating bands would add the same bookmark on every page.
+     *
+     * @param \Closure(): ?Fragment $layout
+     */
+    private function withoutBookmarks(\Closure $layout): ?Fragment
+    {
+        $was = $this->ctx->bookmarks;
+        $this->ctx->bookmarks = false;
+        try {
+            return $layout();
+        } finally {
+            $this->ctx->bookmarks = $was;
+        }
     }
 }

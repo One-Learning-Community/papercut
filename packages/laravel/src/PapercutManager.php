@@ -160,6 +160,11 @@ final class PapercutManager
             default => app()->environment('local', 'testing') ? OverflowMode::Throw : OverflowMode::Clip,
         };
 
+        $bookmarks = config('papercut.bookmarks', true);
+        if (!is_bool($bookmarks)) {
+            throw new \InvalidArgumentException('Invalid papercut.bookmarks: ' . (is_scalar($bookmarks) ? var_export($bookmarks, true) : get_debug_type($bookmarks)) . '; expected true or false');
+        }
+
         $base = $this->exportOptions();
 
         return new PdfOptions(
@@ -169,6 +174,7 @@ final class PapercutManager
             strict: $base->strict(),
             overflow: $mode,
             cacheDir: self::cacheDir(),
+            bookmarks: $bookmarks,
         );
     }
 
