@@ -7,7 +7,8 @@ Tags marked **Style** accept every [style attribute](./style-attributes.md), plu
 | Tag | Own attributes | Notes |
 |---|---|---|
 | `<x-doc::document>` | `title`, `author`, `subject`, `keywords`, `lang` | The root. Holds `<x-doc::page>` tags; content with no page gets an implicit one. No style. |
-| `<x-doc::page>` | `size`, `orientation`, `margin`, `header-gap`, `footer-gap` | `size` is a paper name or `"<width> <height>"`; `orientation` is `portrait` or `landscape`. Slots: `header`, `footer`, `background`. No style. |
+| `<x-doc::page>` | `size`, `orientation`, `margin`, `header-gap`, `footer-gap`, `template` or `template-data`, `template-page`, `template-password` | `size` is a paper name or `"<width> <height>"`; `orientation` is `portrait` or `landscape`. `template` draws a page of a PDF behind the page and sizes the page from it, so it can't be used with `size` or `orientation`. Slots: `header`, `footer`, `background`, `overlay`. No style. |
+| `<x-doc::place>` | `x`, `y`, `anchor`, `width` | Only in the `overlay` slot. `x`, `y` and `width` are lengths or percentages of the page; `anchor` is `top-left` (the default), `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom` or `bottom-right`. No style. |
 | `<x-doc::page-break>` | none | Starts a new page. |
 | `<x-doc::page-number>` | `format`, `align`, `size` | Style. `format` uses `{page}` and `{total}`. No content. |
 
@@ -58,6 +59,7 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 | Tag | Own attributes | Notes |
 |---|---|---|
 | `<x-doc::image>` | `src` or `data`, `fit` | Style. `fit` is `contain`, `cover` or `fill`. Relative `src` stays inside `papercut.image_path`. |
+| `<x-doc::pdf-page>` | `src` or `data`, `page`, `password` | Style. A page of an existing PDF, sized like an image. Relative `src` stays inside `papercut.image_path`. Left out of HTML exports. |
 | `<x-doc::svg>` | `src` or `data`, or SVG markup inside the tag | Style. Sized like an image. Relative `src` stays inside `papercut.image_path`. |
 | `<x-doc::qr-code>` | `value`, `level`, `quiet-zone`, `shape`, `eyes`, `eye-color`, `gradient`, `gradient-type` | Style. `level` is `L`, `M`, `Q` or `H`. Square: size it with `width`. `shape` is `square`, `rounded` or `dots` (the last two raise `level` to at least `Q`); `eyes` is `square`, `dot` or `pointy`; `gradient` is two colors. Styling needs `bacon/bacon-qr-code`. No content. |
 | `<x-doc::node>` | `node` | Embeds a `Node` or `Component` built in PHP. |

@@ -39,12 +39,14 @@ Output: `$document->toPdf()` returns an `Output`: `->save($path)`, `->bytes()` (
 | Element | Purpose |
 |---|---|
 | `Document::make(Page ...)` | Root. Metadata: `title`, `author`, `subject`, `keywords`, `lang`, `createdAt`. |
-| `Page::a4()` (also `a3 a5 a6 letter legal`, `size($w, $h)`, and `named()` for those plus `a0 a1 a2 b4 b5 tabloid executive`) | A page. `landscape()`, `margin()`, `header()`, `footer()`, `background()`, `body()`. |
+| `Page::a4()` (also `a3 a5 a6 letter legal`, `size($w, $h)`, and `named()` for those plus `a0 a1 a2 b4 b5 tabloid executive`) | A page. `landscape()`, `margin()`, `header()`, `footer()`, `background()`, `overlay()`, `body()`. `Page::template($pdfPage)` sizes a page from a [PDF template](#pdf-templates). |
 | `Row::make(...)`, `Column::make(...)` | Flex containers (horizontal, vertical). |
 | `Spacer::flex()`, `Spacer::size($length)` | Flexible or fixed gap. |
 | `Text::make()`, `h1`-`h4`, `p`, `markup()`, `spans()` | Text, with inline spans. |
 | `Image::file()`, `bytes()` | PNG and JPEG; WebP, GIF, BMP and AVIF with `ext-gd`. `fit()` modes. Images shrink to fit the page width, and an image taller than an empty page shrinks to fit it, unless its height is set explicitly. |
 | `Svg::file()`, `fromString()` | An [SVG](#svg) drawn as vector paths, sized like an image. |
+| `PdfPage::file()`, `bytes()` | A page of an existing [PDF](#pdf-templates), drawn as it is and sized like an image. |
+| `Place::at($x, $y, ...)` | Content at a point on the page, for `Page::overlay()`. |
 | `ListNode::ordered()`, `unordered()` | Numbered or bulleted [lists](#lists) of `ListItem`s. |
 | `Markup::html()`, `text()`, `flatten()` | [HTML and plain text](#markup-input) converted to nodes. |
 | `Link::to($uri, ...$children)` | A clickable region around children. |
@@ -427,6 +429,35 @@ $ring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><title>A 
     . '<path fill="#4f46e5" fill-rule="evenodd" d="M50 10 A40 40 0 1 1 49.99 10 Z M50 30 A20 20 0 1 1 49.99 30 Z"/></svg>';
 
 $document = Document::make(Page::a4()->body(Svg::fromString($ring)->width(mm(30))));
+```
+
+
+## PDF templates
+
+`Page::template(PdfPage::file($path))` makes a page the size of a page of an existing PDF and draws that page behind everything else on it, so you can fill in a certificate or a letterhead. `PdfPage::file()` and `PdfPage::bytes()` take a `page` number, from 1, and a `password` for a protected PDF. The PDF is read when you call `Page::template()`, and a missing file, a file that isn't a PDF, a wrong password or a missing page throws `PdfUnreadable`. The template is drawn as it is, with its text and vector artwork kept sharp, and it's stored once however many pages use it. An encrypted document encrypts the template too.
+
+`Page::overlay(Place ...)` puts content at points on the page, over everything else. `Place::at($x, $y, ...$nodes)` takes lengths from the page's top-left corner or percentages of its width and height, and `anchor()` picks which point of the content sits there, from `Anchor::TopLeft` (the default) to `Anchor::BottomRight`. Without `width()`, a place is as wide as its content, up to the page width; with one, a length or a percentage of the page width, percentages inside the place are of its width. The overlay repeats on every page the page template makes. A `Place` anywhere else throws a `LogicException`.
+
+`PdfPage` also works anywhere in your content, like an image. HTML exports leave PDF pages and templates out and report them as dropped, and position places with CSS.
+
+```php
+use Papercut\{Column, Document, Page, PdfPage, Place, QrCode, Text};
+use Papercut\Style\Anchor;
+use function Papercut\{mm, percent, pt};
+
+// Any PDF works as a template; this one is made with Papercut.
+$template = Document::make(Page::a4()->landscape()->margin(mm(15))->body(
+    Column::make(Text::make('Certificate of Completion')->size(pt(32))->bold()->center())
+        ->border(pt(4), '#1e3a8a')->padding(mm(12)),
+))->toPdf()->bytes();
+
+$document = Document::make(
+    Page::template(PdfPage::bytes($template))->overlay(
+        Place::at('50%', '45%', Text::make('Ada Lovelace')->size(pt(36))->bold())->anchor(Anchor::Top),
+        Place::at('85%', '80%', QrCode::make('https://example.com/verify/123')->width(percent(100)))
+            ->width('12%')->anchor(Anchor::Center),
+    ),
+);
 ```
 
 ## Images and links

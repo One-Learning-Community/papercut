@@ -62,6 +62,84 @@ $document = Document::make(
 
 In the page number format, `{page}` is the current page and `{total}` is the total page count. The total is filled in once layout has finished, so it's always correct. To adjust the space between the body and the header or footer, set `header-gap` or `footer-gap` on the page.
 
+## Filling in an existing PDF
+
+Sometimes the design already exists as a PDF, such as a certificate or a letterhead made in a design tool. A page template draws a page of that PDF behind your page, at the same size, and the overlay places your content at exact points on top of it.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::page template="certificates/completion.pdf">
+  <x-slot:overlay>
+    <x-doc::place x="50%" y="42%" anchor="top">
+      <x-doc::text size="32pt" bold>{{ $learner->name }}</x-doc::text>
+    </x-doc::place>
+    <x-doc::place x="50%" y="55%" anchor="top">
+      <x-doc::text size="14pt">Completed {{ $course->title }} on {{ $completedOn }}</x-doc::text>
+    </x-doc::place>
+    <x-doc::place x="85%" y="80%" anchor="center" width="12%">
+      <x-doc::qr-code :value="$verifyUrl" width="100%" />
+    </x-doc::place>
+  </x-slot:overlay>
+</x-doc::page>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page, PdfPage, Place, QrCode, Text};
+use Papercut\Style\Anchor;
+use function Papercut\{percent, pt};
+
+$document = Document::make(
+    Page::template(PdfPage::file('/path/to/certificates/completion.pdf'))->overlay(
+        Place::at('50%', '42%', Text::make('Ada Lovelace')->size(pt(32))->bold())->anchor(Anchor::Top),
+        Place::at('50%', '55%', Text::make('Completed Analytical Engines on 21 October 2026')->size(pt(14)))->anchor(Anchor::Top),
+        Place::at('85%', '80%', QrCode::make('https://example.com/verify/123')->width(percent(100)))
+            ->width('12%')->anchor(Anchor::Center),
+    ),
+);
+```
+:::
+
+### The template
+
+The page takes its size from the template page, so you can't set `size` or `orientation` alongside it. The template is drawn as it is, not as a picture of it, so its text and artwork stay sharp at any zoom. Anything else you put on the page, including the background, is drawn over it.
+
+In Blade, a relative `template` path stays inside `papercut.image_path`, the same as for images. If the PDF isn't a file on disk, for example when it's stored on S3, pass its bytes with `:template-data="Storage::get($path)"` instead. Use `template-page="2"` to draw a page other than the first, and `template-password` to open a password-protected template. In PHP, `PdfPage::file($path, page: 2, password: '…')` and `PdfPage::bytes($bytes)` take the same options.
+
+`Page::template()` reads the PDF straight away to learn its size, so a missing file or a wrong password throws a `PdfUnreadable` exception there, rather than when you render.
+
+### Placing content
+
+Each place puts its content at a point given by `x` and `y`. These are measured from the top-left corner of the page, as lengths like `20mm` or as percentages of the page's width and height. Page margins don't apply to the overlay.
+
+The anchor says which point of the content sits at that spot:
+
+| `anchor` | The point placed at `x`, `y` |
+|---|---|
+| `top-left` (the default) | The top-left corner |
+| `top`, `bottom` | The middle of the top or bottom edge |
+| `top-right`, `bottom-left`, `bottom-right` | That corner |
+| `left`, `right` | The middle of the left or right edge |
+| `center` | The centre |
+
+With `anchor="top"`, `x` is the middle of the content, so a short name and a long one both stay centred on the same point.
+
+Without a `width`, a place is as wide as its content needs, up to the width of the page, and longer text wraps at the page edge. With a `width`, either a length or a percentage of the page width, the content is laid out in that width, and percentages inside the place are of the place's width. That's how the QR code above fills a box 12% of the page wide.
+
+The overlay is drawn on top of everything else on the page and is repeated on every page the page template makes, so you can also use it for a stamp or a page number in a fixed spot. A `<x-doc::place>` only works in the `overlay` slot, and the `overlay` slot only takes `<x-doc::place>` tags.
+
+::: tip
+Blade needs a space or a line break after a closing slot tag. If you write `</x-slot:overlay>Body` on one line, Blade reads it as an unknown `@endslotBody` directive and the slot is never closed.
+:::
+
+### Pages of a PDF inside your content
+
+You can also draw a page of a PDF anywhere in your content, the way you'd draw an image, with `<x-doc::pdf-page src="form.pdf" width="60mm" />` or `PdfPage::file('form.pdf')->width(mm(60))`. It's sized like an image too: from the page's own size, and setting one side keeps its proportions.
+
+### In HTML exports
+
+A browser can't draw a page of a PDF inline, so HTML exports leave templates and PDF pages out and report each one as dropped. Places are positioned over the page with CSS, which is close to the PDF but not exact.
+
 ## Controlling page breaks
 
 Papercut splits content wherever it needs to by default. These options let you control where the breaks fall:
