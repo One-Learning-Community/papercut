@@ -7,7 +7,7 @@ namespace Papercut\Layout;
 use Papercut\{Image, Node, OverflowMode};
 use Papercut\Backend\{Backend, ImageHandle};
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
-use Papercut\Text\{FontRegistry, Itemizer};
+use Papercut\Text\{FontRegistry, Itemizer, SvgFonts};
 
 /**
  * Shared state for one layout run: fonts, theme, images, warnings, the
@@ -23,6 +23,8 @@ final class LayoutContext
     private int $unorderedLists = 0;
     /** @var array<string, ImageHandle> */
     private array $images = [];
+    /** @var array<string, SvgFonts> by family */
+    private array $svgFonts = [];
     /** Path of the deepest node that returned DoesNotFit under fresh constraints; the paginator resets it. */
     public private(set) ?string $lastFailurePath = null;
     /** Off while laying out headers, footers and backgrounds, which repeat on every page. */
@@ -108,6 +110,14 @@ final class LayoutContext
             return $this->images['file:' . $value] ??= $this->backend->loadImageFile($value);
         }
         return $this->images['bytes:' . sha1($value)] ??= $this->backend->loadImageBytes($value);
+    }
+
+    /** Fonts for SVG text drawn in an element of this style; warnings name the element's path. */
+    public function svgFonts(ComputedStyle $style): SvgFonts
+    {
+        return $this->svgFonts[strtolower($style->fontFamily)] ??= new SvgFonts($this->fonts, $style->fontFamily, $this->fallbackFamilies, function (string $msg): void {
+            $this->warn($msg, withPath: false);
+        });
     }
 
     public function resolveStyle(Node $node, ComputedStyle $parent): ComputedStyle

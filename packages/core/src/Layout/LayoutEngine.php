@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Component, Image, Link, ListNode, Node, OverflowMode, PageBreak, PageNumber, QrCode, Spacer, Table, TableCell, Text, View};
+use Papercut\{Component, Image, Link, ListNode, Node, OverflowMode, PageBreak, PageNumber, QrCode, Spacer, Svg, Table, TableCell, Text, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Paint\Bookmark;
 use Papercut\Style\{ComputedStyle, Direction};
@@ -42,6 +42,7 @@ final class LayoutEngine
         $this->layouters[Link::class] = new LinkLayouter($this->block);
         $this->layouters[Image::class] = new ImageLayouter();
         $this->layouters[QrCode::class] = new QrCodeLayouter();
+        $this->layouters[Svg::class] = new SvgLayouter();
         $this->table = new TableLayouter($this->block);
         $this->layouters[Table::class] = $this->table;
         $this->layouters[TableCell::class] = $this->table;

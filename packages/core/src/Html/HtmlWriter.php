@@ -6,7 +6,7 @@ namespace Papercut\Html;
 
 use Papercut\Backend\Backend;
 use Papercut\Export\LoadedImage;
-use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, QrCode, Spacer, Table, TableCell, TableRow, Text, View};
+use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
 use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
@@ -160,6 +160,7 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof PageNumber => '',
             $node instanceof Image => $this->image($node, $style, $at),
             $node instanceof QrCode => $this->qrCode($node, $style, $at),
+            $node instanceof Svg => $this->svg($node, $style, $at),
             $node instanceof Table => $this->table($node, $style, $at),
             $node instanceof TableRow => $this->tableRow($node, $style, $at),
             $node instanceof TableCell => $this->tableCell($node, $style, $at),
@@ -377,6 +378,25 @@ final class HtmlWriter implements TreeVisitor
         }
         $decls['object-fit'] = $n->fitMode()->value;
         $this->out .= '<img src="' . self::esc(ImageSource::uri($n, $this->options->imageUrl(), $this->backend, fn () => $this->fidelity->warn(sprintf('[%s] imageUrl returned an unsafe URL; the image was embedded instead', $at->path())), $this->loadImage(...))) . '" alt=""' . self::styleAttr($decls) . '>';
+
+        return '';
+    }
+
+    /**
+     * An img with a data URI, never inline markup: a browser runs no script and fetches nothing
+     * for an SVG image. Its text is set in the browser's fonts, which cannot be the page's.
+     */
+    private function svg(Svg $n, ComputedStyle $s, Visit $at): string
+    {
+        $svg = $n->document();
+        $decls = Css::box($s);
+        if ($this->parentIsFlex($at)) {
+            $decls += Css::flexItem($s);
+        }
+        if ($svg->hasText) {
+            $this->fidelity->approximated('SVG text in the browser\'s own fonts', $at->path());
+        }
+        $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($svg->xml) . '" alt="' . self::esc($svg->title) . '"' . self::styleAttr($decls) . '>';
 
         return '';
     }

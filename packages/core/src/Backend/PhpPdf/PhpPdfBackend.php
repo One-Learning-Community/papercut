@@ -9,13 +9,14 @@ use Dskripchenko\PhpPdf\Pdf\Document as PdfDocument;
 use Dskripchenko\PhpPdf\Pdf\{Encryption as PdfEncryption, EncryptionAlgorithm};
 use Dskripchenko\PhpPdf\Pdf\Page as PdfPage;
 use Dskripchenko\PhpPdf\Pdf\PdfFont;
+use Dskripchenko\PhpPdf\Svg\SvgRenderer;
 use Papercut\Backend\Backend;
 use Papercut\Backend\FontHandle;
 use Papercut\Backend\ImageHandle;
 use Papercut\Backend\ImageFormat;
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
-use Papercut\Paint\{Bookmark, Clip, DocumentMeta, DrawImage, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
+use Papercut\Paint\{Bookmark, Clip, DocumentMeta, DrawImage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
 use Papercut\Text\CachedFont;
 use Papercut\Value\Color;
 
@@ -144,6 +145,7 @@ final class PhpPdfBackend implements Backend
                 $op instanceof Rect => $this->drawRect($p, $h, $op, $inherited),
                 $op instanceof Line => $this->drawLine($p, $h, $op, $inherited),
                 $op instanceof DrawImage => $p->drawImage($this->pdfImage($op), $op->x, $h - $op->y - $op->height, $op->width, $op->height),
+                $op instanceof DrawSvg => $this->wrapped($p, fn () => $this->drawSvg($p, $h, $op)),
                 $op instanceof Clip => $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawOps($p, $h, $op->ops, $inherited))),
                 $op instanceof Opacity => $this->drawOpacity($p, $h, $op, $inherited),
                 $op instanceof Bookmark => $this->bookmark($p, $h, $op),
@@ -180,6 +182,23 @@ final class PhpPdfBackend implements Backend
         $font = $this->pdfFont($t->font);
         [$r, $g, $b] = $t->color->toUnitRgb();
         $this->withAlpha($p, $t->color, $inherited, fn () => $p->showEmbeddedText($t->text, $t->x, $h - $t->baseline, $font, $t->size, $r, $g, $b, $t->letterSpacing));
+    }
+
+    /**
+     * php-pdf draws the paths. Text goes through our font choice, which always answers, so
+     * php-pdf never falls back to an unembedded base-14 font.
+     */
+    private function drawSvg(PdfPage $p, float $h, DrawSvg $op): void
+    {
+        SvgRenderer::render(
+            $op->svg->xml,
+            $p,
+            $op->x,
+            $h - $op->y - $op->height,
+            $op->width,
+            $op->height,
+            fn (?string $family, bool $bold, bool $italic, string $text): PdfFont => $this->pdfFont($op->fonts->resolve($family, $bold, $italic, $text)),
+        );
     }
 
     private function drawRect(PdfPage $p, float $h, Rect $o, float $inherited): void
