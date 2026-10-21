@@ -83,6 +83,13 @@ final class Paginator
 
         /** @var list<array{x: float, y: float, fragment: Fragment}> $before */
         $before = [];
+        $template = $page->templatePage();
+        if ($template !== null) {
+            $fragment = $this->engine->layout($template, $root, new Constraints($w, null, true, $h), pathName: 'template')->fragment;
+            if ($fragment !== null) {
+                $before[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $fragment];
+            }
+        }
         if ($background !== null) {
             $before[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $background];
         }

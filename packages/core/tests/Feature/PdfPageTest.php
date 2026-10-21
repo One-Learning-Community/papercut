@@ -7,7 +7,7 @@ namespace Papercut\Tests\Feature;
 use Papercut\{Column, Document, Page, PdfPage, Text};
 use Papercut\Exception\{InvalidValue, PdfUnreadable};
 use Papercut\Export\{Encryption, FidelityReport, HtmlOptions, PdfOptions};
-use Papercut\Tests\Support\{FakeBackend, PdfInspector};
+use Papercut\Tests\Support\{FakeBackend, PdfInspector, Raster};
 use PHPUnit\Framework\TestCase;
 use function Papercut\pt;
 
@@ -19,14 +19,10 @@ final class PdfPageTest extends TestCase
 {
     protected function setUp(): void
     {
-        foreach (['pdftoppm', 'pdftotext'] as $tool) {
-            exec('command -v ' . $tool . ' 2>/dev/null', $out, $code);
-            if ($code !== 0) {
-                self::markTestSkipped($tool . ' (poppler) is not installed.');
-            }
-        }
-        if (!extension_loaded('gd')) {
-            self::markTestSkipped('GD is needed to read the rasterised page.');
+        $reason = Raster::unavailable();
+        exec('command -v pdftotext 2>/dev/null', $out, $code);
+        if ($reason !== null || $code !== 0) {
+            self::markTestSkipped($reason ?? 'pdftotext (poppler) is not installed.');
         }
     }
 
@@ -48,30 +44,6 @@ final class PdfPageTest extends TestCase
         return Document::make(Page::size(pt(300), pt(200))->margin(pt(0))->body($pdfPage))->toPdf($options)->bytes();
     }
 
-    private static function raster(string $pdf): \GdImage
-    {
-        $dir = sys_get_temp_dir() . '/papercut-pdfpage-' . bin2hex(random_bytes(4));
-        mkdir($dir);
-        try {
-            file_put_contents("$dir/doc.pdf", $pdf);
-            exec(sprintf('pdftoppm -png -r 72 -singlefile %s %s 2>&1', escapeshellarg("$dir/doc.pdf"), escapeshellarg("$dir/page")), $out, $code);
-            self::assertSame(0, $code, implode("\n", $out));
-            $image = imagecreatefrompng("$dir/page.png");
-            self::assertInstanceOf(\GdImage::class, $image);
-            return $image;
-        } finally {
-            array_map('unlink', glob("$dir/*") ?: []);
-            rmdir($dir);
-        }
-    }
-
-    private static function ink(\GdImage $image, int $x, int $y): bool
-    {
-        $rgb = imagecolorat($image, $x, $y);
-
-        return ((($rgb >> 16) & 0xFF) + (($rgb >> 8) & 0xFF) + ($rgb & 0xFF)) / 3 < 128;
-    }
-
     private static function textOf(string $pdf, string $password = ''): string
     {
         $file = tempnam(sys_get_temp_dir(), 'papercut-pdfpage-');
@@ -89,22 +61,22 @@ final class PdfPageTest extends TestCase
     {
         $pdf = self::pdf(PdfPage::bytes(self::template()));
         PdfInspector::check($pdf);
-        $image = self::raster($pdf);
+        $image = Raster::of($pdf);
 
-        self::assertTrue(self::ink($image, 25, 25), 'the square is drawn');
-        self::assertTrue(self::ink($image, 48, 48));
-        self::assertFalse(self::ink($image, 55, 25), 'and is 50pt wide');
-        self::assertFalse(self::ink($image, 25, 55), 'and 50pt tall');
+        self::assertTrue(Raster::ink($image, 25, 25), 'the square is drawn');
+        self::assertTrue(Raster::ink($image, 48, 48));
+        self::assertFalse(Raster::ink($image, 55, 25), 'and is 50pt wide');
+        self::assertFalse(Raster::ink($image, 25, 55), 'and 50pt tall');
         self::assertStringContainsString('Template', self::textOf($pdf), 'its text stays text');
     }
 
     public function test_scales_to_the_width_it_is_given(): void
     {
-        $image = self::raster(self::pdf(PdfPage::bytes(self::template())->width(pt(100))));
+        $image = Raster::of(self::pdf(PdfPage::bytes(self::template())->width(pt(100))));
 
-        self::assertTrue(self::ink($image, 12, 12));
-        self::assertFalse(self::ink($image, 30, 12), 'half size: the square is 25pt wide');
-        self::assertFalse(self::ink($image, 12, 30));
+        self::assertTrue(Raster::ink($image, 12, 12));
+        self::assertFalse(Raster::ink($image, 30, 12), 'half size: the square is 25pt wide');
+        self::assertFalse(Raster::ink($image, 12, 30));
     }
 
     public function test_reads_a_file(): void
@@ -181,8 +153,8 @@ final class PdfPageTest extends TestCase
 
         self::assertStringNotContainsString('Secret', $pdf);
         self::assertStringContainsString('Secret', self::textOf($pdf, 'pw'));
-        $image = self::rasterWithPassword($pdf, 'pw');
-        self::assertTrue(self::ink($image, 25, 25));
+        $image = Raster::of($pdf, 'pw');
+        self::assertTrue(Raster::ink($image, 25, 25));
     }
 
     public function test_a_page_drawn_many_times_is_stored_once(): void
@@ -215,22 +187,5 @@ final class PdfPageTest extends TestCase
         self::assertContains('html: dropped PDF page at page > body > pdf-page[0]', $messages);
         self::assertStringContainsString('After', $html);
         self::assertStringNotContainsString('%PDF', $html);
-    }
-
-    private static function rasterWithPassword(string $pdf, string $password): \GdImage
-    {
-        $dir = sys_get_temp_dir() . '/papercut-pdfpage-' . bin2hex(random_bytes(4));
-        mkdir($dir);
-        try {
-            file_put_contents("$dir/doc.pdf", $pdf);
-            exec(sprintf('pdftoppm -upw %s -png -r 72 -singlefile %s %s 2>&1', escapeshellarg($password), escapeshellarg("$dir/doc.pdf"), escapeshellarg("$dir/page")), $out, $code);
-            self::assertSame(0, $code, implode("\n", $out));
-            $image = imagecreatefrompng("$dir/page.png");
-            self::assertInstanceOf(\GdImage::class, $image);
-            return $image;
-        } finally {
-            array_map('unlink', glob("$dir/*") ?: []);
-            rmdir($dir);
-        }
     }
 }

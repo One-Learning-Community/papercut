@@ -111,6 +111,9 @@ final class HtmlWriter implements TreeVisitor
         if ($page->headerNodes() !== [] || $page->footerNodes() !== []) {
             $this->fidelity->approximated('header and footer once per page', $path);
         }
+        if ($page->templatePage() !== null) {
+            $this->fidelity->dropped('PDF page template', $path);
+        }
         if ($page->backgroundNodes() !== []) {
             $this->fidelity->approximated('background layer', $path);
         }

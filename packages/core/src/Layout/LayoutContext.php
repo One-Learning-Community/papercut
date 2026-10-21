@@ -6,7 +6,6 @@ namespace Papercut\Layout;
 
 use Papercut\{Image, Node, OverflowMode, PdfPage};
 use Papercut\Backend\{Backend, ImageHandle, PdfPageHandle, PdfPageLoader};
-use Papercut\Exception\PdfUnreadable;
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Text\{FontRegistry, Itemizer, SvgFonts};
 
@@ -22,7 +21,7 @@ final class LayoutContext
     /** Open lists by kind, for depth-dependent markers. */
     private int $orderedLists = 0;
     private int $unorderedLists = 0;
-    /** @var array<string, PdfPageHandle> by bytes, page and password */
+    /** @var array<string, PdfPageHandle> by source, page and password */
     private array $pdfPages = [];
 
     /** @var array<string, ImageHandle> */
@@ -107,7 +106,7 @@ final class LayoutContext
     }
 
     /**
-     * @throws PdfUnreadable
+     * @throws \Papercut\Exception\PdfUnreadable
      * @throws \LogicException when the backend cannot draw pages of other PDFs
      */
     public function pdfPage(PdfPage $node): PdfPageHandle
@@ -117,21 +116,9 @@ final class LayoutContext
             throw new \LogicException(sprintf('%s cannot draw pages of other PDFs; use the default PhpPdfBackend.', $backend::class));
         }
         $source = $node->source();
-        $bytes = $source['value'];
-        $name = null;
-        if ($source['kind'] === 'file') {
-            $name = $source['value'];
-            $bytes = is_file($name) && is_readable($name) ? file_get_contents($name) : false;
-            if ($bytes === false) {
-                throw new PdfUnreadable(sprintf('Cannot read PDF "%s": file not found or not readable', $name));
-            }
-        }
-        $key = sha1($bytes) . ':' . $node->pageNumber() . ':' . sha1($node->password());
-        try {
-            return $this->pdfPages[$key] ??= $backend->loadPdfPage($bytes, $node->pageNumber(), $node->password());
-        } catch (PdfUnreadable $e) {
-            throw $name === null ? $e : new PdfUnreadable(preg_replace('/^Cannot (read|draw page \d+ of) (the )?PDF/', 'Cannot $1 PDF "' . $name . '"', $e->getMessage()) ?? $e->getMessage(), 0, $e);
-        }
+        $key = $source['kind'] . ':' . sha1($source['value']) . ':' . $node->pageNumber() . ':' . sha1($node->password());
+
+        return $this->pdfPages[$key] ??= $node->load($backend);
     }
 
     public function image(Image $node): ImageHandle
