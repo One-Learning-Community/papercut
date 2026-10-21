@@ -59,7 +59,7 @@ export default defineUserConfig({
         },
         {
           text: 'Look and output',
-          children: ['/guide/styles.md', '/guide/fonts.md', '/guide/rich-text.md', '/guide/html-export.md', '/guide/web-fonts.md'],
+          children: ['/guide/styles.md', '/guide/fonts.md', '/guide/rich-text.md', '/guide/html-export.md', '/guide/web-fonts.md', '/guide/passwords-and-signatures.md'],
         },
       ],
       '/laravel/': [

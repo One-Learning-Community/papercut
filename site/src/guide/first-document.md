@@ -65,6 +65,10 @@ The filename defaults to `document.pdf`. If you return a `PendingOutput` straigh
 
 You can mix the two styles. To send a document you built in PHP as a Laravel response, wrap it with `Papercut::make($document)->pdf()`. To go the other way, `Papercut::view(...)->document()` gives you the core `Document` that a Blade view built.
 
+### Password protection
+
+To make the PDF open only with a password, call `encrypt()` before `pdf()`: `Papercut::view(...)->encrypt('open-sesame')->pdf()`. [Passwords, signatures and merging](./passwords-and-signatures.md) covers permissions.
+
 ### Saving to storage
 
 `store()` writes to any disk in `config/filesystems.php`, which makes it a good fit for queued jobs that generate a document and send a link to it later:

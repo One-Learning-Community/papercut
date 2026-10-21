@@ -33,11 +33,10 @@ Papercut is at v0.1, and a few things aren't supported yet:
 - complex text shaping (HarfBuzz), right-to-left and bidirectional text, and hyphenation
 - multi-column text flow
 - SVG images
-- form filling, signing, encryption and PDF/A
-- editing or merging existing PDFs
+- form filling and PDF/A
 - tables of contents
 
-Kerning and ligatures do work.
+Kerning and ligatures do work. Signing and merging aren't built in, but php-pdf can do both to a Papercut PDF; see [Passwords, signatures and merging](./passwords-and-signatures.md).
 
 ## Next steps
 

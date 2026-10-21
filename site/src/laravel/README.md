@@ -27,6 +27,7 @@ Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pd
 | `Papercut::view($view, $data)` | a `PendingDocument` |
 | `->pdf()` | a `PendingOutput`: `download()`, `inline()`, `save()`, `store()`, `toString()`, `output()` |
 | `->html()` | a `PendingHtml`; see [HTML export](/guide/html-export.md) |
+| `->encrypt($password)` | a copy whose PDF needs a password; see [Passwords](/guide/passwords-and-signatures.md) |
 | `->document()` | the core `Document` the view built |
 | `Papercut::make($document)` | a `PendingDocument` for a document built in PHP |
 

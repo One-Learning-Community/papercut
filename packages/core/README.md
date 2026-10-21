@@ -379,6 +379,10 @@ $document = Document::make(Page::a4()->body(Column::make(
 )));
 ```
 
+## Encryption
+
+`new PdfOptions(encryption: Encryption::password('secret'))` encrypts the PDF with AES-256 so it opens only with that password; readers may print and copy but not edit. `new Encryption($userPassword, $ownerPassword, print:, copy:, modify:, annotate:, assemble:)` sets the permissions. An empty user password lets anyone open the document while the permissions apply. Without an owner password a random one is generated, so the permissions cannot be lifted. Screen-reader access is always allowed. Signing and merging are left to php-pdf's `PdfSigner` and `PdfMerger`, which work on Papercut's output.
+
 ## Images and links
 
 ```php

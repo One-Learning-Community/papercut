@@ -7,6 +7,7 @@ namespace Papercut\Backend\PhpPdf;
 use Dskripchenko\PhpPdf\Font\Ttf\TtfFile;
 use Dskripchenko\PhpPdf\Image\PdfImage;
 use Dskripchenko\PhpPdf\Pdf\Document as PdfDocument;
+use Dskripchenko\PhpPdf\Pdf\{Encryption as PdfEncryption, EncryptionAlgorithm};
 use Dskripchenko\PhpPdf\Pdf\Page as PdfPage;
 use Dskripchenko\PhpPdf\Pdf\PdfFont;
 use Papercut\Backend\Backend;
@@ -117,6 +118,10 @@ final class PhpPdfBackend implements Backend
         if ($meta->lang !== null) {
             $doc->setLang($meta->lang);
         }
+        if ($meta->encryption !== null) {
+            $e = $meta->encryption;
+            $doc->encrypt($e->userPassword, $e->ownerPassword, self::permissions($e), EncryptionAlgorithm::Aes_256_R6);
+        }
         try {
             foreach ($pages as $page) {
                 $pdfPage = $doc->addPage(customDimensionsPt: [$page->width, $page->height]);
@@ -144,6 +149,17 @@ final class PhpPdfBackend implements Backend
                 default => throw new \LogicException('Unsupported op ' . $op::class),
             };
         }
+    }
+
+    /** Screen-reader access is always granted; printing allows high resolution too. */
+    private static function permissions(\Papercut\Export\Encryption $e): int
+    {
+        return PdfEncryption::PERM_ACCESSIBILITY
+            | ($e->print ? PdfEncryption::PERM_PRINT | PdfEncryption::PERM_PRINT_HIGH : 0)
+            | ($e->copy ? PdfEncryption::PERM_COPY : 0)
+            | ($e->modify ? PdfEncryption::PERM_MODIFY : 0)
+            | ($e->annotate ? PdfEncryption::PERM_ANNOTATE | PdfEncryption::PERM_FILL_FORMS : 0)
+            | ($e->assemble ? PdfEncryption::PERM_ASSEMBLE : 0);
     }
 
     /** Nests under the previous entry at most one level deeper, so an h3 straight after an h1 sits under it. */
