@@ -6,7 +6,7 @@ namespace Papercut\Html;
 
 use Papercut\Backend\Backend;
 use Papercut\Export\LoadedImage;
-use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
+use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
 use Papercut\Barcode\Bacon\BaconQrSvg;
 use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
@@ -162,6 +162,7 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof Image => $this->image($node, $style, $at),
             $node instanceof QrCode => $this->qrCode($node, $style, $at),
             $node instanceof Svg => $this->svg($node, $style, $at),
+            $node instanceof PdfPage => $this->pdfPage($at),
             $node instanceof Table => $this->table($node, $style, $at),
             $node instanceof TableRow => $this->tableRow($node, $style, $at),
             $node instanceof TableCell => $this->tableCell($node, $style, $at),
@@ -406,6 +407,14 @@ final class HtmlWriter implements TreeVisitor
             $this->fidelity->approximated('SVG text in the browser\'s own fonts', $at->path());
         }
         $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($svg->xml) . '" alt="' . self::esc($svg->title) . '"' . self::styleAttr($decls) . '>';
+
+        return '';
+    }
+
+    /** A browser cannot draw a page of a PDF inline, so it is left out. */
+    private function pdfPage(Visit $at): string
+    {
+        $this->fidelity->dropped('PDF page', $at->path());
 
         return '';
     }

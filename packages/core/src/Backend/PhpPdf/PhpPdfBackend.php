@@ -6,6 +6,8 @@ namespace Papercut\Backend\PhpPdf;
 
 use Dskripchenko\PhpPdf\Image\PdfImage;
 use Dskripchenko\PhpPdf\Pdf\Document as PdfDocument;
+use Dskripchenko\PhpPdf\Pdf\Merge\{PageImporter, PdfSource};
+use Dskripchenko\PhpPdf\Pdf\PdfFormXObject;
 use Dskripchenko\PhpPdf\Pdf\{Encryption as PdfEncryption, EncryptionAlgorithm};
 use Dskripchenko\PhpPdf\Pdf\Page as PdfPage;
 use Dskripchenko\PhpPdf\Pdf\PdfFont;
@@ -14,17 +16,21 @@ use Papercut\Backend\Backend;
 use Papercut\Backend\FontHandle;
 use Papercut\Backend\ImageHandle;
 use Papercut\Backend\ImageFormat;
+use Papercut\Backend\{PdfPageHandle, PdfPageLoader};
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
-use Papercut\Paint\{Bookmark, Clip, DocumentMeta, DrawImage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
+use Papercut\Exception\PdfUnreadable;
+use Papercut\Paint\{Bookmark, Clip, DocumentMeta, DrawImage, DrawPdfPage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
 use Papercut\Text\CachedFont;
 use Papercut\Value\Color;
 
-final class PhpPdfBackend implements Backend
+final class PhpPdfBackend implements Backend, PdfPageLoader
 {
     /** The document being rendered, for outline entries. */
     private ?PdfDocument $doc = null;
     private int $outlineLevel = 0;
+    /** @var array<string, PdfFormXObject> pages of other PDFs imported into the document being rendered, by handle id */
+    private array $forms = [];
     private const array TEXT_STATE_PROPERTIES = ['lastFillR', 'lastFillG', 'lastFillB', 'lastCharSpacing'];
 
     /** @var array<string, PhpPdfFont> */
@@ -98,6 +104,22 @@ final class PhpPdfBackend implements Backend
         return new PhpPdfImage(PdfImage::fromBytes($embed), sha1($bytes));
     }
 
+    public function loadPdfPage(string $bytes, int $page, #[\SensitiveParameter] string $password = ''): PdfPageHandle
+    {
+        try {
+            $document = PdfSource::fromBytes($bytes, $password)->document();
+            $count = count($document->pages());
+        } catch (\Throwable $e) {
+            throw new PdfUnreadable('Cannot read PDF: ' . $e->getMessage(), 0, $e);
+        }
+        if ($page < 1 || $page > $count) {
+            throw new PdfUnreadable(sprintf('Cannot draw page %d of the PDF: it has %d page%s', $page, $count, $count === 1 ? '' : 's'));
+        }
+        [$w, $h] = PageImporter::pageSize($document, $page - 1);
+
+        return new PhpPdfPage($document, $page - 1, $w, $h, sha1($bytes) . ':' . $page);
+    }
+
     public function render(DocumentMeta $meta, array $pages): string
     {
         if ($pages === []) {
@@ -109,6 +131,7 @@ final class PhpPdfBackend implements Backend
         $doc = PdfDocument::new();
         $this->doc = $doc;
         $this->outlineLevel = 0;
+        $this->forms = [];
         $doc->metadata(
             title: $meta->title,
             author: $meta->author,
@@ -133,6 +156,7 @@ final class PhpPdfBackend implements Backend
             return $doc->toBytes();
         } finally {
             $this->doc = null;
+            $this->forms = [];
         }
     }
 
@@ -146,6 +170,7 @@ final class PhpPdfBackend implements Backend
                 $op instanceof Line => $this->drawLine($p, $h, $op, $inherited),
                 $op instanceof DrawImage => $p->drawImage($this->pdfImage($op), $op->x, $h - $op->y - $op->height, $op->width, $op->height),
                 $op instanceof DrawSvg => $this->wrapped($p, fn () => $this->drawSvg($p, $h, $op)),
+                $op instanceof DrawPdfPage => $this->drawPdfPage($p, $h, $op),
                 $op instanceof Clip => $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawOps($p, $h, $op->ops, $inherited))),
                 $op instanceof Opacity => $this->drawOpacity($p, $h, $op, $inherited),
                 $op instanceof Bookmark => $this->bookmark($p, $h, $op),
@@ -290,6 +315,20 @@ final class PhpPdfBackend implements Backend
             throw new \LogicException('PhpPdfBackend can only draw fonts it loaded; got ' . $inner::class);
         }
         return $inner->pdfFont();
+    }
+
+    /** Each page is imported once per document, however many times it is drawn. */
+    private function drawPdfPage(PdfPage $p, float $h, DrawPdfPage $op): void
+    {
+        $page = $op->page;
+        if (!$page instanceof PhpPdfPage) {
+            throw new \LogicException('PhpPdfBackend can only draw PDF pages it loaded; got ' . $page::class);
+        }
+        if ($this->doc === null || $op->width <= 0.0 || $op->height <= 0.0) {
+            return;
+        }
+        $form = $this->forms[$page->id()] ??= PageImporter::intoDocument($this->doc, $page->document(), $page->index());
+        $p->useFormXObject($form, $op->x, $h - $op->y - $op->height, $op->width, $op->height);
     }
 
     private function pdfImage(DrawImage $op): PdfImage
