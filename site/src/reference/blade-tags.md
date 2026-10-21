@@ -58,6 +58,7 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 | Tag | Own attributes | Notes |
 |---|---|---|
 | `<x-doc::image>` | `src` or `data`, `fit` | Style. `fit` is `contain`, `cover` or `fill`. Relative `src` stays inside `papercut.image_path`. |
+| `<x-doc::svg>` | `src` or `data`, or SVG markup inside the tag | Style. Sized like an image. Relative `src` stays inside `papercut.image_path`. |
 | `<x-doc::qr-code>` | `value`, `level`, `quiet-zone` | Style. `level` is `L`, `M`, `Q` or `H`. Square: size it with `width`. No content. |
 | `<x-doc::node>` | `node` | Embeds a `Node` or `Component` built in PHP. |
 

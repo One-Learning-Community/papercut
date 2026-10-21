@@ -12,16 +12,23 @@ use Papercut\Exception\ImageUnreadable;
  *
  * Untrusted SVG is safe to hand over. The XML parser never loads external files or DTDs, a
  * document that declares entities is refused, and so is one that would take too long to draw:
- * over MAX_BYTES, or over MAX_WORK elements and path points once every <use> is expanded.
+ * over MAX_BYTES, or over MAX_WORK points drawn once every <use> is expanded.
  * Scripts and on* event handlers are removed.
  */
 final readonly class SvgDocument
 {
-    /** The largest source accepted, in bytes. */
-    public const int MAX_BYTES = 5 * 1024 * 1024;
+    /** The largest source accepted, in bytes. libxml refuses a single attribute over 10 MB anyway. */
+    public const int MAX_BYTES = 10 * 1024 * 1024;
 
-    /** The most drawing work accepted: elements plus path and polygon points, with every <use> expanded. */
-    public const int MAX_WORK = 100_000;
+    /**
+     * The most drawing work accepted, with every <use> expanded, in units of about 4 µs of
+     * drawing: one per path or polygon point, 15 per circle or ellipse and 5 for any other
+     * element. A million takes about a second and a half and 50 MB (PHP 8.4, no debugger).
+     */
+    public const int MAX_WORK = 1_000_000;
+
+    private const int ELEMENT_WORK = 5;
+    private const int OUTLINE_WORK = 15;
 
     /** The deepest chain of <use> elements referring to one another. */
     private const int MAX_USE_DEPTH = 32;
@@ -85,7 +92,7 @@ final readonly class SvgDocument
         }
 
         if (self::work($root, self::ids($dom), [], 0) > self::MAX_WORK) {
-            throw new ImageUnreadable(sprintf('Cannot read SVG: it is too complex to draw (more than %d elements and path points, counting each <use>)', self::MAX_WORK));
+            throw new ImageUnreadable(sprintf('Cannot read SVG: it is too complex to draw in a few seconds (more than %s units of work, counting each <use>: 1 per path point, 15 per circle, 5 per other element)', number_format(self::MAX_WORK)));
         }
 
         [$widthPt, $heightPt, $viewBox] = self::size($root);
@@ -151,15 +158,16 @@ final readonly class SvgDocument
     }
 
     /**
-     * Elements plus path points under $el, with each <use> counted as a copy of what it refers
-     * to. Stops counting once over the limit, so a crafted file costs little to refuse.
+     * The points drawn for $el and its children (see MAX_WORK), with each <use> counted as a
+     * copy of what it refers to. Stops counting once over the limit, so a crafted file costs
+     * little to refuse.
      *
      * @param array<string, \DOMElement> $ids
      * @param array<string, true> $using the <use> targets being expanded, to catch cycles
      */
     private static function work(\DOMElement $el, array $ids, array $using, int $depth): int
     {
-        $work = 1;
+        $work = in_array($el->localName, ['circle', 'ellipse'], true) ? self::OUTLINE_WORK : self::ELEMENT_WORK;
         foreach (['d', 'points'] as $attribute) {
             if ($el->hasAttribute($attribute)) {
                 $work += intdiv((int) preg_match_all('/[-+]?(?:\d+\.?\d*|\.\d+)/', $el->getAttribute($attribute)), 2);

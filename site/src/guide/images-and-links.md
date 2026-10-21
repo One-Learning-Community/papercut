@@ -1,4 +1,4 @@
-# Images, links and QR codes
+# Images, SVG, links and QR codes
 
 ## Images
 
@@ -36,6 +36,68 @@ In Blade, a relative `src` is looked up inside `papercut.image_path`, which defa
 ::: danger
 Never pass user input to `src`.
 :::
+
+## SVG
+
+An SVG is drawn as vector paths, so logos, icons and charts stay sharp at any size.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::svg src="img/logo.svg" width="40mm" />
+<x-doc::svg :data="$chartSvg" width="100%" />
+
+<x-doc::svg height="8mm">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="#4f46e5" />
+  </svg>
+</x-doc::svg>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page, Svg};
+use function Papercut\mm;
+
+// Svg::file('logo.svg') reads a file instead.
+$ring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+    . '<path fill="#4f46e5" fill-rule="evenodd" d="M50 10 A40 40 0 1 1 49.99 10 Z M50 30 A20 20 0 1 1 49.99 30 Z"/>'
+    . '</svg>';
+
+$document = Document::make(Page::a4()->body(
+    Svg::fromString($ring)->width(mm(30)),
+));
+```
+:::
+
+In Blade, give the tag exactly one source: a `src` file, a `data` string of SVG markup, or the markup itself between the tags. Use `{!! $svg !!}` to put markup from a variable inside the tag, since `{{ }}` would escape it.
+
+### Size
+
+An SVG is sized like an image. Its `width` and `height` attributes give it a natural size. If it only has a `viewBox`, each unit counts as a pixel (0.75pt), and if it has neither, it's 300 by 150 pixels, as in a browser. Set `width` or `height` and the other side follows the aspect ratio. It's scaled down to fit the page width, and it never splits across pages.
+
+If you set both `width` and `height`, the SVG's own `preserveAspectRatio` decides where the drawing sits in that box, just as it would in a browser: centred and whole by default, cropped to fill with `slice`, or stretched with `none`. Anything drawn outside the box is cut off.
+
+### What's drawn
+
+Papercut draws paths (including arcs and curves), rectangles with rounded corners, circles, ellipses, lines, polylines and polygons. Groups with transforms (nested ones too), `<use>` and `<defs>`, `<style>` rules for tags, classes and ids, and fill, stroke and opacity all work, including a fill or stroke set on a group. Linear and radial gradients fill any shape.
+
+`fill-rule="evenodd"` is honoured on the shape itself, in its `style`, in a style sheet or on a group. It's what keeps the hole in a ring, a letter O or a five-point star when the inner outline is drawn the same way round as the outer one.
+
+A few things aren't drawn yet: `<clipPath>`, `<mask>`, `<filter>`, `<pattern>`, `<image>`, `<marker>`, `<symbol>`, `<textPath>`, `<tspan>`, links and nested `<svg>` elements. When an SVG uses any of them, you'll get a warning that names them, and the rest of the drawing still appears.
+
+### Text
+
+Text in an SVG is set in your document's fonts and embedded like the rest of the PDF, so it prints the same everywhere. If the SVG's `font-family` names a family you've [registered](./fonts.md), that family is used; otherwise the text uses the font family of the `<x-doc::svg>` element itself. Bold and italic pick the matching faces, and your fallback families cover any characters the font is missing.
+
+In HTML exports, the browser sets SVG text in its own fonts, because an SVG shown as an image can't use the page's. If text needs to look the same in both formats, convert it to outlines in your design tool.
+
+### SVGs from other people
+
+You can draw SVGs you didn't make yourself, such as an uploaded logo. Papercut never loads files, DTDs or URLs that an SVG refers to, and it refuses an SVG that declares entities. It removes scripts and event handlers, and it refuses SVGs over 10 MB, or ones that would take more than a few seconds to draw, so a crafted file can't keep your server busy for minutes. Papercut estimates that from what the SVG draws, with every `<use>` counted: one unit per path or polygon point, 15 per circle or ellipse, and 5 for any other element, up to a million. That's room for a line chart with several hundred thousand points, or a scatter plot with about 65,000 circles. A refused or broken SVG throws `ImageUnreadable` with the reason.
+
+A relative `src` in Blade follows the same rules as for images, so keep user input out of `src`.
+
+In HTML exports, an SVG becomes an `<img>` with the SVG in a `data:` URI. It's never added to the page as markup, so a browser won't run anything in it or fetch anything it links to. The SVG's `<title>` becomes the image's alt text.
 
 ## Links
 

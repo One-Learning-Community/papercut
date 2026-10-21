@@ -44,6 +44,7 @@ Output: `$document->toPdf()` returns an `Output`: `->save($path)`, `->bytes()` (
 | `Spacer::flex()`, `Spacer::size($length)` | Flexible or fixed gap. |
 | `Text::make()`, `h1`-`h4`, `p`, `markup()`, `spans()` | Text, with inline spans. |
 | `Image::file()`, `bytes()` | PNG and JPEG; WebP, GIF, BMP and AVIF with `ext-gd`. `fit()` modes. Images shrink to fit the page width, and an image taller than an empty page shrinks to fit it, unless its height is set explicitly. |
+| `Svg::file()`, `fromString()` | An [SVG](#svg) drawn as vector paths, sized like an image. |
 | `ListNode::ordered()`, `unordered()` | Numbered or bulleted [lists](#lists) of `ListItem`s. |
 | `Markup::html()`, `text()`, `flatten()` | [HTML and plain text](#markup-input) converted to nodes. |
 | `Link::to($uri, ...$children)` | A clickable region around children. |
@@ -392,6 +393,24 @@ use Papercut\{Document, Page, QrCode};
 use function Papercut\mm;
 
 $document = Document::make(Page::a4()->body(QrCode::make('https://acme.test/pay/INV-142')->width(mm(30))));
+```
+
+## SVG
+
+`Svg::file($path)` and `Svg::fromString($markup)` draw an SVG as vector paths, so it stays sharp at any size. It is sized like an image: the SVG's `width` and `height` (or its `viewBox`, one unit to a pixel) give the natural size, setting one side keeps the aspect ratio, and it shrinks to fit the page width. With both sides set, the SVG's `preserveAspectRatio` places the drawing in the box, and anything outside the box is cut off. An SVG never splits across pages.
+
+Paths (arcs included), basic shapes, groups with nested transforms and inherited fill and stroke, `<use>`, `<style>` rules, opacity, `fill-rule="evenodd"`, and linear and radial gradients on any shape are drawn. `<clipPath>`, `<mask>`, `<filter>`, `<pattern>`, `<image>`, `<marker>`, `<symbol>`, `<textPath>` and `<tspan>` are not drawn yet, and a warning names any the SVG uses. `<text>` is set in the document's embedded fonts: a `font-family` you registered is used, otherwise the SVG element's own family.
+
+Untrusted SVG is safe to draw. Papercut never loads files, DTDs or URLs named in an SVG, refuses one that declares entities, removes scripts and event handlers, and refuses one over 10 MB or over a million units of drawing work, with each `<use>` counted (one per path point, 15 per circle or ellipse, 5 per other element; `ImageUnreadable`). HTML exports show it as an `<img>` with a `data:` URI, never inline, with the SVG's `<title>` as the alt text.
+
+```php
+use Papercut\{Document, Page, Svg};
+use function Papercut\mm;
+
+$ring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><title>A ring</title>'
+    . '<path fill="#4f46e5" fill-rule="evenodd" d="M50 10 A40 40 0 1 1 49.99 10 Z M50 30 A20 20 0 1 1 49.99 30 Z"/></svg>';
+
+$document = Document::make(Page::a4()->body(Svg::fromString($ring)->width(mm(30))));
 ```
 
 ## Images and links

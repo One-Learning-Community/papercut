@@ -32,7 +32,6 @@ Papercut is at v0.1, and a few things aren't supported yet:
 
 - complex text shaping (HarfBuzz), right-to-left and bidirectional text, and hyphenation
 - multi-column text flow
-- SVG images
 - form filling and PDF/A
 - tables of contents
 

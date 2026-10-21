@@ -41,4 +41,4 @@ A PDF carries its fonts inside the file, but a browser has to load them from som
 
 ## Image URLs
 
-Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` for any image you'd still like embedded.
+Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` for any image you'd still like embedded. SVGs are always embedded as `data:` URIs, so `imageUrl` doesn't apply to them.

@@ -7,6 +7,7 @@ namespace Papercut\Laravel\Components;
 use Papercut\Laravel\Tag;
 use Papercut\Exception\{ImageUnreadable, InvalidValue};
 use Papercut\Laravel\Exception\InvalidStructure;
+use Papercut\Laravel\Rendering\ImagePath;
 use Papercut\Style\ImageFit;
 
 final class Image extends PapercutComponent
@@ -30,7 +31,7 @@ final class Image extends PapercutComponent
 
         if ($src !== null) {
             try {
-                $node = \Papercut\Image::file(self::resolvePath($src));
+                $node = \Papercut\Image::file(ImagePath::resolve($src));
             } catch (ImageUnreadable $e) {
                 throw new ImageUnreadable($e->getMessage() . ' on ' . rtrim(Tag::of('image'), '>') . ' src="' . $src . '">', 0, $e);
             }
@@ -45,45 +46,5 @@ final class Image extends PapercutComponent
         }
 
         return $this->styled($node, $data);
-    }
-
-    /**
-     * Relative paths must stay inside the image base (textual containment: symlinks inside the base, e.g. public/storage, are followed). Absolute paths (including stream wrappers and
-     * Windows drive paths) are trusted: never feed untrusted input to src.
-     */
-    private static function resolvePath(string $src): string
-    {
-        if (str_contains($src, "\0")) {
-            throw new ImageUnreadable('Image path contains a NUL byte');
-        }
-        $absolute = $src !== '' && ($src[0] === '/' || $src[0] === '\\'
-            || preg_match('#^[A-Za-z][A-Za-z0-9+.-]*://#', $src) === 1
-            || preg_match('#^[A-Za-z]:[\\\\/]#', $src) === 1);
-        if ($absolute) {
-            $path = $src;
-        } else {
-            $base = config('papercut.image_path');
-            $base = is_string($base) && $base !== '' ? $base : public_path();
-            $stack = [];
-            foreach (preg_split('#[/\\\\]#', $src) ?: [] as $segment) {
-                if ($segment === '' || $segment === '.') {
-                    continue;
-                }
-                if ($segment === '..') {
-                    if ($stack === []) {
-                        throw new ImageUnreadable("Image path escapes the image directory: $src");
-                    }
-                    array_pop($stack);
-                } else {
-                    $stack[] = $segment;
-                }
-            }
-            $path = rtrim($base, '/') . ($stack === [] ? '' : '/' . implode('/', $stack));
-        }
-        if (!is_file($path)) {
-            throw new ImageUnreadable("Image not found: $path");
-        }
-
-        return $path;
     }
 }

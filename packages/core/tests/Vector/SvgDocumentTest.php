@@ -185,16 +185,16 @@ final class SvgDocumentTest extends TestCase
 
     public function test_use_that_multiplies_drawing_work_past_the_limit_is_refused(): void
     {
-        // Each level draws the previous one ten times: 10^5 rectangles from a few hundred bytes.
+        // Each level draws the previous one ten times: 10^6 rectangles from a few hundred bytes.
         $defs = '<g id="l0"><rect width="1" height="1"/></g>';
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             $defs .= sprintf('<g id="l%d">%s</g>', $i, str_repeat(sprintf('<use href="#l%d"/>', $i - 1), 10));
         }
 
         $this->expectException(ImageUnreadable::class);
         $this->expectExceptionMessage('too complex');
 
-        SvgDocument::parse('<svg width="1" height="1"><defs>' . $defs . '</defs><use href="#l5"/></svg>');
+        SvgDocument::parse('<svg width="1" height="1"><defs>' . $defs . '</defs><use href="#l6"/></svg>');
     }
 
     public function test_long_path_data_counts_towards_the_limit(): void
@@ -203,6 +203,32 @@ final class SvgDocumentTest extends TestCase
         $this->expectExceptionMessage('too complex');
 
         SvgDocument::parse('<svg width="1" height="1"><path d="M0 0' . str_repeat(' L1 1', SvgDocument::MAX_WORK) . '"/></svg>');
+    }
+
+    public function test_a_dense_chart_path_is_accepted(): void
+    {
+        // 300,000 points: well past what one element costs, well inside the budget.
+        $svg = SvgDocument::parse('<svg viewBox="0 0 10 10"><path d="M0 0' . str_repeat(' L1.25 3.5', 300_000) . '"/></svg>');
+
+        self::assertSame([0.0, 0.0, 10.0, 10.0], $svg->viewBox);
+    }
+
+    public function test_circles_count_for_more_than_rects(): void
+    {
+        // A circle or ellipse costs about three times what a rect does to draw.
+        $circles = str_repeat('<circle r="1"/>', intdiv(SvgDocument::MAX_WORK, 15) + 1);
+
+        $this->expectException(ImageUnreadable::class);
+        $this->expectExceptionMessage('too complex');
+
+        SvgDocument::parse('<svg width="1" height="1">' . $circles . '</svg>');
+    }
+
+    public function test_as_many_rects_are_fine(): void
+    {
+        $rects = str_repeat('<rect width="1" height="1"/>', intdiv(SvgDocument::MAX_WORK, 15) + 1);
+
+        self::assertEqualsWithDelta(0.75, SvgDocument::parse('<svg width="1" height="1">' . $rects . '</svg>')->widthPt, 1e-9);
     }
 
     public function test_use_with_xlink_href_is_followed(): void
