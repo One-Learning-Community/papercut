@@ -12,6 +12,11 @@ use Papercut\Style\ImageFit;
 
 final class Image extends PapercutComponent
 {
+    /** Blade escapes bound attributes as text, which would corrupt binary data; a constructor parameter reaches the tag as it is. */
+    public function __construct(private readonly mixed $data = null)
+    {
+    }
+
     protected function ownAttributes(): array
     {
         return ['src', 'data', 'fit'];
@@ -21,7 +26,7 @@ final class Image extends PapercutComponent
     {
         $own = $this->attrs($data)['own'];
         $src = $own['src'] ?? null;
-        $bytes = $own['data'] ?? null;
+        $bytes = $this->data ?? $own['data'] ?? null;
         if (($src === null) === ($bytes === null)) {
             throw new InvalidStructure(Tag::of('image') . ' requires exactly one of src or data');
         }
