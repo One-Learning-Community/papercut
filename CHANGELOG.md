@@ -36,6 +36,7 @@ Migration from v0.1:
 
 ### Added
 
+- `PendingOutput::store($path, $disk = null, $options = [])` writes a PDF or HTML export to a Laravel filesystem disk.
 - `Papercut::make($document)` and `PendingDocument` (`document()`, `pdf()`); `PendingOutput` takes its `Content-Type` and default filename from the `Output`.
 - Core: `Exporter`/`Output` API, `PdfOptions`, `FontSet`, fidelity reporting (`Fidelity`, `FidelityReport`), strict mode (`UnsupportedFeature`) and `MissingExporter`.
 - Config key `papercut.strict` (default `false`).
