@@ -1,0 +1,60 @@
+---
+home: true
+title: Papercut
+heroText: Papercut
+tagline: Paperwork without the sting.
+actions:
+  - text: Get started
+    link: /guide/
+    type: primary
+  - text: Using Laravel?
+    link: /laravel/
+    type: secondary
+features:
+  - title: Layout you already know
+    details: Rows, columns, gaps and grow factors. If you've used flexbox, you can lay out a page.
+  - title: Pagination built in
+    details: Long tables repeat their header and never split a row. Headings stay with the paragraph after them. "Page 3 of 12" is one tag.
+  - title: Blade or PHP
+    details: Write documents as Blade views, or build them with a fluent PHP API. Both produce exactly the same thing.
+  - title: Components included
+    details: Cards, callouts, form fields, checkboxes and badges, all styled from one theme so your documents match.
+  - title: PDF and HTML
+    details: Render the same document as a PDF to download, or as HTML to show in the browser.
+  - title: No headless browser
+    details: Pure PHP from start to finish. There's no Chrome or wkhtmltopdf to install on your servers.
+footer: MIT licensed. Inter is bundled under the SIL Open Font License.
+---
+
+Papercut builds PDFs from Blade or plain PHP, with page breaks that just work. Here's a transcript as a Blade view:
+
+```blade
+<x-doc::document title="Transcript">
+  <x-doc::page size="a4" margin="20mm">
+    <x-doc::h1>{{ $student }}</x-doc::h1>
+    <x-doc::table columns="3fr 25mm 20mm">
+      <x-doc::thead>
+        <x-doc::th>Course</x-doc::th><x-doc::th>Credits</x-doc::th><x-doc::th>Grade</x-doc::th>
+      </x-doc::thead>
+      @foreach ($courses as $c)
+        <x-doc::tr>
+          <x-doc::td>{{ $c->title }}</x-doc::td>
+          <x-doc::td>{{ $c->credits }}</x-doc::td>
+          <x-doc::td align="right">{{ $c->grade }}</x-doc::td>
+        </x-doc::tr>
+      @endforeach
+    </x-doc::table>
+    <x-slot:footer>
+      <x-doc::page-number format="Page {page} of {total}" align="center" />
+    </x-slot:footer>
+  </x-doc::page>
+</x-doc::document>
+```
+
+And a route that sends it to the browser:
+
+```php
+return Papercut::view('pdf.transcript', compact('student', 'courses'))->pdf()->download('transcript.pdf');
+```
+
+If the course list runs to ten pages, the header row repeats at the top of each one and no row gets cut in half at a page break.

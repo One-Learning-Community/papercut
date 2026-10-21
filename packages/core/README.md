@@ -99,13 +99,13 @@ use Papercut\Style\{Style, Theme};
 use Papercut\Value\Color;
 use function Papercut\{mm, pt};
 
-$theme = Theme::default()->withStyle('callout', Style::make(color: Color::parse('indigo-600'), fontWeight: 700));
+$theme = Theme::default()->withStyle('highlight', Style::make(color: Color::parse('indigo-600'), fontWeight: 700));
 
 $document = Document::make(
     Page::a4()->margin(mm(20))->body(
         Column::make(
             Text::make('Plain'),
-            Text::make('Named style')->apply('callout'),
+            Text::make('Named style')->apply('highlight'),
         )->gap(pt(6)),
     ),
 );

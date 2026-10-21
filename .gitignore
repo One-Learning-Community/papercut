@@ -5,3 +5,7 @@
 *.pdf
 !packages/*/tests/fixtures/**/*.pdf
 /packages/*/tests/Visual/output/
+/site/node_modules/
+/site/src/.vuepress/.cache/
+/site/src/.vuepress/.temp/
+/site/src/.vuepress/dist/

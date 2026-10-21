@@ -70,6 +70,7 @@ Migration from v0.1:
 - Core: `em` and `lh` lengths in styles (`padding="0.5em"`, `min-height="4lh"`, `Length::em()`, `Length::lh()`): `em` is the element's font size and `lh` its line height, resolved to points when styles are computed. A relative `font-size` is a share of the parent's. Page margins, table tracks and editor-HTML CSS stay absolute.
 - Decorators follow the theme's size: `Field::lines(n)` reserves n lines of the field's own text inside its padding, choice markers are `0.75em` and centred on the first line of their label, and the field label, badge and blockquote cite use `0.9em` instead of 9pt.
 - Core: a `responses` example (`examples/core/documents/responses.php`), the PHP twin of the Blade one, built from all eight decorators.
+- A documentation site built with VuePress in `site/`, deployed to GitHub Pages by `.github/workflows/docs.yml`.
 
 ### Fixed
 

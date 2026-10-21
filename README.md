@@ -85,9 +85,9 @@ return $invoice->html();                           // full HTML page
 
 Render the Blade examples with `php examples/laravel/render.php` (after `cd packages/laravel && composer install`).
 
-## Laravel docs
+## Documentation
 
-Install, configuration, tag and attribute reference: [`packages/laravel/README.md`](packages/laravel/README.md).
+The guide lives at [one-learning-community.github.io/papercut](https://one-learning-community.github.io/papercut/) (source in [`site/`](site)). Package READMEs: [`packages/core`](packages/core/README.md) and [`packages/laravel`](packages/laravel/README.md).
 
 ## Status
 

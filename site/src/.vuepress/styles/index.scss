@@ -1,0 +1,14 @@
+// Indigo accent, matching the colour the examples use for headings and rules.
+:root {
+  --vp-c-accent: #4f46e5;
+  --vp-c-accent-bg: #4f46e5;
+  --vp-c-accent-hover: #6366f1;
+  --vp-c-accent-soft: rgba(79, 70, 229, 0.12);
+}
+
+[data-theme='dark'] {
+  --vp-c-accent: #a5b4fc;
+  --vp-c-accent-bg: #6366f1;
+  --vp-c-accent-hover: #4f46e5;
+  --vp-c-accent-soft: rgba(165, 180, 252, 0.14);
+}
