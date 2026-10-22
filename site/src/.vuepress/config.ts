@@ -16,7 +16,7 @@ export default defineUserConfig({
   base,
 
   head: [
-    ['meta', { name: 'theme-color', content: '#4f46e5' }],
+    ['meta', { name: 'theme-color', content: '#18181b' }],
     ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }],
     ['link', { rel: 'icon', href: `${base}favicon.ico`, sizes: '32x32' }],
     ['link', { rel: 'apple-touch-icon', href: `${base}favicon-180.png` }],

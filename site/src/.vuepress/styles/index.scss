@@ -1,14 +1,23 @@
-// Indigo accent, matching the colour the examples use for headings and rules.
+// Brand colours from art/README.md: Ink on light, Paper on dark. Cut red stays in the logo's cut line.
 :root {
-  --vp-c-accent: #4f46e5;
-  --vp-c-accent-bg: #4f46e5;
-  --vp-c-accent-hover: #6366f1;
-  --vp-c-accent-soft: rgba(79, 70, 229, 0.12);
+  --vp-c-accent: #18181b;
+  --vp-c-accent-bg: #18181b;
+  --vp-c-accent-hover: #3f3f46;
+  --vp-c-accent-text: #fafafa;
+  --vp-c-accent-soft: rgba(24, 24, 27, 0.08);
 }
 
 [data-theme='dark'] {
-  --vp-c-accent: #a5b4fc;
-  --vp-c-accent-bg: #6366f1;
-  --vp-c-accent-hover: #4f46e5;
-  --vp-c-accent-soft: rgba(165, 180, 252, 0.14);
+  --vp-c-accent: #fafafa;
+  --vp-c-accent-bg: #fafafa;
+  --vp-c-accent-hover: #d4d4d8;
+  --vp-c-accent-text: #18181b;
+  --vp-c-accent-soft: rgba(250, 250, 250, 0.12);
+}
+
+// Ink links are close to the body text colour, so underline them in page content.
+[vp-content] a:not(.header-anchor) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
