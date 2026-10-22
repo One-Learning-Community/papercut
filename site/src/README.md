@@ -1,6 +1,10 @@
 ---
 home: true
 title: Papercut
+heroImage: /papercut-mark.svg
+heroImageDark: /papercut-mark-dark.svg
+heroAlt: Papercut logo
+heroHeight: 160
 heroText: Papercut
 tagline: Paperwork without the sting.
 actions:

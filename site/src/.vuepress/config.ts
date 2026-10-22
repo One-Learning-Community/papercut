@@ -5,23 +5,34 @@ import { defaultTheme } from '@vuepress/theme-default'
 import { defineUserConfig } from 'vuepress'
 
 const repo = 'One-Learning-Community/papercut'
+const hostname = 'https://one-learning-community.github.io'
+// GitHub Pages serves a project site from /<repo>/. Override with DOCS_BASE for a custom domain.
+const base = (process.env.DOCS_BASE ?? '/papercut/') as `/${string}/`
 
 export default defineUserConfig({
   lang: 'en-US',
   title: 'Papercut',
   description: 'Paperwork without the sting. Page-aware PDF layout for PHP and Laravel, written in Blade or plain PHP.',
-  // GitHub Pages serves a project site from /<repo>/. Override with DOCS_BASE for a custom domain.
-  base: (process.env.DOCS_BASE ?? '/papercut/') as `/${string}/`,
+  base,
 
   head: [
     ['meta', { name: 'theme-color', content: '#4f46e5' }],
-    ['link', { rel: 'icon', href: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><path d=%22M7 3h13l6 6v20H7z%22 fill=%22%234f46e5%22/><path d=%22M20 3v6h6%22 fill=%22%23a5b4fc%22/></svg>' }],
+    ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }],
+    ['link', { rel: 'icon', href: `${base}favicon.ico`, sizes: '32x32' }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}favicon-180.png` }],
+    ['meta', { property: 'og:image', content: `${hostname}${base}papercut-social.png` }],
+    ['meta', { property: 'og:image:width', content: '1280' }],
+    ['meta', { property: 'og:image:height', content: '640' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
 
   bundler: viteBundler(),
 
   theme: defaultTheme({
-    hostname: 'https://one-learning-community.github.io',
+    hostname,
+    logo: '/papercut-mark.svg',
+    logoDark: '/papercut-mark-dark.svg',
+    logoAlt: 'Papercut',
     repo,
     docsRepo: repo,
     docsBranch: 'main',

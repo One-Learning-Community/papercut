@@ -1,4 +1,9 @@
-# Papercut
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/papercut-logo-dark.svg">
+    <img alt="Papercut" src="art/papercut-logo.svg" width="320">
+  </picture>
+</h1>
 
 [![core](https://github.com/One-Learning-Community/papercut/actions/workflows/core.yml/badge.svg)](https://github.com/One-Learning-Community/papercut/actions/workflows/core.yml)
 [![laravel](https://github.com/One-Learning-Community/papercut/actions/workflows/laravel.yml/badge.svg)](https://github.com/One-Learning-Community/papercut/actions/workflows/laravel.yml)
