@@ -71,6 +71,7 @@ Migration from v0.1:
 ### Fixed
 
 - `min-height` and `max-height` now apply to boxes and text that size to their content in the PDF (the HTML export already had them). A `min-height` that does not fit in the space left on a page moves the box to the next page (on an empty page it is cut to the page). A box with `max-height` (and text with a `height`) is kept whole and placed or moved, like a fixed-height box; only a cap taller than an empty page lets it split, so no content is cut off. Text also honours an explicit `height`.
+- Page margins that meet or cross now throw `InvalidValue` (kind `page margins`) naming the page and the margins, in both PDF and HTML. Left and right margins wider than the page used to render one letter per line, and the HTML export rendered silently; top and bottom margins taller than the page blamed the header and footer. Checked at export, after the size and orientation are final.
 - Visual change: `Field::lines(n)` now counts lines inside the padding, so a field with `lines` is taller by its padding and border (`lines="2"` goes from 28pt to 40pt at the default size).
 
 ## [0.1.0] - unreleased
