@@ -492,14 +492,15 @@ A source that answers with an unsafe URL (a scheme other than http or https, a p
 
 **Limits.** The font stylesheets are built from the families and weights the document uses. Google rejects the stylesheet of a family it does not have, or of a weight it does not offer, and the browser then falls back silently. The library cannot see that, because it never fetches the stylesheet.
 
-## Kerning cache
+## Font cache
 
-Parsing a font's GPOS pair-kerning table costs tens of milliseconds, so the default backend stores it on disk and
-reads it back in later processes. Each font face gets one file of roughly 5-6 MB (the pair table, serialised) in
+Where every request is a new process (PHP-FPM), each font face would be parsed again on every request. The default
+backend keeps each parsed face in a file instead, and later processes restore it in a fraction of the time (Inter:
+1.7 ms parsed, 0.2 ms restored). Each face gets one file of a few hundred KB in
 `sys_get_temp_dir()/papercut-cache-<uid>`. The key covers the font's path, mtime and size plus the php-pdf version,
 so an updated font or library simply gets a new entry. Entries unused for 30 days are pruned. Any problem (an
-unwritable directory, a symlinked or foreign-owned one, a corrupt file) falls back silently to an in-memory parse;
-output is identical either way.
+unwritable directory, a symlinked or foreign-owned one, a damaged file) falls back silently to parsing; output is
+identical either way.
 
 ```php
 use Papercut\{Document, Page, Text};
@@ -508,6 +509,18 @@ use Papercut\Export\PdfOptions;
 $document = Document::make(Page::a4()->body(Text::make('Hello')));
 $options = new PdfOptions(cacheDir: '/var/cache/myapp/papercut'); // your own directory
 $options = new PdfOptions(cacheDir: false);                       // no disk cache
+```
+
+A service that renders PDFs all day can let opcache hold the parsed fonts in shared memory, at the cost of opcache
+memory for every face ever cached:
+
+```php
+use Papercut\{Document, Page, Text};
+use Papercut\Backend\PhpPdf\{FontStateCache, PhpPdfBackend};
+use Papercut\Export\PdfOptions;
+
+$document = Document::make(Page::a4()->body(Text::make('Hello')));
+$options = new PdfOptions(backend: new PhpPdfBackend(fontCacheFormat: FontStateCache::PHP));
 ```
 
 ## Errors

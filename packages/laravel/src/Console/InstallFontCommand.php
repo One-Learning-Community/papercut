@@ -96,8 +96,8 @@ final class InstallFontCommand extends Command
             }
             file_put_contents($path, $bytes);
             try {
-                // A fresh backend per face keeps one font's kerning table in memory at a time.
-                (new PhpPdfBackend())->loadFont($path);
+                // Only checks that the font loads; caching it is left to the first render.
+                (new PhpPdfBackend(cacheDir: false))->loadFont($path);
             } catch (\Throwable $e) {
                 unlink($path);
                 $this->error("The downloaded $file could not be loaded: {$e->getMessage()}");

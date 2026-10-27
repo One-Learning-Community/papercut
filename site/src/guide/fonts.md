@@ -84,9 +84,9 @@ When the main font doesn't have a character, Papercut tries each fallback family
 
 Kerning and ligatures are applied within each run of text. Complex shaping (HarfBuzz) and right-to-left text aren't supported yet.
 
-## The kerning cache
+## The font cache
 
-Reading a font's kerning table takes tens of milliseconds, so Papercut caches it on disk. Each font gets its own file of about 5 to 6 MB, stored in `sys_get_temp_dir()/papercut-cache-<uid>`. Updating a font or the library creates a fresh entry, and entries that haven't been used for 30 days are deleted. If the cache directory isn't writable, Papercut reads the font in memory instead. The PDF is identical either way, only slower to produce.
+Papercut keeps each font it has read in a cache file, so the next request doesn't have to read the font again. This matters most under PHP-FPM, where every request starts from scratch. Each font gets its own file of a few hundred KB, stored in `sys_get_temp_dir()/papercut-cache-<uid>`. Updating a font or the library creates a fresh entry, and entries that haven't been used for 30 days are deleted. If the cache directory isn't writable, Papercut reads the font from scratch instead. The PDF is identical either way, only slightly slower to produce.
 
 ```php
 use Papercut\Export\PdfOptions;

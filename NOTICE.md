@@ -21,7 +21,7 @@ Tailwind CSS v3.4.17 default palette by `packages/core/tools/generate-palette.ph
 
 ## dskripchenko/php-pdf
 
-`papercut/core` depends on [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf) (`^1.24`) for PDF
+`papercut/core` depends on [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf) (`^1.26`) for PDF
 object writing, font subsetting and text shaping. It is used only through `Papercut\Backend\PhpPdf\*`.
 
 - License: MIT (distributed via Composer, not bundled in this repository)

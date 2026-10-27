@@ -81,7 +81,7 @@ This publishes `config/papercut.php`:
 | `markup.blank_paragraphs` | `'drop'` | `'drop'` or `'keep'` paragraphs that hold only `&nbsp;` or `<br>` |
 | `bookmarks` | `true` | Headings and `bookmark="…"` build the PDF's bookmarks panel; `false` leaves it empty |
 | `image_path` | `null` | Base directory for relative `<x-doc::image src>`; `null` = `public_path()` |
-| `cache_dir` | `null` | Font kerning cache directory: `null` = `sys_get_temp_dir()/papercut-cache-<uid>`, `false` = no disk cache, or a path (see core's "Kerning cache") |
+| `cache_dir` | `null` | Parsed-font cache directory: `null` = `storage_path('framework/cache/papercut')`, `false` = no disk cache, or a path (see core's "Font cache") |
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Enable [preview routes](#preview-routes) |
 | `preview.path` | `'_papercut'` | URL prefix for preview routes |
 

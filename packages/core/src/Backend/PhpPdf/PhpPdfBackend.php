@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Papercut\Backend\PhpPdf;
 
-use Dskripchenko\PhpPdf\Font\Ttf\TtfFile;
 use Dskripchenko\PhpPdf\Image\PdfImage;
 use Dskripchenko\PhpPdf\Pdf\Document as PdfDocument;
 use Dskripchenko\PhpPdf\Pdf\{Encryption as PdfEncryption, EncryptionAlgorithm};
@@ -29,17 +28,21 @@ final class PhpPdfBackend implements Backend
 
     /** @var array<string, PhpPdfFont> */
     private array $fonts = [];
-    private readonly KerningCache $kerning;
+    private readonly FontStateCache $fontCache;
     private readonly GdImageConverter $gd;
 
     /**
-     * $kerningCacheDir: where GPOS pair-kerning tables are cached across processes
-     * (null = KerningCache::defaultDir(), false = no disk cache).
+     * $cacheDir: where parsed fonts are kept across processes
+     * (null = FontStateCache::defaultDir(), false = no disk cache).
      * $gd: converts WebP, GIF, BMP and AVIF (null = use GD when it is loaded).
+     * $fontCacheFormat: FontStateCache::SERIALIZE, or FontStateCache::PHP to let opcache hold the fonts.
      */
-    public function __construct(string|false|null $kerningCacheDir = null, ?GdImageConverter $gd = null)
-    {
-        $this->kerning = new KerningCache($kerningCacheDir === false ? null : ($kerningCacheDir ?? KerningCache::defaultDir()));
+    public function __construct(
+        string|false|null $cacheDir = null,
+        ?GdImageConverter $gd = null,
+        string $fontCacheFormat = FontStateCache::SERIALIZE,
+    ) {
+        $this->fontCache = new FontStateCache($cacheDir === false ? null : ($cacheDir ?? FontStateCache::defaultDir()), $fontCacheFormat);
         $this->gd = $gd ?? GdImageConverter::detect();
     }
 
@@ -53,12 +56,11 @@ final class PhpPdfBackend implements Backend
             return $this->fonts[$real];
         }
         try {
-            $font = new PdfFont(TtfFile::fromFile($real));
+            $font = new PdfFont($this->fontCache->load($real));
             $font->ttf()->unitsPerEm();
         } catch (\Throwable $e) {
             throw new FontNotFound('Font file is not a valid TrueType/OpenType font: ' . $path, 0, $e);
         }
-        $this->kerning->prime($font->ttf(), $real);
         return $this->fonts[$real] = new PhpPdfFont($font, sha1($real));
     }
 

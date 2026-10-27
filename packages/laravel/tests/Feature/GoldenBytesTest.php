@@ -12,6 +12,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * Pins the exact PDF bytes of v0.1 for the Laravel example views. Phase 0 must not change them.
  *
  * Record (only on unchanged v0.1 code): UPDATE_GOLDEN=1 vendor/bin/phpunit --filter GoldenBytesTest
+ * A php-pdf upgrade can change the font objects alone (php-pdf 1.26: subset tags, CIDSet, checksums).
+ * Re-record then, after checking that the drawing itself is unchanged: delete the changed keys and record.
  */
 final class GoldenBytesTest extends TestCase
 {

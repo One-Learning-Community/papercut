@@ -19,7 +19,7 @@ php artisan vendor:publish --tag=papercut-config
 | `fallback_fonts` | `[]` | Families to try, in order, for characters the main font doesn't have. |
 | `bookmarks` | `true` | Builds the PDF's [bookmarks panel](/guide/pages.md#bookmarks) from headings. `false` leaves it empty. |
 | `image_path` | `null` | The base directory for relative `<x-doc::image src>` paths. `null` means `public_path()`. |
-| `cache_dir` | `null` | Where to cache kerning data. `null` uses the system temp directory, and `false` turns the disk cache off. |
+| `cache_dir` | `null` | Where to cache parsed fonts. `null` uses `storage/framework/cache/papercut`, and `false` turns the disk cache off. |
 
 ## Errors
 

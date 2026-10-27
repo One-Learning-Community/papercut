@@ -16,7 +16,7 @@ final readonly class PdfOptions extends ExportOptions
 
     /**
      * @param (\Closure(string, ?FidelityReport=): void)|null $onWarning
-     * @param string|false|null $cacheDir directory for the default backend's font kerning cache
+     * @param string|false|null $cacheDir directory for the default backend's font cache
      *        (null = sys_get_temp_dir()/papercut-cache-<uid>, false = no disk cache); ignored when $backend is given
      * @param bool $bookmarks false leaves the PDF without a bookmarks panel, even for headings
      * @param Encryption|null $encryption password protection and permissions; null writes an unencrypted PDF

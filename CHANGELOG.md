@@ -33,6 +33,9 @@ Migration from v0.1:
 - In Laravel, all config errors (theme, styles, overflow, strict, fonts, including a missing or unreadable font file) now surface when the output is rendered, not at `view()`, `make()` or `Papercut::pdfOptions()`.
 - `->html()` returns a `PendingHtml` that no longer extends `PendingOutput` and has no `toString()`, `save()`, `download()`, `inline()` or `output()`. Use `->html()->page()` (full page) or `->html()->fragment()` (embeddable fragment), each a `PendingOutput` named `document.html`. `PendingOutput` is now `final`. Returning `->html()` from a route still sends the full page with no `Content-Disposition`.
 - `Output` and the export options expose methods, not properties: `$output->bytes()`, `mime()`, `extension()`; `$options->theme()`, `fonts()`, `onWarning()`, `strict()`, `overflow()`, `cacheDir()`.
+- Requires `dskripchenko/php-pdf` 1.26, which parses fonts and their kerning in about a millisecond. The kerning cache (`KerningCache`) is replaced by a font cache (`FontStateCache`) that keeps each parsed font, kerning included, in a file of a few hundred KB rather than 5-6 MB. `PhpPdfBackend` and `DefaultBackend::make()` take `cacheDir` instead of `kerningCacheDir`; `PdfOptions(cacheDir:)` and the default directory are unchanged, and old `kern-*.ser` files are left for you to delete.
+- In Laravel, `papercut.cache_dir = null` now means `storage/framework/cache/papercut` instead of the system temp directory, which PHP-FPM and the CLI can see differently.
+- Embedded font subsets are named with a tag (`/BaseFont /ABCDEF+Inter-Regular`) and carry a `/CIDSet`, as the PDF and PDF/A specs require (php-pdf 1.26), so PDF bytes differ from earlier versions; the drawing is unchanged.
 
 ### Added
 
@@ -74,6 +77,7 @@ Migration from v0.1:
 - Decorators follow the theme's size: `Field::lines(n)` reserves n lines of the field's own text inside its padding, choice markers are `0.75em` and centred on the first line of their label, and the field label, badge and blockquote cite use `0.9em` instead of 9pt.
 - Core: a `responses` example (`examples/core/documents/responses.php`), the PHP twin of the Blade one, built from all eight decorators.
 - A documentation site built with VuePress in `site/`, deployed to GitHub Pages by `.github/workflows/docs.yml`.
+- `PhpPdfBackend(fontCacheFormat: FontStateCache::PHP)` writes the font cache as PHP files that opcache keeps in shared memory, for services that render PDFs all day.
 
 ### Fixed
 

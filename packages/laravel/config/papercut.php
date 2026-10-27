@@ -23,7 +23,7 @@ return [
     'strict' => false,
     // Base directory for relative <x-doc::image src>
     'image_path' => null, // null = public_path()
-    // Kerning cache directory: null = sys_get_temp_dir()/papercut-cache-<uid>, false = disabled, string = path
+    // Parsed-font cache directory: null = storage_path('framework/cache/papercut'), false = disabled, string = path
     'cache_dir' => null,
     'html' => [
         // Fonts in HTML output: none (system-ui fallback stack) | embed (base64 @font-face, large)

@@ -284,10 +284,14 @@ final class PapercutManager
         return $strict;
     }
 
-    private static function cacheDir(): string|false|null
+    private static function cacheDir(): string|false
     {
         $dir = config('papercut.cache_dir');
-        if ($dir === null || $dir === false || (is_string($dir) && $dir !== '')) {
+        if ($dir === null) {
+            // not the temp dir: PHP-FPM and the CLI can each see a different one
+            return storage_path('framework/cache/papercut');
+        }
+        if ($dir === false || (is_string($dir) && $dir !== '')) {
             return $dir;
         }
         throw new \InvalidArgumentException('Invalid papercut.cache_dir: ' . (is_scalar($dir) ? var_export($dir, true) : get_debug_type($dir)) . '; expected a directory path, false or null');
