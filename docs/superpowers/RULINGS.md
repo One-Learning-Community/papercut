@@ -166,3 +166,9 @@ Design: docs/superpowers/specs/2026-10-19-html-input-design.md. Each entry: what
 - Ruling (Final): a markup `<img>` with both `width` and `height` attributes applies only the width (aspect from the image bytes); `height` alone derives the width from the bytes' aspect ratio and is applied as a width — spec §5.5 requires "shrink to an empty page's height" to still apply, and an explicit height disables it — cost if wrong: images deliberately distorted by their attributes render at natural aspect
 - Ruling (Final): list `start`/`value` from markup clamp to the 32-bit range (browser behaviour), `ListNode::numbers()` saturates at `PHP_INT_MAX`, and roman markers apply only to 1–3999 with decimal outside (the CSS counter-style range) — untrusted attributes must not exhaust memory, hang or overflow — cost if wrong: none visible on real content
 - Ruling (Final): HTML block-level tags without a mapping (`blockquote`, `pre`, `section`, table parts, `dl`/`dt`/`dd`, `hr`, …) convert as unknown blocks (flush before and after, content kept as paragraphs, approximated report; `pre` keeps its newlines as line breaks), and unknown-tag reports come once per tag name per conversion, at the first occurrence — spec anti-goal "flood of warnings", and words must not glue — cost if wrong: fewer report locations for repeated unknown tags
+
+# Rulings made during DOCX export, 2026-10-27
+
+## docx
+
+- Ruling (Task 5): content-sized row cells borrow up to 15% + 4pt from neighbouring free space (20% of a plain growing sibling, at most half of what's free), so Word's text metrics don't wrap them; table columns and rows without free space keep `WidthResolver` widths exactly — cost if wrong: a row edge sits a few points off the PDF

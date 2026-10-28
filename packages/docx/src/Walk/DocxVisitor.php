@@ -6,7 +6,7 @@ namespace Papercut\Docx\Walk;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak as DocxPageBreak};
 use Papercut\{Link, Node, Page, PageBreak, PageNumber, Spacer, TableCell, TableRow, Text, View};
-use Papercut\Docx\Map\{BoxMapper, Flow, TextMapper};
+use Papercut\Docx\Map\{BoxMapper, Flow, RowMapper, TextMapper};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\WidthResolver;
 use Papercut\Style\{ComputedStyle, Direction};
@@ -32,6 +32,7 @@ final class DocxVisitor implements TreeVisitor
         private readonly WidthResolver $widths,
         private readonly TextMapper $text,
         private readonly BoxMapper $boxes,
+        private readonly RowMapper $rows,
     ) {
     }
 
@@ -103,6 +104,7 @@ final class DocxVisitor implements TreeVisitor
             $node instanceof PageNumber => [$this->text->pageNumber($node, $style)],
             $node instanceof Spacer => $this->spacer($node, $parent, $at),
             $node instanceof PageBreak => [new DocxPageBreak()],
+            $frame->isRow => [$this->rows->row($style, $frame, $at->path())],
             default => Flow::blocks($frame),
         };
         if ($style->opacity < 1.0) {
