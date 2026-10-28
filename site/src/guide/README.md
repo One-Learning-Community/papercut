@@ -32,7 +32,7 @@ Papercut does the layout; [php-pdf](https://github.com/dskripchenko/php-pdf), by
 
 ## Current limitations
 
-Papercut is at 0.2, and a few things aren't supported yet:
+Papercut is at 0.3, and a few things aren't supported yet:
 
 - complex text shaping (HarfBuzz), right-to-left and bidirectional text, and hyphenation
 - multi-column text flow

@@ -17,7 +17,7 @@ is small, strict and ours, and a typo in an attribute is an error that names the
 
 **[Documentation](https://one-learning-community.github.io/papercut/)** · [Guide](https://one-learning-community.github.io/papercut/guide/) · [Laravel](https://one-learning-community.github.io/papercut/laravel/) · [Reference](https://one-learning-community.github.io/papercut/reference/blade-tags.html) · [Examples](https://one-learning-community.github.io/papercut/examples.html)
 
-> **Status: 0.2, pre-release.** Not yet published to Packagist. See [Status](#status) below.
+> **Status: 0.3, early release.** Before 1.0 a minor version (0.4) may change the API; patch versions won't. See [Status](#status) below.
 
 ## A Blade document
 
@@ -117,7 +117,7 @@ The guide lives at [one-learning-community.github.io/papercut](https://one-learn
 
 ## Status
 
-0.2, pre-release, not yet published to Packagist. No performance or compatibility benchmarks have been
+0.3, the first release on Packagist. Before 1.0 a minor version may change the API; patch versions won't. No performance or compatibility benchmarks have been
 published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (CI tests against both).
 
 Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning

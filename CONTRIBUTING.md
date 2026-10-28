@@ -27,7 +27,7 @@ composer --working-dir=packages/core install
 composer --working-dir=packages/laravel install
 ```
 
-The Laravel package's path repository pins core to `0.1.x-dev` (`options.versions` in its `composer.json`), so it
+The Laravel and DOCX packages' path repositories pin core (and DOCX) to `0.3.x-dev` (`options.versions` in its `composer.json`), so it
 resolves on any branch or detached checkout. Bump that pin together with core's `branch-alias` when the minor
 version changes.
 
