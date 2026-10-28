@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Papercut\Docx\Walk;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak as DocxPageBreak};
-use Papercut\{Link, Node, Page, PageBreak, PageNumber, Spacer, Table, TableCell, TableRow, Text, View};
-use Papercut\Docx\Map\{BoxMapper, Flow, RowMapper, TableMapper, TextMapper};
+use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
+use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, ListMapper, RowMapper, TableMapper, TextMapper};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\WidthResolver;
 use Papercut\Style\{ComputedStyle, Direction};
@@ -26,6 +26,10 @@ final class DocxVisitor implements TreeVisitor
     /** @var list<array{page: Page, regions: array<string, list<BlockElement>>}> */
     private array $pages = [];
     private ?Page $page = null;
+    /** True inside a background or overlay region, which Word can't draw (the exporter reports them). */
+    private bool $skipping = false;
+    /** @var list<string> enclosing block link URIs, innermost last */
+    private array $links = [];
 
     public function __construct(
         private readonly Fidelity $fidelity,
@@ -34,6 +38,8 @@ final class DocxVisitor implements TreeVisitor
         private readonly BoxMapper $boxes,
         private readonly RowMapper $rows,
         private readonly TableMapper $tables,
+        private readonly ListMapper $lists,
+        private readonly ImageMapper $images,
     ) {
     }
 
@@ -56,6 +62,7 @@ final class DocxVisitor implements TreeVisitor
 
     public function enterRegion(Region $region, ComputedStyle $root): void
     {
+        $this->skipping = $region === Region::Background || $region === Region::Overlay;
         $page = $this->page;
         $width = $page === null ? 0.0 : $page->width() - $page->margins()->left->points - $page->margins()->right->points;
         $this->stack = [new Frame(null, $root, $width, $width)];
@@ -65,17 +72,32 @@ final class DocxVisitor implements TreeVisitor
     {
         $root = array_pop($this->stack);
         \assert($root instanceof Frame);
-        $this->regions[$region->value] = Flow::blocks($root);
+        if ($this->skipping) {
+            $this->skipping = false;
+
+            return;
+        }
+        $blocks = Flow::blocks($root);
+        // Word pushes the body below the header's full extent, spacing included, so the gap rides on the header.
+        if ($blocks !== [] && $region === Region::Header) {
+            $blocks = Flow::spaceAfter($blocks, $this->page?->headerGapLength()->points ?? 0.0);
+        } elseif ($blocks !== [] && $region === Region::Footer) {
+            $blocks = Flow::spaceBefore($blocks, $this->page?->footerGapLength()->points ?? 0.0);
+        }
+        $this->regions[$region->value] = $blocks;
     }
 
     public function enter(Node $node, ComputedStyle $style, Visit $at): bool
     {
+        if ($this->skipping) {
+            return false;
+        }
         $parent = $this->top();
         $width = $this->outerWidth($node, $style, $parent, $at);
         $content = max(0.0, $width - $style->padding->horizontal() - $style->borderWidth->horizontal());
-        $isRow = ($node instanceof View || $node instanceof Link) && $style->direction === Direction::Row;
+        $isRow = $node instanceof View && $style->direction === Direction::Row;
         $frame = new Frame($node, $style, $width, $content, $isRow);
-        if ($isRow && $node instanceof View) {
+        if ($node instanceof View && $isRow) {
             $frame->lines = $this->widths->flexLines($node, $style, $width);
             foreach ($frame->lines as $line) {
                 foreach ($line as $slot) {
@@ -86,6 +108,11 @@ final class DocxVisitor implements TreeVisitor
             $frame->columns = $this->widths->tableColumns($node, $style, $width);
         } elseif ($node instanceof TableRow) {
             $frame->header = $at->inHeader() && $at->parent() instanceof Table && $at->parent()->repeatsHeader();
+        } elseif ($node instanceof ListNode) {
+            $this->lists->enter($node);
+        } elseif ($node instanceof Link) {
+            $this->links[] = TextMapper::href($node->uri());
+            $this->fidelity->approximated('block link', $at->path());
         }
         $this->stack[] = $frame;
         if (TextMapper::glyph($node, $style) !== null) {
@@ -93,11 +120,15 @@ final class DocxVisitor implements TreeVisitor
         }
 
         // Leaves produce their blocks in leave(); containers wait for their children.
-        return !($node instanceof Text || $node instanceof Spacer || $node instanceof PageBreak || $node instanceof PageNumber);
+        return !($node instanceof Text || $node instanceof Spacer || $node instanceof PageBreak || $node instanceof PageNumber
+            || $node instanceof Image || $node instanceof QrCode || $node instanceof Svg || $node instanceof PdfPage || $node instanceof Place);
     }
 
     public function leave(Node $node, ComputedStyle $style, Visit $at): void
     {
+        if ($this->skipping) {
+            return;
+        }
         $frame = array_pop($this->stack);
         \assert($frame instanceof Frame);
         $parent = $this->top();
@@ -116,10 +147,15 @@ final class DocxVisitor implements TreeVisitor
         $glyph = TextMapper::glyph($node, $style);
         $blocks = match (true) {
             $glyph !== null => [$this->text->glyphParagraph($glyph, $style)],
-            $node instanceof Text => [$this->text->paragraph($node, $style, $at)],
+            $node instanceof Text => [$this->text->paragraph($node, $style, $at, $this->links === [] ? null : end($this->links))],
             $node instanceof PageNumber => [$this->text->pageNumber($node, $style)],
             $node instanceof Spacer => $this->spacer($node, $parent, $at),
             $node instanceof PageBreak => [new DocxPageBreak()],
+            $node instanceof Image => $this->images->image($node, $style, $frame, $at->path()),
+            $node instanceof QrCode, $node instanceof Svg, $node instanceof PdfPage, $node instanceof Place => $this->drop($node, $at),
+            $node instanceof ListNode => $this->leaveList($frame),
+            $node instanceof ListItem => $this->lists->item(Flow::blocks($frame)),
+            $node instanceof Link => $this->leaveLink($frame),
             $node instanceof Table => [$this->tables->table($style, $frame)],
             $frame->isRow => [$this->rows->row($style, $frame, $at->path())],
             default => Flow::blocks($frame),
@@ -189,5 +225,29 @@ final class DocxVisitor implements TreeVisitor
         }
 
         return [Flow::hairline($fixed->points)];
+    }
+
+    /** @return list<BlockElement> */
+    private function leaveList(Frame $frame): array
+    {
+        $this->lists->leave();
+
+        return Flow::blocks($frame);
+    }
+
+    /** @return list<BlockElement> */
+    private function leaveLink(Frame $frame): array
+    {
+        array_pop($this->links);
+
+        return Flow::blocks($frame);
+    }
+
+    /** @return list<BlockElement> */
+    private function drop(Node $n, Visit $at): array
+    {
+        $this->fidelity->dropped($n->debugName(), $at->path());
+
+        return [];
     }
 }
