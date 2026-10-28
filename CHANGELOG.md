@@ -3,7 +3,9 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
-## [0.3.0] - unreleased
+## [Unreleased]
+
+## [0.3.0] - 2026-10-28
 
 The first release on Packagist. 0.1 and 0.2 were never published, so there are no deprecation shims; the table
 below maps v0.1 names for anyone who used the repository directly.
