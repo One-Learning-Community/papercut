@@ -381,8 +381,8 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
 ## 12. Future work (the design leaves room)
 
 - *Done:* font sources (Google Fonts and others in HTML export), see `2026-10-19-html-font-sources-design.md`.
-- **Raw HTML input** (`<x-doc::html>`): convert HTML into Papercut nodes once, when the tree is built, using php-pdf's `HtmlParser` and CSS cascade as the front end plus a translator from its elements (`Paragraph`, `Run`, `Table`, `ListNode`) to `Text`/`Span`/`Table`. The result works in every format. It reverses v0.1's "no HTML parser" stance, so it needs its own spec. It would likely also bring a list node.
+- *Done as `Markup::html()` and `<x-doc::markup>`, see `2026-10-19-html-input-design.md`:* **Raw HTML input** (`<x-doc::html>`): convert HTML into Papercut nodes once, when the tree is built, using php-pdf's `HtmlParser` and CSS cascade as the front end plus a translator from its elements (`Paragraph`, `Run`, `Table`, `ListNode`) to `Text`/`Span`/`Table`. The result works in every format. It reverses v0.1's "no HTML parser" stance, so it needs its own spec. It would likely also bring a list node.
 - **Font embedding in DOCX** (upstream).
 - **An editable DOCX mode** (fewer layout tables, more native paragraphs), as a contribution.
 - **Page background in DOCX** as an anchored shape behind the text.
-- **Bookmarks** (moved from v0.2 to v0.3), mapping naturally to PDF outlines, DOCX heading styles and HTML anchors.
+- *Done in 0.2 for PDF (DOCX and HTML anchors not yet):* **Bookmarks** (moved from v0.2 to v0.3), mapping naturally to PDF outlines, DOCX heading styles and HTML anchors.

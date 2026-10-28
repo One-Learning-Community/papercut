@@ -25,3 +25,10 @@ Tailwind CSS v3.4.17 default palette by `packages/core/tools/generate-palette.ph
 object writing, font subsetting and text shaping. It is used only through `Papercut\Backend\PhpPdf\*`.
 
 - License: MIT (distributed via Composer, not bundled in this repository)
+
+## dskripchenko/php-docx
+
+`papercut/docx` depends on [`dskripchenko/php-docx`](https://github.com/dskripchenko/php-docx) (`^1.17`) to write Word files. It is used only through
+`Papercut\Docx\*`.
+
+- License: MIT (distributed via Composer, not bundled in this repository)
