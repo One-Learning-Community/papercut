@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Papercut\Docx;
 
 use Dskripchenko\PhpDocx\Document as DocxDocument;
-use Dskripchenko\PhpDocx\Element\{Paragraph, Run};
+use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak};
 use Dskripchenko\PhpDocx\Section;
 use Dskripchenko\PhpDocx\Writer\Word2007Writer;
-use Papercut\{Document, Node, Page, Text};
+use Papercut\Document;
+use Papercut\Docx\Map\{LineMetrics, TextMapper};
+use Papercut\Docx\Walk\DocxVisitor;
 use Papercut\Export\{ExportOptions, Exporter, Fidelity, NoteReporter, Output};
-use Papercut\Style\{ComputedStyle, StyleResolver};
-use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
+use Papercut\Layout\WidthResolver;
+use Papercut\Style\StyleResolver;
+use Papercut\Tree\TreeWalker;
 
 /** Word (.docx) export: the document's pages as one flowing Word section that Word paginates. */
 final class DocxExporter implements Exporter
@@ -24,42 +27,26 @@ final class DocxExporter implements Exporter
         $styles = new StyleResolver($options->theme());
         $fidelity = new Fidelity('docx', $options);
         NoteReporter::report($doc, $styles, $fidelity);
-        $visitor = new class () implements TreeVisitor {
-            /** @var list<Paragraph> */
-            public array $body = [];
-
-            public function enterPage(Page $page, int $index): void
-            {
-            }
-
-            public function leavePage(Page $page, int $index): void
-            {
-            }
-
-            public function enterRegion(Region $region, ComputedStyle $root): void
-            {
-            }
-
-            public function leaveRegion(Region $region): void
-            {
-            }
-
-            public function enter(Node $node, ComputedStyle $style, Visit $at): bool
-            {
-                if ($node instanceof Text && $at->region() === Region::Body) {
-                    $this->body[] = new Paragraph([new Run(implode("", array_map(static fn ($s): string => $s->text, $node->spanList())))]);
-                }
-
-                return true;
-            }
-
-            public function leave(Node $node, ComputedStyle $style, Visit $at): void
-            {
-            }
-        };
+        $visitor = new DocxVisitor($fidelity, WidthResolver::for($options), new TextMapper(new LineMetrics($options->fonts()), $fidelity));
         (new TreeWalker($styles))->walk($doc, $visitor);
 
-        return new Output((new Word2007Writer())->write(new DocxDocument(new Section($visitor->body))), self::MIME, 'docx');
+        return new Output((new Word2007Writer())->write(new DocxDocument(new Section($this->body($visitor)))), self::MIME, 'docx');
+    }
+
+    /** @return list<BlockElement> */
+    private function body(DocxVisitor $visitor): array
+    {
+        $body = [];
+        foreach ($visitor->pages() as $i => $p) {
+            if ($i > 0) {
+                $body[] = new PageBreak();
+            }
+            foreach ($p['regions']['body'] ?? [] as $b) {
+                $body[] = $b;
+            }
+        }
+
+        return $body;
     }
 
     public function defaultOptions(): DocxOptions
