@@ -40,7 +40,7 @@ strict and ours, and a typo in an attribute is an error that names the tag, not 
 return Papercut::view('pdf.transcript', compact('student', 'courses'))->pdf()->download('transcript.pdf');
 ```
 
-## One template, PDF and HTML
+## One template, PDF, HTML and Word
 
 ```php
 $invoice = Papercut::view('pdf.invoice', compact('invoice'));
@@ -48,6 +48,7 @@ $invoice = Papercut::view('pdf.invoice', compact('invoice'));
 return $invoice->pdf()->download('invoice.pdf');   // PDF
 return $invoice->html();                           // full HTML page
 // {!! $invoice->html() !!}                        // fragment inside another Blade view
+return $invoice->docx()->download('invoice.docx'); // Word, with papercut/docx installed
 ```
 
 ## Features
