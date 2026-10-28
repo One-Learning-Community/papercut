@@ -12,12 +12,12 @@ Blade components that compile to a real layout engine, not HTML.
 
 Papercut is a PDF library for modern PHP. You write `<x-doc::*>` tags in Blade; they become a tree of
 typed, immutable components with flexbox layout and page-aware pagination, and a pure-PHP engine turns
-that tree into a PDF. There is no browser, no HTML parser and no CSS cascade. The tag vocabulary is small,
-strict and ours, and a typo in an attribute is an error that names the tag, not a silently wrong page.
+that tree into a PDF, written by Denis Skripchenko's [php-pdf](https://github.com/dskripchenko/php-pdf) (see [Built on](#built-on)). There is no browser and no CSS cascade: templates are not parsed as HTML. The tag vocabulary
+is small, strict and ours, and a typo in an attribute is an error that names the tag, not a silently wrong page.
 
 **[Documentation](https://one-learning-community.github.io/papercut/)** · [Guide](https://one-learning-community.github.io/papercut/guide/) · [Laravel](https://one-learning-community.github.io/papercut/laravel/) · [Reference](https://one-learning-community.github.io/papercut/reference/blade-tags.html) · [Examples](https://one-learning-community.github.io/papercut/examples.html)
 
-> **Status: v0.1, pre-release.** Not yet published to Packagist. See [Status](#status) below.
+> **Status: 0.2, pre-release.** Not yet published to Packagist. See [Status](#status) below.
 
 ## A Blade document
 
@@ -61,6 +61,11 @@ return $invoice->docx()->download('invoice.docx'); // Word (experimental), with 
 - Keep-together and keep-with-next, so a heading is not stranded at the bottom of a page.
 - Page numbers with a page count: `Page {page} of {total}`.
 - Real fonts: every document embeds fonts (Inter is bundled; register your own families), with subsetting and fallback families. The 14 standard PDF fonts are not used.
+- Lists, links, images (PNG and JPEG; WebP, GIF, BMP and AVIF with `ext-gd`), SVG drawn as vectors, and QR codes, plain or styled.
+- Rich text from your data: `<x-doc::markup>` turns an HTML fragment or plain text (say, from a rich-text editor) into Papercut nodes.
+- PDF templates and placed content: draw a page of an existing PDF behind yours and place text at a point on it, for certificates and letterheads.
+- Bookmarks built from headings, and AES-256 encryption with permissions.
+- HTML export from the same template, and Word export (experimental) with `papercut/docx`.
 - Decorators: ready-made card, callout, blockquote, section, field, choice list, key-value list and badge, restyled from the theme (`<x-doc::callout type="warning">`).
 - Composition: your own Blade components can contain `<x-doc::*>` tags (see `examples/laravel/views/components`).
 - Strict, readable errors for unknown attributes, bad values and invalid structure.
@@ -76,6 +81,19 @@ return $invoice->docx()->download('invoice.docx'); // Word (experimental), with 
    text fragmentation) into a backend-neutral display list.
 4. A thin backend adapter turns the display list into PDF objects via
    [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf).
+
+## Built on
+
+Papercut stands on two libraries by [Denis Skripchenko](https://github.com/dskripchenko), and wouldn't exist without
+them.
+
+- **[`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf)** writes every PDF Papercut makes. Papercut decides where things go on the page; php-pdf turns
+  that into a PDF. It parses, subsets and embeds the fonts and applies their kerning, embeds the images, draws SVG,
+  encodes QR codes, encrypts, and reads existing PDFs for page templates. It can also sign and merge the result.
+  When Papercut needed more, such as even-odd fills in SVG and faster font loading, the maintainer added it upstream.
+- **[`dskripchenko/php-docx`](https://github.com/dskripchenko/php-docx)** writes Papercut's Word files.
+
+Both are pure PHP and MIT licensed. If Papercut is useful to you, they deserve a star too.
 
 ## Not using Laravel?
 
@@ -99,12 +117,13 @@ The guide lives at [one-learning-community.github.io/papercut](https://one-learn
 
 ## Status
 
-v0.1, pre-release, not yet published to Packagist. No performance or compatibility benchmarks have been
+0.2, pre-release, not yet published to Packagist. No performance or compatibility benchmarks have been
 published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (CI tests against both).
 
-Not in v0.1: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning and ligatures within runs), right-to-left and bidirectional paragraph layout, hyphenation,
-Knuth-Plass line breaking, multi-column text flow, SVG, AcroForms, digital signatures, PDF/A, encryption,
-editing or merging existing PDFs, table of contents and bookmarks. Bookmarks are first in line for v0.2.
+Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning
+and ligatures within runs), right-to-left and bidirectional paragraph layout, hyphenation, Knuth-Plass line breaking,
+multi-column text flow, form filling (AcroForms), PDF/A and tables of contents. Signing and merging aren't built in, but
+php-pdf can do both to a Papercut PDF; see [Passwords, signatures and merging](https://one-learning-community.github.io/papercut/guide/passwords-and-signatures.html).
 
 ## Licenses
 
@@ -112,3 +131,4 @@ editing or merging existing PDFs, table of contents and bookmarks. Bookmarks are
 - Bundled Inter font: SIL Open Font License 1.1 (`packages/core/resources/fonts/Inter/LICENSE.txt`).
 - Color palette derived from Tailwind CSS: MIT.
 - PDF backend [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf): MIT.
+- Word backend [`dskripchenko/php-docx`](https://github.com/dskripchenko/php-docx): MIT.

@@ -27,7 +27,7 @@ features:
     details: Render the same document as a PDF to download, or as HTML to show in the browser.
   - title: No headless browser
     details: Pure PHP from start to finish. There's no Chrome or wkhtmltopdf to install on your servers.
-footer: MIT licensed. Inter is bundled under the SIL Open Font License.
+footer: MIT licensed. PDFs are written by php-pdf and Word files by php-docx, both by Denis Skripchenko. Inter is bundled under the SIL Open Font License.
 ---
 
 Papercut builds PDFs from Blade or plain PHP, with page breaks that just work. Here's a transcript as a Blade view:
@@ -62,3 +62,7 @@ return Papercut::view('pdf.transcript', compact('student', 'courses'))->pdf()->d
 ```
 
 If the course list runs to ten pages, the header row repeats at the top of each one and no row gets cut in half at a page break.
+
+## Built on php-pdf and php-docx
+
+Papercut decides where everything goes on the page. Writing the file is the work of two libraries by [Denis Skripchenko](https://github.com/dskripchenko): [php-pdf](https://github.com/dskripchenko/php-pdf) writes every PDF, with its fonts, images, SVG, QR codes and encryption, and [php-docx](https://github.com/dskripchenko/php-docx) writes the Word files. Both are pure PHP and MIT licensed, and Papercut wouldn't exist without them.

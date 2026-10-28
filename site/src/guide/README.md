@@ -26,9 +26,13 @@ Papercut sits in between. Its layout model is a small subset of flexbox, so it s
 
 The HTML exporter works from the same tree, which is how one document can produce both formats.
 
+## Built on php-pdf
+
+Papercut does the layout; [php-pdf](https://github.com/dskripchenko/php-pdf), by Denis Skripchenko, writes the PDF. It parses, subsets and embeds the fonts and applies their kerning, embeds the images, draws SVG, encodes QR codes, encrypts, and reads existing PDFs for page templates. Its sibling [php-docx](https://github.com/dskripchenko/php-docx) writes Papercut's Word files. When Papercut needed more from php-pdf, such as even-odd fills in SVG and faster font loading, the maintainer added it upstream.
+
 ## Current limitations
 
-Papercut is at v0.1, and a few things aren't supported yet:
+Papercut is at 0.2, and a few things aren't supported yet:
 
 - complex text shaping (HarfBuzz), right-to-left and bidirectional text, and hyphenation
 - multi-column text flow
