@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Papercut\Docx\Walk;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, Image as DocxImage, PageBreak as DocxPageBreak, Paragraph};
-use Dskripchenko\PhpDocx\Style\{Alignment, ParagraphStyle};
+use Dskripchenko\PhpDocx\Style\{Alignment, HorizontalAnchor, ImagePosition, ParagraphStyle, VerticalAnchor};
 use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
-use Papercut\Docx\Map\{BoxMapper, Fade, Flow, ImageMapper, ListMapper, RowMapper, TableMapper, TextMapper};
+use Papercut\Docx\Map\{BoxMapper, Fade, Flow, ImageMapper, ListMapper, RowMapper, TableMapper, TextMapper, Units};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\WidthResolver;
 use Papercut\Style\{Align, ComputedStyle, Direction, Justify, TextAlign};
@@ -24,11 +24,21 @@ final class DocxVisitor implements TreeVisitor
     private array $stack = [];
     /** @var array<string, list<BlockElement>> blocks per region of the current page */
     private array $regions = [];
-    /** @var list<array{page: Page, regions: array<string, list<BlockElement>>}> */
+    /** @var list<array{page: Page, regions: array<string, list<BlockElement>>, floats: list<DocxImage>}> */
     private array $pages = [];
     private ?Page $page = null;
-    /** True inside a background or overlay region, which Word can't draw (the exporter reports them). */
+    /** True inside a background or overlay region: only its pictures reach Word, as floating pictures. */
     private bool $skipping = false;
+    /** The background or overlay region being walked. */
+    private ?Region $layer = null;
+    /** How far down the page the background's pictures have reached, in pt. */
+    private float $layerY = 0.0;
+    /** Set once a background holds something other than a picture: what follows sits at a height Word can't know. */
+    private bool $layerBlocked = false;
+    /** The overlay place being walked. */
+    private ?Place $place = null;
+    /** @var list<DocxImage> the current page's layer pictures, positioned on the page */
+    private array $floats = [];
     /** @var list<string> enclosing block link URIs, innermost last */
     private array $links = [];
 
@@ -44,7 +54,7 @@ final class DocxVisitor implements TreeVisitor
     ) {
     }
 
-    /** @return list<array{page: Page, regions: array<string, list<BlockElement>>}> */
+    /** @return list<array{page: Page, regions: array<string, list<BlockElement>>, floats: list<DocxImage>}> */
     public function pages(): array
     {
         return $this->pages;
@@ -54,16 +64,21 @@ final class DocxVisitor implements TreeVisitor
     {
         $this->page = $page;
         $this->regions = [];
+        $this->floats = [];
     }
 
     public function leavePage(Page $page, int $index): void
     {
-        $this->pages[] = ['page' => $page, 'regions' => $this->regions];
+        $this->pages[] = ['page' => $page, 'regions' => $this->regions, 'floats' => $this->floats];
     }
 
     public function enterRegion(Region $region, ComputedStyle $root): void
     {
         $this->skipping = $region === Region::Background || $region === Region::Overlay;
+        $this->layer = $this->skipping ? $region : null;
+        $this->layerY = 0.0;
+        $this->layerBlocked = false;
+        $this->place = null;
         $page = $this->page;
         $width = $page === null ? 0.0 : $page->width() - $page->margins()->left->points - $page->margins()->right->points;
         $this->stack = [new Frame(null, $root, $width, $width)];
@@ -91,7 +106,7 @@ final class DocxVisitor implements TreeVisitor
     public function enter(Node $node, ComputedStyle $style, Visit $at): bool
     {
         if ($this->skipping) {
-            return false;
+            return $this->layerNode($node, $style, $at);
         }
         $parent = $this->top();
         // The opacity in effect here: this node's times its ancestors' (a faded style carries the product).
@@ -299,5 +314,133 @@ final class DocxVisitor implements TreeVisitor
         $this->fidelity->dropped($n->debugName(), $at->path());
 
         return [];
+    }
+
+    /**
+     * A node of a background or overlay. Pictures become floating pictures placed where the PDF draws them
+     * (Paginator: the background is a column the width of the page from its top-left corner; a place puts its
+     * box's anchor at its point). Anything else is dropped: Word floats only pictures.
+     */
+    private function layerNode(Node $node, ComputedStyle $style, Visit $at): bool
+    {
+        $page = $this->page;
+        \assert($page !== null);
+        [$w, $h] = [$page->width(), $page->height()];
+        $m = $style->margin;
+
+        if ($this->layer === Region::Background) {
+            $image = $this->layerBlocked || $at->parent() !== null ? null : $this->picture($node, $style, $w, $at);
+            if ($image === null) {
+                if (!self::isPicture($node) || $this->layerBlocked) {
+                    $this->fidelity->dropped('background layer', $at->path());
+                }
+                $this->layerBlocked = true;
+
+                return false;
+            }
+            [$pw, $ph] = [$image->widthEmu / 12700, $image->heightEmu / 12700];
+            $x = match ($style->alignSelf) {
+                Align::Center => $m->left->points + ($w - $m->horizontal() - $pw) / 2,
+                Align::End => $w - $m->right->points - $pw,
+                default => $m->left->points,
+            };
+            $this->float($image, $x, $this->layerY + $m->top->points, true);
+            $this->layerY += $m->vertical() + $ph;
+
+            return false;
+        }
+
+        if ($node instanceof Place) {
+            $this->place = $node;
+            if (count($node->children()) !== 1) {
+                $this->fidelity->dropped('overlay layer', $at->path());
+
+                return false;
+            }
+
+            return true;
+        }
+        $place = $this->place;
+        \assert($place !== null);
+        $given = $place->boxWidth();
+        $box = $given === null ? $w : max(0.0, self::resolve($given, $w));
+        $image = $given === null && $style->width instanceof Percent
+            ? $this->shareOfNatural($node, $style, $style->width, $w, $at)
+            : $this->picture($node, $style, $box, $at);
+        if ($image === null) {
+            if (!self::isPicture($node)) {
+                $this->fidelity->dropped('overlay layer', $at->path());
+            }
+
+            return false;
+        }
+        [$pw, $ph] = [$image->widthEmu / 12700, $image->heightEmu / 12700];
+        $boxW = $given === null ? $pw + $m->horizontal() : $box;
+        $anchor = $place->anchorPoint();
+        $x = self::resolve($place->x(), $w) - $anchor->across() * $boxW + $m->left->points;
+        $y = self::resolve($place->y(), $h) - $anchor->down() * ($ph + $m->vertical()) + $m->top->points;
+        $this->float($image, $x, $y, false);
+
+        return false;
+    }
+
+    /** The picture a layer node draws in a column $space pt wide, at the size the PDF gives it; null if it isn't one or can't be drawn. */
+    private function picture(Node $node, ComputedStyle $style, float $space, Visit $at): ?DocxImage
+    {
+        if (!self::isPicture($node)) {
+            return null;
+        }
+        $root = $this->stack[0]->style;
+        $width = $this->outerWidth($node, $style, new Frame(null, $root, $space, $space), $at);
+        $frame = new Frame($node, $style, $width, max(0.0, $width - $style->padding->horizontal() - $style->borderWidth->horizontal()));
+        $blocks = match (true) {
+            $node instanceof Image => $this->images->image($node, $style, $frame, $at->path()),
+            $node instanceof QrCode => $this->images->qr($node, $style, $frame, $at->path()),
+            $node instanceof Svg => $this->images->svg($node, $style, $frame, $at->path()),
+            default => [],
+        };
+        $image = $blocks[0] ?? null;
+
+        return $image instanceof DocxImage ? $image : null;
+    }
+
+    /**
+     * A percentage width in a place without a width: the place is as wide as the picture's natural size (within
+     * the page), and the picture takes its share of that, as in the PDF.
+     */
+    private function shareOfNatural(Node $node, ComputedStyle $style, Percent $share, float $page, Visit $at): ?DocxImage
+    {
+        $natural = $this->picture($node, new ComputedStyle(...[...get_object_vars($style), 'width' => Auto::instance()]), $page, $at);
+        if ($natural === null) {
+            return null;
+        }
+        $naturalW = $natural->widthEmu / 12700;
+        $content = min($page, $naturalW + $style->margin->horizontal()) - $style->margin->horizontal();
+        $width = min($content, $content * $share->value / 100);
+        $scale = $naturalW > 0.0 ? $width / $naturalW : 0.0;
+
+        return new DocxImage($natural->binary, $natural->format, Units::emu($width), (int) round($natural->heightEmu * $scale), $natural->altText);
+    }
+
+    private function float(DocxImage $image, float $x, float $y, bool $behind): void
+    {
+        $this->floats[] = new DocxImage($image->binary, $image->format, $image->widthEmu, $image->heightEmu, $image->altText, position: new ImagePosition(
+            horizontalFrom: HorizontalAnchor::Page,
+            xEmu: Units::emu($x),
+            verticalFrom: VerticalAnchor::Page,
+            yEmu: Units::emu($y),
+            behindText: $behind,
+            zOrder: count($this->floats),
+        ));
+    }
+
+    private static function isPicture(Node $node): bool
+    {
+        return $node instanceof Image || $node instanceof QrCode || $node instanceof Svg;
+    }
+
+    private static function resolve(Length|Percent $v, float $basis): float
+    {
+        return $v instanceof Percent ? $v->resolve($basis) : $v->points;
     }
 }

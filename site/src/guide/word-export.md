@@ -37,7 +37,7 @@ In Laravel, `->docx()` returns a `PendingOutput`, with the same `toString()`, `s
 
 Word, LibreOffice and Google Docs lay out the pages themselves, so a page break can land a line or two away from where it is in the PDF.
 
-Papercut writes the layout in a form all three understand. Columns flow as paragraphs. Rows become tables with no borders, at the widths the PDF uses. A box with padding, a border or a background becomes a table with one cell. Lists, tables, links, headings, page numbers and pagination rules such as keep-together carry over.
+Papercut writes the layout in a form all three understand. Columns flow as paragraphs. Rows become tables with no borders, at the widths the PDF uses. A box with padding, a border or a background becomes a table with one cell. Lists, tables, links, headings, page numbers and pagination rules such as keep-together carry over. Each run of pages with the same size, margins, header, footer and layers becomes a Word section of its own, so a landscape page or a page without the header comes out as it does in the PDF.
 
 Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as tables, boxes as one-cell tables, header and footer distances, fonts by name, colours with transparency blended onto white) applies to every document, so it isn't reported each time.
 
@@ -45,14 +45,14 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 
 | In the PDF | In Word |
 |---|---|
-| A different page size, header or footer on a later page | ≈ the first page's setup applies to every page |
 | Font weights other than regular and bold | ≈ bold from 600, regular below |
 | Fixed heights, flexible spacers in a column, wrapping rows | ≈ |
 | `min-lines` above 2 | ≈ Word keeps 2 lines together |
 | Table cell `justify` other than start, center or end | ≈ top |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
 | Corner radius on a box | ✗ left out |
-| Background and overlay layers, PDF page templates, embedded PDF pages | ✗ left out |
+| Images, QR codes and SVG in a background or overlay layer | ≈ floating pictures at the same place on every page; Word draws them with the header, so an overlay sits behind the body's text |
+| Anything else in a background or overlay layer, PDF page templates, embedded PDF pages | ✗ left out |
 | Styled QR codes without Imagick | ≈ plain squares |
 | SVG text | ≈ in the system's fonts |
 | Pictures without the PHP extension they need (below) | ✗ left out |
