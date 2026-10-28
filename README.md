@@ -15,6 +15,8 @@ typed, immutable components with flexbox layout and page-aware pagination, and a
 that tree into a PDF. There is no browser, no HTML parser and no CSS cascade. The tag vocabulary is small,
 strict and ours, and a typo in an attribute is an error that names the tag, not a silently wrong page.
 
+**[Documentation](https://one-learning-community.github.io/papercut/)** · [Guide](https://one-learning-community.github.io/papercut/guide/) · [Laravel](https://one-learning-community.github.io/papercut/laravel/) · [Reference](https://one-learning-community.github.io/papercut/reference/blade-tags.html) · [Examples](https://one-learning-community.github.io/papercut/examples.html)
+
 > **Status: v0.1, pre-release.** Not yet published to Packagist. See [Status](#status) below.
 
 ## A Blade document
@@ -93,7 +95,7 @@ Render the Blade examples with `php examples/laravel/render.php` (after `cd pack
 
 ## Documentation
 
-The guide lives at [one-learning-community.github.io/papercut](https://one-learning-community.github.io/papercut/) (source in [`site/`](site)). Package READMEs: [`packages/core`](packages/core/README.md) and [`packages/laravel`](packages/laravel/README.md).
+The guide lives at [one-learning-community.github.io/papercut](https://one-learning-community.github.io/papercut/) (source in [`site/`](site)). Package READMEs: [`packages/core`](packages/core/README.md), [`packages/laravel`](packages/laravel/README.md) and [`packages/docx`](packages/docx/README.md).
 
 ## Status
 
