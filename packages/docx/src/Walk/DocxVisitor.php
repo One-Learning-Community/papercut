@@ -153,7 +153,9 @@ final class DocxVisitor implements TreeVisitor
             $node instanceof Spacer => $this->spacer($node, $parent, $at),
             $node instanceof PageBreak => [new DocxPageBreak()],
             $node instanceof Image => $this->images->image($node, $style, $frame, $at->path()),
-            $node instanceof QrCode, $node instanceof Svg, $node instanceof PdfPage, $node instanceof Place => $this->drop($node, $at),
+            $node instanceof QrCode => $this->images->qr($node, $style, $frame, $at->path()),
+            $node instanceof Svg => $this->images->svg($node, $style, $frame, $at->path()),
+            $node instanceof PdfPage, $node instanceof Place => $this->drop($node, $at),
             $node instanceof ListNode => $this->leaveList($frame),
             $node instanceof ListItem => $this->lists->item(Flow::blocks($frame)),
             $node instanceof Link => $this->leaveLink($frame),
@@ -168,7 +170,8 @@ final class DocxVisitor implements TreeVisitor
             Align::End => Alignment::End,
             default => null,
         };
-        if ($node instanceof Image) {
+        $picture = $node instanceof Image || $node instanceof QrCode || $node instanceof Svg;
+        if ($picture) {
             $blocks = array_map(static fn (BlockElement $b): BlockElement => $b instanceof DocxImage
                 ? new Paragraph([$b], new ParagraphStyle(alignment: $crossJc ?? Alignment::Start, lineSpacingTwips: 240, lineSpacingRule: 'auto'))
                 : $b, $blocks);
@@ -176,7 +179,8 @@ final class DocxVisitor implements TreeVisitor
             $blocks = array_map(static fn (BlockElement $b): BlockElement => $b instanceof Paragraph ? Flow::withParagraph($b, ['alignment' => $crossJc]) : $b, $blocks);
         }
 
-        if ($style->opacity < 1.0) {
+        // A picture takes its opacity into its pixels (ImageMapper reports when it can't).
+        if ($style->opacity < 1.0 && !$picture) {
             $this->fidelity->dropped('opacity', $at->path());
         }
 

@@ -30,7 +30,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, zlib, dom, gd
+          extensions: mbstring, zlib, dom, gd, imagick
           coverage: none
           tools: composer:v2
       - name: Install qpdf and poppler

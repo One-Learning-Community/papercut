@@ -47,11 +47,26 @@ Some things are approximated or left out. The ones in the table below are report
 | Font weights other than regular and bold | ≈ bold from 600, regular below |
 | Text backgrounds | ≈ the nearest of Word's highlight colours |
 | Fixed heights, flexible spacers in a column, wrapping rows | ≈ |
-| Image `cover` | ≈ drawn as `contain` |
 | `min-lines` above 2 | ≈ Word keeps 2 lines together |
 | Table cell `justify` other than start, center or end | ≈ top |
-| WebP, AVIF and other images Word can't open (PNG, JPEG, GIF and BMP work) | ✗ left out |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
-| Corner radius, opacity | ✗ left out |
+| Corner radius on a box, opacity on anything but a picture | ✗ left out |
 | Background and overlay layers, PDF page templates, embedded PDF pages | ✗ left out |
-| QR codes, SVG | ✗ left out |
+| Styled QR codes without Imagick | ≈ plain squares |
+| SVG text | ≈ in the system's fonts |
+| Pictures without the PHP extension they need (below) | ✗ left out |
+
+### Pictures
+
+Word shows PNG, JPEG, GIF and BMP as they are. Everything else is drawn into a picture at the size the PDF gives it, so it looks the same in Word, LibreOffice and Google Docs:
+
+| In the PDF | In Word | Needs |
+|---|---|---|
+| WebP and AVIF images | converted to PNG | `ext-gd` |
+| Image `cover` | cropped to the box from the middle | `ext-gd` (else ≈ `contain`) |
+| Opacity on an image, QR code or SVG | faded in the picture | `ext-gd` |
+| QR codes | sharp squares at 300 dpi | `ext-gd` |
+| Styled QR codes (shapes, eyes, colours, gradients) | drawn as in the PDF at 300 dpi | `ext-imagick` and `bacon/bacon-qr-code` |
+| SVG | drawn at 300 dpi; nothing outside the file is loaded | `ext-imagick` that reads SVG |
+
+Imagick is only needed for Word export; PDF and HTML don't use it.
