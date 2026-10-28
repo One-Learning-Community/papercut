@@ -75,10 +75,13 @@ final class BoxMapper
             return null;
         }
         $rows = [];
+        $width = Units::tw($frame->width);
         foreach ($frame->items as $item) {
             $table = $item['blocks'][0] ?? null;
             if (!$item['boxed'] || count($item['blocks']) !== 1 || !$table instanceof Table || count($table->rows) !== 1
-                || ($item['style'] !== null && $item['style']->margin->vertical() > 0.0)) {
+                || ($item['style'] !== null && $item['style']->margin->vertical() + $item['style']->margin->horizontal() > 0.0)
+                // a row spans the whole box: a child narrower than it, or placed within it, keeps its own table
+                || $table->style->alignment !== Alignment::Start || $table->gridColumnsTwips === null || abs(array_sum($table->gridColumnsTwips) - Units::tw($frame->content)) > 1) {
                 return null;
             }
             $rows[] = $table->rows[0];
@@ -89,7 +92,6 @@ final class BoxMapper
 
         $outer = self::borders($s);
         $last = count($rows) - 1;
-        $width = Units::tw($frame->width);
         foreach ($rows as $i => $row) {
             $cell = $row->cells[0];
             $own = $cell->style->borders;

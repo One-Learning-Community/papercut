@@ -333,6 +333,7 @@ v0.1 was never published to Packagist, so there are no deprecation shims. The ch
   - `w:tblHeader` on header rows; `w:cantSplit` on rows; PAGE and NUMPAGES fields in the footer.
   - `pgSz` and `pgMar` per section.
   - **`gridCol` widths equal `WidthResolver` output within 1 twip.** This proves the "matches horizontally" promise.
+    Exceptions, which Word needs to avoid wrapping short labels: `auto` table columns and row items get 15% + 4pt of slack, and content-width boxes get 3% + 2pt. Those widths are a few points wider than `WidthResolver`'s.
 - **Schema validation:** a pinned OOXML validator run through npx in `docx.yml`. A schema error fails the job.
 - **Determinism:** the same input gives byte-identical `.docx` files.
 - **LibreOffice:** `soffice --headless --convert-to pdf` feeds the content parity test. `pdftoppm` PNGs are uploaded as artifacts for review. Page counts are not asserted (LibreOffice paginates differently from Word).

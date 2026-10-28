@@ -72,6 +72,9 @@ final class LineMetrics
         }
         $signed = static fn (int $v): int => $v >= 0x8000 ? $v - 0x10000 : $v;
 
-        return ($signed((int) $h['asc']) - $signed((int) $h['desc']) + $signed((int) $h['gap'])) / $upm;
+        $ratio = ($signed((int) $h['asc']) - $signed((int) $h['desc']) + $signed((int) $h['gap'])) / $upm;
+
+        // A malformed font can claim no line height at all; line spacing divides by it.
+        return $ratio > 0.0 ? $ratio : null;
     }
 }

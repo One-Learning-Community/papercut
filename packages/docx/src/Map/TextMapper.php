@@ -46,7 +46,7 @@ final class TextMapper
             // Word's widow control keeps two lines together, never more.
             $this->fidelity->approximated('min-lines ' . $s->minLines, $at->path());
         }
-        if ($s->fontWeight !== 400 && $s->fontWeight !== 700 && $s->fontWeight < 900) {
+        if ($s->fontWeight !== 400 && $s->fontWeight !== 700) {
             $this->fidelity->approximated('font weight ' . $s->fontWeight, $at->path());
         }
         $level = match ($t->preset()) {
@@ -111,6 +111,11 @@ final class TextMapper
         if (!$node instanceof View || !$s->width instanceof Length || !$s->height instanceof Length
             || $s->width->points > 2 * $s->fontSize || $s->height->points > 2 * $s->fontSize
             || $s->borderWidth->horizontal() <= 0.0) {
+            return null;
+        }
+        // A coloured fill makes it a swatch, which a character would lose.
+        $fill = Units::fill($s->background);
+        if ($fill !== null && strtoupper($fill) !== 'FFFFFF') {
             return null;
         }
         $filled = false;

@@ -48,7 +48,7 @@ $invoice = Papercut::view('pdf.invoice', compact('invoice'));
 return $invoice->pdf()->download('invoice.pdf');   // PDF
 return $invoice->html();                           // full HTML page
 // {!! $invoice->html() !!}                        // fragment inside another Blade view
-return $invoice->docx()->download('invoice.docx'); // Word, with papercut/docx installed
+return $invoice->docx()->download('invoice.docx'); // Word (experimental), with papercut/docx installed
 ```
 
 ## Features

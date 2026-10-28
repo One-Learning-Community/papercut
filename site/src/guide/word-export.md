@@ -1,4 +1,8 @@
-# Word export
+# Word export <Badge type="warning" text="experimental" />
+
+::: warning Experimental
+Word export is new. Word, LibreOffice and Google Docs lay out the file themselves, so spacing and page breaks can differ slightly from the PDF, and the output may change between minor versions while it settles. Check exported files in the readers your users have, and [report what looks wrong](https://github.com/One-Learning-Community/papercut/issues).
+:::
 
 Any document can also be exported as a Word file (`.docx`) that people can open and edit in Word, LibreOffice or Google Docs. It uses the same theme, fonts and named styles as the PDF.
 
@@ -27,7 +31,7 @@ $document->export(new DocxExporter())->save('hello.docx');
 ```
 :::
 
-In Laravel, `->docx()` returns a `PendingOutput`, with the same `toString()`, `save()`, `store()`, `download()` and `inline()` methods as a PDF. Without `papercut/docx` installed, the export throws `MissingExporter` with the command to run. Preview routes show a Word file with `?format=docx`.
+In Laravel, `->docx()` returns a `PendingOutput`, with the same `toString()`, `save()`, `store()`, `download()` and `inline()` methods as a PDF. Without `papercut/docx` installed, the export throws `MissingExporter` with the command to run. Preview routes show a Word file with `?format=docx`, or a 404 with the install command when the package is missing.
 
 ## What readers see
 

@@ -51,6 +51,6 @@ final class DocxPatcherTest extends TestCase
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('php-docx output changed: ');
-        DocxPatcher::patch($broken, new PatchSpec(11906, 16838, 'Inter', 20, null, null));
+        DocxPatcher::patch($broken, new PatchSpec(11906, 16838, 'Inter', 20, null, new \DateTimeImmutable('2000-01-01')));
     }
 }

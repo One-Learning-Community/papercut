@@ -174,7 +174,7 @@ final class BrandFonts implements FontSource
 Preview routes accept `?format=pdf` (default), `?format=html` or `?format=docx` (with `papercut/docx`); any other value is a 404.
 
 
-## Word output
+## Word output (experimental)
 
 With [`papercut/docx`](../docx/README.md) installed (`composer require papercut/docx`), `->docx()` exports the same document as a Word file, sharing the theme, fonts, named styles and strict setting with `->pdf()`:
 

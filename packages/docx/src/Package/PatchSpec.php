@@ -13,8 +13,8 @@ final readonly class PatchSpec
         public string $fontFamily,
         public int $fontSizeHalfPoints,
         public ?string $lang,
-        /** Every ZIP entry's time; null is 1980-01-01, the earliest a ZIP can say. */
-        public ?\DateTimeInterface $time,
+        /** Every ZIP entry's time, read as UTC. */
+        public \DateTimeInterface $time,
     ) {
     }
 }

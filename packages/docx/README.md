@@ -8,7 +8,9 @@
 Word (.docx) export for [Papercut](../../README.md) documents: the same document you render as a PDF, as a file
 people can open and edit in Word, LibreOffice or Google Docs.
 
-> **Status: pre-release. Not yet published to Packagist.**
+> **Status: experimental, pre-release. Not yet published to Packagist.** Word, LibreOffice and Google Docs lay out
+> the file themselves, so spacing and page breaks can differ slightly from the PDF, and the output may change between
+> minor versions while it settles.
 
 ## Install
 

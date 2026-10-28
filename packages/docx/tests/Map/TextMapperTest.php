@@ -64,6 +64,12 @@ final class TextMapperTest extends TestCase
         }
     }
 
+    public function test_black_weight_reports_like_extra_bold(): void
+    {
+        $this->para(Text::make('x')->weight(900));
+        self::assertSame(['Approximated font weight 900 @ page > body > text[0]'], self::reports($this->fidelity));
+    }
+
     public function test_right_alignment_is_written_as_end(): void
     {
         self::assertSame(Alignment::End, $this->para(Text::make('x')->right())->style->alignment);
@@ -144,6 +150,9 @@ final class TextMapperTest extends TestCase
         self::assertSame('◉', $glyph($box(View::make())->radius(pt(4))));
         self::assertNull($glyph(View::make()->width(pt(40))->height(pt(40))->border(pt(1), '#000000')));
         self::assertNull($glyph(View::make()->width(pt(8))->height(pt(8))));
+        // A colour swatch is a picture of its fill, not a marker: it keeps its box.
+        self::assertNull($glyph($box()->background('#2563eb')));
+        self::assertSame('☐', $glyph($box()->background('#ffffff')));
         self::assertNull($glyph($box(Text::make('x'))));
     }
 

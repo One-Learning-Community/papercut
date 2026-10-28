@@ -96,6 +96,17 @@ final class BoxMapperTest extends TestCase
         self::assertSame(['Response details', 'Body'], $d->values(self::TBL . '/w:tr/w:tc/w:p/w:r/w:t'));
     }
 
+    public function test_a_box_of_boxes_keeps_children_that_sit_in_from_its_edges(): void
+    {
+        // Stacked rows span the outer box, so a child with side margins or its own alignment stays a nested table.
+        $child = static fn (): View => View::make(Text::make('x'))->padding(pt(4))->background('slate-100');
+        $outer = static fn (View ...$c): View => Column::make(...$c)->border(pt(1), 'slate-200');
+
+        self::assertSame(1, self::export($outer($child(), $child()))->count('//w:tbl'));
+        self::assertSame(3, self::export($outer($child()->margin(pt(0), pt(12)), $child()))->count('//w:tbl'));
+        self::assertSame(3, self::export($outer($child()->alignSelf(Align::Center), $child()))->count('//w:tbl'));
+    }
+
     public function test_adjacent_boxes_are_kept_apart_by_one_hairline(): void
     {
         $d = self::export(Column::make(self::panel(), self::panel()));

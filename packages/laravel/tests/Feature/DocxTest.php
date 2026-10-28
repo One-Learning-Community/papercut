@@ -82,4 +82,21 @@ final class DocxTest extends TestCase
         $this->assertStringStartsWith('inline;', (string) $response->headers->get('Content-Disposition'));
         $this->get('/_papercut/pdf.hello?format=odt')->assertNotFound();
     }
+
+    #[DefineEnvironment('previewLocal')]
+    public function testDocxPreviewWithoutThePackageIsNotFound(): void
+    {
+        app()->instance(PapercutManager::class, new class (app(NodeRegistry::class), app(PreviewRegistry::class)) extends PapercutManager {
+            protected static function docxExporterClass(): string
+            {
+                return 'Missing\\Exporter';
+            }
+        });
+        Papercut::preview('pdf.hello', ['name' => 'World']);
+
+        $response = $this->get('/_papercut/pdf.hello?format=docx');
+
+        $response->assertNotFound();
+        $response->assertSee('composer require papercut/docx');
+    }
 }
