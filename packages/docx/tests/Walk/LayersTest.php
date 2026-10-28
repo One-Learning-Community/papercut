@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Docx\Tests\Walk;
 
 use Papercut\{Document, Image, Page, Place, QrCode, Text};
+use Papercut\Export\FidelityLevel;
 use Papercut\Docx\Tests\Support\{DocxInspector, Styles};
 use Papercut\Style\{Align, Anchor};
 use PHPUnit\Framework\TestCase;
@@ -101,6 +102,45 @@ final class LayersTest extends TestCase
         $d = self::export(Page::a5()->body(Text::make('x'))->overlay(Place::at(pt(10), pt(10), Image::bytes(self::png())->width(percent(50)))));
         // 4 px is 3pt wide by nature, so half of it.
         self::assertSame((string) (int) round(1.5 * 12700), $d->value(self::ANCHOR . '/wp:extent/@cx', 'word/header1.xml'));
+    }
+
+    public function test_padding_and_border_size_the_picture_inside_its_box(): void
+    {
+        $d = self::export(Page::a4()->background(
+            Image::bytes(self::png())->width(pt(100))->padding(pt(10)),
+            Image::bytes(self::png())->width(pt(50))->border(pt(4), 'black'),
+        )->body(Text::make('x')));
+        [$x, $y] = self::placed($d);
+        self::assertSame([10 * 12700, 10 * 12700], [$x, $y]);
+        self::assertSame((string) (80 * 12700), $d->value('(' . self::ANCHOR . ')[1]/wp:extent/@cx', 'word/header1.xml'));
+        // The second sits below the first's whole box, inside its own border.
+        [$x, $y] = self::placed($d, 2);
+        self::assertSame([4 * 12700, 64 * 12700], [$x, $y]);
+        // Word can't draw the border.
+        self::assertSame(['Dropped border or background on a layer picture @ page > background > image[1]'], self::exportedReports());
+    }
+
+    public function test_a_picture_aligns_inside_a_place_with_a_width(): void
+    {
+        $d = self::export(Page::a4()->body(Text::make('x'))->overlay(
+            Place::at(pt(100), pt(100), Image::bytes(self::png())->width(pt(50))->alignSelf(Align::Center))->width(pt(200)),
+        ));
+        self::assertSame(175 * 12700, self::placed($d)[0]);
+    }
+
+    public function test_an_unsized_place_is_as_wide_as_its_picture_asks(): void
+    {
+        // A height alone doesn't widen the place, so the picture shrinks to its natural width, as in the PDF.
+        $d = self::export(Page::a4()->body(Text::make('x'))->overlay(
+            Place::at(pt(100), pt(100), Image::bytes(self::png())->height(pt(50)))->anchor(Anchor::BottomRight),
+        ));
+        self::assertSame([97 * 12700, (int) round(98.5 * 12700)], array_slice(self::placed($d), 0, 2));
+    }
+
+    public function test_an_empty_place_is_ignored(): void
+    {
+        self::export(Page::a4()->body(Text::make('x'))->overlay(Place::at(pt(0), pt(0))), strict: true);
+        self::assertSame([], self::exportedReports());
     }
 
     public function test_overlays_without_a_single_picture_are_dropped(): void

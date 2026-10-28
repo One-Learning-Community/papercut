@@ -51,8 +51,8 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | Table cell `justify` other than start, center or end | ≈ top |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
 | Corner radius on a box | ✗ left out |
-| Images, QR codes and SVG in a background or overlay layer | ≈ floating pictures at the same place on every page; Word draws them with the header, so an overlay sits behind the body's text |
-| Anything else in a background or overlay layer, PDF page templates, embedded PDF pages | ✗ left out |
+| An image, QR code or SVG in a background (before anything else in it) or alone in an overlay place | ≈ a floating picture at the same place on every page; Word draws it with the header, so an overlay sits behind the body's text |
+| Anything else in a background or overlay layer, a border or background on a layer picture, PDF page templates, embedded PDF pages | ✗ left out |
 | Styled QR codes without Imagick | ≈ plain squares |
 | SVG text | ≈ in the system's fonts |
 | Pictures without the PHP extension they need (below) | ✗ left out |

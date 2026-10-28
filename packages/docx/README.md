@@ -46,14 +46,16 @@ padding, a border or a background becomes a one-cell table.
 
 - Each run of pages with the same size, margins, header, footer and layers becomes a Word section, so pages
   keep their own setup and headers.
-- Images, QR codes and SVG in a background or overlay layer become floating pictures at the place the PDF draws
-  them, on every page. Word draws them with the header, so an overlay sits behind the body's text.
+- An image, QR code or SVG in a background (before anything else in it), or alone in an overlay place, becomes a
+  floating picture at the place the PDF draws it, on every page. Word draws it with the header, so an overlay sits
+  behind the body's text.
 - Fonts are named, not embedded: the reader's machine supplies them.
 - Pictures Word can't take as they are are drawn at the size the PDF gives them: WebP and AVIF images, image
   `cover` and opacity, and plain QR codes need `ext-gd`; styled QR codes need `ext-imagick` and
   `bacon/bacon-qr-code`; SVG needs an `ext-imagick` that reads SVG. Without them, these are left out and reported.
 - Opacity is drawn by blending each faded colour onto what lies beneath it; text backgrounds keep their exact colour.
-- Corner radius on boxes, other content in background and overlay layers, PDF page templates
+- Corner radius on boxes, other content in background and overlay layers, a border or background on a layer
+  picture, PDF page templates
   and embedded PDF pages are left out and reported (strict mode throws on them).
 
 Approximations and omissions are reported through `ExportOptions::onWarning` with the node's path, as with HTML

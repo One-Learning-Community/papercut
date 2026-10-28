@@ -161,6 +161,9 @@ final class DocxExporter implements Exporter
      */
     private static function withoutLeadingBreak(array $body): array
     {
+        while (($body[0] ?? null) instanceof PageBreak) {
+            array_shift($body);
+        }
         $first = $body[0] ?? null;
         if ($first instanceof Paragraph && $first->style->pageBreakBefore) {
             $style = new ParagraphStyle(...array_merge(get_object_vars($first->style), ['pageBreakBefore' => false]));
@@ -183,7 +186,7 @@ final class DocxExporter implements Exporter
             $blocks = $p['regions']['body'] ?? [];
             $first = $blocks[0] ?? null;
             // The pages already break when one ends in a page break or the next starts on a new page.
-            if ($i > 0 && !end($body) instanceof PageBreak && !($first instanceof Paragraph && $first->style->pageBreakBefore)) {
+            if ($i > 0 && !end($body) instanceof PageBreak && !$first instanceof PageBreak && !($first instanceof Paragraph && $first->style->pageBreakBefore)) {
                 $body[] = new PageBreak();
             }
             foreach ($blocks as $b) {

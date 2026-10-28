@@ -14,6 +14,8 @@ use Papercut\Style\{Align, ComputedStyle, Direction, Justify, TextAlign};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
 use Papercut\Value\{Auto, Edges, Length, Percent};
 
+use function Papercut\pt;
+
 /**
  * Turns a tree walk into php-docx blocks (approach B2 of the multi-format spec): columns flow as paragraphs,
  * rows become borderless fixed-layout tables sized by WidthResolver, and a decorated box becomes a single-cell table.
@@ -248,7 +250,8 @@ final class DocxVisitor implements TreeVisitor
         $avail = max(0.0, $parent->content - $style->margin->horizontal());
         $w = match (true) {
             $style->width instanceof Length => $style->width->points,
-            $style->width instanceof Percent => $parent->content * $style->width->value / 100,
+            // As in the PDF, a percentage is of the space left after the margins.
+            $style->width instanceof Percent => $avail * $style->width->value / 100,
             default => $avail,
         };
         if ($style->maxWidth instanceof Length) {
@@ -318,8 +321,9 @@ final class DocxVisitor implements TreeVisitor
 
     /**
      * A node of a background or overlay. Pictures become floating pictures placed where the PDF draws them
-     * (Paginator: the background is a column the width of the page from its top-left corner; a place puts its
-     * box's anchor at its point). Anything else is dropped: Word floats only pictures.
+     * (Paginator: the background is a column the width of the page from its top-left corner; a place lays out its
+     * content in a box its width, or as wide as the content wants, and puts the box's anchor at its point).
+     * Anything else is dropped: Word floats only pictures.
      */
     private function layerNode(Node $node, ComputedStyle $style, Visit $at): bool
     {
@@ -329,8 +333,8 @@ final class DocxVisitor implements TreeVisitor
         $m = $style->margin;
 
         if ($this->layer === Region::Background) {
-            $image = $this->layerBlocked || $at->parent() !== null ? null : $this->picture($node, $style, $w, $at);
-            if ($image === null) {
+            $picture = $this->layerBlocked || $at->parent() !== null ? null : $this->layerPicture($node, $style, $w, $at);
+            if ($picture === null) {
                 if (!self::isPicture($node) || $this->layerBlocked) {
                     $this->fidelity->dropped('background layer', $at->path());
                 }
@@ -338,92 +342,103 @@ final class DocxVisitor implements TreeVisitor
 
                 return false;
             }
-            [$pw, $ph] = [$image->widthEmu / 12700, $image->heightEmu / 12700];
-            $x = match ($style->alignSelf) {
-                Align::Center => $m->left->points + ($w - $m->horizontal() - $pw) / 2,
-                Align::End => $w - $m->right->points - $pw,
-                default => $m->left->points,
-            };
-            $this->float($image, $x, $this->layerY + $m->top->points, true);
-            $this->layerY += $m->vertical() + $ph;
+            [$image, $boxW, $boxH] = $picture;
+            $x = self::aligned($style, $m->left->points, $w - $m->horizontal(), $boxW);
+            $this->float($image, $style, $x, $this->layerY + $m->top->points, true);
+            $this->layerY += $m->vertical() + $boxH;
 
             return false;
         }
 
         if ($node instanceof Place) {
             $this->place = $node;
-            if (count($node->children()) !== 1) {
+            $children = count($node->children());
+            if ($children > 1) {
                 $this->fidelity->dropped('overlay layer', $at->path());
-
-                return false;
             }
 
-            return true;
+            return $children === 1;
         }
         $place = $this->place;
         \assert($place !== null);
-        $given = $place->boxWidth();
-        $box = $given === null ? $w : max(0.0, self::resolve($given, $w));
-        $image = $given === null && $style->width instanceof Percent
-            ? $this->shareOfNatural($node, $style, $style->width, $w, $at)
-            : $this->picture($node, $style, $box, $at);
-        if ($image === null) {
-            if (!self::isPicture($node)) {
-                $this->fidelity->dropped('overlay layer', $at->path());
-            }
+        if (!self::isPicture($node)) {
+            $this->fidelity->dropped('overlay layer', $at->path());
 
             return false;
         }
-        [$pw, $ph] = [$image->widthEmu / 12700, $image->heightEmu / 12700];
-        $boxW = $given === null ? $pw + $m->horizontal() : $box;
+        \assert($node instanceof Image || $node instanceof QrCode || $node instanceof Svg);
+        $given = $place->boxWidth();
+        $box = $given === null
+            ? min($w, $this->images->intrinsicWidth($node, $style) + $m->horizontal())
+            : max(0.0, self::resolve($given, $w));
+        $picture = $this->layerPicture($node, $style, $box, $at);
+        if ($picture === null) {
+            return false;
+        }
+        [$image, $boxW, $boxH] = $picture;
         $anchor = $place->anchorPoint();
-        $x = self::resolve($place->x(), $w) - $anchor->across() * $boxW + $m->left->points;
-        $y = self::resolve($place->y(), $h) - $anchor->down() * ($ph + $m->vertical()) + $m->top->points;
-        $this->float($image, $x, $y, false);
+        $x = self::resolve($place->x(), $w) - $anchor->across() * $box;
+        $y = self::resolve($place->y(), $h) - $anchor->down() * ($boxH + $m->vertical());
+        $this->float($image, $style, self::aligned($style, $x + $m->left->points, $box - $m->horizontal(), $boxW), $y + $m->top->points, false);
 
         return false;
     }
 
-    /** The picture a layer node draws in a column $space pt wide, at the size the PDF gives it; null if it isn't one or can't be drawn. */
-    private function picture(Node $node, ComputedStyle $style, float $space, Visit $at): ?DocxImage
+    /**
+     * The picture a layer node draws in a column $space pt wide, as the PDF sizes it, with its border box in pt;
+     * null if it isn't a picture or can't be drawn (the mapper reports why).
+     *
+     * @return array{DocxImage, float, float}|null
+     */
+    private function layerPicture(Node $node, ComputedStyle $style, float $space, Visit $at): ?array
     {
         if (!self::isPicture($node)) {
             return null;
         }
-        $root = $this->stack[0]->style;
-        $width = $this->outerWidth($node, $style, new Frame(null, $root, $space, $space), $at);
-        $frame = new Frame($node, $style, $width, max(0.0, $width - $style->padding->horizontal() - $style->borderWidth->horizontal()));
-        $blocks = match (true) {
-            $node instanceof Image => $this->images->image($node, $style, $frame, $at->path()),
-            $node instanceof QrCode => $this->images->qr($node, $style, $frame, $at->path()),
-            $node instanceof Svg => $this->images->svg($node, $style, $frame, $at->path()),
-            default => [],
-        };
+        $outer = $this->outerWidth($node, $style, new Frame(null, $this->stack[0]->style, $space, $space), $at);
+        $decor = $style->padding->horizontal() + $style->borderWidth->horizontal();
+        $decorV = $style->padding->vertical() + $style->borderWidth->vertical();
+        if ($node instanceof QrCode) {
+            // The mapper takes the QR code's padding and border off its side itself.
+            $blocks = $this->images->qr($node, $style, new Frame($node, $style, $outer, max(0.0, $outer - $decor)), $at->path());
+        } else {
+            // Widths and heights are border-box sizes; the mapper sizes the picture inside them.
+            $inner = $style->height instanceof Length
+                ? new ComputedStyle(...[...get_object_vars($style), 'height' => pt(max(0.0, $style->height->points - $decorV))])
+                : $style;
+            $content = max(0.0, $outer - $decor);
+            $frame = new Frame($node, $inner, $content, $content);
+            $blocks = $node instanceof Image
+                ? $this->images->image($node, $inner, $frame, $at->path())
+                : ($node instanceof Svg ? $this->images->svg($node, $inner, $frame, $at->path()) : []);
+        }
         $image = $blocks[0] ?? null;
-
-        return $image instanceof DocxImage ? $image : null;
-    }
-
-    /**
-     * A percentage width in a place without a width: the place is as wide as the picture's natural size (within
-     * the page), and the picture takes its share of that, as in the PDF.
-     */
-    private function shareOfNatural(Node $node, ComputedStyle $style, Percent $share, float $page, Visit $at): ?DocxImage
-    {
-        $natural = $this->picture($node, new ComputedStyle(...[...get_object_vars($style), 'width' => Auto::instance()]), $page, $at);
-        if ($natural === null) {
+        if (!$image instanceof DocxImage) {
             return null;
         }
-        $naturalW = $natural->widthEmu / 12700;
-        $content = min($page, $naturalW + $style->margin->horizontal()) - $style->margin->horizontal();
-        $width = min($content, $content * $share->value / 100);
-        $scale = $naturalW > 0.0 ? $width / $naturalW : 0.0;
+        if (($style->borderWidth->horizontal() + $style->borderWidth->vertical() > 0.0 && !$style->borderColor->isTransparent())
+            || Units::fill($style->background) !== null) {
+            $this->fidelity->dropped('border or background on a layer picture', $at->path());
+        }
 
-        return new DocxImage($natural->binary, $natural->format, Units::emu($width), (int) round($natural->heightEmu * $scale), $natural->altText);
+        return [$image, $image->widthEmu / 12700 + $decor, $image->heightEmu / 12700 + $decorV];
     }
 
-    private function float(DocxImage $image, float $x, float $y, bool $behind): void
+    /** Where a box $boxW wide sits in a line $space wide from $left, by the node's align-self. */
+    private static function aligned(ComputedStyle $style, float $left, float $space, float $boxW): float
     {
+        return match ($style->alignSelf) {
+            Align::Center => $left + ($space - $boxW) / 2,
+            Align::End => $left + $space - $boxW,
+            default => $left,
+        };
+    }
+
+    /** Floats $image on the page with its border box at $x, $y. */
+    private function float(DocxImage $image, ComputedStyle $style, float $x, float $y, bool $behind): void
+    {
+        $x += $style->padding->left->points + $style->borderWidth->left->points;
+        $y += $style->padding->top->points + $style->borderWidth->top->points;
         $this->floats[] = new DocxImage($image->binary, $image->format, $image->widthEmu, $image->heightEmu, $image->altText, position: new ImagePosition(
             horizontalFrom: HorizontalAnchor::Page,
             xEmu: Units::emu($x),

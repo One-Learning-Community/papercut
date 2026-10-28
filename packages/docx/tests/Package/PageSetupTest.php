@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Tests\Package;
 
-use Papercut\{Document, Page, Text};
+use Papercut\{Document, Page, PageBreak, Text};
 use Papercut\Docx\Tests\Support\Styles;
 use PHPUnit\Framework\TestCase;
 
@@ -84,11 +84,18 @@ final class PageSetupTest extends TestCase
         foreach ([
             Document::make(Page::a4()->body(Text::make('one')->breakAfter()), Page::a5()->body(Text::make('two'))),
             Document::make(Page::a4()->body(Text::make('one')), Page::a5()->body(Text::make('two')->breakBefore())),
+            Document::make(Page::a4()->body(Text::make('one')), Page::a5()->body(PageBreak::make(), Text::make('two'))),
         ] as $doc) {
             $d = self::export($doc);
             self::assertSame(0, $d->count("//w:br[@w:type='page']") + $d->count('//w:pageBreakBefore'));
             self::assertSame(2, $d->count('//w:sectPr'));
         }
+    }
+
+    public function test_a_page_opening_with_a_page_break_breaks_once(): void
+    {
+        $d = self::export(Document::make(Page::a4()->body(Text::make('one')), Page::a4()->body(PageBreak::make(), Text::make('two'))));
+        self::assertSame(1, $d->count("//w:br[@w:type='page']"));
     }
 
     public function test_core_properties(): void
