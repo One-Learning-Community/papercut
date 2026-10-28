@@ -52,8 +52,8 @@ final class RowMapper
                 $item = $byIndex[$slot->index] ?? null;
                 $x0 = max($x, $padL + $slot->x);
                 if ($x0 > $x + 0.01) {
-                    // 'free' is how much of an empty segment is flexible space rather than padding or the row's gap.
-                    $free = $k === 0 ? $x0 - $padL : $x0 - $x - $s->gap;
+                    // 'free' is how much of an empty segment may be lent: not the row's padding, which can be filled.
+                    $free = $k === 0 ? $x0 - $padL : $x0 - $x;
                     $segs[] = ['x0' => $x, 'x1' => $x0, 'item' => null, 'pad' => [0.0, 0.0], 'free' => max(0.0, $free)];
                 }
                 $empty = $item === null || $item['blocks'] === [];
@@ -160,8 +160,14 @@ final class RowMapper
                 }
                 $out[] = new TableCell(BoxMapper::cellContent($item['blocks']), $this->boxes->cellStyle($own, $width, $span, $v, $s, [$padT, $pad[1], $padB, $pad[0]]));
             }
-            $height = $s->height instanceof Length && count($lines) === 1 ? Units::tw($s->height->points) : null;
-            $rows[] = new TableRow($out, heightTwips: $height, cantSplit: true, heightRule: $height === null ? RowHeightRule::AtLeast : RowHeightRule::Exact);
+            $fixed = $s->height instanceof Length && count($lines) === 1 ? $s->height : null;
+            $exact = $fixed !== null;
+            $height = match (true) {
+                $fixed !== null => Units::tw($fixed->points),
+                $s->minHeight instanceof Length && count($lines) === 1 => Units::tw($s->minHeight->points),
+                default => null,
+            };
+            $rows[] = new TableRow($out, heightTwips: $height, cantSplit: true, heightRule: $exact ? RowHeightRule::Exact : RowHeightRule::AtLeast);
         }
         if ($s->height instanceof Length) {
             $this->fidelity->approximated('fixed height', $path);

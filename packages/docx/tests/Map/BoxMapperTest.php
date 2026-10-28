@@ -7,7 +7,7 @@ namespace Papercut\Docx\Tests\Map;
 use Papercut\{Column, Text, View};
 use Papercut\Decorator\Card;
 use Papercut\Docx\Tests\Support\Styles;
-use Papercut\Style\{BorderStyle, Style};
+use Papercut\Style\{Align, BorderStyle, Style};
 use Papercut\Value\Edges;
 use PHPUnit\Framework\TestCase;
 
@@ -57,6 +57,23 @@ final class BoxMapperTest extends TestCase
         self::assertSame(['Approximated fixed height @ page > body > column[0]'], self::exportedReports());
     }
 
+    public function test_min_height_is_an_at_least_row(): void
+    {
+        $d = self::export(Column::make(Text::make('x'))->padding(pt(4))->minHeight(pt(40)));
+        // 40 less the 4 + 4 padding, which LibreOffice adds to an at-least row
+        self::assertSame('640', $d->value(self::TBL . '/w:tr/w:trPr/w:trHeight/@w:val'));
+        self::assertNotSame('exact', $d->value(self::TBL . '/w:tr/w:trPr/w:trHeight/@w:hRule'));
+        self::assertSame([], self::exportedReports());
+    }
+
+    public function test_a_lone_childs_min_height_reaches_the_box(): void
+    {
+        $d = self::export(Column::make(Column::make(Text::make('x'))->minHeight(pt(40)))->padding(pt(5))->border(pt(1), 'slate-200'));
+        // the child's 40, plus the box's 5 + 5 padding and 1 + 1 border, less what LibreOffice adds (padding, top border)
+        self::assertSame('820', $d->value(self::TBL . '/w:tr/w:trPr/w:trHeight/@w:val'));
+        self::assertSame(1, $d->count('//w:tbl'));
+    }
+
     public function test_radius_and_opacity_are_dropped(): void
     {
         self::export(Column::make(Text::make('x'))->padding(pt(4))->radius(pt(6)));
@@ -85,6 +102,19 @@ final class BoxMapperTest extends TestCase
         self::assertSame(2, $d->count(self::TBL));
         self::assertSame(1, $d->count(self::TBL . '[1]/following-sibling::*[1][self::w:p]'));
         self::assertSame(1, $d->count(self::TBL . '[1]/following-sibling::*[2][self::w:tbl]'));
+    }
+
+    public function test_a_box_aligned_in_its_column_shrinks_to_its_content(): void
+    {
+        $d = self::export(Column::make(
+            View::make(Text::make('Tip'))->padding(pt(2))->background('slate-100')->alignSelf(Align::Start),
+            View::make(Text::make('Tip'))->padding(pt(2))->background('slate-100')->alignSelf(Align::End),
+        ));
+        $widths = array_map('intval', $d->values(self::TBL . '/w:tblGrid/w:gridCol/@w:w'));
+        self::assertCount(2, $widths);
+        self::assertLessThan(1000, $widths[0]);
+        self::assertSame($widths[0], $widths[1]);
+        self::assertSame('right', $d->value(self::TBL . '[2]/w:tblPr/w:jc/@w:val'));
     }
 
     public function test_checkbox_marker_is_a_character(): void

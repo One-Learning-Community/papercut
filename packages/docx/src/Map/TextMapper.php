@@ -12,7 +12,7 @@ use Papercut\Export\Fidelity;
 use Papercut\Paint\Link;
 use Papercut\Style\{ComputedStyle, TextAlign};
 use Papercut\Tree\Visit;
-use Papercut\Value\Length;
+use Papercut\Value\{Color, Length};
 
 /** Text, spans and page numbers as Word paragraphs and runs. */
 final class TextMapper
@@ -34,12 +34,17 @@ final class TextMapper
             }
             $rs = self::runStyle($s->child($span->style));
             $bg = Units::fill($span->style->background);
-            if ($bg !== null) {
-                $rs = new RunStyle(...[...get_object_vars($rs), 'backgroundColor' => $bg]);
+            if ($bg !== null && $span->style->background !== null) {
+                $rs = new RunStyle(...[...get_object_vars($rs), 'backgroundColor' => $bg, 'highlight' => self::highlight($span->style->background)]);
+                $this->fidelity->approximated('span background', $at->path());
             }
             $run = new Run($span->text, $rs);
             $href = $span->href ?? $blockHref;
             $children[] = $href !== null ? self::hyperlink($href, [$run]) : $run;
+        }
+        if ($s->minLines > 2) {
+            // Word's widow control keeps two lines together, never more.
+            $this->fidelity->approximated('min-lines ' . $s->minLines, $at->path());
         }
         if ($s->fontWeight !== 400 && $s->fontWeight !== 700 && $s->fontWeight < 900) {
             $this->fidelity->approximated('font weight ' . $s->fontWeight, $at->path());
@@ -128,6 +133,37 @@ final class TextMapper
             [new Run($glyph, new RunStyle(sizeHalfPoints: (int) round($size * 2), color: Units::hex($s->borderColor)))],
             new ParagraphStyle(lineSpacingTwips: 240, lineSpacingRule: 'auto'),
         );
+    }
+
+    /**
+     * The nearest of Word's named highlight colours by hue (php-docx writes no run shading): pale tints, as
+     * text backgrounds usually are, map to the light highlights; greys map to light grey.
+     */
+    public static function highlight(Color $c): ?string
+    {
+        $a = max(0.0, min(1.0, $c->alpha));
+        [$r, $g, $b] = array_map(static fn (int $v): float => ($v * $a + 255 * (1 - $a)) / 255, [$c->r, $c->g, $c->b]);
+        $max = max($r, $g, $b);
+        $min = min($r, $g, $b);
+        if ($a <= 0.0) {
+            return null;
+        }
+        if ($max - $min < 0.08) {
+            return $max < 0.5 ? 'darkGray' : 'lightGray';
+        }
+        $d = $max - $min;
+        $hue = match (true) {
+            $max === $r => fmod(60 * (($g - $b) / $d) + 360, 360),
+            $max === $g => 60 * (($b - $r) / $d) + 120,
+            default => 60 * (($r - $g) / $d) + 240,
+        };
+
+        return match (true) {
+            $hue >= 35 && $hue < 75 => 'yellow',
+            $hue >= 75 && $hue < 165 => 'green',
+            $hue >= 165 && $hue < 265 => 'cyan',
+            default => 'magenta',
+        };
     }
 
     /** @throws InvalidValue for a scheme other than http, https, mailto, tel or a #fragment */

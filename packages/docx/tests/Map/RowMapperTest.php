@@ -111,6 +111,17 @@ final class RowMapperTest extends TestCase
         self::assertSame([[0.0, 61.5], [61.5, 438.5], [438.5, 500.0]], array_map(static fn (array $s): array => [$s['x0'], $s['x1']], $out));
     }
 
+    public function test_a_row_gap_lends_slack_too(): void
+    {
+        $row = Row::make(View::make(Text::make('Respondent')), Column::make(Text::make('Jane Smith'))->grow())->gap(pt(8));
+        $d = self::export($row);
+        $slots = WidthResolver::for(new ExportOptions())->flexLines($row, self::styleOf($row), self::bodyWidth())[0];
+        $grid = array_map('intval', $d->values(self::TBL . '/w:tblGrid/w:gridCol/@w:w'));
+        // the label takes half the gap; the value column doesn't move
+        self::assertEqualsWithDelta(($slots[0]->width + 4) * 20, $grid[0], 1.0);
+        self::assertEqualsWithDelta($slots[1]->x * 20, $grid[0] + $grid[1], 1.0);
+    }
+
     public function test_slack_is_capped_at_half_the_free_space(): void
     {
         $out = self::mapper()->settle(self::segs(

@@ -90,6 +90,19 @@ final class TextMapperTest extends TestCase
         $marked = $p->children[2];
         self::assertInstanceOf(Run::class, $marked);
         self::assertSame('ffff00', $marked->style->backgroundColor);
+        // php-docx writes no run shading, only Word's named highlights
+        self::assertSame('yellow', $marked->style->highlight);
+        self::assertSame(['Approximated span background @ page > body > text[0]'], self::reports($this->fidelity));
+    }
+
+    public function test_highlight_follows_the_background_hue(): void
+    {
+        $hl = static fn (string $c): ?string => TextMapper::highlight(Color::parse($c));
+        self::assertSame('yellow', $hl('#fef08a'));
+        self::assertSame('green', $hl('#bbf7d0'));
+        self::assertSame('cyan', $hl('#bfdbfe'));
+        self::assertSame('magenta', $hl('#fecaca'));
+        self::assertSame('lightGray', $hl('#e2e8f0'));
     }
 
     public function test_block_href_wraps_runs_without_their_own(): void

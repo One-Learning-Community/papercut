@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Papercut\Docx\Walk;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak as DocxPageBreak};
+use Dskripchenko\PhpDocx\Style\Alignment;
 use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
 use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, ListMapper, RowMapper, TableMapper, TextMapper};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\WidthResolver;
-use Papercut\Style\{ComputedStyle, Direction};
+use Papercut\Style\{Align, ComputedStyle, Direction, Justify};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
-use Papercut\Value\{Length, Percent};
+use Papercut\Value\{Auto, Edges, Length, Percent};
 
 /**
  * Turns a tree walk into php-docx blocks (approach B2 of the multi-format spec): columns flow as paragraphs,
@@ -105,7 +106,7 @@ final class DocxVisitor implements TreeVisitor
                 }
             }
         } elseif ($node instanceof Table) {
-            $frame->columns = $this->widths->tableColumns($node, $style, $width);
+            $frame->columns = TableMapper::settle($this->widths->tableColumns($node, $style, $width), WidthResolver::tracks($node));
         } elseif ($node instanceof TableRow) {
             $frame->header = $at->inHeader() && $at->parent() instanceof Table && $at->parent()->repeatsHeader();
         } elseif ($node instanceof ListNode) {
@@ -169,7 +170,17 @@ final class DocxVisitor implements TreeVisitor
         if ($glyph !== null) {
             $style = BoxMapper::undecorated($style);
         } elseif (!$parent->isRow && !$frame->isRow && !$node instanceof Table && BoxMapper::decorated($style)) {
-            $blocks = [$this->boxes->stack($frame, $at->path()) ?? $this->boxes->box($blocks, $style, $frame->width, $at->path())];
+            $align = match ($style->alignSelf ?? $parent->style->alignItems ?? Align::Stretch) {
+                Align::Center => Alignment::Center,
+                Align::End => Alignment::End,
+                default => Alignment::Start,
+            };
+            // Word sizes a table row, not a paragraph run, so a lone undecorated child's min height moves up to the box.
+            $only = count($frame->items) === 1 ? $frame->items[0] : null;
+            $childMin = $only !== null && !$only['boxed'] && $only['style']?->minHeight instanceof Length
+                ? $only['style']->minHeight->points + $style->padding->vertical() + $style->borderWidth->vertical()
+                : null;
+            $blocks = [$this->boxes->stack($frame, $at->path()) ?? $this->boxes->box($blocks, $style, $frame->width, $at->path(), $align, $childMin)];
             $boxed = true;
         }
         $parent->items[] = ['blocks' => $blocks, 'style' => $style, 'index' => $at->index(), 'boxed' => $boxed];
@@ -207,8 +218,26 @@ final class DocxVisitor implements TreeVisitor
         if ($style->maxWidth instanceof Length) {
             $w = min($w, $style->maxWidth->points);
         }
+        // A box that doesn't stretch across its column is as wide as its content, as in the PDF.
+        $align = $style->alignSelf ?? $parent->style->alignItems ?? Align::Stretch;
+        if ($node instanceof View && $style->width instanceof Auto && $align !== Align::Stretch && BoxMapper::decorated($style) && $parent->style !== null) {
+            $w = min($w, $this->intrinsic($node, $parent->style, $avail));
+        }
 
         return min($w, $avail);
+    }
+
+    /**
+     * The node's content width: its slot in a one-item row, plus a little slack (Word's text measures a hair
+     * wider than ours, and a box that wraps reads worse than one a few points wider).
+     */
+    private function intrinsic(View $node, ComputedStyle $parent, float $avail): float
+    {
+        $row = new ComputedStyle(...[...get_object_vars($parent), 'direction' => Direction::Row, 'gap' => 0.0, 'wrap' => false,
+            'padding' => Edges::zero(), 'borderWidth' => Edges::zero(), 'justify' => Justify::Start, 'alignItems' => Align::Start]);
+        $slot = $this->widths->flexLines(View::make($node), $row, $avail)[0][0] ?? null;
+
+        return $slot === null ? $avail : min($avail, $slot->width * 1.03 + 2.0);
     }
 
     /** @return list<BlockElement> */

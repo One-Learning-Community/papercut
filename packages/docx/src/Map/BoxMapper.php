@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Docx\Map;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, Paragraph, Table, TableCell, TableRow};
-use Dskripchenko\PhpDocx\Style\{Border, BorderSet, BorderStyle as DocxBorderStyle, CellStyle, RowHeightRule, TableStyle, VerticalAlign};
+use Dskripchenko\PhpDocx\Style\{Alignment, Border, BorderSet, BorderStyle as DocxBorderStyle, CellStyle, RowHeightRule, TableStyle, VerticalAlign};
 use Papercut\Docx\Walk\Frame;
 use Papercut\Export\Fidelity;
 use Papercut\Style\{BorderStyle, ComputedStyle};
@@ -31,8 +31,11 @@ final class BoxMapper
         return new ComputedStyle(...[...get_object_vars($s), 'padding' => Edges::zero(), 'borderWidth' => Edges::zero(), 'background' => null, 'radius' => 0.0, 'height' => Auto::instance()]);
     }
 
-    /** @param list<BlockElement> $blocks */
-    public function box(array $blocks, ComputedStyle $s, float $width, string $path): Table
+    /**
+     * @param list<BlockElement> $blocks
+     * @param ?float $minHeight a floor in pt from the content (a lone child's own min height), on top of the style's
+     */
+    public function box(array $blocks, ComputedStyle $s, float $width, string $path, Alignment $align = Alignment::Start, ?float $minHeight = null): Table
     {
         if ($s->radius > 0.0) {
             $this->fidelity->dropped('radius', $path);
@@ -41,6 +44,10 @@ final class BoxMapper
         if ($s->height instanceof Length) {
             $height = Units::tw($s->height->points);
             $this->fidelity->approximated('fixed height', $path);
+        } else {
+            // LibreOffice adds the cell's vertical padding to an at-least row height.
+            $floor = max($s->minHeight instanceof Length ? $s->minHeight->points : 0.0, $minHeight ?? 0.0) - $s->padding->vertical() - $s->borderWidth->top->points;
+            $height = $floor > 0.0 ? Units::tw($floor) : null;
         }
 
         return new Table(
@@ -48,9 +55,9 @@ final class BoxMapper
                 [new TableCell(self::cellContent($blocks), $this->cellStyle($s, Units::tw($width)))],
                 heightTwips: $height,
                 cantSplit: $s->keepTogether,
-                heightRule: $height === null ? RowHeightRule::AtLeast : RowHeightRule::Exact,
+                heightRule: $s->height instanceof Length ? RowHeightRule::Exact : RowHeightRule::AtLeast,
             )],
-            self::tableStyle($width),
+            new TableStyle(...[...get_object_vars(self::tableStyle($width)), 'alignment' => $align]),
             gridColumnsTwips: [Units::tw($width)],
         );
     }
