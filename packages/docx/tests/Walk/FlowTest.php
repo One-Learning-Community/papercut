@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Tests\Walk;
 
-use Papercut\{Column, PageBreak, Spacer, Text};
+use Papercut\{Column, Image, PageBreak, Row, Spacer, Text};
+use Papercut\Style\Align;
 use Papercut\Docx\Tests\Support\Styles;
 use Papercut\Value\Edges;
 use PHPUnit\Framework\TestCase;
@@ -71,5 +72,36 @@ final class FlowTest extends TestCase
         $d = self::export(Column::make(Text::make('a'), Spacer::flex(), Text::make('b')));
         self::assertSame(2, $d->count(self::P . '[.//w:t]'));
         self::assertSame(['Approximated flexible spacer @ page > body > column[0] > spacer[1]'], self::exportedReports());
+    }
+
+    public function test_break_before_on_a_box_or_row_still_breaks(): void
+    {
+        foreach ([
+            Column::make(Text::make('card'))->padding(pt(8))->breakBefore(),
+            Row::make(Text::make('a'), Text::make('b'))->breakBefore(),
+        ] as $second) {
+            $d = self::export(Column::make(Text::make('first'), $second));
+            self::assertSame(1, $d->count('//w:pPr/w:pageBreakBefore') + $d->count("//w:br[@w:type='page']"));
+            self::assertSame(1, $d->count("/w:document/w:body/w:tbl/preceding-sibling::w:p[w:pPr/w:pageBreakBefore]"));
+        }
+    }
+
+    public function test_keep_with_next_on_a_box_keeps_its_last_row_with_what_follows(): void
+    {
+        $d = self::export(Column::make(Column::make(Text::make('boxed'))->padding(pt(4))->keepWithNext(), Text::make('next')));
+        self::assertSame(1, $d->count("/w:document/w:body/w:tbl/w:tr[last()]//w:p[w:pPr/w:keepNext]"));
+    }
+
+    public function test_column_alignment_reaches_text_and_images(): void
+    {
+        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', true);
+        $d = self::export(Column::make(Image::bytes($png), Text::make('caption'), Text::make('own')->right())->align(Align::Center));
+        self::assertSame('center', $d->value('//w:p[.//w:drawing]/w:pPr/w:jc/@w:val'));
+        self::assertSame('center', $d->value("//w:p[.//w:t='caption']/w:pPr/w:jc/@w:val"));
+        // a text's own alignment wins
+        self::assertSame('right', $d->value("//w:p[.//w:t='own']/w:pPr/w:jc/@w:val"));
+
+        $d = self::export(Column::make(Text::make('end')->alignSelf(Align::End)));
+        self::assertSame('right', $d->value("//w:p[.//w:t='end']/w:pPr/w:jc/@w:val"));
     }
 }

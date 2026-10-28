@@ -112,10 +112,13 @@ final class DocxExporter implements Exporter
     {
         $body = [];
         foreach ($visitor->pages() as $i => $p) {
-            if ($i > 0) {
+            $blocks = $p['regions']['body'] ?? [];
+            $first = $blocks[0] ?? null;
+            // The pages already break when one ends in a page break or the next starts on a new page.
+            if ($i > 0 && !end($body) instanceof PageBreak && !($first instanceof Paragraph && $first->style->pageBreakBefore)) {
                 $body[] = new PageBreak();
             }
-            foreach ($p['regions']['body'] ?? [] as $b) {
+            foreach ($blocks as $b) {
                 $body[] = $b;
             }
         }

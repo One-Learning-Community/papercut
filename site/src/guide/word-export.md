@@ -35,16 +35,18 @@ Word, LibreOffice and Google Docs lay out the pages themselves, so a page break 
 
 Papercut writes the layout in a form all three understand. Columns flow as paragraphs. Rows become tables with no borders, at the widths the PDF uses. A box with padding, a border or a background becomes a table with one cell. Lists, tables, links, headings, page numbers and pagination rules such as keep-together carry over.
 
-Some things are approximated or left out. Each one is reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out.
+Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as tables, boxes as one-cell tables, header and footer distances, fonts by name, colours with transparency blended onto white) applies to every document, so it isn't reported each time.
 
 | In the PDF | In Word |
 |---|---|
 | A different page size, header or footer on a later page | ≈ the first page's setup applies to every page |
-| Fonts | ≈ named, not embedded: the reader's machine supplies them |
 | Font weights other than regular and bold | ≈ bold from 600, regular below |
 | Text backgrounds | ≈ the nearest of Word's highlight colours |
 | Fixed heights, flexible spacers in a column, wrapping rows | ≈ |
 | Image `cover` | ≈ drawn as `contain` |
+| `min-lines` above 2 | ≈ Word keeps 2 lines together |
+| Table cell `justify` other than start, center or end | ≈ top |
+| WebP, AVIF and other images Word can't open (PNG, JPEG, GIF and BMP work) | ✗ left out |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
 | Corner radius, opacity | ✗ left out |
 | Background and overlay layers, PDF page templates, embedded PDF pages | ✗ left out |

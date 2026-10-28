@@ -40,8 +40,9 @@ padding, a border or a background becomes a one-cell table.
 - One page setup for the whole document, taken from the first page; other pages' sizes, headers and footers are
   reported as approximated.
 - Fonts are named, not embedded: the reader's machine supplies them.
-- Corner radius, opacity, background and overlay layers, PDF page templates and embedded PDF pages, QR codes and
-  SVG are left out and reported (strict mode throws on them).
+- Corner radius, opacity, background and overlay layers, PDF page templates and embedded PDF pages, QR codes,
+  SVG, and images Word can't open (WebP, AVIF) are left out and reported (strict mode throws on them).
 
-Every approximation or omission is reported through `ExportOptions::onWarning` with the node's path, as with HTML
-export.
+Approximations and omissions are reported through `ExportOptions::onWarning` with the node's path, as with HTML
+export. How the layout itself is written (rows as tables, boxes as one-cell tables, colours with transparency blended
+onto white, fonts by name) applies to every document and isn't reported each time.

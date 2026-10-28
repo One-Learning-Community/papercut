@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Map;
 
-use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak, Paragraph, Run, Table};
+use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak, Paragraph, Run, Table, TableCell, TableRow};
 use Dskripchenko\PhpDocx\Style\{ParagraphStyle, RunStyle};
 use Papercut\Docx\Walk\Frame;
 use Papercut\Style\ComputedStyle;
@@ -70,11 +70,37 @@ final class Flow
                 $blocks[$i] = self::withParagraph($b, $changes);
             }
         }
+        $lastBlock = $blocks[$last];
+        if ($s->keepWithNext && $lastBlock instanceof Table) {
+            // Word keeps a table with what follows through keepNext on the paragraphs of its last row.
+            $blocks[$last] = self::keepLastRowWithNext($lastBlock);
+        }
+        if ($s->breakBefore && !$blocks[0] instanceof Paragraph) {
+            array_unshift($blocks, self::withParagraph(self::hairline(), ['pageBreakBefore' => true]));
+        }
         if ($s->breakAfter) {
             $blocks[] = new PageBreak();
         }
 
-        return $blocks;
+        return array_values($blocks);
+    }
+
+    private static function keepLastRowWithNext(Table $t): Table
+    {
+        $rows = $t->rows;
+        $i = count($rows) - 1;
+        if ($i < 0) {
+            return $t;
+        }
+        $row = $rows[$i];
+        $cells = [];
+        foreach ($row->cells as $cell) {
+            $children = array_map(static fn (BlockElement $b): BlockElement => $b instanceof Paragraph ? self::withParagraph($b, ['keepWithNext' => true]) : $b, $cell->children);
+            $cells[] = new TableCell($children, $cell->style);
+        }
+        $rows[$i] = new TableRow($cells, $row->isHeader, $row->heightTwips, $row->cantSplit, $row->heightRule);
+
+        return new Table(array_values($rows), $t->style, $t->caption, $t->gridColumnsTwips);
     }
 
     /**

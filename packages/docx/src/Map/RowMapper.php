@@ -167,7 +167,7 @@ final class RowMapper
                 $s->minHeight instanceof Length && count($lines) === 1 => Units::tw($s->minHeight->points),
                 default => null,
             };
-            $rows[] = new TableRow($out, heightTwips: $height, cantSplit: true, heightRule: $exact ? RowHeightRule::Exact : RowHeightRule::AtLeast);
+            $rows[] = new TableRow($out, heightTwips: $height, cantSplit: $s->keepTogether, heightRule: $exact ? RowHeightRule::Exact : RowHeightRule::AtLeast);
         }
         if ($s->height instanceof Length) {
             $this->fidelity->approximated('fixed height', $path);

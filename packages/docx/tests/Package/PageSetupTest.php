@@ -84,4 +84,12 @@ final class PageSetupTest extends TestCase
         self::assertSame('exact', $d->value('/w:document/w:body/*[last()-1][self::w:p]/w:pPr/w:spacing/@w:lineRule'));
         self::assertSame(1, $d->count('/w:document/w:body/*[last()-2][self::w:tbl]'));
     }
+
+    public function test_no_blank_page_when_a_page_already_breaks(): void
+    {
+        $d = self::export(Document::make(Page::a4()->body(Text::make('one')->breakAfter()), Page::a4()->body(Text::make('two'))));
+        self::assertSame(1, $d->count("//w:br[@w:type='page']") + $d->count('//w:pageBreakBefore'));
+        $d = self::export(Document::make(Page::a4()->body(Text::make('one')), Page::a4()->body(Text::make('two')->breakBefore())));
+        self::assertSame(1, $d->count("//w:br[@w:type='page']") + $d->count('//w:pageBreakBefore'));
+    }
 }

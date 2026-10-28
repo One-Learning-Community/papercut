@@ -188,4 +188,12 @@ final class RowMapperTest extends TestCase
             self::assertSame(count($grid), $span);
         }
     }
+
+    public function test_rows_split_across_pages_unless_kept_together(): void
+    {
+        $row = static fn (): View => Row::make(Column::make(Text::make('a'))->grow(), Column::make(Text::make('b'))->grow());
+        // Word clips a row that can't split and is taller than a page, so only keep-together rows refuse to split.
+        self::assertSame(0, self::export($row())->count(self::TBL . '/w:tr/w:trPr/w:cantSplit'));
+        self::assertSame(1, self::export($row()->keepTogether())->count(self::TBL . '/w:tr/w:trPr/w:cantSplit'));
+    }
 }

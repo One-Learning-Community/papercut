@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Walk;
 
-use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak as DocxPageBreak};
-use Dskripchenko\PhpDocx\Style\Alignment;
+use Dskripchenko\PhpDocx\Element\{BlockElement, Image as DocxImage, PageBreak as DocxPageBreak, Paragraph};
+use Dskripchenko\PhpDocx\Style\{Alignment, ParagraphStyle};
 use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
 use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, ListMapper, RowMapper, TableMapper, TextMapper};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\WidthResolver;
-use Papercut\Style\{Align, ComputedStyle, Direction, Justify};
+use Papercut\Style\{Align, ComputedStyle, Direction, Justify, TextAlign};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
 use Papercut\Value\{Auto, Edges, Length, Percent};
 
@@ -161,6 +161,21 @@ final class DocxVisitor implements TreeVisitor
             $frame->isRow => [$this->rows->row($style, $frame, $at->path())],
             default => Flow::blocks($frame),
         };
+        // A column centres or end-aligns a child that doesn't stretch; for a paragraph that is its alignment.
+        $cross = $parent->isRow ? Align::Stretch : ($style->alignSelf ?? $parent->style->alignItems ?? Align::Stretch);
+        $crossJc = match ($cross) {
+            Align::Center => Alignment::Center,
+            Align::End => Alignment::End,
+            default => null,
+        };
+        if ($node instanceof Image) {
+            $blocks = array_map(static fn (BlockElement $b): BlockElement => $b instanceof DocxImage
+                ? new Paragraph([$b], new ParagraphStyle(alignment: $crossJc ?? Alignment::Start, lineSpacingTwips: 240, lineSpacingRule: 'auto'))
+                : $b, $blocks);
+        } elseif ($node instanceof Text && $crossJc !== null && $style->textAlign === TextAlign::Left) {
+            $blocks = array_map(static fn (BlockElement $b): BlockElement => $b instanceof Paragraph ? Flow::withParagraph($b, ['alignment' => $crossJc]) : $b, $blocks);
+        }
+
         if ($style->opacity < 1.0) {
             $this->fidelity->dropped('opacity', $at->path());
         }
