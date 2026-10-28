@@ -1,5 +1,5 @@
-# Push a tag like v0.1.0 from main to release: runs both test suites, checks the
-# CHANGELOG has a dated section for the version, splits and tags both packages
+# Push a tag like v0.1.0 from main to release: runs every test suite, checks the
+# CHANGELOG has a dated section for the version, splits and tags every package
 # (Packagist picks the tags up from the split repos), then creates the GitHub release.
 name: release
 
@@ -19,6 +19,8 @@ jobs:
     uses: ./.github/workflows/core.yml
   laravel:
     uses: ./.github/workflows/laravel.yml
+  docx:
+    uses: ./.github/workflows/docx.yml
 
   notes:
     runs-on: ubuntu-latest
@@ -48,7 +50,7 @@ jobs:
           path: release-notes.md
 
   split:
-    needs: [core, laravel, notes]
+    needs: [core, laravel, docx, notes]
     uses: ./.github/workflows/split-packages.yml
     with:
       branch: main

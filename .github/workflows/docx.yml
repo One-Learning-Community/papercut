@@ -1,0 +1,72 @@
+name: docx
+
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'packages/docx/**'
+      - 'packages/core/**'
+      - 'examples/docx/**'
+      - 'examples/core/documents/**'
+      - '.github/workflows/docx.yml'
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docx-${{ github.workflow_ref }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: test (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4', '8.5']
+    defaults:
+      run:
+        working-directory: packages/docx
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, zlib, dom, gd, zip
+          coverage: none
+          tools: composer:v2
+      - name: Install poppler and LibreOffice Writer
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils libreoffice-writer
+      - name: Cache Composer downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer/files
+          key: composer-docx-${{ matrix.php }}-${{ hashFiles('packages/*/composer.json') }}
+          restore-keys: composer-docx-${{ matrix.php }}-
+      - run: composer install --no-interaction --no-progress
+      - run: vendor/bin/phpunit
+      - run: vendor/bin/phpstan analyse --memory-limit=1G
+      - name: Render the examples
+        working-directory: .
+        run: php examples/docx/render.php
+      - name: Validate against the OOXML schemas
+        working-directory: examples/docx
+        run: for f in *.docx; do echo "$f"; npx --yes @xarsh/ooxml-validator@0.4.0 "$f"; done
+      - name: Convert with LibreOffice and render pages
+        working-directory: examples/docx
+        run: |
+          soffice --headless --convert-to pdf --outdir lo *.docx
+          for f in lo/*.pdf; do pdftoppm -r 60 -png "$f" "${f%.pdf}"; done
+      - uses: actions/upload-artifact@v7
+        if: always() && matrix.php == '8.4'
+        with:
+          name: docx-examples
+          path: |
+            examples/docx/*.docx
+            examples/docx/lo/*.png
+          if-no-files-found: ignore

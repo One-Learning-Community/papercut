@@ -91,33 +91,37 @@ They write PDFs next to the scripts (git-ignored). `tests/Feature/ExamplesTest.p
 ## Releasing
 
 Releases are tag-driven. Packagist reads one `composer.json` per repository, so each package is mirrored into its own
-read-only split repository: `One-Learning-Community/papercut-core` and `One-Learning-Community/papercut-laravel`.
+read-only split repository: `One-Learning-Community/papercut-core`, `One-Learning-Community/papercut-laravel` and
+`One-Learning-Community/papercut-docx`.
 Never commit to the split repos directly; they are overwritten on every split.
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `core.yml`, `laravel.yml` | push to `main`, pull requests | tests, PHPStan, benchmark gate |
+| `core.yml`, `laravel.yml`, `docx.yml` | push to `main`, pull requests | tests, PHPStan, benchmark gate (core), OOXML schema check and LibreOffice renders (docx) |
 | `split.yml` | push to `main` | mirrors `packages/*` to the split repos (their `dev-main`) |
-| `release.yml` | tag `vX.Y.Z` | both suites, CHANGELOG check, split + tag both packages, GitHub release |
+| `release.yml` | tag `vX.Y.Z` | every suite, CHANGELOG check, split + tag every package, GitHub release |
 
 ### One-time setup
 
 1. Create a fine-grained personal access token (resource owner `One-Learning-Community`) with
-   **Contents: read and write** on `papercut-core` and `papercut-laravel` only, and save it as the
+   **Contents: read and write** on `papercut-core`, `papercut-laravel` and `papercut-docx` only, and save it as the
    `SPLIT_TOKEN` Actions secret on `One-Learning-Community/papercut`. Without it `split.yml` skips with a notice
    and `release.yml` fails at the split step.
-2. Once both split repos have content, submit them at https://packagist.org/packages/submit (`papercut-core`
-   first, then `papercut-laravel`). Packagist's GitHub integration keeps them updated on new pushes and tags.
+2. Each split repo must exist with at least one commit (a README is enough) before the first split: the split
+   action can't push to an empty repository.
+3. Once the split repos have content, submit them at https://packagist.org/packages/submit (`papercut-core`
+   first, then `papercut-laravel` and `papercut-docx`). Packagist's GitHub integration keeps them updated on new pushes and tags.
 
 ### Each release
 
 1. Make sure `main` is green.
 2. In `CHANGELOG.md` change `## [X.Y.Z] - unreleased` to the release date (`release.yml` refuses an unreleased
    or missing section) and add a fresh `## [Unreleased]` section.
-3. If the minor version changed, bump core's `extra.branch-alias` and the Laravel path repo's `versions` pin.
+3. If the minor version changed, bump core's `extra.branch-alias` and the `versions` pin in the Laravel and DOCX
+   path repos.
 4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Papercut X.Y.Z" && git push origin main vX.Y.Z`.
-5. Verify in a scratch project: `composer require papercut/core papercut/laravel`, then render one document with
-   each.
+5. Verify in a scratch project: `composer require papercut/core papercut/laravel papercut/docx`, then render one
+   document with each.
 
 The Laravel package's `repositories` and `minimum-stability` entries exist for monorepo development. Composer
 ignores both in non-root packages, so they do not affect consumers of the split repo.

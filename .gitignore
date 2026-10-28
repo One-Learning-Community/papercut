@@ -9,3 +9,4 @@
 /site/src/.vuepress/.cache/
 /site/src/.vuepress/.temp/
 /site/src/.vuepress/dist/
+/examples/docx/*.docx

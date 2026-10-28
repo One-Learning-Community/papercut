@@ -3,7 +3,7 @@
 # split repos' dev-main stays current. Tagged releases are split by release.yml.
 #
 # Needs the SPLIT_TOKEN secret: a fine-grained token with "Contents: read and write" on
-# One-Learning-Community/papercut-core and One-Learning-Community/papercut-laravel.
+# One-Learning-Community/papercut-core, papercut-laravel and papercut-docx.
 # Without it the job skips with a notice instead of failing.
 name: split
 
