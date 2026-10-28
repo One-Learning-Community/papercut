@@ -38,10 +38,14 @@ final class PreviewController
         abort_unless($this->registry->has($view), 404);
 
         $format = request()->query('format', 'pdf');
-        abort_unless($format === 'pdf' || $format === 'html', 404);
+        abort_unless(in_array($format, ['pdf', 'html', 'docx'], true), 404);
 
         $pending = $this->papercut->view($view, $this->registry->data($view));
 
-        return $format === 'html' ? $pending->html()->toResponse(request()) : $pending->pdf()->inline();
+        return match ($format) {
+            'html' => $pending->html()->toResponse(request()),
+            'docx' => $pending->docx()->inline(),
+            default => $pending->pdf()->inline(),
+        };
     }
 }
