@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Papercut\Docx\Walk;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak as DocxPageBreak};
-use Papercut\{Link, Node, Page, PageBreak, PageNumber, Spacer, TableCell, TableRow, Text, View};
-use Papercut\Docx\Map\{BoxMapper, Flow, RowMapper, TextMapper};
+use Papercut\{Link, Node, Page, PageBreak, PageNumber, Spacer, Table, TableCell, TableRow, Text, View};
+use Papercut\Docx\Map\{BoxMapper, Flow, RowMapper, TableMapper, TextMapper};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\WidthResolver;
 use Papercut\Style\{ComputedStyle, Direction};
@@ -33,6 +33,7 @@ final class DocxVisitor implements TreeVisitor
         private readonly TextMapper $text,
         private readonly BoxMapper $boxes,
         private readonly RowMapper $rows,
+        private readonly TableMapper $tables,
     ) {
     }
 
@@ -81,6 +82,10 @@ final class DocxVisitor implements TreeVisitor
                     $frame->slots[$slot->index] = $slot;
                 }
             }
+        } elseif ($node instanceof Table) {
+            $frame->columns = $this->widths->tableColumns($node, $style, $width);
+        } elseif ($node instanceof TableRow) {
+            $frame->header = $at->inHeader() && $at->parent() instanceof Table && $at->parent()->repeatsHeader();
         }
         $this->stack[] = $frame;
         if (TextMapper::glyph($node, $style) !== null) {
@@ -97,6 +102,17 @@ final class DocxVisitor implements TreeVisitor
         \assert($frame instanceof Frame);
         $parent = $this->top();
 
+        if ($node instanceof TableCell && $parent->node instanceof TableRow) {
+            $parent->cells[] = $this->tables->cell($node, $style, $frame, $parent, Flow::blocks($frame), $at->path());
+
+            return;
+        }
+        if ($node instanceof TableRow && $parent->node instanceof Table) {
+            $parent->rows[] = $this->tables->row($frame);
+
+            return;
+        }
+
         $glyph = TextMapper::glyph($node, $style);
         $blocks = match (true) {
             $glyph !== null => [$this->text->glyphParagraph($glyph, $style)],
@@ -104,6 +120,7 @@ final class DocxVisitor implements TreeVisitor
             $node instanceof PageNumber => [$this->text->pageNumber($node, $style)],
             $node instanceof Spacer => $this->spacer($node, $parent, $at),
             $node instanceof PageBreak => [new DocxPageBreak()],
+            $node instanceof Table => [$this->tables->table($style, $frame)],
             $frame->isRow => [$this->rows->row($style, $frame, $at->path())],
             default => Flow::blocks($frame),
         };
@@ -115,7 +132,7 @@ final class DocxVisitor implements TreeVisitor
         $boxed = false;
         if ($glyph !== null) {
             $style = BoxMapper::undecorated($style);
-        } elseif (!$parent->isRow && !$frame->isRow && BoxMapper::decorated($style)) {
+        } elseif (!$parent->isRow && !$frame->isRow && !$node instanceof Table && BoxMapper::decorated($style)) {
             $blocks = [$this->boxes->stack($frame, $at->path()) ?? $this->boxes->box($blocks, $style, $frame->width, $at->path())];
             $boxed = true;
         }
