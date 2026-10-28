@@ -41,16 +41,17 @@ Papercut writes the layout in a form all three understand. Columns flow as parag
 
 Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as tables, boxes as one-cell tables, header and footer distances, fonts by name, colours with transparency blended onto white) applies to every document, so it isn't reported each time.
 
+Opacity carries over: Word has none, so each colour of a faded node is blended onto what lies beneath it (the fill around it, else white). Text backgrounds keep their exact colour.
+
 | In the PDF | In Word |
 |---|---|
 | A different page size, header or footer on a later page | ≈ the first page's setup applies to every page |
 | Font weights other than regular and bold | ≈ bold from 600, regular below |
-| Text backgrounds | ≈ the nearest of Word's highlight colours |
 | Fixed heights, flexible spacers in a column, wrapping rows | ≈ |
 | `min-lines` above 2 | ≈ Word keeps 2 lines together |
 | Table cell `justify` other than start, center or end | ≈ top |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
-| Corner radius on a box, opacity on anything but a picture | ✗ left out |
+| Corner radius on a box | ✗ left out |
 | Background and overlay layers, PDF page templates, embedded PDF pages | ✗ left out |
 | Styled QR codes without Imagick | ≈ plain squares |
 | SVG text | ≈ in the system's fonts |

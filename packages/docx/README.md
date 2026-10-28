@@ -45,7 +45,8 @@ padding, a border or a background becomes a one-cell table.
 - Pictures Word can't take as they are are drawn at the size the PDF gives them: WebP and AVIF images, image
   `cover` and opacity, and plain QR codes need `ext-gd`; styled QR codes need `ext-imagick` and
   `bacon/bacon-qr-code`; SVG needs an `ext-imagick` that reads SVG. Without them, these are left out and reported.
-- Corner radius on boxes, opacity on anything but a picture, background and overlay layers, PDF page templates
+- Opacity is drawn by blending each faded colour onto what lies beneath it; text backgrounds keep their exact colour.
+- Corner radius on boxes, background and overlay layers, PDF page templates
   and embedded PDF pages are left out and reported (strict mode throws on them).
 
 Approximations and omissions are reported through `ExportOptions::onWarning` with the node's path, as with HTML
