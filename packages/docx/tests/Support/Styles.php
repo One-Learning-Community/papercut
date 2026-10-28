@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Docx\Tests\Support;
 
 use Papercut\Export\{ExportOptions, Fidelity, FidelityReport};
-use Papercut\{Document, Node, Page};
+use Papercut\{Component, Document, Node, Page};
 use Papercut\Docx\DocxExporter;
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Tree\{Region, Visit};
@@ -40,7 +40,7 @@ trait Styles
     private static array $exported = [];
 
     /** Exports a node (as an A4 body), a page or a document; reports land in self::$exported. */
-    private static function export(Node|Page|Document $what, bool $strict = false): DocxInspector
+    private static function export(Node|Component|Page|Document $what, bool $strict = false): DocxInspector
     {
         $doc = match (true) {
             $what instanceof Document => $what,

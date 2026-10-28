@@ -9,7 +9,7 @@ use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak};
 use Dskripchenko\PhpDocx\Section;
 use Dskripchenko\PhpDocx\Writer\Word2007Writer;
 use Papercut\Document;
-use Papercut\Docx\Map\{LineMetrics, TextMapper};
+use Papercut\Docx\Map\{BoxMapper, LineMetrics, TextMapper};
 use Papercut\Docx\Walk\DocxVisitor;
 use Papercut\Export\{ExportOptions, Exporter, Fidelity, NoteReporter, Output};
 use Papercut\Layout\WidthResolver;
@@ -27,7 +27,7 @@ final class DocxExporter implements Exporter
         $styles = new StyleResolver($options->theme());
         $fidelity = new Fidelity('docx', $options);
         NoteReporter::report($doc, $styles, $fidelity);
-        $visitor = new DocxVisitor($fidelity, WidthResolver::for($options), new TextMapper(new LineMetrics($options->fonts()), $fidelity));
+        $visitor = new DocxVisitor($fidelity, WidthResolver::for($options), new TextMapper(new LineMetrics($options->fonts()), $fidelity), new BoxMapper($fidelity));
         (new TreeWalker($styles))->walk($doc, $visitor);
 
         return new Output((new Word2007Writer())->write(new DocxDocument(new Section($this->body($visitor)))), self::MIME, 'docx');

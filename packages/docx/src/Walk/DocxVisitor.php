@@ -6,7 +6,7 @@ namespace Papercut\Docx\Walk;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, PageBreak as DocxPageBreak};
 use Papercut\{Link, Node, Page, PageBreak, PageNumber, Spacer, TableCell, TableRow, Text, View};
-use Papercut\Docx\Map\{Flow, TextMapper};
+use Papercut\Docx\Map\{BoxMapper, Flow, TextMapper};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\WidthResolver;
 use Papercut\Style\{ComputedStyle, Direction};
@@ -31,6 +31,7 @@ final class DocxVisitor implements TreeVisitor
         private readonly Fidelity $fidelity,
         private readonly WidthResolver $widths,
         private readonly TextMapper $text,
+        private readonly BoxMapper $boxes,
     ) {
     }
 
@@ -81,6 +82,9 @@ final class DocxVisitor implements TreeVisitor
             }
         }
         $this->stack[] = $frame;
+        if (TextMapper::glyph($node, $style) !== null) {
+            return false;
+        }
 
         // Leaves produce their blocks in leave(); containers wait for their children.
         return !($node instanceof Text || $node instanceof Spacer || $node instanceof PageBreak || $node instanceof PageNumber);
@@ -92,14 +96,28 @@ final class DocxVisitor implements TreeVisitor
         \assert($frame instanceof Frame);
         $parent = $this->top();
 
+        $glyph = TextMapper::glyph($node, $style);
         $blocks = match (true) {
+            $glyph !== null => [$this->text->glyphParagraph($glyph, $style)],
             $node instanceof Text => [$this->text->paragraph($node, $style, $at)],
             $node instanceof PageNumber => [$this->text->pageNumber($node, $style)],
             $node instanceof Spacer => $this->spacer($node, $parent, $at),
             $node instanceof PageBreak => [new DocxPageBreak()],
             default => Flow::blocks($frame),
         };
-        $parent->items[] = ['blocks' => $blocks, 'style' => $style, 'index' => $at->index(), 'boxed' => false];
+        if ($style->opacity < 1.0) {
+            $this->fidelity->dropped('opacity', $at->path());
+        }
+
+        // A child of a row becomes a cell, which carries its box itself; elsewhere a decorated box is wrapped.
+        $boxed = false;
+        if ($glyph !== null) {
+            $style = BoxMapper::undecorated($style);
+        } elseif (!$parent->isRow && !$frame->isRow && BoxMapper::decorated($style)) {
+            $blocks = [$this->boxes->stack($frame, $at->path()) ?? $this->boxes->box($blocks, $style, $frame->width, $at->path())];
+            $boxed = true;
+        }
+        $parent->items[] = ['blocks' => $blocks, 'style' => $style, 'index' => $at->index(), 'boxed' => $boxed];
     }
 
     private function top(): Frame
