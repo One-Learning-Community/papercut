@@ -7,6 +7,7 @@ namespace Papercut\Tests\Style;
 use Papercut\{ListItem, ListNode, Table, Text, View};
 use Papercut\Markup\Markup;
 use Papercut\Style\Theme;
+use Papercut\Value\Color;
 use Papercut\Tests\Support\LayoutHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -81,12 +82,85 @@ final class ListSpacingTest extends TestCase
         self::assertEqualsWithDelta($this->lineStep() + 20.0, $gap, 0.001);
     }
 
-    public function test_cell_ending_in_a_list_gets_the_space(): void
+    private static function height(\Papercut\Node $n): float
+    {
+        $f = (new LayoutHarness())->layout($n, 400)->fragment;
+        self::assertNotNull($f);
+        return $f->height;
+    }
+
+    public function test_cell_ending_in_a_list_adds_no_space(): void
+    {
+        $withList = Table::make()->columns('200pt')->row(View::make(Text::make('P'), ListNode::unordered('A', 'B')));
+        $plain = Table::make()->columns('200pt')->row(View::make(Text::make('P'), Text::make('A'), Text::make('B')));
+        self::assertEqualsWithDelta(self::height($plain), self::height($withList), 0.001);
+    }
+
+    public function test_cell_holding_only_a_list_adds_no_space(): void
     {
         $withList = Table::make()->columns('200pt')->row(ListNode::unordered('A', 'B'));
         $plain = Table::make()->columns('200pt')->row(View::make(Text::make('A'), Text::make('B')));
-        $h = static fn (\Papercut\Node $n): ?float => (new LayoutHarness())->layout($n, 400)->fragment?->height;
-        self::assertEqualsWithDelta($h($plain) + 6.0, $h($withList), 0.001);
+        self::assertEqualsWithDelta(self::height($plain), self::height($withList), 0.001);
+    }
+
+    public function test_cell_with_a_list_then_a_paragraph_keeps_the_space(): void
+    {
+        $withList = Table::make()->columns('200pt')->row(View::make(ListNode::unordered('A'), Text::make('P')));
+        $plain = Table::make()->columns('200pt')->row(View::make(Text::make('A'), Text::make('P')));
+        self::assertEqualsWithDelta(self::height($plain) + 6.0, self::height($withList), 0.001);
+    }
+
+    public function test_box_ending_in_a_list_adds_no_space(): void
+    {
+        $withList = View::make(Text::make('P'), ListNode::unordered('A'))->padding(pt(4));
+        $plain = View::make(Text::make('P'), Text::make('A'))->padding(pt(4));
+        self::assertEqualsWithDelta(self::height($plain), self::height($withList), 0.001);
+    }
+
+    public function test_bordered_box_ending_in_a_list_adds_no_space(): void
+    {
+        $withList = View::make(Text::make('P'), ListNode::unordered('A'))->border(pt(1));
+        $plain = View::make(Text::make('P'), Text::make('A'))->border(pt(1));
+        self::assertEqualsWithDelta(self::height($plain), self::height($withList), 0.001);
+    }
+
+    public function test_box_with_a_background_ending_in_a_list_adds_no_space(): void
+    {
+        $withList = View::make(Text::make('P'), ListNode::unordered('A'))->background(Color::hex('#eeeeee'));
+        $plain = View::make(Text::make('P'), Text::make('A'))->background(Color::hex('#eeeeee'));
+        self::assertEqualsWithDelta(self::height($plain), self::height($withList), 0.001);
+    }
+
+    public function test_transparent_wrapper_ending_in_a_list_keeps_the_space(): void
+    {
+        $gap = $this->gap(View::make(View::make(ListNode::unordered('A')), Text::make('After')), 'A', 'After');
+        self::assertEqualsWithDelta($this->lineStep() + 6.0, $gap, 0.001);
+    }
+
+    public function test_markup_list_in_a_wrapper_keeps_the_space(): void
+    {
+        $gap = $this->gap(View::make(Markup::html('<ul><li>A</li></ul>'), Text::make('After')), 'A', 'After');
+        self::assertEqualsWithDelta($this->lineStep() + 6.0, $gap, 0.001);
+    }
+
+    public function test_section_ending_in_a_list_keeps_the_space(): void
+    {
+        $gap = $this->gap(View::make(\Papercut\Decorator\Section::make(ListNode::unordered('A')), Text::make('After')), 'A', 'After');
+        self::assertEqualsWithDelta($this->lineStep() + 6.0, $gap, 0.001);
+    }
+
+    public function test_decorator_box_ending_in_a_list_adds_no_space(): void
+    {
+        $withList = \Papercut\Decorator\Card::make(Text::make('P'), ListNode::unordered('A'));
+        $plain = \Papercut\Decorator\Card::make(Text::make('P'), Text::make('A'));
+        self::assertEqualsWithDelta(self::height(View::make($plain)), self::height(View::make($withList)), 0.001);
+    }
+
+    public function test_markup_cell_ending_in_a_list_adds_no_space(): void
+    {
+        $withList = Markup::html('<table><tr><td><ul><li>a</li></ul></td></tr></table>');
+        $plain = Markup::html('<table><tr><td>a</td></tr></table>');
+        self::assertEqualsWithDelta(self::height(View::make($plain)), self::height(View::make($withList)), 0.001);
     }
 
     public function test_list_spacing_follows_the_theme(): void

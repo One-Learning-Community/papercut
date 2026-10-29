@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Style;
 
-use Papercut\{Link, ListItem, ListNode, Node, Styled, TableCell, Text, View};
+use Papercut\{Link, ListItem, ListNode, Node, Place, Styled, TableCell, Text, View};
 use Papercut\Tree\Expander;
 use Papercut\Value\Edges;
 
@@ -26,9 +26,22 @@ final class StyleResolver
     private \WeakMap $styles;
     /** @var \WeakMap<TableCell, \WeakMap<ComputedStyle, ComputedStyle>> */
     private \WeakMap $cellStyles;
+    /**
+     * Nodes that end a container whose bottom edge shows (a table cell, or a box with bottom
+     * padding, a bottom border or a background), directly or through transparent wrappers
+     * that are themselves last. Recorded when the container is resolved; a container resolves
+     * before its children, since a child resolves against its computed style. The note lasts
+     * as long as the resolver: a node reused where something follows it keeps the note, and
+     * a style already cached for it under a parent keeps whichever spacing it was first
+     * resolved with.
+     *
+     * @var \WeakMap<Node, true>
+     */
+    private \WeakMap $endsContainer;
 
     public function __construct(private readonly Theme $theme)
     {
+        $this->endsContainer = new \WeakMap();
         $this->styles = new \WeakMap();
         $this->cellStyles = new \WeakMap();
     }
@@ -92,10 +105,37 @@ final class StyleResolver
         if ($node instanceof ListEntry) {
             $inList = true;
         }
-        if ($node instanceof ListNode && !$parent->inList && $style->margin === null) {
-            return $this->withListSpacing($node, $parent->child($style, $inList));
+        $computed = $parent->child($style, $inList);
+        $this->noteLastChild($node, $computed);
+        if ($node instanceof ListNode && !$parent->inList && $style->margin === null && !isset($this->endsContainer[$node])) {
+            return $this->withListSpacing($node, $computed);
         }
-        return $parent->child($style, $inList);
+        return $computed;
+    }
+
+    /** Records the last child of a container whose bottom edge shows (see endsContainer), so a list ending it adds no spacing. */
+    private function noteLastChild(Node $node, ComputedStyle $style): void
+    {
+        if (!($node instanceof View || $node instanceof TableCell || $node instanceof Link || $node instanceof Place)) {
+            return;
+        }
+        $closed = $node instanceof TableCell
+            || isset($this->endsContainer[$node])
+            || $style->padding->bottom->points > 0.0
+            || $style->borderWidth->bottom->points > 0.0
+            || $style->background !== null;
+        if (!$closed) {
+            return;
+        }
+        $children = $node->children();
+        if ($children === []) {
+            return;
+        }
+        // A component last child is left alone: expanding it here would render it an extra time.
+        $last = $children[array_key_last($children)];
+        if ($last instanceof Node) {
+            $this->endsContainer[$last] = true;
+        }
     }
 
     /** A top-level list's computed style with the theme's list spacing, less what its last item already ends with. */

@@ -452,4 +452,14 @@ final class WordListsTest extends TestCase
             exec('rm -rf ' . escapeshellarg($dir));
         }
     }
+
+    public function test_list_ending_a_cell_adds_no_space_after(): void
+    {
+        $cell = TableCell::make(Text::make('P'), ListNode::unordered('A'), ListNode::unordered('B'));
+        $d = self::export(Table::make()->columns('1fr')->row($cell));
+        $after = array_map(static fn (string $v): string => $v, $d->values('//w:tc//w:p[w:pPr/w:numPr]/w:pPr/w:spacing/@w:after'));
+        self::assertSame(['120'], $after, 'only the list followed by another list keeps its space');
+        self::assertSame(2, $d->count('//w:tc//w:p[w:pPr/w:numPr]'));
+        self::assertNull($d->value('(//w:tc//w:p[w:pPr/w:numPr])[2]/w:pPr/w:spacing/@w:after'));
+    }
 }
