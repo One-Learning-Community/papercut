@@ -579,6 +579,27 @@ final class PaginatorTest extends TestCase
         // The caption is left alone on its own page; the first row starts on the next one and splits there.
         self::assertSame([['Intro'], ['Caption'], ['T1', 'T2', 'T3', 'T4', 'T5'], ['T6', 'T7', 'T8']], $pages);
     }
+
+    public function test_heading_moves_with_a_keep_together_block_that_jumps_a_page(): void
+    {
+        // body 180 x 110: every heading level fits after the four intro lines, the four-line box does not
+        $box = \Papercut\View::make(...array_map(static fn (int $i): Text => Text::make("B$i"), range(1, 4)))->keepTogether();
+        $intro = array_map(static fn (int $i): Text => Text::make("I$i"), range(1, 4));
+        foreach (['h1', 'h2', 'h3', 'h4'] as $level) {
+            $page = Page::size(pt(200), pt(130))->margin(pt(10))->headerGap(pt(0))->footerGap(pt(0));
+            $doc = Document::make($page->body(...[...$intro, Text::$level('Heading'), $box]));
+            $pages = array_map(fn ($p) => $this->texts($p), $this->paginate($doc));
+            self::assertSame([['I1', 'I2', 'I3', 'I4'], ['Heading', 'B1', 'B2', 'B3', 'B4']], $pages, $level);
+        }
+    }
+
+    public function test_a_heading_can_opt_out_of_keeping_with_next(): void
+    {
+        $box = \Papercut\View::make(...array_map(static fn (int $i): Text => Text::make("B$i"), range(1, 4)))->keepTogether();
+        $doc = Document::make($this->small()->body(Text::make('Intro'), Text::make('Intro 2'), Text::h4('Heading')->keepWithNext(false), $box));
+        $pages = array_map(fn ($p) => $this->texts($p), $this->paginate($doc));
+        self::assertSame([['Intro', 'Intro 2', 'Heading'], ['B1', 'B2', 'B3', 'B4']], $pages);
+    }
 }
 
 final class StuckNode implements Node
