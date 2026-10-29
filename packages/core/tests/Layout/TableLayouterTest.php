@@ -25,6 +25,36 @@ final class TableLayouterTest extends TestCase
         self::assertSame([6.0, 106.0, 384.0], array_column($runs, 'x'));
     }
 
+    public function test_fill_width_shares_leftover_among_auto_columns_by_max_content(): void
+    {
+        $t = Table::make()->columns('auto auto')->row('aa', 'aaaa');
+        $h = new LayoutHarness();
+        $plain = LayoutHarness::runs($h->layout($t, 400)->fragment);
+        $filled = LayoutHarness::runs($h->layout($t->fillWidth(), 400)->fragment);
+        // 5pt per character: max-content 10 + 12 and 20 + 12
+        self::assertSame(22.0 + 6.0, $plain[1]['x']);
+        self::assertEqualsWithDelta(400.0 * 22 / 54 + 6.0, $filled[1]['x'], 1e-6);
+    }
+
+    public function test_fill_width_does_nothing_when_an_fr_track_takes_the_rest(): void
+    {
+        $t = Table::make()->columns('auto 1fr')->row('aa', 'b');
+        $h = new LayoutHarness();
+        $plain = LayoutHarness::runs($h->layout($t, 400)->fragment);
+        $filled = LayoutHarness::runs($h->layout($t->fillWidth(), 400)->fragment);
+        self::assertSame($plain, $filled);
+    }
+
+    public function test_fill_width_without_auto_columns_changes_nothing(): void
+    {
+        $t = Table::make()->columns('100pt 100pt')->row('a', 'b');
+        $h = new LayoutHarness();
+        self::assertSame(
+            LayoutHarness::runs($h->layout($t, 400)->fragment),
+            LayoutHarness::runs($h->layout($t->fillWidth(), 400)->fragment),
+        );
+    }
+
     public function test_colspan(): void
     {
         $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('wide')->colspan(2)->right());
@@ -364,6 +394,292 @@ final class TableLayouterTest extends TestCase
         self::assertNotNull($f);
         $grown = self::cellFragments($f)[0]->children()[0]['fragment'];
         self::assertSame(28.0, $grown->height); // row content 36 - cell padding 8
+    }
+
+    // --- rowspan ----------------------------------------------------------
+
+    public function test_rowspan_cell_spans_its_rows_and_later_cells_shift_right(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('a')->rowspan(2), 'b')->row('c');
+        $f = (new LayoutHarness())->layout($t, 200)->fragment;
+        $runs = array_column(LayoutHarness::runs($f), null, 'text');
+        self::assertSame([6.0, 106.0, 106.0], [$runs['a']['x'], $runs['b']['x'], $runs['c']['x']]);
+        self::assertSame($runs['b']['baseline'] + 22.0, $runs['c']['baseline']);
+        self::assertSame($runs['b']['baseline'], $runs['a']['baseline']);
+        self::assertSame(44.0, $f?->height);
+    }
+
+    public function test_spanning_cell_shortfall_is_spread_evenly_over_its_rows(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('1', '2', '3')->rowspan(2), 'b')->row('c');
+        $f = (new LayoutHarness())->layout($t, 200)->fragment;
+        self::assertSame(50.0, $f?->height);
+        $runs = array_column(LayoutHarness::runs($f), null, 'text');
+        self::assertSame($runs['b']['baseline'] + 25.0, $runs['c']['baseline']);
+    }
+
+    public function test_later_row_background_does_not_cover_the_spanning_cell(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('a')->rowspan(2), 'b')
+            ->bodyRow(TableRow::make('c')->background('slate-100'));
+        $f = (new LayoutHarness())->layout($t, 200)->fragment;
+        self::assertNotNull($f);
+        $ops = [];
+        $walk = function (Fragment $fr, float $oy) use (&$walk, &$ops): void {
+            foreach ($fr->ops() as $op) {
+                $ops[] = [$op, $oy];
+            }
+            foreach ($fr->children() as $c) {
+                $walk($c['fragment'], $oy + $c['y']);
+            }
+        };
+        $walk($f, 0.0);
+        $text = null;
+        $rect = null;
+        foreach ($ops as $i => [$op, $oy]) {
+            if ($op instanceof \Papercut\Paint\TextRun && $op->text === 'a') {
+                $text = $i;
+            }
+            if ($op instanceof Rect && $oy + $op->y === 22.0) {
+                $rect = $i;
+            }
+        }
+        self::assertNotNull($text);
+        self::assertNotNull($rect);
+        self::assertGreaterThan($rect, $text);
+    }
+
+    public function test_rowspan_cell_counts_toward_its_column_content(): void
+    {
+        $t = Table::make()->columns('auto 1fr')->row(TableCell::make('wide-word')->rowspan(2), 'b')->row('c');
+        $runs = array_column(LayoutHarness::runs((new LayoutHarness())->layout($t, 200)->fragment), null, 'text');
+        $column = 45.0 + 12.0; // 'wide-word' at 5pt a glyph + cell padding
+        self::assertSame([$column + 6.0, $column + 6.0], [$runs['b']['x'], $runs['c']['x']]);
+    }
+
+    // --- rowspan page breaks -----------------------------------------------
+
+    public function test_group_that_does_not_fit_moves_to_the_next_page(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row('x')->row(TableCell::make('a')->rowspan(2), 'b')->row('c');
+        $h = new LayoutHarness();
+        $first = $h->layout($t, 200, 50); // room for 'x' + one row
+        self::assertSame(Status::Partial, $first->status);
+        self::assertSame(['x'], self::texts($first->fragment));
+        $rest = $h->layout($t, 200, null, $first->token);
+        self::assertSame(Status::Complete, $rest->status);
+        self::assertEqualsCanonicalizing(['a', 'b', 'c'], self::texts($rest->fragment));
+    }
+
+    public function test_group_taller_than_a_page_splits_row_by_row(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('a')->rowspan(4), 'r1')->row('r2')->row('r3')->row('r4');
+        $pages = self::pages($t, 200, 50);
+        self::assertCount(2, $pages);
+        self::assertEqualsCanonicalizing(['a', 'r1', 'r2'], $pages[0]);
+        self::assertSame(['r3', 'r4'], $pages[1]);
+    }
+
+    public function test_tall_spanning_cell_continues_on_the_next_page_once(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(self::lines(10)->rowspan(2), 'b')->row('c');
+        $pages = self::pages($t, 200, 80);
+        self::assertGreaterThan(1, count($pages));
+        $all = array_merge(...$pages);
+        self::assertSame(array_map(static fn (int $i): string => "L$i", range(1, 10)), array_values(array_filter($all, static fn (string $s): bool => $s[0] === 'L')));
+        self::assertEqualsCanonicalizing(['b', 'c'], array_values(array_filter($all, static fn (string $s): bool => $s[0] !== 'L')));
+    }
+
+    public function test_repeated_header_opens_a_group_continuation(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->head('H')->row(self::lines(10)->rowspan(2), 'b')->row('c');
+        $pages = self::pages($t, 200, 80);
+        self::assertGreaterThan(1, count($pages));
+        foreach ($pages as $page) {
+            self::assertSame('H', $page[0]);
+        }
+        $all = array_merge(...$pages);
+        self::assertSame(array_map(static fn (int $i): string => "L$i", range(1, 10)), array_values(array_filter($all, static fn (string $s): bool => $s[0] === 'L')));
+    }
+
+    public function test_header_only_table_lays_out_once(): void
+    {
+        $r = (new LayoutHarness())->layout(Table::make()->head('H1')->head('H2'), 100, 100);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertSame(['H1', 'H2'], self::texts($r->fragment));
+    }
+
+    public function test_spanning_cell_taller_than_several_pages_splits_with_its_rows(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(self::lines(20)->rowspan(2), 'b')->row('c')->row('d');
+        $pages = self::pages($t, 200, 80);
+        self::assertGreaterThan(3, count($pages));
+        $all = array_merge(...$pages);
+        self::assertSame(array_map(static fn (int $i): string => "L$i", range(1, 20)), array_values(array_filter($all, static fn (string $s): bool => $s[0] === 'L')));
+        self::assertEqualsCanonicalizing(['b', 'c', 'd'], array_values(array_filter($all, static fn (string $s): bool => $s[0] !== 'L')));
+        self::assertSame('d', end($all));
+    }
+
+    public function test_row_too_tall_inside_a_group_splits_in_parallel_with_the_spanning_cell(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('a')->rowspan(2), self::lines(8))->row('c');
+        $pages = self::pages($t, 200, 80);
+        self::assertCount(2, $pages);
+        self::assertContains('a', $pages[0]);
+        $all = array_merge(...$pages);
+        self::assertSame(array_map(static fn (int $i): string => "L$i", range(1, 8)), array_values(array_filter($all, static fn (string $s): bool => $s[0] === 'L')));
+        self::assertSame(1, count(array_keys($all, 'a', true)));
+        self::assertSame('c', end($all));
+    }
+
+    public function test_header_row_with_a_rowspan_repeats_whole(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->head(TableCell::th('H')->rowspan(2), 'I')->head('J')
+            ->rows(range(1, 4), fn (int $i) => ["r$i", "s$i"]);
+        $pages = self::pages($t, 200, 100); // header 44 + 2 rows
+        self::assertCount(2, $pages);
+        self::assertEqualsCanonicalizing(['H', 'I', 'J', 'r1', 's1', 'r2', 's2'], $pages[0]);
+        self::assertEqualsCanonicalizing(['H', 'I', 'J', 'r3', 's3', 'r4', 's4'], $pages[1]);
+    }
+
+    public function test_chained_spans_split_across_a_page_break(): void
+    {
+        // A spans rows 0-1 in column 0; B spans rows 1-2 in column 1; 'c' sits in column 0 of row 2.
+        $t = Table::make()->columns('1fr 1fr 1fr')
+            ->row(TableCell::make('A')->rowspan(2), 'b', 'x')
+            ->row(TableCell::make('B1', 'B2')->rowspan(2), 'y')
+            ->row('c', 'z');
+        $pages = self::pages($t, 300, 50); // rows 22 each: two fit, B gets row 1's 22pt for its first line
+        self::assertCount(2, $pages);
+        self::assertEqualsCanonicalizing(['A', 'b', 'x', 'y', 'B1'], $pages[0]);
+        self::assertEqualsCanonicalizing(['B2', 'c', 'z'], $pages[1]);
+    }
+
+    public function test_spanning_cells_break_beside_the_last_row_that_fits_without_their_shortfall(): void
+    {
+        // B spans rows 1-2; row 1 is empty, so row 2 ('c') goes on page 1 too, B breaking beside it.
+        $t = Table::make()->columns('1fr 1fr')
+            ->row(TableCell::make('A')->rowspan(2), 'b')
+            ->row(TableCell::make('B1', 'B2')->rowspan(2))
+            ->row('c');
+        $pages = self::pages($t, 200, 50);
+        self::assertCount(2, $pages);
+        self::assertEqualsCanonicalizing(['A', 'b', 'B1', 'c'], $pages[0]);
+        self::assertSame(['B2'], $pages[1]);
+    }
+
+    public function test_spanning_cell_with_no_room_on_the_page_starts_on_the_next(): void
+    {
+        // A ties rows 0-1 into B's group. B (an unbreakable 48pt) starts on row 1, which gets only 28pt of
+        // the page: B places nothing there and starts whole on page 2.
+        $t = Table::make()->columns('1fr 1fr 1fr')
+            ->row(TableCell::make('A')->rowspan(2), 'x', 'y')
+            ->row(TableCell::make(\Papercut\View::make('B')->height(pt(40)))->rowspan(2), 'c')
+            ->row('d', 'e');
+        $pages = self::pages($t, 300, 50);
+        self::assertCount(2, $pages);
+        self::assertEqualsCanonicalizing(['A', 'x', 'y', 'c'], $pages[0]);
+        self::assertEqualsCanonicalizing(['B', 'd', 'e'], $pages[1]);
+    }
+
+    public function test_resumed_spanning_cell_stretched_to_its_rows_draws_only_what_is_left(): void
+    {
+        // 'a' (background: stretched by layout) gets L1 on page 1; on page 2 its rest (74) is shorter than row 'M' (78).
+        $t = Table::make()->columns('1fr 1fr')
+            ->row(self::lines(6)->background('#ff0000')->rowspan(2), 'b')
+            ->row(TableCell::make('M1', 'M2', 'M3', 'M4', 'M5'));
+        $pages = self::pages($t, 200, 80);
+        self::assertCount(2, $pages);
+        $all = array_merge(...$pages);
+        self::assertSame(array_map(static fn (int $i): string => "L$i", range(1, 6)), array_values(array_filter($all, static fn (string $s): bool => $s[0] === 'L')));
+    }
+
+    public function test_rows_beside_a_breaking_spanning_cell_share_its_page(): void
+    {
+        // 'a' (568pt) breaks anyway: r1..r4 (88pt naturally) all go on page 1 beside its first page-high chunk.
+        $t = Table::make()->columns('1fr 1fr')->row(self::lines(40)->rowspan(4), 'r1')->row('r2')->row('r3')->row('r4');
+        $pages = self::pages($t, 200, 200);
+        self::assertSame(['r1', 'r2', 'r3', 'r4'], array_values(array_filter($pages[0], static fn (string $s): bool => $s[0] === 'r')));
+        self::assertCount(3, $pages);
+        $all = array_merge(...$pages);
+        self::assertSame(array_map(static fn (int $i): string => "L$i", range(1, 40)), array_values(array_filter($all, static fn (string $s): bool => $s[0] === 'L')));
+        self::assertSame(4, count(array_filter($all, static fn (string $s): bool => $s[0] === 'r')));
+    }
+
+    /** @return iterable<string, array{float, float}> */
+    public static function unbreakableSpanningCases(): iterable
+    {
+        foreach ([[60.0, 70.0], [60.0, 80.0], [70.0, 80.0]] as [$view, $page]) {
+            yield "view $view page $page" => [$view, $page];
+        }
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unbreakableSpanningCases')]
+    public function test_unbreakable_spanning_cell_ending_on_the_last_placed_row_is_not_lost(float $viewHeight, float $page): void
+    {
+        // The group's rows fit the page without B's shortfall, so the last row goes in as a tail; B cannot
+        // break there and must start again on the next page with that row, never vanish.
+        $t = Table::make()->columns('1fr 1fr 1fr')
+            ->row(TableCell::make('A')->rowspan(2), 'x', 'y')
+            ->row(TableCell::make(\Papercut\View::make('B')->height(pt($viewHeight)))->rowspan(2), 'c')
+            ->row('d', 'e');
+        $all = array_merge(...self::pages($t, 300, $page));
+        sort($all);
+        self::assertSame(['A', 'B', 'c', 'd', 'e', 'x', 'y'], $all);
+    }
+
+    public function test_unbreakable_spanning_cell_taller_than_a_fresh_page_behaves_like_a_single_row_cell(): void
+    {
+        // An unbreakable cell taller than a page is DoesNotFit on a fresh page (the paginator then clips with
+        // a warning or throws), as in a single row. The table must not place its other rows and lose the cell.
+        $tall = fn () => \Papercut\View::make('B')->height(pt(70));
+        $spanning = Table::make()->columns('1fr 1fr')->row('h')->row(TableCell::make($tall())->rowspan(2), 'c')->row('d');
+        $single = Table::make()->columns('1fr 1fr')->row('h')->row(TableCell::make($tall()), 'c')->row('d');
+        $run = function (Table $t): array {
+            $h = new LayoutHarness();
+            $r = $h->layout($t, 200, 60, null);
+            $first = self::texts($r->fragment);
+            $second = $h->layout($t, 200, 60, $r->token);
+            return [$first, $second->status, self::texts($second->fragment)];
+        };
+        self::assertSame($run($single), $run($spanning));
+        self::assertSame(['h'], $run($spanning)[0]);
+        self::assertSame(Status::DoesNotFit, $run($spanning)[1]);
+        self::assertSame([], $run($spanning)[2]);
+    }
+
+    private static function lines(int $n): TableCell
+    {
+        return TableCell::make(...array_map(static fn (int $i): string => "L$i", range(1, $n)));
+    }
+
+    /** @return list<string> */
+    private static function texts(?Fragment $f): array
+    {
+        return array_column(LayoutHarness::runs($f), 'text');
+    }
+
+    /**
+     * Lays $t out on fresh pages of $height until complete.
+     *
+     * @return list<list<string>> texts per page
+     */
+    private static function pages(Table $t, float $width, float $height): array
+    {
+        $h = new LayoutHarness();
+        $pages = [];
+        $token = null;
+        for ($i = 0; $i < 30; $i++) {
+            $r = $h->layout($t, $width, $height, $token);
+            self::assertNotSame(Status::DoesNotFit, $r->status);
+            self::assertLessThanOrEqual($height + 1e-9, $r->fragment->height ?? 0.0);
+            $pages[] = self::texts($r->fragment);
+            if ($r->status === Status::Complete) {
+                return $pages;
+            }
+            $token = $r->token;
+        }
+        self::fail('table never completed');
     }
 
     /** @return list<Fragment> cell fragments in paint order */

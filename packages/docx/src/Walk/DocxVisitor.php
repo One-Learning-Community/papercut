@@ -9,7 +9,7 @@ use Dskripchenko\PhpDocx\Style\{Alignment, HorizontalAnchor, ImagePosition, Para
 use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
 use Papercut\Docx\Map\{BoxMapper, Fade, Flow, ImageMapper, ListMapper, RowMapper, TableMapper, TextMapper, Units};
 use Papercut\Export\Fidelity;
-use Papercut\Layout\WidthResolver;
+use Papercut\Layout\{TableGrid, WidthResolver};
 use Papercut\Style\{Align, ComputedStyle, Direction, Justify, TextAlign};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
 use Papercut\Value\{Auto, Edges, Length, Percent};
@@ -129,8 +129,10 @@ final class DocxVisitor implements TreeVisitor
                 }
             }
         } elseif ($node instanceof Table) {
+            $frame->grid = TableGrid::of($node);
             $frame->columns = TableMapper::settle($this->widths->tableColumns($node, $style, $width), WidthResolver::tracks($node));
         } elseif ($node instanceof TableRow) {
+            $frame->rowIndex = $parent->rowsSeen++;
             $frame->header = $at->inHeader() && $at->parent() instanceof Table && $at->parent()->repeatsHeader();
         } elseif ($node instanceof ListNode) {
             $this->lists->enter($node);
@@ -159,12 +161,12 @@ final class DocxVisitor implements TreeVisitor
         $parent = $this->top();
 
         if ($node instanceof TableCell && $parent->node instanceof TableRow) {
-            $parent->cells[] = $this->tables->cell($node, $style, $frame, $parent, Flow::blocks($frame), $at->path());
+            $parent->cells[] = $this->tables->cell($node, $style, $frame, $parent, $this->stack[count($this->stack) - 2] ?? null, Flow::blocks($frame), $at->path());
 
             return;
         }
         if ($node instanceof TableRow && $parent->node instanceof Table) {
-            $parent->rows[] = $this->tables->row($frame);
+            $parent->rows[] = $this->tables->row($frame, $parent);
 
             return;
         }
@@ -242,7 +244,9 @@ final class DocxVisitor implements TreeVisitor
             $table = $this->stack[count($this->stack) - 2] ?? null;
             $cols = $table instanceof Frame ? $table->columns : [];
 
-            return array_sum(array_slice($cols, $parent->column, $node->span()));
+            $placed = $table instanceof Frame ? TableMapper::placement($table, $parent) : null;
+
+            return array_sum(array_slice($cols, $placed->col ?? $parent->column, $placed->colspan ?? $node->span()));
         }
         if ($node instanceof TableRow) {
             return $parent->content;

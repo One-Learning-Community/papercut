@@ -115,7 +115,7 @@ final class BoxMapper
     }
 
     /** @param array{float, float, float, float} $extraPad top, right, bottom, left in pt */
-    public function cellStyle(ComputedStyle $s, int $widthTwips, int $span = 1, VerticalAlign $v = VerticalAlign::Top, ?ComputedStyle $row = null, array $extraPad = [0.0, 0.0, 0.0, 0.0]): CellStyle
+    public function cellStyle(ComputedStyle $s, int $widthTwips, int $span = 1, VerticalAlign $v = VerticalAlign::Top, ?ComputedStyle $row = null, array $extraPad = [0.0, 0.0, 0.0, 0.0], int $rowSpan = 1, bool $continue = false): CellStyle
     {
         return new CellStyle(
             widthTwips: $widthTwips,
@@ -127,6 +127,8 @@ final class BoxMapper
             backgroundColor: Units::fill($s->background) ?? ($row === null ? null : Units::fill($row->background)),
             borders: self::borders($s) ?? ($row === null ? null : self::borders($row)),
             gridSpan: $span,
+            rowSpan: $rowSpan,
+            vMergeContinue: $continue,
         );
     }
 

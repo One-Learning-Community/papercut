@@ -42,6 +42,17 @@ final class TableMapperTest extends TestCase
         }
     }
 
+    public function test_filled_table_grid_sums_to_the_region_width(): void
+    {
+        $table = Table::make()->columns('auto auto')->fillWidth()->row('aa', 'aaaa');
+        $d = self::export($table);
+        $page = Page::a4();
+        $width = $page->width() - $page->margins()->left->points - $page->margins()->right->points;
+        $grid = array_map('intval', $d->values(self::TBL . '/w:tblGrid/w:gridCol/@w:w'));
+        self::assertCount(2, $grid);
+        self::assertEqualsWithDelta($width * 20, array_sum($grid), 3.0);
+    }
+
     public function test_auto_columns_borrow_slack_from_a_flexible_column(): void
     {
         $table = Table::make()->columns(Auto::instance(), Fr::of(1))->row('Respondent', 'Jane Smith');

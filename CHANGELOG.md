@@ -5,6 +5,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `rowspan` on table cells: `TableCell::rowspan()` in PHP and `rowspan` on `<x-doc::td>` and `<x-doc::th>` in Blade. Spanning cells lay out in PDF, HTML and Word export, and a group of spanned rows stays together across page breaks unless it is taller than a page.
+
 ## [0.3.0] - 2026-10-28
 
 The first release on Packagist. 0.1 and 0.2 were never published, so there are no deprecation shims; the table

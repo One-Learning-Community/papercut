@@ -11,7 +11,7 @@ use Papercut\Barcode\Bacon\BaconQrSvg;
 use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
-use Papercut\Layout\WidthResolver;
+use Papercut\Layout\{GridCell, TableGrid, WidthResolver};
 use Papercut\Style\{ComputedStyle, Justify, ListMarker};
 use Papercut\Text\FontStyle;
 use Papercut\Value\{Auto, Fr, Length, Percent};
@@ -30,6 +30,9 @@ final class HtmlWriter implements TreeVisitor
     private array $closers = [];
     /** @var list<?string> the open thead/tbody of each open table */
     private array $sections = [];
+
+    /** @var \WeakMap<TableRow, list<GridCell>>|null grid placements of the rows being written */
+    private ?\WeakMap $rowPlacements = null;
     /** @var \WeakMap<TableCell, true> cells laid out as plain columns because no row holds them */
     private \WeakMap $strays;
     /** @var array<string,true> */
@@ -481,6 +484,9 @@ final class HtmlWriter implements TreeVisitor
         if ($hasAuto) {
             $decls['table-layout'] = 'auto';
         }
+        if ($n->fillsWidth() && !isset($decls['width'])) {
+            $decls['width'] = '100%';
+        }
         $this->out .= '<table' . self::styleAttr($decls) . '><colgroup>';
         foreach ($tracks as $t) {
             $width = match (true) {
@@ -513,6 +519,8 @@ final class HtmlWriter implements TreeVisitor
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);
         $this->checkDecoration($s, $parent, $at->path());
+        $this->rowPlacements ??= new \WeakMap();
+        $this->rowPlacements[$n] = TableGrid::of($at->parent())->placements[$at->index()] ?? [];
         $want = $at->inHeader() ? 'thead' : 'tbody';
         $open = end($this->sections);
         if ($open !== $want) {
@@ -539,7 +547,10 @@ final class HtmlWriter implements TreeVisitor
         }
         $this->checkDecoration($s, $parent, $at->path());
         $tag = $n->header() ? 'th' : 'td';
-        $span = $n->span() > 1 ? ' colspan="' . $n->span() . '"' : '';
+        $p = $this->rowPlacements[$at->parent()][$at->index()] ?? null;
+        $colspan = $p->colspan ?? $n->span();
+        $rowspan = $p->rowspan ?? $n->rowsSpanned();
+        $span = ($colspan > 1 ? ' colspan="' . $colspan . '"' : '') . ($rowspan > 1 ? ' rowspan="' . $rowspan . '"' : '');
         $td = [...Css::box($s), ...$this->textCss($s, $parent, $at->path())];
         if ($s->justify === Justify::Center) {
             $td['vertical-align'] = 'middle';

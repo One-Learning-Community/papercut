@@ -17,6 +17,7 @@ final class Table implements Styled
     /** @var list<TableRow> */
     private array $bodyRows = [];
     private bool $repeatHeader = true;
+    private bool $fillWidth = false;
 
     private function __construct()
     {
@@ -121,6 +122,19 @@ final class Table implements Styled
     public function repeatsHeader(): bool
     {
         return $this->repeatHeader;
+    }
+
+    /** Gives width left over after sizing the columns to the auto columns (when no fr column takes it). */
+    public function fillWidth(bool $on = true): self
+    {
+        $clone = clone $this;
+        $clone->fillWidth = $on;
+        return $clone;
+    }
+
+    public function fillsWidth(): bool
+    {
+        return $this->fillWidth;
     }
 
     /**
