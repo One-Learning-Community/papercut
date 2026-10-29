@@ -43,6 +43,21 @@ final class InlineRowTest extends TestCase
         self::assertSame(1, $d->count('//w:hyperlink'));
     }
 
+    public function test_a_label_beside_a_long_value_stays_a_table_where_the_pdf_wraps_the_value(): void
+    {
+        $long = str_repeat('A value long enough to need several lines when it sits in its own column. ', 6);
+        $d = self::export(Row::make(Text::make('Name:')->bold(), Text::make($long))->gap(pt(12)));
+        self::assertSame(1, $d->count('//w:tbl'));
+        self::assertSame(3, $d->count('//w:tc')); // label, gap, value
+    }
+
+    public function test_items_that_fit_on_one_line_with_their_gaps_stay_one_paragraph(): void
+    {
+        $d = self::export(Row::make(Text::make('Name:')->bold(), Text::make('short value'))->gap(pt(12)));
+        self::assertSame(0, $d->count('//w:tbl'));
+        self::assertSame(1, $d->count('/w:document/w:body/w:p'));
+    }
+
     public function test_gap_is_a_space_between_items(): void
     {
         $d = self::export(Row::make('One', 'Two')->gap(pt(6)));

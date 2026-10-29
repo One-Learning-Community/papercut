@@ -122,6 +122,15 @@ final class DocxVisitor implements TreeVisitor
         $isRow = $node instanceof View && $style->direction === Direction::Row;
         $frame = new Frame($node, $style, $width, $content, $isRow);
         $frame->backdrop = Fade::under($style->background, $parent->backdrop);
+        // Word draws these as table cells, whose lists start again at level 0: a table cell, a row's child, a decorated box
+        // (which leave() wraps in a table). Entered before the node's own list opens, so a decorated list's items restart too.
+        if ($node instanceof TableCell && $parent->node instanceof TableRow) {
+            $this->lists->enterCell();
+        } elseif ($parent->isRow || (!$node instanceof ListItem && !$isRow && !$node instanceof Table
+            && TextMapper::glyph($node, $style) === null && BoxMapper::decorated($style))) {
+            $frame->boxCell = true;
+            $this->lists->enterCell();
+        }
         if ($node instanceof View && $isRow) {
             $frame->lines = $this->widths->flexLines($node, $style, $width);
             foreach ($frame->lines as $line) {
@@ -140,14 +149,6 @@ final class DocxVisitor implements TreeVisitor
         } elseif ($node instanceof Link) {
             $this->links[] = TextMapper::href($node->uri());
             $this->fidelity->approximated('block link', $at->path());
-        }
-        if ($node instanceof TableCell && $parent->node instanceof TableRow) {
-            $this->lists->enterCell();
-        } elseif (!$node instanceof ListNode && !$node instanceof ListItem && !$parent->isRow && !$isRow && !$node instanceof Table
-            && TextMapper::glyph($node, $style) === null && BoxMapper::decorated($style)) {
-            // Mirrors the wrapping in leave(): the box becomes a table, whose lists restart at level 0.
-            $frame->boxCell = true;
-            $this->lists->enterCell();
         }
         $this->stack[] = $frame;
         if (TextMapper::glyph($node, $style) !== null) {
@@ -168,7 +169,7 @@ final class DocxVisitor implements TreeVisitor
         \assert($frame instanceof Frame);
         $style = $frame->style ?? $style;
         $parent = $this->top();
-        if ($frame->boxCell) {
+        if ($frame->boxCell && !$node instanceof ListNode) {
             $this->lists->leaveCell();
         }
 
@@ -321,6 +322,9 @@ final class DocxVisitor implements TreeVisitor
     private function leaveList(Frame $frame): array
     {
         $this->lists->leave();
+        if ($frame->boxCell) {
+            $this->lists->leaveCell();
+        }
 
         return Flow::blocks($frame, $this->lists->settled());
     }

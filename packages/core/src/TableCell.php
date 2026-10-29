@@ -48,7 +48,14 @@ final class TableCell implements Styled
         return $clone;
     }
 
+    /** How many columns the cell spans (set with colspan()). */
     public function span(): int
+    {
+        return $this->span;
+    }
+
+    /** How many columns the cell spans: the same as span(), named to pair with rowsSpanned(). */
+    public function colsSpanned(): int
     {
         return $this->span;
     }
@@ -63,6 +70,7 @@ final class TableCell implements Styled
         return $clone;
     }
 
+    /** How many rows the cell spans (set with rowspan()). */
     public function rowsSpanned(): int
     {
         return $this->rowspan;

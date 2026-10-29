@@ -185,6 +185,12 @@ class PapercutManager
         if ($mono !== null && !is_string($mono)) {
             throw new \InvalidArgumentException('Invalid papercut.theme.mono_family: ' . (is_scalar($mono) ? var_export($mono, true) : get_debug_type($mono)) . '; expected a font family name');
         }
+        if ($mono !== null && (trim($mono) === '' || strtolower(trim($mono)) === 'monospace')) {
+            throw new \InvalidArgumentException('Invalid papercut.theme.mono_family: ' . var_export($mono, true) . '; the keyword `monospace` stands for it, so name a real font family');
+        }
+        if ($mono !== null && !in_array(strtolower(trim($mono)), array_map('strtolower', $families), true)) {
+            throw new \InvalidArgumentException("Invalid papercut.theme.mono_family: '$mono' is neither bundled nor registered in papercut.fonts");
+        }
         $theme = Theme::default()->with(
             fontFamily: isset($cfg['font_family']) ? (string) $cfg['font_family'] : null,
             fontSize: self::positive($cfg, 'font_size'),

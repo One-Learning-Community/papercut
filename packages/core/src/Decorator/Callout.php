@@ -63,6 +63,12 @@ final class Callout implements Decorator
     }
 
     /** @return list<string> */
+    protected function toneNames(): array
+    {
+        return ['note', 'tip', 'warning', 'danger'];
+    }
+
+    /** @return list<string> */
     public function partNames(): array
     {
         return ['callout', 'callout.title'];

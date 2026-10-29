@@ -37,6 +37,15 @@ final class RowspanTest extends TestCase
         self::assertSame(1, $e->count(self::ROW . '[2]/w:tc[2]/w:tcPr/w:vMerge[not(@w:val)]'));
     }
 
+    public function test_a_ragged_row_still_continues_a_rowspan_further_right(): void
+    {
+        $d = self::export(Table::make()->columns('1fr 1fr 1fr')->row('a', 'b', TableCell::make('c')->rowspan(2))->row('x'));
+        self::assertSame(3, $d->count(self::ROW . '[2]/w:tc'));
+        self::assertSame(0, $d->count(self::ROW . '[2]/w:tc[1]/w:tcPr/w:vMerge'));
+        self::assertSame(0, $d->count(self::ROW . '[2]/w:tc[2]/w:tcPr/w:vMerge'));
+        self::assertSame(1, $d->count(self::ROW . '[2]/w:tc[3]/w:tcPr/w:vMerge[not(@w:val)]'));
+    }
+
     public function test_colspan_running_into_a_rowspan_is_clamped(): void
     {
         $d = self::export(Table::make()->columns('1fr 1fr 1fr')->row('a', 'b', TableCell::make('c')->rowspan(2))->row(TableCell::make('d')->colspan(3)));

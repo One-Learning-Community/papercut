@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Papercut\Style;
 
 use Papercut\{Link, ListItem, ListNode, Node, Place, Styled, TableCell, Text, View};
-use Papercut\Tree\Expander;
 use Papercut\Value\Edges;
 
 use function Papercut\pt;
@@ -123,7 +122,7 @@ final class StyleResolver
             || isset($this->endsContainer[$node])
             || $style->padding->bottom->points > 0.0
             || $style->borderWidth->bottom->points > 0.0
-            || $style->background !== null;
+            || ($style->background !== null && !$style->background->isTransparent());
         if (!$closed) {
             return;
         }
@@ -163,7 +162,11 @@ final class StyleResolver
         if ($children === []) {
             return 0.0;
         }
-        $child = Expander::expand($children[array_key_last($children)]);
+        $child = $children[array_key_last($children)];
+        if (!$child instanceof Node) {
+            // A component is left alone: expanding it here would render it an extra time.
+            return 0.0;
+        }
         $childStyle = $this->resolve($child, $style);
         $own = $childStyle->margin->bottom->points;
         return $own + (($child instanceof View || $child instanceof ListItem || $child instanceof ListNode || $child instanceof Link) ? $this->trailingMargin($child, $childStyle) : 0.0);

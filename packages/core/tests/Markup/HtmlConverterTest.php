@@ -186,6 +186,17 @@ final class HtmlConverterTest extends TestCase
         }
     }
 
+    public function test_a_pre_inside_code_gets_no_code_style(): void
+    {
+        $v = Markup::html("<p>Before</p><code><pre>x = 1;\n  y = 2;</pre></code>");
+        self::assertInstanceOf(View::class, $v);
+        $texts = self::texts($v);
+        self::assertSame('pre', $texts[1]->styleName());
+        foreach ($texts[1]->spanList() as $span) {
+            self::assertNull($span->styleName, 'the code span style is not applied inside pre');
+        }
+    }
+
     public function test_markup_inline_code_kbd_samp_tt_use_code_style(): void
     {
         foreach (['code', 'kbd', 'samp', 'tt'] as $tag) {

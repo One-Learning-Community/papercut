@@ -231,4 +231,27 @@ final class VariantsTest extends TestCase
         $this->expectExceptionMessage("'$word' collides");
         $decorator->variant($word);
     }
+
+    /** @return iterable<string, array{Decorator, string}> */
+    public static function toneVariants(): iterable
+    {
+        yield 'note on a callout' => [Callout::make('x'), 'note'];
+        yield 'warning on a callout' => [Callout::make('x')->tone('note'), 'warning'];
+        yield 'danger on a badge' => [Badge::make('x'), 'danger'];
+        yield 'neutral on a badge' => [Badge::make('x'), 'neutral'];
+    }
+
+    #[DataProvider('toneVariants')]
+    public function test_a_variant_equal_to_a_built_in_tone_is_rejected(Decorator $decorator, string $word): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidVariant::class);
+        $this->expectExceptionMessage("'$word' is one of this decorator's built-in tones");
+        $decorator->variant($word);
+    }
+
+    public function test_other_variant_words_are_accepted_on_toned_decorators(): void
+    {
+        self::assertSame(['large'], Callout::make('x')->variant('large')->variants());
+        self::assertSame(['neutral-ish'], Badge::make('x')->variant('neutral-ish')->variants());
+    }
 }

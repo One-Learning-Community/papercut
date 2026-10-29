@@ -80,7 +80,16 @@ final class TableMapper
     public function row(Frame $frame, ?Frame $table = null): TableRow
     {
         if ($table?->grid !== null) {
-            $this->continueTo($table, $frame, $table->grid->columns, false);
+            // Up to the last column a rowspan from above covers, padding the uncovered gaps before it; short of that, no cells.
+            $reach = 0;
+            for ($r = 0; $r < $frame->rowIndex; $r++) {
+                foreach ($table->grid->placements[$r] ?? [] as $p) {
+                    if ($p->row + $p->rowspan > $frame->rowIndex) {
+                        $reach = max($reach, $p->col + $p->colspan);
+                    }
+                }
+            }
+            $this->continueTo($table, $frame, $reach, true);
         }
 
         return new TableRow($frame->cells, isHeader: $frame->header, cantSplit: true);

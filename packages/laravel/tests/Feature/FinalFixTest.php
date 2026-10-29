@@ -66,6 +66,19 @@ final class FinalFixTest extends TestCase
         }
     }
 
+    public function test_mono_family_must_be_a_real_known_family(): void
+    {
+        foreach (['', 'monospace', 'Monospace', 'Nonesuch'] as $value) {
+            config(['papercut.theme' => ['mono_family' => $value]]);
+            try {
+                (new PapercutManager($this->app()->make(NodeRegistry::class), $this->app()->make(\Papercut\Laravel\Preview\PreviewRegistry::class)))->pdfOptions();
+                self::fail('accepted mono_family=' . var_export($value, true));
+            } catch (\InvalidArgumentException $e) {
+                self::assertStringContainsString('Invalid papercut.theme.mono_family:', $e->getMessage());
+            }
+        }
+    }
+
     public function test_altered_marker_in_slot_is_reported(): void
     {
         try {

@@ -37,9 +37,9 @@ In Laravel, `->docx()` returns a `PendingOutput`, with the same `toString()`, `s
 
 Word, LibreOffice and Google Docs lay out the pages themselves, so a page break can land a line or two away from where it is in the PDF.
 
-Papercut writes the layout in a form all three understand. Columns flow as paragraphs. Rows become tables with no borders, at the widths the PDF uses. A box with padding, a border or a background becomes a table with one cell. Lists, tables, links, headings, page numbers and pagination rules such as keep-together carry over. Each run of pages with the same size, margins, header, footer and layers becomes a Word section of its own, so a landscape page or a page without the header comes out as it does in the PDF.
+Papercut writes the layout in a form all three understand. Columns flow as paragraphs. A row of short inline items (text, links, badges) that the PDF sets on one line becomes one paragraph; any other row becomes a table with no borders, at the widths the PDF uses. A box with padding, a border or a background becomes a table with one cell. Lists are real Word numbering. Tables, links, headings, page numbers and pagination rules such as keep-together carry over. Each run of pages with the same size, margins, header, footer and layers becomes a Word section of its own, so a landscape page or a page without the header comes out as it does in the PDF.
 
-Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as tables, boxes as one-cell tables, header and footer distances, fonts by name, colours with transparency blended onto white) applies to every document, so it isn't reported each time.
+Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as paragraphs or tables, boxes as one-cell tables, header and footer distances, fonts by name, colours with transparency blended onto white) applies to every document, so it isn't reported each time.
 
 Opacity carries over: Word has none, so each colour of a faded node is blended onto what lies beneath it (the fill around it, else white). Text backgrounds keep their exact colour.
 
@@ -51,6 +51,9 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | Table cell `justify` other than start, center or end | ≈ top |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
 | Corner radius on a box | ✗ left out |
+| Corner radius on a badge in a line of text | ≈ square corners |
+| List numbers below 1, or roman numerals above 3999 | ≈ typed as text, which Word does not renumber |
+| A list item whose number is not the previous one plus one (`withValue()`, `<li value>`) | ≈ starts a new Word list at that number |
 | An image, QR code or SVG in a background (before anything else in it) or alone in an overlay place | ≈ a floating picture at the same place on every page; Word draws it with the header, so an overlay sits behind the body's text |
 | Anything else in a background or overlay layer, a border or background on a layer picture, PDF page templates, embedded PDF pages | ✗ left out |
 | Styled QR codes without Imagick | ≈ plain squares |

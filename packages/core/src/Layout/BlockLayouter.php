@@ -42,6 +42,10 @@ final class BlockLayouter implements Layouter
                 $stretch = max($stretch ?? 0.0, $floor);
             }
         }
+        if ($stretch !== null && $c->fill !== null) {
+            // A cell in a shared slice cannot grow past it: a min-height beyond the slice is cut to it.
+            $stretch = min($stretch, $c->fill);
+        }
         if ($fixed !== null && $c->height !== null && $fixed > $c->height + self::EPSILON) {
             return LayoutResult::doesNotFit();
         }

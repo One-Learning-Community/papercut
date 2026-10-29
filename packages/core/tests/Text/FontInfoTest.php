@@ -108,7 +108,8 @@ final class FontInfoTest extends TestCase
         yield 'hand-written' => ["\x03\x00", FontClass::Script];
         yield 'decorative' => ["\x04\x00", FontClass::Decorative];
         yield 'symbol' => ["\x05\x00", FontClass::Other];
-        yield 'no fit' => ["\x01\x00", FontClass::Sans];
+        yield 'no fit' => ["\x01\x00", FontClass::Other];
+        yield 'any (all zeros)' => ["\x00\x00", FontClass::Other];
         yield 'kind PANOSE 1.0 does not define' => ["\x06\x00", FontClass::Other];
         yield 'highest byte' => ["\xFF\x00", FontClass::Other];
     }

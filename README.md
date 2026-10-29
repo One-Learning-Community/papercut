@@ -129,6 +129,7 @@ php-pdf can do both to a Papercut PDF; see [Passwords, signatures and merging](h
 
 - Papercut: MIT (`LICENSE`). Third-party notices: [`NOTICE.md`](NOTICE.md).
 - Bundled Inter font: SIL Open Font License 1.1 (`packages/core/resources/fonts/Inter/LICENSE.txt`).
+- Bundled Cousine font: SIL Open Font License 1.1 (`packages/core/resources/fonts/Cousine/OFL.txt`).
 - Color palette derived from Tailwind CSS: MIT.
 - PDF backend [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf): MIT.
 - Word backend [`dskripchenko/php-docx`](https://github.com/dskripchenko/php-docx): MIT.

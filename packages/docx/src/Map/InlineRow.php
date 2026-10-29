@@ -9,6 +9,8 @@ use Dskripchenko\PhpDocx\Style\{Alignment, ParagraphStyle, RunStyle};
 use Papercut\Docx\Package\DocxPatcher;
 use Papercut\Docx\Walk\Frame;
 use Papercut\Export\Fidelity;
+use Papercut\Layout\WidthResolver;
+use Papercut\View;
 use Papercut\Style\{ComputedStyle, Justify};
 use Papercut\Value\Auto;
 
@@ -19,17 +21,21 @@ use Papercut\Value\Auto;
  * A row qualifies when, in the PDF, it is a single flex line packed at the start, undecorated and unsized, and every
  * item is one paragraph of text runs (links included) that is content-sized: it does not grow, has no width, height,
  * margin or border, and carries padding only when it has a background (a badge), which becomes a no-break space on
- * each side inside the shading. A rounded corner is lost; that is reported. Anything else keeps its table.
+ * each side inside the shading. A rounded corner is lost; that is reported. The items' max-content widths plus the
+ * gaps must fit the row, so the PDF sets them on one line without squeezing any; otherwise the PDF wraps a long item
+ * in its own column, and the row keeps its table. Anything else keeps its table.
  */
 final class InlineRow
 {
     private const string NBSP = "\u{00A0}";
     /** Padding at least this wide (pt) reads as a space inside the shading. */
     private const float PAD = 3.0;
+    private const float EPSILON = 0.01;
 
     public function __construct(
         private readonly Fidelity $fidelity,
         private readonly TextMapper $text,
+        private readonly WidthResolver $widths,
     ) {
     }
 
@@ -51,6 +57,10 @@ final class InlineRow
             $parts[] = [$p, $item['style']];
         }
 
+        if (!$this->fits($s, $frame)) {
+            return null;
+        }
+
         $space = $this->text->runStyle($s);
         $children = [];
         foreach ($parts as $k => [$p, $style]) {
@@ -66,6 +76,24 @@ final class InlineRow
         $style = new ParagraphStyle(...[...get_object_vars($parts[0][0]->style), 'alignment' => Alignment::Start]);
 
         return new Paragraph($children, $style);
+    }
+
+    /** Whether the items at their max-content widths, gaps between, fit the row's width. */
+    private function fits(ComputedStyle $s, Frame $frame): bool
+    {
+        $row = $frame->node;
+        if (!$row instanceof View) {
+            return false;
+        }
+        // Offered unbounded, every item sits at its max-content width (none grows, so none stretches).
+        $probe = new ComputedStyle(...[...get_object_vars($s), 'width' => Auto::instance(), 'minWidth' => null, 'maxWidth' => null]);
+        $slots = $this->widths->flexLines($row, $probe, 1.0e7)[0] ?? [];
+        $need = $s->gap * max(0, count($slots) - 1);
+        foreach ($slots as $slot) {
+            $need += $slot->width;
+        }
+
+        return $need <= $frame->content + self::EPSILON;
     }
 
     private static function inline(ComputedStyle $i): bool

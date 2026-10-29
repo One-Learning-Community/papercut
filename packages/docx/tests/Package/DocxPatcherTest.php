@@ -176,12 +176,36 @@ final class DocxPatcherTest extends TestCase
         self::assertSame(1, substr_count(self::part($out, 'word/settings.xml'), 'w:mirrorMargins'));
     }
 
+    /** @return array<string, array{string, string}> settings body and what must follow w:mirrorMargins */
+    public static function settingsBodies(): array
+    {
+        $open = '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">';
+
+        return [
+            'without even and odd headers' => ['<w:defaultTabStop w:val="720"/>', $open . '<w:mirrorMargins/><w:defaultTabStop w:val="720"/>'],
+            'after the zoom and view it follows' => ['<w:view w:val="print"/><w:zoom w:percent="100"/><w:defaultTabStop w:val="720"/>', $open . '<w:view w:val="print"/><w:zoom w:percent="100"/><w:mirrorMargins/><w:defaultTabStop w:val="720"/>'],
+            'before later settings' => ['<w:evenAndOddHeaders/><w:compat/>', $open . '<w:mirrorMargins/><w:evenAndOddHeaders/><w:compat/>'],
+            'in an empty element' => ['', '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:mirrorMargins/></w:settings>'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('settingsBodies')]
+    public function test_mirror_margins_is_placed_by_schema_order_in_any_settings(string $body, string $expected): void
+    {
+        $bytes = self::withEven();
+        $open = '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">';
+        $settings = $body === '' ? '<?xml version="1.0"?>' . substr($open, 0, -1) . '/>' : '<?xml version="1.0"?>' . $open . $body . '</w:settings>';
+        $out = DocxPatcher::patch(self::rewrite($bytes, ['word/settings.xml' => $settings]), self::spec(true));
+        self::assertStringContainsString($expected, self::part($out, 'word/settings.xml'));
+        self::assertSame(1, substr_count(self::part($out, 'word/settings.xml'), 'w:mirrorMargins'));
+    }
+
     public function test_mirror_patch_fails_loudly_when_markup_changes(): void
     {
         $cases = [
             [self::plain(), 'word/_rels/document.xml.rels', '</Relationships>'],
             [self::plain(), '[Content_Types].xml', '</Types>'],
-            [self::withEven(), 'word/settings.xml', '<w:evenAndOddHeaders/>'],
+            [self::withEven(), 'word/settings.xml', '<w:settings'],
         ];
         foreach ($cases as [$bytes, $name, $remove]) {
             $broken = self::rewrite($bytes, [$name => str_replace($remove, '', self::part($bytes, $name))]);

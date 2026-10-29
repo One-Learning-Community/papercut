@@ -11,8 +11,9 @@ use Papercut\Docx\Map\ListMapper;
 use Papercut\Docx\Package\Numbering;
 use Papercut\Export\{ExportOptions, Fidelity};
 use function Papercut\pt;
+use Papercut\Markup\Markup;
 use Papercut\Value\Percent;
-use Papercut\{Column, Document, ListItem, ListNode, Page, Table, TableCell, Text, View};
+use Papercut\{Column, Document, ListItem, ListNode, Page, Row, Table, TableCell, Text, View};
 use Papercut\Docx\Tests\Support\{DocxInspector, Styles};
 use Papercut\Style\ListMarker;
 use PHPUnit\Framework\TestCase;
@@ -461,5 +462,28 @@ final class WordListsTest extends TestCase
         self::assertSame(['120'], $after, 'only the list followed by another list keeps its space');
         self::assertSame(2, $d->count('//w:tc//w:p[w:pPr/w:numPr]'));
         self::assertNull($d->value('(//w:tc//w:p[w:pPr/w:numPr])[2]/w:pPr/w:spacing/@w:after'));
+    }
+
+    public function test_a_list_in_a_rows_child_starts_at_level_zero(): void
+    {
+        $d = self::export(ListNode::ordered(ListItem::make(Row::make(Text::make('left'), ListNode::unordered('x', 'y')))));
+        self::assertSame(['0', '0'], $d->values('//w:tbl//w:numPr/w:ilvl/@w:val'));
+    }
+
+    public function test_a_bordered_list_in_an_item_indents_once_through_its_box(): void
+    {
+        $d = self::export(ListNode::ordered('a', ListItem::make(Text::make('b'), ListNode::unordered('c')->border(pt(1), '#000'))));
+        self::assertSame(['0', '0', '0'], $d->values('//w:numPr/w:ilvl/@w:val'));
+        self::assertSame(['0'], $d->values('//w:tbl//w:numPr/w:ilvl/@w:val'));
+        self::assertSame(['360'], $d->values('//w:tbl/w:tblPr/w:tblInd/@w:w'));
+    }
+
+    public function test_an_item_that_starts_with_a_rule_numbers_a_line_of_its_own_above_it(): void
+    {
+        $d = self::export(ListNode::ordered(ListItem::make(Markup::html('<hr>'), Text::make('after')), 'next'));
+        self::assertSame(2, $d->count('//w:p[w:pPr/w:numPr]'));
+        self::assertSame(0, $d->count('//w:p[w:pPr/w:numPr][w:pPr/w:spacing/@w:lineRule="exact"]'));
+        self::assertSame(1, $d->count('//w:p[w:pPr/w:pBdr][w:pPr/w:spacing/@w:lineRule="exact"]'));
+        self::assertSame(1, $d->count('//w:p[w:pPr/w:numPr][not(w:r)]/following-sibling::w:p[1][w:pPr/w:pBdr]'));
     }
 }

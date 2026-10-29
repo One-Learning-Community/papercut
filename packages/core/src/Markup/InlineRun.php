@@ -98,7 +98,7 @@ final class InlineRun
         }
         $text = substr($last->text, 0, -1);
         if ($text !== '') {
-            $this->spans[] = new Span($text, $last->style, $last->href, false, $last->styleName);
+            $this->spans[] = new Span($text, $last->style, $last->href, false, $last->styleName, $last->base);
         }
     }
 }

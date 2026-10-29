@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Html;
 
-use Papercut\{Document, Page, View};
+use Papercut\{Document, Page, Text, View};
 use Papercut\Export\HtmlOptions;
 use Papercut\Style\{Style, Theme, WhiteSpace};
 use Papercut\Markup\Markup;
@@ -53,5 +53,13 @@ final class HtmlPreformattedTest extends TestCase
         $theme = Theme::default()->withStyle('pre', Style::make(whiteSpace: WhiteSpace::Normal));
         $html = Document::make(Page::a4()->body(Markup::html('<pre>a  b</pre>')))->toHtml(new HtmlOptions(theme: $theme))->bytes();
         self::assertMatchesRegularExpression('~<pre style="[^"]*white-space:normal~', $html);
+    }
+
+    public function test_any_pre_wrap_element_gets_the_pdf_tab_width(): void
+    {
+        $node = Text::make("a\tb")->apply(Style::make(whiteSpace: WhiteSpace::PreWrap));
+        $html = Document::make(Page::a4()->body($node))->toHtml()->bytes();
+        self::assertMatchesRegularExpression('~<p style="[^"]*white-space:pre-wrap[^"]*"~', $html);
+        self::assertMatchesRegularExpression('~<p style="[^"]*tab-size:4~', $html);
     }
 }

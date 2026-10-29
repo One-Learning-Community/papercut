@@ -976,7 +976,7 @@ final class TableLayouter implements Layouter
             return $f;
         }
         if ($paints) {
-            return $this->layoutCell($cell, $j, $width, $rowStyle, new Constraints($width, null, $fresh, $height, open: $open), $token, $engine)->fragment ?? $f;
+            return $this->layoutCell($cell, $j, $width, $rowStyle, new Constraints($width, null, $fresh, $height, $height, $open), $token, $engine)->fragment ?? $f;
         }
         $box = new Fragment($f->width, $height);
         $box->addChild(0.0, 0.0, $f);

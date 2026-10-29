@@ -169,10 +169,11 @@ final class HtmlConverter
                 if ($i > 0) {
                     $this->run->break(true);
                 }
-                $this->run->text($line, $style, $href, true, $this->code > 0 ? 'code' : null);
+                // Inside a pre the code span style is never applied (a <code> around a <pre> included).
+                $this->run->text($line, $style, $href, true, null);
             }
         } elseif ($node instanceof \Dom\Text) {
-            $this->run->text($node->data, $style, $href, false, $this->code > 0 ? 'code' : null);
+            $this->run->text($node->data, $style, $href, false, $this->code > 0 && $this->pre === 0 ? 'code' : null);
         }
     }
 

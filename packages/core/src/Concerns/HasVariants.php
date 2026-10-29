@@ -37,9 +37,25 @@ trait HasVariants
                 throw new InvalidVariant("The variant '$word' collides with a part name of this decorator (a name segment of: " . implode(', ', $this->partNames()) . '); pick another word.');
             }
         }
+        foreach ($words as $word) {
+            if (in_array($word, $this->toneNames(), true)) {
+                throw new InvalidVariant("The variant '$word' is one of this decorator's built-in tones (" . implode(', ', $this->toneNames()) . "); use tone('$word') for the tone's colours, or pick another variant word.");
+            }
+        }
         $clone = clone $this;
         array_push($clone->variants, ...$words);
         return $clone;
+    }
+
+    /**
+     * The built-in tone names a variant word may not equal, as the tone's colours would then apply
+     * through the variant. A decorator with built-in tones overrides this.
+     *
+     * @return list<string>
+     */
+    protected function toneNames(): array
+    {
+        return [];
     }
 
     /** @return list<string> */

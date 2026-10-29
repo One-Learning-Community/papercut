@@ -15,6 +15,8 @@ final readonly class Span
         public bool $lineBreak = false,
         /** A theme style the span takes first; $style is the span's own overrides on top of it. */
         public ?string $styleName = null,
+        /** The style the span's named style sits on: what was set outside it (so the named style wins over it, and $style wins over both). */
+        public ?Style $base = null,
     ) {
     }
 

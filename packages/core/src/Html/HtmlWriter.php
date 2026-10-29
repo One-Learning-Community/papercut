@@ -121,6 +121,9 @@ final class HtmlWriter implements TreeVisitor
         if ($page->evenHeaderNodes() !== null || $page->evenFooterNodes() !== null) {
             $this->fidelity->approximated('even-page header and footer', $path);
         }
+        if ($this->firstFooterReplacesFooter($page)) {
+            $this->fidelity->approximated('first-page footer', $path);
+        }
         if ($page->templatePage() !== null) {
             $this->fidelity->dropped('PDF page template', $path);
         }
@@ -165,17 +168,32 @@ final class HtmlWriter implements TreeVisitor
         $this->out .= '<div class="pc-' . $class . '"' . $style . '>';
     }
 
-    /** One HTML run shows its top: the first-page header if set, else the normal one; and the normal footer. */
+    /**
+     * One HTML run shows its top: the first-page header if set, else the normal one; and its bottom: the
+     * normal footer, or the first-page footer when the page has no normal one.
+     */
     private function shown(Region $region): bool
     {
         $first = $this->page?->firstHeaderNodes();
+        $firstFooter = $this->page?->firstFooterNodes() ?? [];
+        $onlyFirstFooter = $firstFooter !== [] && $this->page->footerNodes() === [];
 
         return match ($region) {
             Region::Header => $first === null,
             Region::FirstHeader => $first !== null && $first !== [],
-            Region::EvenHeader, Region::FirstFooter, Region::EvenFooter => false,
+            Region::Footer => !$onlyFirstFooter,
+            Region::FirstFooter => $onlyFirstFooter,
+            Region::EvenHeader, Region::EvenFooter => false,
             default => true,
         };
+    }
+
+    /** A first-page footer the single HTML run cannot show: the page's normal footer (or none) is shown instead. */
+    private function firstFooterReplacesFooter(Page $page): bool
+    {
+        $first = $page->firstFooterNodes();
+
+        return $first !== null && $page->footerNodes() !== [];
     }
 
     public function leaveRegion(Region $region): void

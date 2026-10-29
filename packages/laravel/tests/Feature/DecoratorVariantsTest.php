@@ -69,9 +69,9 @@ final class DecoratorVariantsTest extends TestCase
 
     public function test_optional_marker_in_tone_rejected(): void
     {
-        foreach (['callout', 'badge'] as $tag) {
+        foreach (['callout' => 'note?', 'badge' => 'tip?'] as $tag => $tone) {
             try {
-                $this->nodeFrom("<x-doc::$tag type=\"bogus?\">x</x-doc::$tag>");
+                $this->nodeFrom("<x-doc::$tag type=\"$tone\">x</x-doc::$tag>");
                 self::fail("Expected an error for $tag");
             } catch (InvalidValue | UnknownAttribute) {
                 self::addToAssertionCount(1);

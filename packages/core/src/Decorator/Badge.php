@@ -54,6 +54,12 @@ final class Badge implements Decorator
     }
 
     /** @return list<string> */
+    protected function toneNames(): array
+    {
+        return ['neutral', 'note', 'tip', 'warning', 'danger'];
+    }
+
+    /** @return list<string> */
     public function partNames(): array
     {
         return ['badge'];

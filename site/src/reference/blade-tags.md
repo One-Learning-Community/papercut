@@ -7,7 +7,7 @@ Tags marked **Style** accept every [style attribute](./style-attributes.md), plu
 | Tag | Own attributes | Notes |
 |---|---|---|
 | `<x-doc::document>` | `title`, `author`, `subject`, `keywords`, `lang` | The root. Holds `<x-doc::page>` tags; content with no page gets an implicit one. No style. |
-| `<x-doc::page>` | `size`, `orientation`, `margin`, `header-gap`, `footer-gap`, `mirror`, `template` or `template-data`, `template-page`, `template-password` | `size` is a paper name or `"<width> <height>"`; `orientation` is `portrait` or `landscape`. `template` draws a page of a PDF behind the page and sizes the page from it, so it can't be used with `size` or `orientation`. `mirror` is a boolean attribute that mirrors the left and right margins on even pages. Slots: `header`, `footer`, `first-header`, `first-footer`, `even-header`, `even-footer`, `background`, `overlay`. An empty `first-` or `even-` slot means nothing on that page. No style. |
+| `<x-doc::page>` | `size`, `orientation`, `margin`, `header-gap`, `footer-gap`, `mirror`, `template` or `template-data`, `template-page`, `template-password` | `size` is a paper name or `"<width> <height>"`; `orientation` is `portrait` or `landscape`. `template` draws a page of a PDF behind the page and sizes the page from it, so it can't be used with `size` or `orientation`. `mirror` is a boolean attribute that mirrors the left and right margins on even pages. Slots: `header`, `footer`, `first-header`, `first-footer`, `even-header`, `even-footer`, `background`, `overlay`. An empty `first-` or `even-` slot means nothing on that page. Slot names also accept camelCase (`<x-slot:firstHeader>`); if both spellings are given, the later one wins. No style. |
 | `<x-doc::place>` | `x`, `y`, `anchor`, `width` | Only in the `overlay` slot. `x`, `y` and `width` are lengths or percentages of the page; `anchor` is `top-left` (the default), `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom` or `bottom-right`. No style. |
 | `<x-doc::page-break>` | none | Starts a new page. |
 | `<x-doc::page-number>` | `format`, `align`, `size` | Style. `format` uses `{page}` and `{total}`. No content. |
@@ -27,12 +27,12 @@ On boxes, `align` is short for `align-items`.
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-doc::text>` | `align`, `size` | Style. Inline markup: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<span>`, `<a href>`, `<br>`. |
+| `<x-doc::text>` | `align`, `size` | Style. Inline markup: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<code>`, `<span>`, `<a href>`, `<br>`. |
 | `<x-doc::p>` | `align`, `size` | Style. The paragraph preset. |
 | `<x-doc::h1>` to `<x-doc::h4>` | `align`, `size` | Style. Heading presets. |
 | `<x-doc::markup>` | `html` or `text`, `styles`, `blank-paragraphs`, `images` | Converts stored HTML or plain text. `images` is an `ImageResolver` class name for this tag instead of `papercut.markup.images`, or `none` (lower case only) to show each image's alt text. See [Rich text](/guide/rich-text.md). |
 | `<x-doc::link>` | `href` | Style. `href` is required. |
-| `<x-doc::pre>` | none | Style. A preformatted block in the `pre` style. The content is literal: tags are not parsed and entities are decoded, so `{{ $code }}` comes out exactly as the variable's value. The first and last blank lines are dropped and the common leading indentation is removed (put `{{ $code }}` right after the opening tag, or at the same indentation as the rest of the block; the first line's indentation counts too). Components inside are an error. If you wrap a pre in a component of your own (`<x-doc::pre>{{ $slot }}</x-doc::pre>`), Blade trims the outer slot before the pre sees it: the first line loses its indentation and later lines keep theirs, so give the slot content that starts at the left edge or has an unindented first line. |
+| `<x-doc::pre>` | none | Style. A preformatted block in the `pre` style. The content is literal: tags are not parsed and entities are decoded, so `{{ $code }}` comes out exactly as the variable's value. The first and last blank lines are dropped and the common leading indentation is removed (put `{{ $code }}` right after the opening tag, or at the same indentation as the rest of the block; the first line's indentation counts too). Components inside are an error. The tag is found by a compile step that runs on every Blade view in the app, so a PHP string holding a literal `<x-doc::pre>` tag in an ordinary (non-Papercut) view gets an invisible U+E000 character after it. If you wrap a pre in a component of your own (`<x-doc::pre>{{ $slot }}</x-doc::pre>`), Blade trims the outer slot before the pre sees it: the first line loses its indentation and later lines keep theirs, so give the slot content that starts at the left edge or has an unindented first line. |
 | `<x-doc::code>` | none | Style, applied to the span. Inline code in the `code` style, for use inside `<x-doc::text>`, `<x-doc::p>` and the other text tags. The content is literal text. |
 
 On text tags, `align` is `text-align` and `size` is `font-size`.
@@ -54,7 +54,7 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 | `<x-doc::table>` | `columns`, `repeat-header` | Style. An optional `<x-doc::thead>` first, then `<x-doc::tr>` rows. |
 | `<x-doc::thead>` | none | Cells for one header row, or `<x-doc::tr>` rows for several. |
 | `<x-doc::tr>` | none | Style. Holds `<x-doc::td>` and `<x-doc::th>`. |
-| `<x-doc::td>`, `<x-doc::th>` | `colspan`, `align` | Style. `th` is a bold header cell. |
+| `<x-doc::td>`, `<x-doc::th>` | `colspan`, `rowspan`, `align` | Style. `th` is a bold header cell. |
 
 ## Media and embedding
 
@@ -70,13 +70,15 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-doc::card>` | `title` | Style. `title` also works as a slot. |
-| `<x-doc::callout>` | `type`, `title` | Style. `type`: `note`, `tip`, `warning`, `danger`, or a tone you define. |
-| `<x-doc::blockquote>` | `cite` | Style. `cite` also works as a slot. |
-| `<x-doc::section>` | `title`, `number`, `rule` | Style. `title` also works as a slot. |
-| `<x-doc::field>` | `label`, `placeholder`, `lines` | Style. `label` also works as a slot. `lines` is a positive integer. |
-| `<x-doc::choices>` | `type`, `emphasize-selected` | Style. `type`: `checkbox` or `radio`. Holds only `<x-doc::choice>`. |
+| `<x-doc::card>` | `title`, `variant` | Style. `title` also works as a slot. |
+| `<x-doc::callout>` | `type`, `title`, `variant` | Style. `type`: `note`, `tip`, `warning`, `danger`, or a tone you define. |
+| `<x-doc::blockquote>` | `cite`, `variant` | Style. `cite` also works as a slot. |
+| `<x-doc::section>` | `title`, `number`, `rule`, `variant` | Style. `title` also works as a slot. |
+| `<x-doc::field>` | `label`, `placeholder`, `lines`, `variant` | Style. `label` also works as a slot. `lines` is a positive integer. |
+| `<x-doc::choices>` | `type`, `emphasize-selected`, `variant` | Style. `type`: `checkbox` or `radio`. Holds only `<x-doc::choice>`. |
 | `<x-doc::choice>` | `selected` | Valid only inside `<x-doc::choices>`. No style. |
-| `<x-doc::key-value>` | `label-width` | Style. A length or percentage. Holds only `<x-doc::kv>`. |
+| `<x-doc::key-value>` | `label-width`, `variant` | Style. A length or percentage. Holds only `<x-doc::kv>`. |
 | `<x-doc::kv>` | `label` | A label is required, as an attribute or a slot. No style. |
-| `<x-doc::badge>` | `type` | Style. `type`: `neutral`, `note`, `tip`, `warning`, `danger`, or a tone you define. |
+| `<x-doc::badge>` | `type`, `variant` | Style. `type`: `neutral`, `note`, `tip`, `warning`, `danger`, or a tone you define. |
+
+`variant` makes a decorator also apply `<name>.<variant>` for each part it styles; see [Decorators](/guide/decorators.md).

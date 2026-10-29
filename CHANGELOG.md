@@ -8,7 +8,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `papercut:fonts:install` saves the family's licence (`OFL.txt`, `LICENSE.txt` or `UFL.txt`) beside the font files, from Google's fonts repository. If it can't be downloaded, the command warns and installs the fonts anyway; `--force` replaces an existing copy.
-- Decorator variants: `variant("large")` in PHP and `variant="large"` in Blade make a decorator also apply `<name>.large` for every part it styles, when the theme defines it. `Decorator::partNames()` lists a decorator's parts. In Blade a variant that styles no part throws; in PHP it does nothing. Style names ending in `?` are optional in `Theme::named()` and are skipped when undefined; `style=""` in Blade rejects them.
+- Decorator variants: `variant("large")` in PHP and `variant="large"` in Blade make a decorator also apply `<name>.large` for every part it styles, when the theme defines it. `Decorator::partNames()` lists a decorator's parts. In Blade a variant that styles no part throws; in PHP it does nothing.
 - `images` attribute on `<x-doc::markup>`: an `ImageResolver` class for that tag, or `none` to show alt text instead of images. `PapercutManager::markupImageResolver()` builds each named class once per manager.
 - `FontSet::withWordName()` and `wordName()` give a family the name Word should use for it (Cousine defaults to `Courier New`), and `FontSet::info()` reports a family's `FontClass`, PANOSE classification and fixed-pitch flag from its font file. In Laravel the names come from `papercut.font_word_names`.
 - Word export writes each family's Word name in runs and the document default, and adds `word/fontTable.xml` with PANOSE, family class and pitch so Word picks a matching stand-in for a missing font.
@@ -23,11 +23,16 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - Preformatted text in Word and HTML: HTML writes `pre` blocks as `<pre>` and inline `code` as `<code>`, with `white-space: pre-wrap` and `tab-size: 4`; Word keeps spaces, writes tabs as `w:tab` (at Word's own tab stops) and line breaks as `w:br`, in the mono family's Word name (`Courier New` for Cousine).
 - `<hr>` in markup becomes a horizontal rule (named style `markup.hr`), in PDF, HTML and Word export.
 - `Table::fillWidth()` shares leftover width among `auto` columns in proportion to their content.
+- Word export: a row of only inline content (text, badges, links) exports as one paragraph, with badges as shaded runs, when its items fit on one line at their natural widths. A row with a long wrapping value stays a table.
+- A warning when a `rowspan` or `colspan` is clamped to the table (once per table).
+- `TableCell::colsSpanned()`, an alias of `span()`, beside `rowsSpanned()`.
+- `Span` has a new optional last constructor argument, `base`: the style set outside a `<code>` span. `Text::markup('<span font="Inter">a <code>x</code></span>')` renders `x` in the code font; styles apply in the order outer, code, inner.
 - Blade components `<x-doc::pre>` (a `pre` block with literal content: tags are not parsed, entities are decoded, the first and last blank lines are dropped and the common indentation removed) and `<x-doc::code>` (an inline `code` span).
 
 ### Changed
 
-- Custom `Decorator` implementations must now provide `variant()`, `variants()` and `partNames()`: add `use HasVariants` and list the style names the decorator applies, passing each through `part()`.
+- `Callout::variant()` and `Badge::variant()` reject a word equal to a built-in tone; use `tone()`.
+- **Breaking:** custom `Decorator` implementations must now provide `variant()`, `variants()` and `partNames()`: add `use HasVariants` and list the style names the decorator applies, passing each through `part()`.
 - Markup conversion calls the image resolver once per distinct `src` (trimmed), reusing the result, including a null, for later images with the same `src`. The resolver now receives the trimmed `src`.
 - HTML export ends each font stack with the generic family matching the font's class: `monospace` for Cousine and other fixed-pitch fonts, `serif` for serif fonts, and `system-ui, sans-serif` otherwise (unchanged for Inter and unknown families).
 - Lists in Word export are real Word lists (`word/numbering.xml`), except lists with marker `none`, which stay indented paragraphs. Enter continues them, and renumbering and the bullet and number buttons work. Nested lists sit one level deeper, extra blocks in an item stay indented under it, and an item whose number breaks the sequence starts a new Word list from that item on. Numbers Word can't show (below 1, or roman numerals above 3999) keep typed markers and are reported as approximated.
@@ -35,6 +40,14 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Pagination: a block that doesn't fit the page it lands on moves past any page whose body is shorter than the next one, instead of failing, and a block that fits no page is no longer left behind an empty page. A `min-height` cell in a split row or a rowspan group stops at the page slice instead of painting past the body.
+- Layout warnings from a layout that is repeated (for example a table split across pages of different sizes) are reported once.
+- A table cell with `min-width` or `max-width` that differs from its column was reported as a stray cell outside a table; the column still decides its width.
+- HTML export shows a first-page footer when the page has no normal footer, and reports it as approximated when a normal footer is shown in its place. Every `white-space: pre-wrap` element gets `tab-size: 4`, not only `pre`.
+- `<code><pre>` no longer applies the inline code style inside the pre block. A transparent background no longer counts as a visible edge for list spacing, and a component that ends a list item is no longer rendered twice by list spacing.
+- Fonts: a PANOSE family kind of 0 or 1 (any, no fit; many fonts ship all zeros) is class `Other`, not `Sans`; the HTML fallback stack is still sans.
+- Word export: a line break inside a link stays in one hyperlink; a signature line (a bordered box with no content) keeps its label's slack and its border as a cell border, and padding alone no longer counts as a drawn box; a rowspan to the right of a short row keeps its merged cell; rowspan continuation cells keep the spanner's borders and shading; lists inside a row's children, and bordered or shaded lists, restart at level 0 instead of counting outer lists; a list item that starts with a rule gets its number on a line above it; mirrored margins are written in any existing `settings.xml`; a `none` list nested in a list is indented once.
+- Laravel: `papercut.theme.mono_family` errors name the config key, and a family that is neither bundled nor in `papercut.fonts` is rejected when options are built.
 - Rendered `<x-doc>` output reused from an earlier render (cached HTML, a static, `once()`, a nested render) now fails with an `InvalidStructure` error that says to cache data instead, when the marker came from this process. Text in marker form that this process never issued, such as user data, still renders as text. When such a marker reaches `<x-doc::choices>`, `key-value`, `ol`, `ul`, `thead`, `tr` or `table`, their "can only contain" error now adds the same hint. A `preg_split()` failure while reading rendered output is reported instead of ignored.
 - Word export no longer adds a second `w:mirrorMargins` when the template already has one written with attributes or spacing.
 - The rich text guide said `blockquote` was dropped; it has converted since 0.3.0, and `<mark>` gets a highlight.

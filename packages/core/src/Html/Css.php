@@ -134,6 +134,10 @@ final class Css
         }
         if ($parent === null ? $s->whiteSpace !== WhiteSpace::Normal : $s->whiteSpace !== $parent->whiteSpace) {
             $d['white-space'] = $s->whiteSpace->value;
+            if ($s->whiteSpace === WhiteSpace::PreWrap) {
+                // Tabs advance like the PDF's (4 columns), not the browser's 8.
+                $d['tab-size'] = '4';
+            }
         }
 
         return $d;

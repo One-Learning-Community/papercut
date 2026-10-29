@@ -120,7 +120,7 @@ final class DocxPatcher
             if (preg_match('~<w:mirrorMargins\b~', $parts['word/settings.xml']) === 1) {
                 return $parts;
             }
-            $parts['word/settings.xml'] = self::replaceOnce('~<w:evenAndOddHeaders/>~', '<w:mirrorMargins/><w:evenAndOddHeaders/>', $parts['word/settings.xml'], '<w:evenAndOddHeaders/> in word/settings.xml');
+            $parts['word/settings.xml'] = self::insertMirrorMargins($parts['word/settings.xml']);
 
             return $parts;
         }
@@ -133,6 +133,34 @@ final class DocxPatcher
             'http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',
         );
+    }
+
+    /** The settings that must come before w:mirrorMargins in CT_Settings (ECMA-376 17.15.1.78). */
+    private const array BEFORE_MIRROR = [
+        'writeProtection', 'view', 'zoom', 'removePersonalInformation', 'removeDateAndTime', 'doNotDisplayPageBoundaries',
+        'displayBackgroundShape', 'printPostScriptOverText', 'printFractionalCharacterWidth', 'printFormsData',
+        'embedTrueTypeFonts', 'embedSystemFonts', 'saveSubsetFonts', 'saveFormsData',
+    ];
+
+    /** Puts w:mirrorMargins after the last setting that precedes it in schema order, else first in w:settings. */
+    private static function insertMirrorMargins(string $xml): string
+    {
+        $at = null;
+        if (preg_match_all('~<w:(?:' . implode('|', self::BEFORE_MIRROR) . ')\b[^>]*?/>~', $xml, $m, PREG_OFFSET_CAPTURE) > 0) {
+            [$last, $offset] = $m[0][count($m[0]) - 1];
+            $at = $offset + strlen($last);
+        } elseif (preg_match('~<w:settings\b[^>]*?(/?)>~', $xml, $open, PREG_OFFSET_CAPTURE) === 1) {
+            if ($open[1][0] === '/') {
+                // <w:settings .../> with no content: open it.
+                return substr($xml, 0, $open[0][1] + strlen($open[0][0]) - 2) . '><w:mirrorMargins/></w:settings>' . substr($xml, $open[0][1] + strlen($open[0][0]));
+            }
+            $at = $open[0][1] + strlen($open[0][0]);
+        }
+        if ($at === null) {
+            throw new \LogicException('php-docx output changed: w:settings not found in word/settings.xml');
+        }
+
+        return substr($xml, 0, $at) . '<w:mirrorMargins/>' . substr($xml, $at);
     }
 
     /**

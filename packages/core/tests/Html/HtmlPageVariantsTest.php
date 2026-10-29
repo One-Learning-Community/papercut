@@ -46,6 +46,32 @@ final class HtmlPageVariantsTest extends TestCase
         self::assertStringContainsString('Normal foot', $html);
         self::assertStringNotContainsString('First foot', $html);
         self::assertSame(1, substr_count($html, 'class="pc-footer"'));
+        self::assertSame(1, count(array_keys($this->notes(Document::make($this->page()->firstFooter(Text::make('First foot')))), 'html: approximated first-page footer at page')));
+    }
+
+    public function test_first_footer_alone_is_shown_as_the_footer(): void
+    {
+        $page = Page::a4()->firstFooter(Text::make('F'))->body(Text::make('Body'));
+        $html = $this->html($page);
+        self::assertSame(1, substr_count($html, 'class="pc-footer"'));
+        self::assertStringContainsString('>F<', $html);
+        self::assertNotContains('html: approximated first-page footer at page', $this->notes(Document::make($page)));
+    }
+
+    public function test_an_empty_first_footer_without_a_normal_footer_is_not_noted(): void
+    {
+        $page = Page::a4()->firstFooter()->body(Text::make('Body'));
+        self::assertNotContains('html: approximated first-page footer at page', $this->notes(Document::make($page)));
+    }
+
+    public function test_first_footer_beside_a_normal_footer_is_noted_and_the_normal_one_shows(): void
+    {
+        $page = Page::a4()->footer(Text::make('DEF'))->firstFooter(Text::make('F'))->body(Text::make('Body'));
+        $html = $this->html($page);
+        self::assertStringContainsString('DEF', $html);
+        self::assertStringNotContainsString('>F<', $html);
+        self::assertSame(1, substr_count($html, 'class="pc-footer"'));
+        self::assertContains('html: approximated first-page footer at page', $this->notes(Document::make($page)));
     }
 
     public function test_even_variants_are_hidden_and_noted(): void

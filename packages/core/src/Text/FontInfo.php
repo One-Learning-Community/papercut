@@ -44,8 +44,7 @@ final readonly class FontInfo
             $kind === 2 => in_array(ord($panose[1]), [0, 1, 11, 12, 13, 14, 15], true) ? FontClass::Sans : FontClass::Serif,
             $kind === 3 => FontClass::Script,
             $kind === 4 => FontClass::Decorative,
-            $kind <= 1 => FontClass::Sans, // any, no fit
-            default => FontClass::Other, // pictorial (5), and kinds PANOSE 1.0 does not define
+            default => FontClass::Other, // any (0) and no fit (1) say nothing, pictorial (5), and kinds PANOSE 1.0 does not define
         };
 
         return new self($class, strtoupper(bin2hex($panose)), $fixed);

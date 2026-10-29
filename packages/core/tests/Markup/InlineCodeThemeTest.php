@@ -50,4 +50,28 @@ final class InlineCodeThemeTest extends TestCase
             self::assertMatchesRegularExpression('~<code style="[^"]*color:' . preg_quote($red, '~') . '[^"]*">b</code>~', $html);
         }
     }
+
+    public function test_an_outer_font_does_not_override_the_code_font(): void
+    {
+        $theme = Theme::default()->withStyle('code', Style::make(fontFamily: 'monospace'));
+        $spans = Text::markup('<span font="Inter">a <code>x</code></span>')->spanList();
+        self::assertSame('Inter', $theme->spanStyle($spans[0])->fontFamily);
+        self::assertSame('monospace', $theme->spanStyle($spans[1])->fontFamily);
+    }
+
+    public function test_an_outer_size_does_not_override_the_code_size_but_other_outer_styles_stay(): void
+    {
+        $theme = Theme::default()->withStyle('code', Style::make(fontSize: pt(8)));
+        $span = Text::markup('<b><span font-size="20pt">a <code>x</code></span></b>')->spanList()[1];
+        $style = $theme->spanStyle($span);
+        self::assertEquals(pt(8), $style->fontSize);
+        self::assertSame(700, $style->fontWeight, 'bold from outside the code stays');
+    }
+
+    public function test_styles_opened_inside_code_win_over_the_code_style(): void
+    {
+        $theme = Theme::default()->withStyle('code', Style::make(fontFamily: 'monospace'));
+        $style = $theme->spanStyle(Text::markup('<code><span font="Inter">x</span></code>')->spanList()[0]);
+        self::assertSame('Inter', $style->fontFamily);
+    }
 }

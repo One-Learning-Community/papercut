@@ -70,13 +70,14 @@ final class DocxExporter implements Exporter
         $fonts = new WordFonts($options->fonts());
         $fonts->name($root->fontFamily);
         $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts, $options->theme());
+        $widths = WidthResolver::for($options);
         $visitor = new DocxVisitor(
             $fidelity,
-            WidthResolver::for($options),
+            $widths,
             $text,
             $boxes,
             new RowMapper($fidelity, $boxes),
-            new InlineRow($fidelity, $text),
+            new InlineRow($fidelity, $text, $widths),
             new TableMapper($fidelity, $boxes),
             new ListMapper($numbering, $fidelity),
             new ImageMapper($fidelity, DefaultBackend::make(false), Raster::detect()),

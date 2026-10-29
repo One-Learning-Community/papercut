@@ -74,10 +74,14 @@ final class Theme
         return Style::make(margin: Edges::of(Length::zero(), Length::zero(), $this->paragraph()->margin->bottom ?? Length::zero(), Length::zero()));
     }
 
-    /** The style a span takes: its named style (if any), then its own overrides. */
+    /** The style a span takes: its base (if any), its named style (if any), then its own overrides. */
     public function spanStyle(\Papercut\Span $span): Style
     {
-        return $span->styleName === null ? $span->style : $this->named($span->styleName)->merge($span->style);
+        if ($span->styleName === null) {
+            return $span->style;
+        }
+        $named = $this->named($span->styleName);
+        return ($span->base === null ? $named : $span->base->merge($named))->merge($span->style);
     }
 
     public function withStyle(string $name, Style $style): self

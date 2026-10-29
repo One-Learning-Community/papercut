@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Style;
 
-use Papercut\{ListItem, ListNode, Table, Text, View};
+use Papercut\{Component, ListItem, ListNode, Table, Text, View};
 use Papercut\Markup\Markup;
 use Papercut\Style\Theme;
 use Papercut\Value\Color;
@@ -170,5 +170,37 @@ final class ListSpacingTest extends TestCase
         self::assertSame($theme->paragraph()->margin?->bottom->points, $space);
         $gap = $this->gap(View::make(ListNode::unordered('A'), Text::make('After')), 'A', 'After', $theme);
         self::assertEqualsWithDelta($this->lineStep() + $space, $gap, 0.001);
+    }
+
+    public function test_a_component_ending_a_list_item_renders_once(): void
+    {
+        $renders = 0;
+        $component = new class ($renders) implements Component {
+            public function __construct(private int &$renders)
+            {
+            }
+
+            public function render(): \Papercut\Node
+            {
+                $this->renders++;
+
+                return Text::make('Rendered');
+            }
+        };
+        $this->baseline(View::make(ListNode::unordered(ListItem::make('Top', $component)), Text::make('After')), 'After');
+
+        self::assertSame(1, $renders);
+    }
+
+    public function test_a_transparent_background_is_not_a_visible_edge(): void
+    {
+        $list = ListNode::unordered('A', 'B');
+        $plain = $this->gap(View::make(View::make($list)->padding(pt(0)), Text::make('After')), 'B', 'After');
+        $transparent = $this->gap(View::make(View::make($list)->background(Color::transparent()), Text::make('After')), 'B', 'After');
+        $visible = $this->gap(View::make(View::make($list)->background(Color::hex('#eee')), Text::make('After')), 'B', 'After');
+
+        self::assertEqualsWithDelta($this->lineStep() + 6.0, $transparent, 0.001, 'spacing kept');
+        self::assertEqualsWithDelta($plain, $transparent, 0.001);
+        self::assertEqualsWithDelta($this->lineStep(), $visible, 0.001, 'spacing dropped at a visible edge');
     }
 }
