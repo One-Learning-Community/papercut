@@ -21,6 +21,7 @@ final class TextMapper
     public function __construct(
         private readonly LineMetrics $metrics,
         private readonly Fidelity $fidelity,
+        private readonly WordFonts $fonts,
     ) {
     }
 
@@ -38,7 +39,7 @@ final class TextMapper
             // A span's own colours fade with the text; inherited ones already have.
             $cs = $s->child($span->style);
             $spanBg = Fade::over($span->style->background, $s->opacity, $backdrop);
-            $rs = self::runStyle($span->style->color === null ? $cs : new ComputedStyle(...[...get_object_vars($cs), 'color' => Fade::over($cs->color, $s->opacity, $spanBg ?? $backdrop) ?? $cs->color]));
+            $rs = $this->runStyle($span->style->color === null ? $cs : new ComputedStyle(...[...get_object_vars($cs), 'color' => Fade::over($cs->color, $s->opacity, $spanBg ?? $backdrop) ?? $cs->color]));
             $bg = Units::fill($spanBg);
             if ($bg !== null) {
                 // php-docx writes no run shading, but writes a highlight as given: DocxPatcher turns this one into w:shd.
@@ -65,7 +66,7 @@ final class TextMapper
 
     public function pageNumber(PageNumber $n, ComputedStyle $s): Paragraph
     {
-        $rs = self::runStyle($s);
+        $rs = $this->runStyle($s);
         $children = [];
         foreach (preg_split('/(\{page\}|\{total\})/', $n->format(), -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [] as $part) {
             $children[] = match ($part) {
@@ -78,12 +79,12 @@ final class TextMapper
         return new Paragraph($children, $this->paragraphStyle($s));
     }
 
-    public static function runStyle(ComputedStyle $s): RunStyle
+    public function runStyle(ComputedStyle $s): RunStyle
     {
         return new RunStyle(
             sizeHalfPoints: (int) round($s->fontSize * 2),
             color: Units::hex($s->color),
-            fontFamily: $s->fontFamily,
+            fontFamily: $this->fonts->name($s->fontFamily),
             bold: $s->fontWeight >= 600,
             italic: $s->italic,
             underline: $s->underline,

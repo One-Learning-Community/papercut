@@ -57,6 +57,8 @@ final readonly class ComputedStyle
         public ?int $bookmarkLevel = null,
         /** Inherited: true for a list item and everything under it, so a nested list gets no space after. */
         public bool $inList = false,
+        /** Inherited: the family the `monospace` keyword stands for. */
+        public string $monoFamily = 'Cousine',
     ) {
     }
 
@@ -86,7 +88,7 @@ final readonly class ComputedStyle
             shrink: 1.0,
             basis: Auto::instance(),
             wrap: false,
-            fontFamily: $theme->fontFamily,
+            fontFamily: self::family($theme->fontFamily, $theme->monoFamily),
             fontSize: $theme->fontSize,
             fontWeight: $theme->fontWeight,
             italic: false,
@@ -101,7 +103,14 @@ final readonly class ComputedStyle
             breakBefore: false,
             breakAfter: false,
             minLines: $theme->minLines,
+            monoFamily: $theme->monoFamily,
         );
+    }
+
+    /** The keyword `monospace` (any case) stands for the theme's mono family; every other name is itself. */
+    private static function family(string $name, string $monoFamily): string
+    {
+        return strtolower(trim($name)) === 'monospace' ? $monoFamily : $name;
     }
 
     /** @param bool|null $inList overrides the inherited list flag (a list item sets it, a table cell clears it) */
@@ -144,7 +153,7 @@ final readonly class ComputedStyle
             shrink: $style->shrink ?? 1.0,
             basis: $len($style->basis) ?? Auto::instance(),
             wrap: $style->wrap ?? false,
-            fontFamily: $style->fontFamily ?? $this->fontFamily,
+            fontFamily: $style->fontFamily !== null ? self::family($style->fontFamily, $this->monoFamily) : $this->fontFamily,
             fontSize: $em,
             fontWeight: $style->fontWeight ?? $this->fontWeight,
             italic: $style->italic ?? $this->italic,
@@ -162,6 +171,7 @@ final readonly class ComputedStyle
             bookmark: $style->bookmark,
             bookmarkLevel: $style->bookmarkLevel,
             inList: $inList ?? $this->inList,
+            monoFamily: $this->monoFamily,
         );
     }
 

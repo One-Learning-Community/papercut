@@ -10,7 +10,7 @@ This page is about HTML exports. To use a Google font in your PDFs, download it 
 
 | Mode | Laravel `html.fonts` | What the browser gets |
 |---|---|---|
-| `FontMode::None` | `'none'` | Just a `font-family` list, so it uses whatever fonts it has. This is the default, and gives the smallest pages. |
+| `FontMode::None` | `'none'` | Just a `font-family` list, so it uses whatever fonts it has. This is the default, and gives the smallest pages. The list ends in `monospace`, `serif` or `system-ui, sans-serif`, depending on the font's class; a family that isn't registered with Papercut (say, one only a web font source serves) gets the sans fallback. |
 | `FontMode::Embed` | `'embed'` | Your registered font files, embedded in the page as `data:` URIs. Fully self-contained, but large. |
 | `FontMode::Link` | `'link'` | `@font-face` rules pointing at font files you host. |
 | `FontMode::Sources` | `'sources'` | Each font family from the first source that has it, such as Google Fonts, Bunny Fonts or your own files. |

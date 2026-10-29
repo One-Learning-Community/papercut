@@ -2,7 +2,11 @@
 
 Papercut always embeds its fonts in the PDF, keeping only the characters the document actually uses. It never relies on the standard PDF fonts built into viewers, so your document looks the same everywhere.
 
-Inter comes bundled in regular, bold, italic and bold italic, and it's the default font.
+Inter comes bundled in regular, bold, italic and bold italic, and it's the default font. Cousine, a monospace face, is bundled the same way.
+
+## The monospace keyword
+
+A font family of `monospace` (any case) stands for the theme's mono family, which is Cousine unless you change it. Set `mono_family` under `papercut.theme` in Laravel, or call `Theme::default()->with(monoFamily: 'Brand Mono')` in PHP, and every use of `monospace` follows. A family literally named "monospace" can't be registered.
 
 ## Adding a font family
 
@@ -75,6 +79,19 @@ The fonts are downloaded once and then live in your app like any other font, so 
 Use the family name exactly as Google Fonts spells it, including capitals and spaces: `"Open Sans"`, not `open-sans`. Weights a family doesn't come in are skipped with a warning. Most Google fonts are under the SIL Open Font License, but check the family's page before you ship it.
 
 Outside Laravel, download the family from [fonts.google.com](https://fonts.google.com) and register the `.ttf` files with a `FontSet` as shown above.
+
+## Word font names
+
+By default the Word export writes each family's own name. To have Word use a different name for a family, set one with `FontSet::withWordName()`:
+
+```php
+$fonts = (new FontSet())->withWordName('Cousine', 'Consolas');
+echo $fonts->wordName('Cousine'); // Consolas
+```
+
+The family match is case-insensitive, and the last name set for a family wins. A family without a Word name uses its own name, except the bundled Cousine, which is `Courier New` unless you set another. The name only changes what Word is told: the PDF still embeds the real font, and HTML keeps the real family. Word measures lines with the real font's metrics as before, so use a Word name for a metric-compatible pair (Cousine and Courier New, for instance), not for an unrelated font.
+
+`$fonts->info('Inter')` reports what a family's font file says about its kind: a `FontClass` (`Sans`, `Serif`, `Mono`, `Script`, `Decorative` or `Other`), its PANOSE classification as 20 hex characters, and whether it is fixed pitch. It reads the family's regular face, or its first face when it has no regular one, and returns `null` for a family that isn't registered. HTML export uses the class to end each font stack with `monospace`, `serif` or `system-ui, sans-serif` (Script, Decorative and Other fonts get the sans fallback, as do unregistered families).
 
 ## Fallback fonts
 

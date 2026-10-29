@@ -7,6 +7,9 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `FontSet::withWordName()` and `wordName()` give a family the name Word should use for it (Cousine defaults to `Courier New`), and `FontSet::info()` reports a family's `FontClass`, PANOSE classification and fixed-pitch flag from its font file. In Laravel the names come from `papercut.font_word_names`.
+- Word export writes each family's Word name in runs and the document default, and adds `word/fontTable.xml` with PANOSE, family class and pitch so Word picks a matching stand-in for a missing font.
+- Cousine (regular, bold, italic, bold italic; SIL OFL) is bundled next to Inter. The font family keyword `monospace` resolves to the theme's new `monoFamily` (default `Cousine`; `Theme::with(monoFamily: ...)`, `papercut.theme.mono_family` in Laravel). A family literally named "monospace" cannot be registered.
 - First-page headers and footers: `Page::firstHeader()` and `firstFooter()` in PHP, `first-header` and `first-footer` slots in Blade. An empty one means nothing on the first page. Word export sets "Different First Page"; HTML shows the first-page header at the top. The tree walker reports them as the regions `FirstHeader`, `EvenHeader`, `FirstFooter` and `EvenFooter`.
 - Even-page headers and footers: `Page::evenHeader()` and `evenFooter()` in PHP, `even-header` and `even-footer` slots in Blade. Word export sets "Different Odd & Even Pages"; HTML export leaves them out and reports it as approximated.
 - Mirrored margins: `Page::mirrorMargins()` in PHP and `mirror` on `<x-doc::page>` in Blade swap the left and right margins on even pages. Word export sets "Mirror margins"; HTML applies it in print, from the first page run.
@@ -17,6 +20,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- HTML export ends each font stack with the generic family matching the font's class: `monospace` for Cousine and other fixed-pitch fonts, `serif` for serif fonts, and `system-ui, sans-serif` otherwise (unchanged for Inter and unknown families).
 - Lists in Word export are real Word lists (`word/numbering.xml`), except lists with marker `none`, which stay indented paragraphs. Enter continues them, and renumbering and the bullet and number buttons work. Nested lists sit one level deeper, extra blocks in an item stay indented under it, and an item whose number breaks the sequence starts a new Word list from that item on. Numbers Word can't show (below 1, or roman numerals above 3999) keep typed markers and are reported as approximated.
 - Lists have space after them in PDF, Word and HTML: the theme's paragraph spacing, unless the last item already ends with it or the list has a margin set, which then decides its spacing. Nested lists add none. Documents with lists lay out differently.
 

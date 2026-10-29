@@ -12,7 +12,7 @@ use Dskripchenko\PhpDocx\Section;
 use Dskripchenko\PhpDocx\Writer\Word2007Writer;
 use Papercut\Backend\DefaultBackend;
 use Papercut\Document;
-use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, LineMetrics, InlineRow, ListMapper, Raster, RowMapper, TableMapper, TextMapper};
+use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, LineMetrics, InlineRow, ListMapper, Raster, RowMapper, TableMapper, TextMapper, WordFonts};
 use Papercut\Docx\Package\{DocxPatcher, Numbering, PageSetupMapper, PatchSpec};
 use Papercut\Docx\Walk\DocxVisitor;
 use Papercut\Export\{ExportOptions, Exporter, Fidelity, NoteReporter, Output};
@@ -66,14 +66,17 @@ final class DocxExporter implements Exporter
 
         $numbering = new Numbering();
         $boxes = new BoxMapper($fidelity);
-        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity);
+        $root = $styles->root();
+        $fonts = new WordFonts($options->fonts());
+        $fonts->name($root->fontFamily);
+        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts);
         $visitor = new DocxVisitor(
             $fidelity,
             WidthResolver::for($options),
             $text,
             $boxes,
             new RowMapper($fidelity, $boxes),
-            new InlineRow($fidelity),
+            new InlineRow($fidelity, $text),
             new TableMapper($fidelity, $boxes),
             new ListMapper($numbering, $fidelity),
             new ImageMapper($fidelity, DefaultBackend::make(false), Raster::detect()),
@@ -99,10 +102,9 @@ final class DocxExporter implements Exporter
             $registry->heading($level, new RunStyle(), new ParagraphStyle());
         }
 
-        $root = $styles->root();
         $bytes = DocxPatcher::patch(
             (new Word2007Writer($registry))->write($docx),
-            new PatchSpec($root->fontFamily, (int) round($root->fontSize * 2), $meta->lang, $date, $mirror, $numbering),
+            new PatchSpec($fonts->name($root->fontFamily), (int) round($root->fontSize * 2), $meta->lang, $date, $mirror, $numbering, $fonts->written()),
         );
 
         return new Output($bytes, self::MIME, 'docx');

@@ -27,6 +27,8 @@ final class Theme
         public readonly Edges $cellPadding,
         public readonly int $minLines,
         private readonly array $styles = [],
+        /** The family the `monospace` font keyword resolves to. */
+        public readonly string $monoFamily = 'Cousine',
     ) {
     }
 
@@ -106,6 +108,7 @@ final class Theme
         ?float $lineHeight = null,
         ?Edges $cellPadding = null,
         ?int $minLines = null,
+        ?string $monoFamily = null,
     ): self {
         return new self(
             $fontFamily ?? $this->fontFamily,
@@ -116,6 +119,7 @@ final class Theme
             $cellPadding ?? $this->cellPadding,
             $minLines ?? $this->minLines,
             $this->styles,
+            $monoFamily ?? $this->monoFamily,
         );
     }
 
@@ -133,6 +137,7 @@ final class Theme
             $this->cellPadding,
             $this->minLines,
             $styles,
+            $this->monoFamily,
         );
     }
 }

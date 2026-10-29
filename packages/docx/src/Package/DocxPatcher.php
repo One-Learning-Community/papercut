@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Package;
 
+use Papercut\Text\{FontClass, FontInfo};
+
 /**
  * Fixes php-docx's output where it can't express what Papercut needs: `left`/`right` alignment
  * (Google Docs ignores `start`/`end`), run shading in any colour, the theme's default font, and the document language.
@@ -54,7 +56,58 @@ final class DocxPatcher
             $parts = self::numbering($parts, $spec->numbering);
         }
 
+        if ($spec->fonts !== []) {
+            $parts = self::fontTable($parts, $spec->fonts);
+        }
+
         return DeterministicZip::write($parts, $spec->time);
+    }
+
+    /**
+     * Adds word/fontTable.xml with each written font's PANOSE number, family class and pitch, which Word uses to pick
+     * a stand-in when the font is not installed. A table php-docx already wrote keeps its entries; ours are appended.
+     *
+     * @param array<string, string> $parts
+     * @param array<string, ?FontInfo> $fonts
+     * @return array<string, string>
+     */
+    private static function fontTable(array $parts, array $fonts): array
+    {
+        $existing = $parts['word/fontTable.xml'] ?? null;
+        $have = [];
+        if ($existing !== null && preg_match_all('~<w:font\b[^>]*?\bw:name\s*=\s*(?:"([^"]*)"|\'([^\']*)\')~', $existing, $found, PREG_SET_ORDER) !== false) {
+            foreach ($found as $f) {
+                $have[html_entity_decode(($f[1] ?? '') !== '' ? $f[1] : ($f[2] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')] = true;
+            }
+        }
+        $entries = '';
+        foreach ($fonts as $name => $info) {
+            if (isset($have[$name])) {
+                continue;
+            }
+            $entries .= '<w:font w:name="' . self::attr($name) . '">'
+                . ($info?->panose === null ? '' : '<w:panose1 w:val="' . $info->panose . '"/>')
+                . '<w:charset w:val="00"/>'
+                . '<w:family w:val="' . ($info === null ? FontClass::Other : $info->class)->value . '"/>'
+                . '<w:pitch w:val="' . ($info !== null && $info->fixedPitch ? 'fixed' : 'variable') . '"/>'
+                . '</w:font>';
+        }
+        if ($existing !== null) {
+            $parts['word/fontTable.xml'] = preg_match('~<w:fonts\b[^>]*?/>~', $existing) === 1
+                ? (string) preg_replace_callback('~<w:fonts\b([^>]*?)\s*/>~', static fn (array $m): string => '<w:fonts' . $m[1] . '>' . $entries . '</w:fonts>', $existing, 1)
+                : self::replaceOnce('~</w:fonts>~', $entries . '</w:fonts>', $existing, '</w:fonts> in word/fontTable.xml');
+
+            return $parts;
+        }
+
+        return self::addPart(
+            $parts,
+            'word/fontTable.xml',
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                . '<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' . $entries . '</w:fonts>',
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',
+        );
     }
 
     /**

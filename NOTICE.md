@@ -11,6 +11,15 @@ generated PDFs.
 - Full text: `packages/core/resources/fonts/Inter/LICENSE.txt`
 - Project: https://rsms.me/inter/
 
+## Cousine typeface
+
+Bundled in `packages/core/resources/fonts/Cousine/` (Regular, Bold, Italic, BoldItalic), and embedded (subset) in
+generated PDFs that use it.
+
+- License: SIL Open Font License 1.1
+- Full text: `packages/core/resources/fonts/Cousine/OFL.txt`
+- Project: https://github.com/googlefonts/cousine
+
 ## Tailwind CSS color palette
 
 The named colors (`slate-500`, `indigo-600`, ...) in `packages/core/resources/palette.php` are generated from the

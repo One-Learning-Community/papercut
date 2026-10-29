@@ -131,6 +131,10 @@ class PapercutManager
             static fn (array $face): FontFace => new FontFace($face['family'], $face['path'], $face['weight'], $face['style']),
             FontConfig::faces(),
         )))->withFallbacks(...FontConfig::fallbacks());
+        $families = array_map(static fn (FontFace $face): string => $face->family, $fonts->effectiveFaces());
+        foreach (FontConfig::wordNames($families) as $family => $wordName) {
+            $fonts = $fonts->withWordName($family, $wordName);
+        }
 
         $cfg = (array) config('papercut.theme', []);
         try {
@@ -143,6 +147,7 @@ class PapercutManager
             fontSize: self::positive($cfg, 'font_size'),
             color: $color,
             lineHeight: self::positive($cfg, 'line_height'),
+            monoFamily: isset($cfg['mono_family']) ? (string) $cfg['mono_family'] : null,
         );
         /** @var array<string, array<string, mixed>> $styles */
         $styles = (array) config('papercut.styles', []);

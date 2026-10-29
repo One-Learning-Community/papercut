@@ -29,6 +29,7 @@ final class InlineRow
 
     public function __construct(
         private readonly Fidelity $fidelity,
+        private readonly TextMapper $text,
     ) {
     }
 
@@ -50,7 +51,7 @@ final class InlineRow
             $parts[] = [$p, $item['style']];
         }
 
-        $space = TextMapper::runStyle($s);
+        $space = $this->text->runStyle($s);
         $children = [];
         foreach ($parts as $k => [$p, $style]) {
             if ($k > 0 && $s->gap > 0.0) {

@@ -57,6 +57,36 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | SVG text | ≈ in the system's fonts |
 | Pictures without the PHP extension they need (below) | ✗ left out |
 
+### Fonts in Word
+
+Word has no way to embed Papercut's fonts, so a reader sees the font by name. Papercut writes each font's PANOSE number, family class and pitch in the document's font table, which lets Word pick a close stand-in when the font is not installed: a sans-serif for Inter, a monospace for Cousine.
+
+To have Word use a font every machine has, set the name Word should see. The PDF keeps using the font file:
+
+```php
+$fonts = (new FontSet())->withWordName('Inter', 'Arial');
+
+$document->export(new DocxExporter(), new ExportOptions(fonts: $fonts))->save('hello.docx');
+```
+
+In Laravel, set the names in `config/papercut.php`:
+
+```php
+'font_word_names' => ['Inter' => 'Arial'],
+```
+
+The bundled Cousine is written as Courier New without any setting. These pairs are metric-compatible, so lines break in the same places whichever one a reader has:
+
+| Papercut font | Word name |
+|---|---|
+| Arimo | Arial |
+| Tinos | Times New Roman |
+| Cousine | Courier New |
+| Carlito | Calibri |
+| Caladea | Cambria |
+
+A family the font set does not know is written as it is, with an unspecified family class.
+
 ### Pictures
 
 Word shows PNG, JPEG, GIF and BMP as they are. Everything else is drawn into a picture at the size the PDF gives it, so it looks the same in Word, LibreOffice and Google Docs:

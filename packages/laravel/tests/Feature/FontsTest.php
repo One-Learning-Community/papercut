@@ -132,4 +132,35 @@ final class FontsTest extends TestCase
         $this->assertStringContainsString('Ghost', $out);
         $this->assertStringContainsString('not registered', $out);
     }
+
+    public function testWordNamesApplyToBundledAndRegisteredFamilies(): void
+    {
+        $this->configure(['Brand' => [400 => ['normal' => __DIR__ . '/../../../core/resources/fonts/Inter/Inter-Regular.ttf']]]);
+        config(['papercut.font_word_names' => ['brand' => 'Arial', 'Cousine' => 'Consolas']]);
+
+        $fonts = Papercut::pdfOptions()->fonts();
+
+        $this->assertSame('Arial', $fonts->wordName('Brand'));
+        $this->assertSame('Consolas', $fonts->wordName('Cousine'));
+        $this->assertSame('Inter', $fonts->wordName('Inter'));
+    }
+
+    /** @return iterable<string, array{mixed, string}> */
+    public static function badWordNames(): iterable
+    {
+        yield 'unknown family' => [['Nope' => 'Arial'], 'papercut.font_word_names.Nope'];
+        yield 'non-string name' => [['Inter' => 12], 'papercut.font_word_names.Inter'];
+        yield 'empty name' => [['Inter' => ''], 'papercut.font_word_names.Inter'];
+        yield 'not a map' => ['Arial', 'papercut.font_word_names'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('badWordNames')]
+    public function testBadWordNamesThrow(mixed $names, string $message): void
+    {
+        config(['papercut.font_word_names' => $names]);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid font config ' . $message);
+
+        Papercut::pdfOptions();
+    }
 }

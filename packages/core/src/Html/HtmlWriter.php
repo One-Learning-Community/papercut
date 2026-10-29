@@ -246,7 +246,7 @@ final class HtmlWriter implements TreeVisitor
     {
         $this->recordFont($s, $path);
 
-        return Css::text($s, $parent, $this->options->fonts()->fallbacks);
+        return Css::text($s, $parent, $this->options->fonts()->fallbacks, $this->options->fonts());
     }
 
     private function view(View $n, ComputedStyle $s, ComputedStyle $parent, Visit $at): string

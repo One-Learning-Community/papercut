@@ -8,7 +8,7 @@ use Dskripchenko\PhpDocx\Element\{Field, Hyperlink, LineBreak, Paragraph, Run};
 use Dskripchenko\PhpDocx\Style\Alignment;
 use Papercut\{Document, Page, PageNumber, Span, Text, View};
 use Papercut\Docx\DocxExporter;
-use Papercut\Docx\Map\{LineMetrics, TextMapper};
+use Papercut\Docx\Map\{LineMetrics, TextMapper, WordFonts};
 use Papercut\Docx\Tests\Support\{DocxInspector, Styles};
 use Papercut\Export\Fidelity;
 use Papercut\Exception\InvalidValue;
@@ -29,7 +29,7 @@ final class TextMapperTest extends TestCase
     {
         $this->fidelity = self::fidelity();
 
-        return new TextMapper(new LineMetrics(new FontSet()), $this->fidelity);
+        return new TextMapper(new LineMetrics(new FontSet()), $this->fidelity, new WordFonts(new FontSet()));
     }
 
     private function para(Text $t, ?string $blockHref = null): Paragraph

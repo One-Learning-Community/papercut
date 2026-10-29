@@ -17,6 +17,7 @@ php artisan vendor:publish --tag=papercut-config
 | `styles` | `[]` | [Named styles](/guide/styles.md#named-styles), using the same names as tag attributes. |
 | `fonts` | `[]` | Extra font families. See [Fonts](/guide/fonts.md). |
 | `fallback_fonts` | `[]` | Families to try, in order, for characters the main font doesn't have. |
+| `font_word_names` | `[]` | The name Word uses for a family, as `'Family' => 'Word name'`. The family must be bundled or in `fonts`, and the match ignores case. Cousine is `Courier New` unless set here. See [Word font names](/guide/fonts.md#word-font-names). |
 | `bookmarks` | `true` | Builds the PDF's [bookmarks panel](/guide/pages.md#bookmarks) from headings. `false` leaves it empty. |
 | `image_path` | `null` | The base directory for relative `<x-doc::image src>` paths. `null` means `public_path()`. |
 | `cache_dir` | `null` | Where to cache parsed fonts. `null` uses `storage/framework/cache/papercut`, and `false` turns the disk cache off. |
