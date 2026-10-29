@@ -52,10 +52,14 @@ In PHP, `Markup::flatten()` does the same thing and merges the converted content
 | `img` | an image, loaded by your resolver (see below) |
 | `figure`, `figcaption` | the content with its caption underneath |
 | `iframe`, `video`, `audio` | a paragraph linking to the source |
-| other block tags, like `blockquote`, `pre`, `table` and `hr` | the tag is dropped, and its content kept as paragraphs |
+| `blockquote` | a quotation, styled by the theme's blockquote decorator. A trailing `cite` or `footer` becomes its attribution |
+| `mark` | inline text with a highlight |
+| `table`, `caption`, `thead`, `tbody`, `tfoot`, `tr`, `td`, `th` | a table: header rows repeat on every page, `colspan` and `rowspan` are kept, and columns are sized by their content. In `original` mode a `width` on a cell sets its column and a `width` on the table sets the table; a table width is kept as written but never wider than its container, and columns wider than the space they have are scaled down to fit (percentages over 100% are scaled to 100%, with a note). Nested tables are flattened into paragraphs, with a note |
+| `hr` | a horizontal rule; in `original` mode `border-color` or `color` sets its colour |
+| other block tags, like `pre` | the tag is dropped, and its content kept as paragraphs |
 | anything else | the tag is dropped, and its content kept inline |
 
-`script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed along with everything inside them. Classes, ids and `data-*` attributes are ignored. Empty paragraphs are dropped unless you ask to keep them.
+`script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed along with everything inside them. Tables and rules take the named styles `markup.table`, `markup.th`, `markup.td` and `markup.hr`, so you can restyle them through `papercut.styles` like any other style. Classes, ids and `data-*` attributes are ignored. Empty paragraphs are dropped unless you ask to keep them.
 
 ## Style modes
 

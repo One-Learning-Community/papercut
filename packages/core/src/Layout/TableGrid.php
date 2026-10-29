@@ -15,12 +15,14 @@ final readonly class TableGrid
 {
     /**
      * @param list<list<GridCell>> $placements one list per row, header rows first
-     * @param list<int> $clamped all-row indexes of rows holding a clamped rowspan or a colspan stopped by a rowspan from above
+     * @param list<int> $clampedRowspans all-row indexes of rows holding a rowspan cut at the end of its section
+     * @param list<int> $clampedColspans all-row indexes of rows holding a colspan stopped by a rowspan from above
      */
     private function __construct(
         public int $columns,
         public array $placements,
-        public array $clamped,
+        public array $clampedRowspans,
+        public array $clampedColspans,
     ) {
     }
 
@@ -51,7 +53,8 @@ final readonly class TableGrid
         $header = $table->headerRows();
         $sections = [$header, $table->bodyRows()];
         $placements = [];
-        $clamped = [];
+        $clampedRowspans = [];
+        $clampedColspans = [];
         $columns = 0;
         $offset = 0;
         foreach ($sections as $rows) {
@@ -69,13 +72,13 @@ final readonly class TableGrid
                     for ($dc = 1; $dc < $colspan; $dc++) {
                         if (isset($covered[$r][$col + $dc])) {
                             $colspan = $dc;
-                            $clamped[$at] = $at;
+                            $clampedColspans[$at] = $at;
                             break;
                         }
                     }
                     $rowspan = min($cell->rowsSpanned(), $count - $r);
                     if ($rowspan < $cell->rowsSpanned()) {
-                        $clamped[$at] = $at;
+                        $clampedRowspans[$at] = $at;
                     }
                     for ($dr = 0; $dr < $rowspan; $dr++) {
                         for ($dc = 0; $dc < $colspan; $dc++) {
@@ -90,6 +93,6 @@ final readonly class TableGrid
             }
             $offset += $count;
         }
-        return new self($columns, $placements, array_values($clamped));
+        return new self($columns, $placements, array_values($clampedRowspans), array_values($clampedColspans));
     }
 }

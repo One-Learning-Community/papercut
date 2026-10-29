@@ -87,6 +87,12 @@ final class DefaultStyles
         );
         $s['blockquote.cite'] = Style::make(italic: false, fontSize: Length::em(0.9), color: self::c('slate-500'));
 
+        $s['markup.table'] = Style::make(borderWidth: Edges::of(pt(0.75), $zero, $zero, pt(0.75)), borderColor: self::c('slate-300'));
+        $s['markup.td'] = Style::make(borderWidth: Edges::of($zero, pt(0.75), pt(0.75), $zero), borderColor: self::c('slate-300'));
+        $s['markup.th'] = Style::make(borderWidth: Edges::of($zero, pt(0.75), pt(0.75), $zero), borderColor: self::c('slate-300'), background: self::c('slate-50'));
+
+        $s['markup.hr'] = Style::make(borderWidth: Edges::of($zero, $zero, pt(0.75), $zero), borderColor: self::c('slate-300'), margin: self::sides(6, 0, 6, 0));
+
         $s['section'] = Style::make(gap: pt(6));
         // The heading's row direction is fixed in Section; the entry is kept per the spec, but direction here has no effect.
         $s['section.heading'] = Style::make(direction: Direction::Row, gap: pt(4));

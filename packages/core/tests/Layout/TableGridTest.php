@@ -25,7 +25,8 @@ final class TableGridTest extends TestCase
         $t = Table::make()->head(TableCell::th('h')->rowspan(3))->row('x');
         $g = TableGrid::of($t);
         self::assertSame(1, $g->placements[0][0]->rowspan);
-        self::assertSame([0], $g->clamped);
+        self::assertSame([0], $g->clampedRowspans);
+        self::assertSame([], $g->clampedColspans);
         self::assertSame(0, $g->placements[1][0]->col);
         self::assertSame(0, $g->groupEnd(0));
     }
@@ -36,7 +37,8 @@ final class TableGridTest extends TestCase
         $g = TableGrid::of($t);
         self::assertSame(0, $g->placements[1][0]->col);
         self::assertSame(2, $g->placements[1][0]->colspan);
-        self::assertSame([1], $g->clamped);
+        self::assertSame([1], $g->clampedColspans);
+        self::assertSame([], $g->clampedRowspans);
         self::assertSame(3, $g->columns);
     }
 
@@ -67,7 +69,8 @@ final class TableGridTest extends TestCase
         $g = TableGrid::of(Table::make()->row('a', 'b')->row('c', 'd'));
         self::assertSame(0, $g->groupEnd(0));
         self::assertSame(1, $g->groupEnd(1));
-        self::assertSame([], $g->clamped);
+        self::assertSame([], $g->clampedRowspans);
+        self::assertSame([], $g->clampedColspans);
     }
 
     public function test_empty_table_has_no_columns(): void

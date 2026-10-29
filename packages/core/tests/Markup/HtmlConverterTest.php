@@ -140,20 +140,12 @@ final class HtmlConverterTest extends TestCase
     public function test_unknown_block_tags_end_the_paragraph_and_keep_their_content(): void
     {
         $cases = [
-            '<table><tr><th>Name</th><th>Score</th></tr><tr><td>Ann</td><td>9</td></tr></table>' => [['Name', 'Score', 'Ann', '9'], [
-                [FidelityLevel::Approximated, 'markup <table> (tag removed, content kept)', 'table[0]'],
-                [FidelityLevel::Approximated, 'markup <tbody> (tag removed, content kept)', 'table[0] > tbody[0]'],
-                [FidelityLevel::Approximated, 'markup <tr> (tag removed, content kept)', 'table[0] > tbody[0] > tr[0]'],
-                [FidelityLevel::Approximated, 'markup <th> (tag removed, content kept)', 'table[0] > tbody[0] > tr[0] > th[0]'],
-                [FidelityLevel::Approximated, 'markup <td> (tag removed, content kept)', 'table[0] > tbody[0] > tr[1] > td[0]'],
-            ]],
             '<section>One</section><section>Two</section>' => [['One', 'Two'], [[FidelityLevel::Approximated, 'markup <section> (tag removed, content kept)', 'section[0]']]],
             '<dl><dt>Term</dt><dd>Def</dd></dl>' => [['Term', 'Def'], [
                 [FidelityLevel::Approximated, 'markup <dl> (tag removed, content kept)', 'dl[0]'],
                 [FidelityLevel::Approximated, 'markup <dt> (tag removed, content kept)', 'dl[0] > dt[0]'],
                 [FidelityLevel::Approximated, 'markup <dd> (tag removed, content kept)', 'dl[0] > dd[1]'],
             ]],
-            'a<hr>b' => [['a', 'b'], [[FidelityLevel::Approximated, 'markup <hr> (tag removed, content kept)', 'hr[0]']]],
         ];
         foreach ($cases as $html => [$texts, $notes]) {
             $v = Markup::html($html);

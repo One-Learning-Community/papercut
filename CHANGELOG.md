@@ -8,6 +8,13 @@ and the project follows [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `rowspan` on table cells: `TableCell::rowspan()` in PHP and `rowspan` on `<x-doc::td>` and `<x-doc::th>` in Blade. Spanning cells lay out in PDF, HTML and Word export, and a group of spanned rows stays together across page breaks unless it is taller than a page.
+- Tables in `Markup::html()`: `table`, `caption`, `thead`, `tbody`, `tfoot`, `tr`, `td` and `th` convert to a table with repeating header rows, `colspan` and `rowspan`, and columns sized by their content. In `original` mode, `width` on cells and tables is honoured. The named styles `markup.table`, `markup.td` and `markup.th` can be restyled through `papercut.styles`.
+- `<hr>` in markup becomes a horizontal rule (named style `markup.hr`), in PDF, HTML and Word export.
+- `Table::fillWidth()` shares leftover width among `auto` columns in proportion to their content.
+
+### Fixed
+
+- The rich text guide said `blockquote` was dropped; it has converted since 0.3.0, and `<mark>` gets a highlight.
 
 ## [0.3.0] - 2026-10-28
 

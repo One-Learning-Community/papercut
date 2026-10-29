@@ -11,6 +11,7 @@ use Papercut\ListItem;
 use Papercut\ListNode;
 use Papercut\Node;
 use Papercut\Span;
+use Papercut\Table;
 use Papercut\Text;
 use Papercut\View;
 
@@ -81,10 +82,51 @@ final class Markup
             foreach ($node->items() as $item) {
                 self::collect($item, $blocks, $notes);
             }
+        } elseif ($node instanceof Table) {
+            self::collectTable($node, $blocks, $notes);
         } elseif ($node instanceof Image) {
             $notes[] = new Note(FidelityLevel::Dropped, 'markup <img> (removed when flattened into a line)');
         } else {
             $notes[] = new Note(FidelityLevel::Dropped, 'markup ' . ($node instanceof Node ? $node->debugName() : 'component') . ' (removed when flattened into a line)');
+        }
+    }
+
+    /**
+     * A table is one block: a row's cells joined by spaces, rows by line breaks.
+     *
+     * @param list<list<Span>> $blocks
+     * @param list<Note> $notes
+     */
+    private static function collectTable(Table $table, array &$blocks, array &$notes): void
+    {
+        $notes[] = new Note(FidelityLevel::Approximated, 'markup <table> (flattened into a line)');
+        $spans = [];
+        $first = true;
+        foreach ([...$table->headerRows(), ...$table->bodyRows()] as $row) {
+            $line = [];
+            foreach ($row->cells() as $cell) {
+                $parts = [];
+                foreach ($cell->children() as $child) {
+                    self::collect($child, $parts, $notes);
+                }
+                foreach ($parts as $part) {
+                    if ($line !== []) {
+                        $line[] = Span::text(' ');
+                    }
+                    array_push($line, ...$part);
+                }
+            }
+            if ($line === []) {
+                continue;
+            }
+            if (!$first) {
+                $spans[] = Span::break();
+            }
+            $first = false;
+            array_push($spans, ...$line);
+        }
+        if ($spans !== []) {
+            $blocks[] = $spans;
         }
     }
 }

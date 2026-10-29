@@ -472,6 +472,12 @@ final class HtmlWriter implements TreeVisitor
             $this->fidelity->approximated('fr column widths', $at->path());
         }
         $est = max(0.0, $this->regionWidth - array_sum($this->edges) - Css::horizontalEdges($s));
+        // a table that fits its columns (markup tables): Length columns too wide for the page are scaled down together
+        $shrink = 1.0;
+        if ($n->fitsColumns() && $est > 0.0 && $fixed > 0.0) {
+            $room = $est * max(0.0, 1.0 - $percent / 100.0);
+            $shrink = $fixed > $room ? $room / $fixed : 1.0;
+        }
         $hasAuto = in_array(true, array_map(static fn (object $t): bool => $t instanceof Auto, $tracks), true);
         if ($hasAuto) {
             $this->fidelity->approximated('auto column widths', $at->path());
@@ -490,7 +496,7 @@ final class HtmlWriter implements TreeVisitor
         $this->out .= '<table' . self::styleAttr($decls) . '><colgroup>';
         foreach ($tracks as $t) {
             $width = match (true) {
-                $t instanceof Length => Css::pt($t->points),
+                $t instanceof Length => Css::pt($t->points * $shrink),
                 $t instanceof Percent => Css::num($t->value) . '%',
                 $t instanceof Fr => $hasAuto ? null : self::frWidth($fixed, $percent, $t->value / $frs, $est),
                 default => null,

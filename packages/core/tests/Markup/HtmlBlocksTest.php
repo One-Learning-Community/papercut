@@ -398,6 +398,46 @@ final class HtmlBlocksTest extends TestCase
         self::assertSame([], self::notes($t));
     }
 
+    public function test_hr_becomes_a_rule_between_paragraphs(): void
+    {
+        foreach (['<p>a</p><hr><p>b</p>', '<p>a<hr>b</p>'] as $html) {
+            $v = Markup::html($html);
+            self::assertInstanceOf(View::class, $v);
+            self::assertCount(3, $v->children(), $html);
+            self::assertInstanceOf(Text::class, $v->children()[0]);
+            self::assertSame('a', self::plain($v->children()[0]));
+            $rule = $v->children()[1];
+            self::assertInstanceOf(View::class, $rule);
+            self::assertSame('markup.hr', $rule->styleName());
+            self::assertSame([], $rule->children());
+            self::assertInstanceOf(Text::class, $v->children()[2]);
+            self::assertSame('b', self::plain($v->children()[2]));
+            self::assertSame([], $v->notes(), $html);
+        }
+    }
+
+    public function test_hr_takes_inline_style_in_original_mode(): void
+    {
+        $v = Markup::html('<hr style="margin: 20px 0 0">', new MarkupOptions(styles: StyleMode::Original));
+        self::assertInstanceOf(View::class, $v);
+        $rule = $v->children()[0];
+        self::assertInstanceOf(View::class, $rule);
+        self::assertSame('markup.hr', $rule->styleName());
+        self::assertSame(15.0, $rule->style()->margin?->top->points);
+    }
+
+    public function test_hr_colour_applies_to_the_rule_in_original_mode(): void
+    {
+        foreach (['border-color:#ff0000', 'border-bottom-color:#ff0000', 'border-top-color:#ff0000', 'color:#ff0000'] as $css) {
+            $v = Markup::html('<hr style="' . $css . '">', new MarkupOptions(styles: StyleMode::Original));
+            self::assertInstanceOf(View::class, $v);
+            $rule = $v->children()[0];
+            self::assertInstanceOf(View::class, $rule);
+            self::assertEquals(Color::hex('#ff0000'), $rule->style()->borderColor, $css);
+            self::assertSame([], $v->notes(), $css);
+        }
+    }
+
     /**
      * @template T of object
      * @param class-string<T> $class

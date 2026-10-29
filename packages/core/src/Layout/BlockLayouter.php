@@ -31,7 +31,7 @@ final class BlockLayouter implements Layouter
         $contentWidth = BoxGeometry::contentWidth($style, $c->width);
 
         $fixed = $first ? BoxGeometry::explicitHeight($style, $c) : null;
-        $stretch = $first && $fixed === null ? BoxGeometry::clampHeight($style, $c, $c->definiteHeight) : null;
+        $stretch = $fixed === null ? BoxGeometry::clampHeight($style, $c, $c->definiteHeight) : null;
         if ($first && $fixed === null) {
             // min-height is a minimum fill, like a stretch: the box grows to it but can still split.
             $floor = BoxGeometry::minimumFill($style, $c);
@@ -107,6 +107,15 @@ final class BlockLayouter implements Layouter
             $res = $engine->layout($child, $style, new Constraints($width, $height, $fresh), $resuming ? $resumeToken : null, $i);
             if ($monolithic && $res->status === Status::Partial && $res->fragment !== null && $res->token !== null) {
                 $res = LayoutResult::complete(self::continueInPlace($res->fragment, $res->token, $child, $width, $i, $style, $engine));
+            }
+            if (($res->status === Status::DoesNotFit || $res->fragment === null) && !$fresh && $c->fresh && self::onlyKeepChain($placed, $i)) {
+                // Nothing but a keepWithNext chain is above this child on a fresh page: if it can split in place, let it,
+                // rather than leaving the chain alone on the page and the child starting on the next one.
+                $retry = $engine->layout($child, $style, new Constraints($width, $height, true), $resuming ? $resumeToken : null, $i);
+                if ($retry->status === Status::Partial && $retry->fragment !== null) {
+                    $res = $retry;
+                    $fresh = true;
+                }
             }
             if ($res->status === Status::DoesNotFit || $res->fragment === null) {
                 if ($monolithic) {
@@ -195,14 +204,17 @@ final class BlockLayouter implements Layouter
         }
 
         $contentHeight = $cursor;
-        $target = $fixed ?? ($breakAt === null ? $stretch : null);
+        // A box that breaks fills the slice it was given (fill); one that ends is stretched (definiteHeight).
+        $last = $breakAt === null && !$c->open;
+        $target = $fixed ?? ($breakAt === null ? $stretch : $c->fill);
         if ($target !== null) {
-            $inner = max(0.0, $target - BoxGeometry::topEdge($style) - BoxGeometry::bottomEdge($style));
+            $inner = max(0.0, $target - ($first ? BoxGeometry::topEdge($style) : 0.0) - ($last ? BoxGeometry::bottomEdge($style) : 0.0));
             $contentHeight = $fixed !== null ? $inner : max($cursor, $inner);
-            $placed = self::distribute($placed, $contentHeight - $cursor, $style, $engine);
+            if ($breakAt === null) {
+                $placed = self::distribute($placed, $contentHeight - $cursor, $style, $engine);
+            }
         }
 
-        $last = $breakAt === null;
         if ($fixed === null && $first && $last) {
             $contentHeight = BoxGeometry::capContent($style, $c, $contentHeight);
         }
@@ -252,6 +264,26 @@ final class BlockLayouter implements Layouter
             return $node->children();
         }
         throw new \LogicException(sprintf('BlockLayouter cannot lay out %s.', $node::class));
+    }
+
+    /**
+     * True when everything placed so far is one keepWithNext chain running up to child $i.
+     *
+     * @param list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, token: ?BreakToken, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed
+     */
+    private static function onlyKeepChain(array $placed, int $i): bool
+    {
+        if ($placed === []) {
+            return false;
+        }
+        $next = $i;
+        for ($k = count($placed) - 1; $k >= 0; $k--) {
+            if ($placed[$k]['index'] !== $next - 1 || !$placed[$k]['style']->keepWithNext) {
+                return false;
+            }
+            $next--;
+        }
+        return true;
     }
 
     /**

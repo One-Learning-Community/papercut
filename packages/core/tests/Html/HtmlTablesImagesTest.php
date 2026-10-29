@@ -97,6 +97,27 @@ final class HtmlTablesImagesTest extends TestCase
         self::assertStringNotContainsString('width:100%', $this->style($this->xpath($plain, '//table')[0]));
     }
 
+    public function test_fit_columns_emits_length_columns_scaled_to_the_width(): void
+    {
+        $widths = function (Table $t): array {
+            $out = [];
+            foreach ($this->xpath($this->html($this->body($t)), '//col') as $col) {
+                $css = $this->style($col);
+                self::assertStringStartsWith('width:', $css);
+                self::assertStringEndsWith('pt', $css);
+                $out[] = (float) substr($css, 6, -2);
+            }
+            return $out;
+        };
+        $plain = $widths(Table::make()->columns('400pt 400pt')->row('a', 'b'));
+        self::assertSame([400.0, 400.0], $plain);
+        $fitted = $widths(Table::make()->columns('400pt 400pt')->fitColumns()->row('a', 'b'));
+        self::assertEqualsWithDelta($this->contentWidth(), array_sum($fitted), 0.01);
+        self::assertEqualsWithDelta($fitted[0], $fitted[1], 0.001);
+        $fits = $widths(Table::make()->columns('100pt 100pt')->fitColumns()->row('a', 'b'));
+        self::assertSame([100.0, 100.0], $fits);
+    }
+
     public function test_rowspan_attribute(): void
     {
         $html = $this->html($this->body(Table::make()->columns('1fr 1fr')->row(TableCell::make('a')->rowspan(2), 'b')->row('c')));

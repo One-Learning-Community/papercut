@@ -207,7 +207,10 @@ final class DocxVisitor implements TreeVisitor
 
         // A child of a row becomes a cell, which carries its box itself; elsewhere a decorated box is wrapped.
         $boxed = false;
-        if ($glyph !== null) {
+        if ($node instanceof View && $node->styleName() === 'markup.hr' && !$parent->isRow && $frame->items === [] && BoxMapper::isRule($style)) {
+            $blocks = [BoxMapper::rule($style)];
+            $style = BoxMapper::undecorated($style);
+        } elseif ($glyph !== null) {
             $style = BoxMapper::undecorated($style);
         } elseif (!$parent->isRow && !$frame->isRow && !$node instanceof Table && BoxMapper::decorated($style)) {
             $align = match ($style->alignSelf ?? $parent->style->alignItems ?? Align::Stretch) {

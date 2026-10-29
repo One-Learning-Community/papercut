@@ -55,6 +55,59 @@ final class TableLayouterTest extends TestCase
         );
     }
 
+    public function test_hand_built_over_wide_length_tracks_overflow_and_warn(): void
+    {
+        $t = Table::make()->columns('300pt 300pt')->row('a', 'b');
+        $h = new LayoutHarness();
+        $widths = $this->columnWidths($t, 400.0);
+        self::assertSame([300.0, 300.0], $widths);
+        $h->layout($t, 400);
+        self::assertCount(1, $h->warnings);
+        self::assertStringContainsString('Table columns need', $h->warnings[0]);
+    }
+
+    public function test_fit_columns_scales_length_tracks_down_to_the_width_without_a_warning(): void
+    {
+        $t = Table::make()->columns('300pt 300pt')->fitColumns()->row('a', 'b');
+        $h = new LayoutHarness();
+        $widths = $this->columnWidths($t, 400.0);
+        self::assertEqualsWithDelta([200.0, 200.0], $widths, 1e-6);
+        $h->layout($t, 400);
+        self::assertSame([], $h->warnings);
+    }
+
+    public function test_fit_columns_leaves_room_for_the_other_columns_minimum(): void
+    {
+        $t = Table::make()->columns('300pt 100pt auto')->fitColumns()->row('a', 'b', 'cccc');
+        $widths = $this->columnWidths($t, 300.0);
+        // auto min-content: 4 characters x 5pt + 12pt padding = 32
+        self::assertEqualsWithDelta(300.0, array_sum($widths), 1e-6);
+        self::assertEqualsWithDelta(32.0, $widths[2], 1e-6);
+        self::assertEqualsWithDelta(3.0, $widths[0] / $widths[1], 1e-6);
+    }
+
+    public function test_fit_columns_does_not_squeeze_a_length_column_below_its_min_content(): void
+    {
+        $t = Table::make()->columns('300pt 300pt')->fitColumns()->row('aaaaaaaaaaaaaaaaaaaa', 'b');
+        $widths = $this->columnWidths($t, 200.0);
+        // the first column's longest word is 20 x 5 + 12 = 112pt
+        self::assertEqualsWithDelta(112.0, $widths[0], 1e-6);
+        self::assertEqualsWithDelta(88.0, $widths[1], 1e-6);
+    }
+
+    public function test_fit_columns_leaves_tracks_that_already_fit_alone(): void
+    {
+        $t = Table::make()->columns('100pt 100pt')->fitColumns()->row('a', 'b');
+        self::assertSame([100.0, 100.0], $this->columnWidths($t, 400.0));
+    }
+
+    /** @return list<float> */
+    private function columnWidths(Table $t, float $width): array
+    {
+        $engine = (new LayoutHarness())->engine;
+        return (new \Papercut\Layout\TableLayouter(new \Papercut\Layout\BlockLayouter()))->columns($t, ComputedStyle::root(Theme::default()), $width, $engine);
+    }
+
     public function test_colspan(): void
     {
         $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('wide')->colspan(2)->right());
@@ -646,6 +699,147 @@ final class TableLayouterTest extends TestCase
         self::assertSame(['h'], $run($spanning)[0]);
         self::assertSame(Status::DoesNotFit, $run($spanning)[1]);
         self::assertSame([], $run($spanning)[2]);
+    }
+
+    public function test_clamped_rowspan_warns_once_per_table(): void
+    {
+        $t = Table::make()->columns('1fr 1fr')->row(TableCell::make('a')->rowspan(5), 'b')->row('c');
+        $h = new LayoutHarness();
+        $h->layout($t, 200);
+        $h->layout($t, 200, 30);
+        self::assertSame(['[table] Table cell rowspan runs past the last row; clamped'], $h->warnings);
+    }
+
+    public function test_clamped_colspan_warns_once_per_table(): void
+    {
+        $t = Table::make()->row('a', 'b', TableCell::make('c')->rowspan(2))->row(TableCell::make('d')->colspan(3));
+        $h = new LayoutHarness();
+        $h->layout($t, 200);
+        $h->layout($t, 200);
+        self::assertSame(['[table] Table cell colspan runs into a rowspan from above; clamped'], $h->warnings);
+    }
+
+    public function test_unclamped_spans_do_not_warn(): void
+    {
+        $t = Table::make()->row(TableCell::make('a')->rowspan(2), 'b')->row('c');
+        $h = new LayoutHarness();
+        $h->layout($t, 200);
+        self::assertSame([], $h->warnings);
+    }
+
+    // --- every slot paints its whole slice ----------------------------------
+
+    public function test_cells_that_finished_earlier_keep_painting_their_slot_on_the_continuation(): void
+    {
+        // S ends on page 1 but its rows go on; G (45 lines) spans the same two rows and breaks.
+        $t = Table::make()->columns('40pt 100pt 40pt')
+            ->row(TableCell::make('S')->rowspan(2)->background('#ff0000'), self::lines(30)->rowspan(2)->background('#00ff00'), TableCell::make('o1')->background('#0000ff'))
+            ->row(TableCell::make('o2')->background('#0000ff'));
+        $slices = self::slices($t, 180, 150);
+        self::assertGreaterThan(1, count($slices));
+        foreach ($slices as ['height' => $height, 'fills' => $fills, 'last' => $last]) {
+            foreach (['#ff0000', '#00ff00'] as $colour) {
+                self::assertArrayHasKey($colour, $fills, 'slot must paint on every slice');
+                self::assertSame([[0.0, $height]], self::merged($fills[$colour]), "$colour covers the slice");
+            }
+        }
+    }
+
+    public function test_cell_edges_are_open_on_slices_that_do_not_end_the_cell(): void
+    {
+        $border = static fn (TableCell $c): TableCell => $c->border(pt(1), '#000000');
+        $t = Table::make()->columns('40pt 100pt 40pt')
+            ->row($border(TableCell::make('S')->rowspan(2)), $border(self::lines(30)->rowspan(2)), $border(TableCell::make('o1')))
+            ->row($border(TableCell::make('o2')));
+        $slices = self::slices($t, 180, 150);
+        foreach ($slices as $i => ['height' => $height, 'horizontal' => $horizontal, 'last' => $last]) {
+            // S (x 0..40) and G (x 40..140): a top edge on the first slice, a bottom edge on the last, none at a cut.
+            $own = array_values(array_filter($horizontal, static fn (array $l): bool => $l['x1'] < 139.0));
+            $ys = array_values(array_unique(array_map(static fn (array $l): float => round($l['y'], 6), $own)));
+            $ys = array_map(static fn (float $y): float => round($y, 6), $ys);
+            sort($ys);
+            $expected = array_merge($i === 0 ? [0.5] : [], $last ? [$height - 0.5] : []);
+            self::assertSame($expected, $ys, "slice $i");
+        }
+    }
+
+    public function test_cells_beside_a_row_that_splits_fill_every_slice(): void
+    {
+        $border = static fn (TableCell $c): TableCell => $c->border(pt(1), '#000000');
+        $t = Table::make()->columns('50pt 100pt 50pt')
+            ->row($border(TableCell::make('Short')->background('#ff0000')), $border(self::lines(30)), $border(TableCell::make('Short')->background('#0000ff')));
+        $slices = self::slices($t, 200, 150);
+        self::assertGreaterThan(1, count($slices));
+        foreach ($slices as ['height' => $height, 'fills' => $fills, 'horizontal' => $horizontal, 'last' => $last]) {
+            foreach (['#ff0000', '#0000ff'] as $colour) {
+                self::assertArrayHasKey($colour, $fills);
+                self::assertSame([[0.0, $height]], self::merged($fills[$colour]));
+            }
+            if (!$last) {
+                self::assertSame([], array_values(array_filter($horizontal, static fn (array $l): bool => abs($l['y'] - ($height - 0.5)) < 1e-6)), 'no bottom edge at the cut');
+            }
+        }
+    }
+
+    /**
+     * Rect fills and horizontal border lines (absolute, table origin) of every slice of $t.
+     *
+     * @return list<array{height: float, last: bool, fills: array<string, list<array{float, float}>>, horizontal: list<array{x1: float, y: float}>}>
+     */
+    private static function slices(Table $t, float $width, float $height): array
+    {
+        $h = new LayoutHarness();
+        $out = [];
+        $token = null;
+        for ($i = 0; $i < 30; $i++) {
+            $r = $h->layout($t, $width, $height, $token);
+            self::assertNotSame(Status::DoesNotFit, $r->status);
+            self::assertNotNull($r->fragment);
+            $fills = [];
+            $horizontal = [];
+            $walk = function (Fragment $fr, float $ox, float $oy) use (&$walk, &$fills, &$horizontal): void {
+                foreach ($fr->ops() as $op) {
+                    if ($op instanceof Rect && $op->fill !== null && $op->stroke === null) {
+                        $fills[(string) $op->fill][] = [$oy + $op->y, $oy + $op->y + $op->height];
+                    }
+                    if ($op instanceof Rect && $op->stroke !== null) { // a closed box: top and bottom edges
+                        $horizontal[] = ['x1' => $ox + $op->x, 'y' => $oy + $op->y];
+                        $horizontal[] = ['x1' => $ox + $op->x, 'y' => $oy + $op->y + $op->height];
+                    }
+                    if ($op instanceof Line && abs($op->y1 - $op->y2) < 1e-9) {
+                        $horizontal[] = ['x1' => $ox + min($op->x1, $op->x2), 'y' => $oy + $op->y1];
+                    }
+                }
+                foreach ($fr->children() as $c) {
+                    $walk($c['fragment'], $ox + $c['x'], $oy + $c['y']);
+                }
+            };
+            $walk($r->fragment, 0.0, 0.0);
+            $out[] = ['height' => $r->fragment->height, 'last' => $r->status === Status::Complete, 'fills' => $fills, 'horizontal' => $horizontal];
+            if ($r->status === Status::Complete) {
+                return $out;
+            }
+            $token = $r->token;
+        }
+        self::fail('table never completed');
+    }
+
+    /**
+     * @param list<array{float, float}> $spans
+     * @return list<array{float, float}> overlapping or touching spans merged
+     */
+    private static function merged(array $spans): array
+    {
+        usort($spans, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
+        $out = [];
+        foreach ($spans as [$a, $b]) {
+            if ($out !== [] && $a <= $out[count($out) - 1][1] + 1e-6) {
+                $out[count($out) - 1][1] = max($out[count($out) - 1][1], $b);
+            } else {
+                $out[] = [$a, $b];
+            }
+        }
+        return array_map(static fn (array $s): array => [round($s[0], 6), round($s[1], 6)], $out);
     }
 
     private static function lines(int $n): TableCell

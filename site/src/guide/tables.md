@@ -49,6 +49,14 @@ $document = Document::make(Page::a4()->margin(mm(20))->body($table));
 
 `columns` is a space-separated list with one entry per column. Each entry can be a length (`25mm`), a percentage (`20%`), `auto`, or a fraction (`1fr`). Fractions share out whatever width is left after the other columns have taken theirs, just like in CSS grid.
 
+### Filling the width
+
+Auto columns normally take only the width their content needs, so a table of short cells ends well before the right margin. In PHP, `->fillWidth()` shares the width left over among the auto columns, in proportion to how wide their content wants to be (evenly when none has any). It does nothing when an `fr` column already takes the rest. Tables that come from `Markup::html()` fill the width this way.
+
+```php
+$table = Table::make()->columns('auto auto auto')->fillWidth()->row('Mon', 'Tue', 'Wed');
+```
+
 ## Cells
 
 A cell can hold any content, not just text: a column with two lines, an image or a badge, for example. Use `colspan` to make a cell span several columns and `rowspan` to make it span several rows. `<x-doc::th>` is a header cell, and its text is bold.
