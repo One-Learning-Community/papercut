@@ -15,6 +15,8 @@ final readonly class PatchSpec
         public \DateTimeInterface $time,
         /** Swap the left and right margins on even pages (`w:mirrorMargins`). */
         public bool $mirrorMargins = false,
+        /** The lists of the export; DocxPatcher writes word/numbering.xml and each list paragraph's `w:numPr`. */
+        public ?Numbering $numbering = null,
     ) {
     }
 }

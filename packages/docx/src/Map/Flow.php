@@ -100,7 +100,10 @@ final class Flow
         }
         $rows[$i] = new TableRow($cells, $row->isHeader, $row->heightTwips, $row->cantSplit, $row->heightRule);
 
-        return new Table(array_values($rows), $t->style, $t->caption, $t->gridColumnsTwips);
+        $copy = new Table(array_values($rows), $t->style, $t->caption, $t->gridColumnsTwips);
+        ListMapper::carry($t, $copy);
+
+        return $copy;
     }
 
     /**
@@ -109,10 +112,23 @@ final class Flow
      */
     public static function hairline(float $after = 0.0): Paragraph
     {
-        return new Paragraph(
+        $p = new Paragraph(
             [new Run('', new RunStyle(sizeHalfPoints: 2))],
             new ParagraphStyle(spaceAfterTwips: max(0, Units::tw($after) - 2), lineSpacingTwips: 2, lineSpacingRule: 'exact'),
         );
+        self::$hairlines ??= new \WeakMap();
+        self::$hairlines[$p] = true;
+
+        return $p;
+    }
+
+    /** @var ?\WeakMap<Paragraph, true> paragraphs made by hairline(), and their copies */
+    private static ?\WeakMap $hairlines = null;
+
+    /** Whether the paragraph is a spacing hairline made here (or a copy with more spacing), not text. */
+    public static function isHairline(Paragraph $p): bool
+    {
+        return self::$hairlines !== null && isset(self::$hairlines[$p]);
     }
 
     /**
@@ -157,6 +173,13 @@ final class Flow
     /** @param array<string, mixed> $changes ParagraphStyle constructor arguments */
     public static function withParagraph(Paragraph $p, array $changes): Paragraph
     {
-        return new Paragraph($p->children, new ParagraphStyle(...[...get_object_vars($p->style), ...$changes]), $p->headingLevel, $p->styleId);
+        $copy = new Paragraph($p->children, new ParagraphStyle(...[...get_object_vars($p->style), ...$changes]), $p->headingLevel, $p->styleId);
+        ListMapper::carry($p, $copy);
+        if (self::isHairline($p)) {
+            self::$hairlines ??= new \WeakMap();
+            self::$hairlines[$copy] = true;
+        }
+
+        return $copy;
     }
 }

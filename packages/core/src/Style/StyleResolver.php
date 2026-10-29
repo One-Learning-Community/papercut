@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Style;
 
-use Papercut\{Node, Styled, TableCell, Text};
+use Papercut\{Link, ListItem, ListNode, Node, Styled, TableCell, Text, View};
+use Papercut\Tree\Expander;
+use Papercut\Value\Edges;
+
+use function Papercut\pt;
 
 /**
  * Resolves a node's computed style from the theme. Independent of layout, so
@@ -68,10 +72,11 @@ final class StyleResolver
             $cell,
             $rowStyle,
             new Style(padding: $this->theme->cellPadding, fontWeight: $cell->header() ? 700 : null),
+            false,
         );
     }
 
-    private function compute(Node $node, ComputedStyle $parent, Style $style = new Style()): ComputedStyle
+    private function compute(Node $node, ComputedStyle $parent, Style $style = new Style(), ?bool $inList = null): ComputedStyle
     {
         if ($node instanceof Text && $node->preset() !== null) {
             $preset = $node->preset();
@@ -83,6 +88,44 @@ final class StyleResolver
                 $style = $style->merge($this->theme->named($name));
             }
         }
-        return $parent->child($style->merge($node->style()));
+        $style = $style->merge($node->style());
+        if ($node instanceof ListEntry) {
+            $inList = true;
+        }
+        if ($node instanceof ListNode && !$parent->inList && $style->margin === null) {
+            return $this->withListSpacing($node, $parent->child($style, $inList));
+        }
+        return $parent->child($style, $inList);
+    }
+
+    /** A top-level list's computed style with the theme's list spacing, less what its last item already ends with. */
+    private function withListSpacing(ListNode $list, ComputedStyle $base): ComputedStyle
+    {
+        $items = $list->items();
+        $last = end($items);
+        $trailing = $last === false ? 0.0 : $this->trailingMargin($last, $this->resolve($last, $base));
+        $spacing = $this->theme->list()->margin?->bottom->points ?? 0.0;
+        $bottom = max(0.0, $spacing - $trailing);
+        $m = $base->margin;
+        return $base->withMargin(Edges::of($m->top, $m->right, pt($bottom), $m->left));
+    }
+
+    /**
+     * Bottom margins along the last-child chain below a container. Stops at leaves and tables.
+     */
+    private function trailingMargin(Node $container, ComputedStyle $style): float
+    {
+        $children = match (true) {
+            $container instanceof ListNode => $container->items(),
+            $container instanceof View, $container instanceof ListItem, $container instanceof Link => $container->children(),
+            default => [],
+        };
+        if ($children === []) {
+            return 0.0;
+        }
+        $child = Expander::expand($children[array_key_last($children)]);
+        $childStyle = $this->resolve($child, $style);
+        $own = $childStyle->margin->bottom->points;
+        return $own + (($child instanceof View || $child instanceof ListItem || $child instanceof ListNode || $child instanceof Link) ? $this->trailingMargin($child, $childStyle) : 0.0);
     }
 }

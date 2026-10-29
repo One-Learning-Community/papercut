@@ -136,10 +136,18 @@ final class DocxVisitor implements TreeVisitor
             $frame->rowIndex = $parent->rowsSeen++;
             $frame->header = $at->inHeader() && $at->parent() instanceof Table && $at->parent()->repeatsHeader();
         } elseif ($node instanceof ListNode) {
-            $this->lists->enter($node);
+            $this->lists->enter($node, $at->path());
         } elseif ($node instanceof Link) {
             $this->links[] = TextMapper::href($node->uri());
             $this->fidelity->approximated('block link', $at->path());
+        }
+        if ($node instanceof TableCell && $parent->node instanceof TableRow) {
+            $this->lists->enterCell();
+        } elseif (!$node instanceof ListNode && !$node instanceof ListItem && !$parent->isRow && !$isRow && !$node instanceof Table
+            && TextMapper::glyph($node, $style) === null && BoxMapper::decorated($style)) {
+            // Mirrors the wrapping in leave(): the box becomes a table, whose lists restart at level 0.
+            $frame->boxCell = true;
+            $this->lists->enterCell();
         }
         $this->stack[] = $frame;
         if (TextMapper::glyph($node, $style) !== null) {
@@ -160,8 +168,12 @@ final class DocxVisitor implements TreeVisitor
         \assert($frame instanceof Frame);
         $style = $frame->style ?? $style;
         $parent = $this->top();
+        if ($frame->boxCell) {
+            $this->lists->leaveCell();
+        }
 
         if ($node instanceof TableCell && $parent->node instanceof TableRow) {
+            $this->lists->leaveCell();
             $parent->cells[] = $this->tables->cell($node, $style, $frame, $parent, $this->stack[count($this->stack) - 2] ?? null, Flow::blocks($frame), $at->path());
 
             return;
@@ -184,7 +196,7 @@ final class DocxVisitor implements TreeVisitor
             $node instanceof Svg => $this->images->svg($node, $style, $frame, $at->path()),
             $node instanceof PdfPage, $node instanceof Place => $this->drop($node, $at),
             $node instanceof ListNode => $this->leaveList($frame),
-            $node instanceof ListItem => $this->lists->item(Flow::blocks($frame)),
+            $node instanceof ListItem => $this->lists->item(Flow::blocks($frame), $at->path()),
             $node instanceof Link => $this->leaveLink($frame),
             $node instanceof Table => [$this->tables->table($style, $frame)],
             $frame->isRow => [$this->inline->line($style, $frame, $at->path()) ?? $this->rows->row($style, $frame, $at->path())],
@@ -255,6 +267,7 @@ final class DocxVisitor implements TreeVisitor
         if ($node instanceof TableRow) {
             return $parent->content;
         }
+        // An item sits one list indent in from its list; what it holds is laid out in the width that's left.
         $avail = max(0.0, $parent->content - $style->margin->horizontal());
         $w = match (true) {
             $style->width instanceof Length => $style->width->points,
@@ -271,7 +284,8 @@ final class DocxVisitor implements TreeVisitor
             $w = min($w, $this->intrinsic($node, $parent->style, $avail));
         }
 
-        return min($w, $avail);
+        // An item's content sits one list indent in from the item's own box, as in the PDF.
+        return $node instanceof ListItem ? max(0.0, min($w, $avail) - ListMapper::INDENT / 20) : min($w, $avail);
     }
 
     /**

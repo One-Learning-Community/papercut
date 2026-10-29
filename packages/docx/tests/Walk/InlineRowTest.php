@@ -26,7 +26,7 @@ final class InlineRowTest extends TestCase
         $text = $d->bodyText();
         self::assertStringContainsString('Example site', $text);
         self::assertStringContainsString('Website', $text);
-        self::assertStringContainsString("•\t", $text);
+        self::assertSame(1, $d->count('/w:document/w:body/w:p/w:pPr/w:numPr'));
         self::assertSame(1, $d->count('//w:p/w:hyperlink'));
         // the badge fill (slate-100) shades its text and the no-break space on each side, and nothing else
         self::assertSame(3, $d->count('//w:r[w:rPr/w:shd[@w:fill="f1f5f9"]]'));

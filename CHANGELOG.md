@@ -15,6 +15,11 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - `<hr>` in markup becomes a horizontal rule (named style `markup.hr`), in PDF, HTML and Word export.
 - `Table::fillWidth()` shares leftover width among `auto` columns in proportion to their content.
 
+### Changed
+
+- Lists in Word export are real Word lists (`word/numbering.xml`), except lists with marker `none`, which stay indented paragraphs. Enter continues them, and renumbering and the bullet and number buttons work. Nested lists sit one level deeper, extra blocks in an item stay indented under it, and an item whose number breaks the sequence starts a new Word list from that item on. Numbers Word can't show (below 1, or roman numerals above 3999) keep typed markers and are reported as approximated.
+- Lists have space after them in PDF, Word and HTML: the theme's paragraph spacing, unless the last item already ends with it or the list has a margin of its own, which keeps its own spacing. Nested lists add none. Documents with lists lay out differently.
+
 ### Fixed
 
 - The rich text guide said `blockquote` was dropped; it has converted since 0.3.0, and `<mark>` gets a highlight.

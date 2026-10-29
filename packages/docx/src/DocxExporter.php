@@ -13,7 +13,7 @@ use Dskripchenko\PhpDocx\Writer\Word2007Writer;
 use Papercut\Backend\DefaultBackend;
 use Papercut\Document;
 use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, LineMetrics, InlineRow, ListMapper, Raster, RowMapper, TableMapper, TextMapper};
-use Papercut\Docx\Package\{DocxPatcher, PageSetupMapper, PatchSpec};
+use Papercut\Docx\Package\{DocxPatcher, Numbering, PageSetupMapper, PatchSpec};
 use Papercut\Docx\Walk\DocxVisitor;
 use Papercut\Export\{ExportOptions, Exporter, Fidelity, NoteReporter, Output};
 use Papercut\Layout\WidthResolver;
@@ -65,6 +65,7 @@ final class DocxExporter implements Exporter
             }
         }
 
+        $numbering = new Numbering();
         $boxes = new BoxMapper($fidelity);
         $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity);
         $visitor = new DocxVisitor(
@@ -75,7 +76,7 @@ final class DocxExporter implements Exporter
             new RowMapper($fidelity, $boxes),
             new InlineRow($fidelity),
             new TableMapper($fidelity, $boxes),
-            new ListMapper(),
+            new ListMapper($numbering, $fidelity),
             new ImageMapper($fidelity, DefaultBackend::make(false), Raster::detect()),
         );
         (new TreeWalker($styles))->walk($doc, $visitor);
@@ -102,7 +103,7 @@ final class DocxExporter implements Exporter
         $root = $styles->root();
         $bytes = DocxPatcher::patch(
             (new Word2007Writer($registry))->write($docx),
-            new PatchSpec($root->fontFamily, (int) round($root->fontSize * 2), $meta->lang, $date, $mirror),
+            new PatchSpec($root->fontFamily, (int) round($root->fontSize * 2), $meta->lang, $date, $mirror, $numbering),
         );
 
         return new Output($bytes, self::MIME, 'docx');

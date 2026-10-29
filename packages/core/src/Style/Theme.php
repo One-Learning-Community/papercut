@@ -60,6 +60,12 @@ final class Theme
         return Style::make(margin: Edges::of(Length::zero(), Length::zero(), pt(6), Length::zero()));
     }
 
+    /** Space after a top-level list: the paragraph's bottom margin. */
+    public function list(): Style
+    {
+        return Style::make(margin: Edges::of(Length::zero(), Length::zero(), $this->paragraph()->margin->bottom ?? Length::zero(), Length::zero()));
+    }
+
     public function withStyle(string $name, Style $style): self
     {
         if (preg_match('/\s/', $name) === 1) {

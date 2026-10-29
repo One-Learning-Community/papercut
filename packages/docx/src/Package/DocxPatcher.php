@@ -50,6 +50,10 @@ final class DocxPatcher
             $parts = self::mirrorMargins($parts);
         }
 
+        if ($spec->numbering !== null && !$spec->numbering->isEmpty()) {
+            $parts = self::numbering($parts, $spec->numbering);
+        }
+
         return DeterministicZip::write($parts, $spec->time);
     }
 
@@ -73,6 +77,90 @@ final class DocxPatcher
             'http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',
         );
+    }
+
+    /**
+     * Turns the paragraph styles ListMapper reserved into `w:numPr` (and the heading style back), and adds numbering.xml.
+     *
+     * @param array<string, string> $parts
+     * @return array<string, string>
+     */
+    private static function numbering(array $parts, Numbering $numbering): array
+    {
+        $marker = '~<w:p><w:pPr><w:pStyle w:val="' . Numbering::STYLE_PREFIX . '(\d+)-(\d+)(?:-h(\d+))?"/>((?:<w:(?:keepNext|keepLines|pageBreakBefore|widowControl)(?: [^>]*)?/>)*)(.*?)</w:pPr>(.*?)</w:p>~s';
+        foreach ($parts as $name => $xml) {
+            if (preg_match('~^word/(document|header\d+|footer\d+)\.xml$~', $name) !== 1) {
+                continue;
+            }
+            $xml = (string) preg_replace_callback(
+                $marker,
+                static function (array $m) use ($numbering): string {
+                    if ((int) $m[1] < 1 || (int) $m[1] > $numbering->count()) {
+                        throw new \LogicException('php-docx output changed: list paragraph refers to unregistered numId ' . $m[1]);
+                    }
+
+                    return '<w:p><w:pPr>' . ($m[3] === '' ? '' : '<w:pStyle w:val="Heading' . $m[3] . '"/>') . $m[4]
+                        . '<w:numPr><w:ilvl w:val="' . $m[2] . '"/><w:numId w:val="' . $m[1] . '"/></w:numPr>'
+                        . self::withLabelFormat($m[5], $m[6]) . '</w:pPr>' . $m[6] . '</w:p>';
+                },
+                $xml,
+            );
+            if (str_contains($xml, 'w:val="' . Numbering::STYLE_PREFIX)) {
+                throw new \LogicException('php-docx output changed: list paragraph style in ' . $name . ' not found');
+            }
+            $parts[$name] = $xml;
+        }
+
+        return self::addPart(
+            $parts,
+            'word/numbering.xml',
+            $numbering->xml(),
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',
+        );
+    }
+
+    /** The label-affecting run properties, in the order CT_RPr writes them. */
+    private const array LABEL_PROPS = ['rFonts', 'b', 'bCs', 'i', 'iCs', 'color', 'sz', 'szCs'];
+
+    /**
+     * The rest of a numbered paragraph's `w:pPr` with the first run's font, weight, slant, colour and size on the paragraph mark,
+     * which is what Word draws the list label with. Goes after everything but `w:sectPr`; merges with a mark `w:rPr` already there.
+     */
+    private static function withLabelFormat(string $pPr, string $content): string
+    {
+        $found = [];
+        if (preg_match('~<w:r(?: [^>]*)?>(?:<w:rPr>(.*?)</w:rPr>)?~s', $content, $run) === 1 && ($run[1] ?? '') !== '') {
+            if (preg_match_all('~<w:(' . implode('|', self::LABEL_PROPS) . ')(?: [^>]*)?/>~', $run[1], $props, PREG_SET_ORDER) === false) {
+                throw new \LogicException('php-docx output changed: run properties unreadable');
+            }
+            foreach ($props as $p) {
+                $found[$p[1]] = $p[0];
+            }
+        }
+        if ($found === []) {
+            return $pPr;
+        }
+        $sect = '';
+        if (preg_match('~<w:sectPr[ >].*$~s', $pPr, $s) === 1) {
+            $sect = $s[0];
+            $pPr = substr($pPr, 0, -strlen($sect));
+        }
+        if (preg_match('~<w:rPr>(.*?)</w:rPr>~s', $pPr, $mark) === 1) {
+            if (preg_match_all('~<w:(' . implode('|', self::LABEL_PROPS) . ')(?: [^>]*)?/>~', $mark[1], $own, PREG_SET_ORDER) === false) {
+                throw new \LogicException('php-docx output changed: paragraph mark properties unreadable');
+            }
+            foreach ($own as $p) {
+                $found[$p[1]] = $p[0];
+            }
+            $pPr = str_replace($mark[0], '', $pPr);
+        }
+        $rPr = '';
+        foreach (self::LABEL_PROPS as $prop) {
+            $rPr .= $found[$prop] ?? '';
+        }
+
+        return $pPr . '<w:rPr>' . $rPr . '</w:rPr>' . $sect;
     }
 
     /**

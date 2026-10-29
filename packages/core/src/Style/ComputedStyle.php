@@ -55,6 +55,8 @@ final readonly class ComputedStyle
         /** Not inherited. '' means no bookmark, even for a heading. */
         public ?string $bookmark = null,
         public ?int $bookmarkLevel = null,
+        /** Inherited: true for a list item and everything under it, so a nested list gets no space after. */
+        public bool $inList = false,
     ) {
     }
 
@@ -102,7 +104,8 @@ final readonly class ComputedStyle
         );
     }
 
-    public function child(Style $style): self
+    /** @param bool|null $inList overrides the inherited list flag (a list item sets it, a table cell clears it) */
+    public function child(Style $style, ?bool $inList = null): self
     {
         // A relative font size is a share of the parent's; every other em/lh then uses this element's own size.
         $fontSize = $style->fontSize?->resolve($this->fontSize, $this->lineHeightPoints());
@@ -158,7 +161,13 @@ final readonly class ComputedStyle
             minLines: $style->minLines ?? $this->minLines,
             bookmark: $style->bookmark,
             bookmarkLevel: $style->bookmarkLevel,
+            inList: $inList ?? $this->inList,
         );
+    }
+
+    public function withMargin(Edges $margin): self
+    {
+        return new self(...[...get_object_vars($this), 'margin' => $margin]);
     }
 
     public function lineHeightPoints(): float

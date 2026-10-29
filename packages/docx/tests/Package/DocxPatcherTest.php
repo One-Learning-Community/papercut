@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Papercut\Docx\Tests\Package;
 
 use Papercut\{Column, Document, Page, Text};
-use Papercut\Docx\Package\{DocxPatcher, PatchSpec};
+use Papercut\Docx\Package\{DocxPatcher, Numbering, PatchSpec};
+use Papercut\Style\ListMarker;
 use Papercut\Docx\Tests\Support\{DocxInspector, Styles};
 use Dskripchenko\PhpDocx\{Document as DocxDocument, Section};
 use Dskripchenko\PhpDocx\Element\{Paragraph, Run};
+use Dskripchenko\PhpDocx\Style\ParagraphStyle;
 use Dskripchenko\PhpDocx\Style\StyleRegistry;
 use Dskripchenko\PhpDocx\Writer\Word2007Writer;
 use PHPUnit\Framework\TestCase;
@@ -180,5 +182,112 @@ final class DocxPatcherTest extends TestCase
         } catch (\LogicException $e) {
             self::assertSame('php-docx output changed: word/settings.xml already exists', $e->getMessage());
         }
+    }
+
+    private static function numSpec(?Numbering $n): PatchSpec
+    {
+        return new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'), false, $n);
+    }
+
+    private static function numbering(): Numbering
+    {
+        $n = new Numbering();
+        $n->instance(ListMarker::Decimal, 1);
+
+        return $n;
+    }
+
+    private static function marked(?string $styleId = null, ?ParagraphStyle $style = null): string
+    {
+        return self::raw(new Section([new Paragraph([new Run('x')], $style ?? new ParagraphStyle(), null, $styleId ?? Numbering::marker(1, 0, null))]));
+    }
+
+    public function test_numbering_part_is_created(): void
+    {
+        $d = DocxInspector::of(DocxPatcher::patch(self::marked(), self::numSpec(self::numbering())));
+        self::assertStringContainsString('<w:abstractNum ', $d->part('word/numbering.xml'));
+        $rels = $d->part('word/_rels/document.xml.rels');
+        self::assertStringContainsString('Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"', $rels);
+        self::assertStringContainsString('<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>', $d->part('[Content_Types].xml'));
+        preg_match_all('~Id="([^"]+)"~', $rels, $m);
+        self::assertSame($m[1], array_values(array_unique($m[1])));
+    }
+
+    public function test_num_pr_goes_after_widow_control(): void
+    {
+        $out = DocxPatcher::patch(self::marked(null, new ParagraphStyle(widowControl: true, spaceAfterTwips: 100)), self::numSpec(self::numbering()));
+        $doc = self::part($out, 'word/document.xml');
+        self::assertStringContainsString('<w:pPr><w:widowControl/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr><w:spacing', $doc);
+        self::assertStringNotContainsString('papercut-num-', $doc);
+        self::assertStringNotContainsString('<w:pStyle', substr($doc, strpos($doc, '<w:body>') ?: 0, 200));
+    }
+
+    public function test_num_pr_goes_after_style_and_every_keep_element(): void
+    {
+        $style = new ParagraphStyle(keepWithNext: true, keepLines: true, pageBreakBefore: true, widowControl: true, spaceAfterTwips: 100);
+        $raw = self::raw(new Section([new Paragraph([new Run('x')], $style, null, Numbering::marker(1, 0, 2))]));
+        $out = DocxPatcher::patch($raw, self::numSpec(self::numbering()));
+        self::assertStringContainsString('<w:pPr><w:pStyle w:val="Heading2"/><w:keepNext/><w:keepLines/><w:pageBreakBefore/><w:widowControl/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr><w:spacing', self::part($out, 'word/document.xml'));
+    }
+
+    public function test_text_mentioning_the_marker_prefix_is_fine(): void
+    {
+        $raw = self::raw(new Section([new Paragraph([new Run('see papercut-num-3-0')]), new Paragraph([new Run('x')], new ParagraphStyle(), null, Numbering::marker(1, 0, null))]));
+        $out = DocxPatcher::patch($raw, self::numSpec(self::numbering()));
+        self::assertStringContainsString('see papercut-num-3-0', self::part($out, 'word/document.xml'));
+    }
+
+    public function test_text_with_the_quoted_marker_survives(): void
+    {
+        $raw = self::raw(new Section([new Paragraph([new Run('see w:val="papercut-num-1-0"')]), new Paragraph([new Run('x')], new ParagraphStyle(), null, Numbering::marker(1, 0, null))]));
+        $out = DocxPatcher::patch($raw, self::numSpec(self::numbering()));
+        $doc = self::part($out, 'word/document.xml');
+        self::assertStringContainsString('see w:val=&quot;papercut-num-1-0&quot;', $doc);
+        self::assertSame(1, substr_count($doc, '<w:numPr>'));
+    }
+
+    public function test_unregistered_num_id_fails_loudly(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('php-docx output changed');
+        DocxPatcher::patch(self::marked('papercut-num-9-0'), self::numSpec(self::numbering()));
+    }
+
+    public function test_heading_marker_restores_heading_style(): void
+    {
+        $n = self::numbering();
+        $out = DocxPatcher::patch(self::marked(Numbering::marker(1, 0, 2)), self::numSpec($n));
+        self::assertStringContainsString('<w:pPr><w:pStyle w:val="Heading2"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>', self::part($out, 'word/document.xml'));
+    }
+
+    public function test_markers_in_headers_are_patched(): void
+    {
+        $raw = self::raw(new Section([new Paragraph([new Run('b')])], header: [new Paragraph([new Run('h')], new ParagraphStyle(), null, Numbering::marker(1, 2, null))]));
+        $out = DocxPatcher::patch($raw, self::numSpec(self::numbering()));
+        self::assertStringContainsString('<w:pPr><w:numPr><w:ilvl w:val="2"/><w:numId w:val="1"/></w:numPr>', self::part($out, 'word/header1.xml'));
+        self::assertStringNotContainsString('papercut-num-', self::part($out, 'word/header1.xml'));
+    }
+
+    public function test_leftover_marker_fails_loudly(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('php-docx output changed');
+        DocxPatcher::patch(self::marked('papercut-num-odd'), self::numSpec(self::numbering()));
+    }
+
+    public function test_existing_numbering_part_fails_loudly(): void
+    {
+        $raw = self::rewrite(self::marked(), ['word/numbering.xml' => '<x/>']);
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('php-docx output changed');
+        DocxPatcher::patch($raw, self::numSpec(self::numbering()));
+    }
+
+    public function test_no_numbering_leaves_bytes_unchanged(): void
+    {
+        $bytes = self::plain();
+        $base = DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01')));
+        self::assertSame($base, DocxPatcher::patch($bytes, self::numSpec(null)));
+        self::assertSame($base, DocxPatcher::patch($bytes, self::numSpec(new Numbering())));
     }
 }

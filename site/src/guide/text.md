@@ -117,3 +117,7 @@ If you don't pick a marker, it changes with the nesting depth: numbered lists go
 | `none` | no marker, but the indent stays |
 
 A long list item can split across pages, and its marker always stays with the first line.
+
+A top-level list has the theme's paragraph spacing after it. If the last item already ends with that spacing, for example because it ends in a paragraph, the list doesn't get it twice. Nested lists add none, and a list with a margin of its own keeps its own spacing.
+
+In Word export, lists are real Word lists, except a list with marker `none`, which stays as indented paragraphs. Press Enter in Word and the list continues, and renumbering and the bullet and number buttons work. Word draws the markers its own way (left-aligned), unlike the right-aligned markers in the PDF. A very wide label, such as `VIII.` or `100.` and beyond, pushes the item's text to the next tab stop in Word, and alphabetic numbering past `z` follows Word (`aa`, `bb`, and so on). Nested lists sit one level deeper, and extra blocks in an item, such as paragraphs and tables, stay indented under it. An item whose number breaks the sequence partway through a numbered list (`ListItem::withValue()` or `<li value>`) starts a new Word list from that item on, and this is reported as approximated. A value on the first item is the list's start number. Bulleted lists ignore these values. Lists whose numbers Word can't show, meaning any number below 1 or roman numerals above 3999, keep typed markers instead, also reported as approximated.

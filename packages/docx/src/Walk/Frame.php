@@ -39,6 +39,8 @@ final class Frame
     public int $column = 0;
     /** Whether this table row is a header row. */
     public bool $header = false;
+    /** Whether this node's decorated box is a Word table: lists inside it start again at level 0. */
+    public bool $boxCell = false;
     /** What a faded child lies on: the nearest fill, else white. */
     public Color $backdrop;
 
