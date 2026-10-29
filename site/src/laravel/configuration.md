@@ -69,6 +69,7 @@ final class CdnImageUrl implements ImageUrlResolver
 | `markup.images` | `null` | An `ImageResolver` class. `null` treats every `<img>` as missing. |
 | `markup.styles` | `'theme'` | `'theme'` or `'original'`. See [Rich text](/guide/rich-text.md#style-modes). |
 | `markup.blank_paragraphs` | `'drop'` | `'drop'` or `'keep'`. |
+| `markup.highlight` | `true` | `false` keeps `<pre><code class="language-x">` as plain `pre` blocks instead of [code blocks](/guide/text.md#code-blocks). |
 
 ### Markup images
 
@@ -108,6 +109,21 @@ Within one markup conversion the resolver is called once for each distinct `src`
 
 Papercut builds a resolver once per request, queue job or Octane request, and every markup tag in it shares that instance, whether the class comes from the config or from a tag's `images` attribute. A cache in a property lasts that long; for anything longer use Laravel's cache.
 
+## Code
+
+Syntax highlighting for [code blocks](/guide/text.md#code-blocks) needs `phiki/phiki`.
+
+| Key | Default | Description |
+|---|---|---|
+| `code.theme` | `null` | The default theme. `null` is `papercut-light`. A name from Phiki's bundled themes or `code.themes`. |
+| `code.variant` | `null` | `null`, `'strip'` or `'caption'`: the look of blocks that don't set a `variant`. |
+| `code.grammars` | `[]` | `'name' => path` to a TextMate grammar JSON file. |
+| `code.themes` | `[]` | `'name' => path` to a TextMate theme JSON file. |
+| `code.aliases` | `[]` | `'alias' => 'language'`. |
+| `code.injections` | `[]` | A list of `['path' => …, 'into' => ['source.x', …]]`: a VS Code style injection grammar, merged into the grammars with those scope names. Grammars are registered first, so `into` can name one from `code.grammars`. |
+
+A path that can't be read, or a grammar or theme that isn't valid, throws an error that names the key, such as `papercut.code.grammars.demo`.
+
 ## Preview
 
 | Key | Default | Description |
@@ -115,4 +131,4 @@ Papercut builds a resolver once per request, queue job or Octane request, and ev
 | `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Turns on the [preview routes](./preview.md). |
 | `preview.path` | `'_papercut'` | The URL prefix for the preview routes. |
 
-Mistakes in the `html.*` and `markup.*` settings are reported the first time they're used, not when the app boots.
+Mistakes in the `html.*`, `markup.*` and `code.*` settings are reported the first time they're used, not when the app boots.

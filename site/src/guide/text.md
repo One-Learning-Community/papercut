@@ -61,6 +61,131 @@ In Blade, `<x-doc::pre>` makes a block in the `pre` style (monospace, `pre-wrap`
 </x-doc::pre>
 ```
 
+## Code blocks
+
+A code block is a `pre` block with a language: it is coloured by a TextMate theme and carries a small label with the language's name. Highlighting uses [Phiki](https://github.com/phikiphp/phiki), which is optional:
+
+```bash
+composer require phiki/phiki
+```
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::pre language="php">
+    $total = array_sum($prices);
+    echo "Total: {$total}";
+</x-doc::pre>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page};
+use Papercut\Decorator\CodeBlock;
+
+$document = Document::make(Page::a4()->body(
+    CodeBlock::make('$total = array_sum($prices);')->language('php'),
+));
+```
+:::
+
+Blade content is literal, as for any `pre`. `{{ $code }}` comes out exactly as the variable's value.
+
+Without Phiki, or for a language it doesn't know, the block is still drawn, as plain text. An unknown theme is replaced by the default theme and the code is still highlighted. In all three cases the export reports "dropped syntax highlighting" (for a missing package, the note says to install `phiki/phiki`), and [strict mode](/guide/rich-text.md#strict-mode) throws instead.
+
+### Labels
+
+The label is the language's display name in upper case, so `language="php"` shows `PHP`. `label` replaces it, and shows your text as written. `false` turns it off:
+
+```blade
+<x-doc::pre language="json" label="composer.json">{ "name": "acme/app" }</x-doc::pre>
+<x-doc::pre language="json" :label="false">{ "name": "acme/app" }</x-doc::pre>
+```
+
+In PHP, that is `->label('composer.json')` and `->label(false)`. The plain words `text`, `plaintext`, `txt` and `plain` give a `TEXT` label and no colours. `nohighlight` and `no-highlight` give neither a label nor colours.
+
+### Looks
+
+By default the label sits at the top right of the box, on a small line above the code. Two variants move it:
+
+- `strip`: a header bar across the top of the box, with the label in it.
+- `caption`: the label above the box, and a rule down the left side instead of a border.
+
+```blade
+<x-doc::pre language="php" variant="strip">$a = 1;</x-doc::pre>
+```
+
+In PHP use `->variant('strip')` or `->variant('caption')`; the two can't be combined. Set a default for every block with `papercut.code.variant` in Laravel, or `new CodeHighlighting(variant: 'caption')` in PHP.
+
+### Themes and colours
+
+The colours come from the TextMate theme: the block's background and text, and every token. The default theme is `papercut-light`. Pick another per block, or for all of them:
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::pre language="php" theme="github-dark">$a = 1;</x-doc::pre>
+```
+@tab PHP
+```php
+use Papercut\Code\CodeHighlighting;
+use Papercut\Decorator\CodeBlock;
+
+CodeBlock::make('$a = 1;')->language('php')->theme('github-dark');
+
+// every block that gets this configuration
+CodeBlock::make('$a = 1;')->language('php')->highlighting(new CodeHighlighting(theme: 'nord'));
+```
+:::
+
+Phiki bundles many themes and languages, among them `github-light`, `github-dark`, `dracula`, `nord`, `one-dark-pro` and `solarized-light`. The full lists are in [Phiki's documentation](https://phiki.dev). An unknown theme falls back to the default, with a "dropped syntax highlighting" note.
+
+The muted label and border colours are worked out from the brightness of the theme's background, so a dark theme gets a light label. Geometry (padding, radius, the label's size) comes from the `code-block` [named styles](/reference/decorator-styles.md), and the block's own style, such as `->background()` or `background="…"`, overrides the theme's colours. To recolour every block, pick or write a theme.
+
+### Your own grammars and themes
+
+Register a grammar (a TextMate grammar JSON file), a theme (a VS Code or TextMate theme JSON file), an alias, or an injection grammar on the highlighter:
+
+::: code-tabs#style
+@tab Laravel
+```php
+// config/papercut.php
+'code' => [
+    'theme' => 'my-theme',
+    'grammars' => ['demo' => resource_path('grammars/demo.tmLanguage.json')],
+    'themes' => ['my-theme' => resource_path('themes/my-theme.json')],
+    'aliases' => ['dm' => 'demo'],
+    'injections' => [
+        ['path' => resource_path('grammars/todo.injection.json'), 'into' => ['source.demo', 'source.php']],
+    ],
+],
+```
+@tab PHP
+```php
+use Papercut\Code\{CodeHighlighting, PhikiHighlighter};
+use Papercut\Decorator\CodeBlock;
+
+$highlighter = (new PhikiHighlighter())
+    ->grammar('demo', 'grammars/demo.tmLanguage.json')
+    ->theme('my-theme', 'themes/my-theme.json')
+    ->alias('dm', 'demo')
+    ->injection('grammars/todo.injection.json', ['source.demo', 'source.php']);
+
+$block = CodeBlock::make('demo text')
+    ->language('dm')
+    ->highlighting(new CodeHighlighting($highlighter, theme: 'my-theme'));
+```
+:::
+
+An injection grammar (VS Code style, with an `injectionSelector` and `patterns`) is merged into each grammar listed in `into`, named by scope. It applies when one of those is the block's language, not where that grammar is only embedded inside another. Register the host grammars first (in config, `grammars` is read before `injections`); bundled ones are already there. A registered grammar can be embedded in another by its scope name. A path that doesn't exist, or a file that isn't a valid grammar or theme, throws when the highlighter is built, and in Laravel the message names the config key, such as `papercut.code.grammars.demo`.
+
+### In markup
+
+`Markup::html()` and `<x-doc::markup>` turn `<pre><code class="language-php">` into a code block, using the document's defaults (theme, variant, registered grammars). `lang-php` works too, and so does the class on the `pre`. Tags inside the code are dropped and their text is kept, with an approximated note for anything other than `span`, `code` and `br`; `<br>` becomes a newline. To keep these as plain `pre` blocks, turn it off: `new MarkupOptions(code: false)` in PHP, or `'markup' => ['highlight' => false]` in Laravel. In plain PHP, set the defaults for these blocks with `new MarkupOptions(code: new CodeHighlighting(theme: 'github-dark', variant: 'strip'))`.
+
+### Word and HTML
+
+In Word, the default look is shaded, bordered paragraphs, and `strip` and `caption` are tables. In HTML, a code block is a `<pre>` with coloured spans.
+
 ## Inline formatting
 
 Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline tags: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<span>` with style attributes, `<a href>`, `<br>` and `<code>`. Any other tag throws an error.

@@ -54,7 +54,7 @@ In PHP, `Markup::flatten()` does the same thing and merges the converted content
 | `iframe`, `video`, `audio` | a paragraph linking to the source |
 | `blockquote` | a quotation, styled by the theme's blockquote decorator. A trailing `cite` or `footer` becomes its attribution |
 | `mark` | inline text with a highlight |
-| `pre` | a block in the `pre` style: monospace, with spaces, tabs and line breaks kept. `<pre><code>` gives one block |
+| `pre` | a block in the `pre` style: monospace, with spaces, tabs and line breaks kept. `<pre><code>` gives one block. With `class="language-x"` (or `lang-x`, on the `code` or the `pre`) it becomes a [code block](/guide/text.md#code-blocks) with syntax highlighting; turn that off with `MarkupOptions(code: false)` |
 | `code`, `kbd`, `samp`, `tt` | inline monospace text in the `code` style |
 | `table`, `caption`, `thead`, `tbody`, `tfoot`, `tr`, `td`, `th` | a table: header rows repeat on every page, `colspan` and `rowspan` are kept, and columns are sized by their content. In `original` mode a `width` on a cell sets its column and a `width` on the table sets the table; a table width is kept as written but never wider than its container, and columns wider than the space they have are scaled down to fit (percentages over 100% are scaled to 100%, with a note). Nested tables are flattened into paragraphs, with a note |
 | `hr` | a horizontal rule; in `original` mode `border-color` or `color` sets its colour |

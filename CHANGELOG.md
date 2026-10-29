@@ -5,6 +5,14 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Syntax-highlighted code blocks: `CodeBlock::make($code)->language('php')` in PHP and `<x-doc::pre language="php">` in Blade, coloured by a TextMate theme (default `papercut-light`; `theme`, or `CodeHighlighting(theme: ...)`). Highlighting uses the optional `phiki/phiki`; without it, or for an unknown language, the block is plain text, and an unknown theme is highlighted with the default one; each is reported as dropped highlighting (strict mode throws).
+- Code block labels: the language's name in capitals by default, `label="..."` for your own text, `false` to hide it. `text`, `plaintext`, `txt` and `plain` give a `TEXT` label with no colours; `nohighlight` and `no-highlight` give neither.
+- Code block looks: the default label line, `variant="strip"` (label in a header bar) and `variant="caption"` (label above the box, rule on the left), with `code-block*` named styles. Word export writes shaded paragraphs or tables; HTML writes `<pre>` with coloured spans.
+- `PhikiHighlighter::grammar()`, `theme()`, `alias()` and `injection()` register your own TextMate grammars, themes, aliases and VS Code style injection grammars; Laravel reads them from `papercut.code.{theme,variant,grammars,themes,aliases,injections}`.
+- `<pre><code class="language-x">` in `Markup::html()` and `<x-doc::markup>` becomes a code block. `MarkupOptions(code: false)` or `papercut.markup.highlight = false` keeps the plain `pre`.
+
 ## [0.4.1] - 2026-10-29
 
 ### Changed
