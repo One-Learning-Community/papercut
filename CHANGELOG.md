@@ -22,6 +22,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Rendered `<x-doc>` output reused from an earlier render (cached HTML, a static, `once()`, a nested render) now fails with an `InvalidStructure` error that says to cache data instead, when the marker came from this process. Text in marker form that this process never issued, such as user data, still renders as text. When such a marker reaches `<x-doc::choices>`, `key-value`, `ol`, `ul`, `thead`, `tr` or `table`, their "can only contain" error now adds the same hint. A `preg_split()` failure while reading rendered output is reported instead of ignored.
+- Word export no longer adds a second `w:mirrorMargins` when the template already has one written with attributes or spacing.
 - The rich text guide said `blockquote` was dropped; it has converted since 0.3.0, and `<mark>` gets a highlight.
 
 ## [0.3.0] - 2026-10-28

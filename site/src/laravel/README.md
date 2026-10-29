@@ -67,6 +67,12 @@ Inside a text tag, a `Text` node becomes part of the line. One limitation: an in
 <x-doc::text><b>x </b><x-doc::node :node="$t" /><b> y</b></x-doc::text>
 ```
 
+## Caching
+
+Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. Papercut stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data the fragment is built from, and render the fragment each time.
+
+This isn't always detected. Papercut recognises markers it made earlier in the same process; a fragment cached across workers, or kept long after, can instead show up as literal marker text (`[[pc:…]]`) in the output, or as a "can only contain" error whose message adds a note about the marker.
+
 ## The tag prefix
 
 Tags use the `doc` prefix by default. If that clashes with something in your app, change `prefix` in the [configuration](./configuration.md).

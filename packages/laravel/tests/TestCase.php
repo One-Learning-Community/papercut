@@ -29,6 +29,28 @@ abstract class TestCase extends Orchestra
         $app['config']->set('view.paths', [...(array) $app['config']->get('view.paths', []), __DIR__ . '/views']);
     }
 
+    /** @var list<string> */
+    private array $tempDirs = [];
+
+    /** A fresh directory in the system temp dir, removed in tearDown. */
+    protected function tempDir(string $prefix): string
+    {
+        $dir = sys_get_temp_dir() . '/' . $prefix . '-' . getmypid() . '-' . bin2hex(random_bytes(3));
+        mkdir($dir);
+        $this->tempDirs[] = $dir;
+
+        return $dir;
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempDirs as $dir) {
+            \Illuminate\Support\Facades\File::deleteDirectory($dir);
+        }
+        $this->tempDirs = [];
+        parent::tearDown();
+    }
+
     /**
      * @param array<string, mixed> $data
      */

@@ -64,7 +64,7 @@ final class DocxPatcher
     private static function mirrorMargins(array $parts): array
     {
         if (isset($parts['word/settings.xml'])) {
-            if (str_contains($parts['word/settings.xml'], '<w:mirrorMargins/>')) {
+            if (preg_match('~<w:mirrorMargins\b~', $parts['word/settings.xml']) === 1) {
                 return $parts;
             }
             $parts['word/settings.xml'] = self::replaceOnce('~<w:evenAndOddHeaders/>~', '<w:mirrorMargins/><w:evenAndOddHeaders/>', $parts['word/settings.xml'], '<w:evenAndOddHeaders/> in word/settings.xml');

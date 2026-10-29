@@ -161,10 +161,17 @@ final class DocxPatcherTest extends TestCase
         self::assertFalse(DocxInspector::of(DocxPatcher::patch(self::plain(), self::spec(false)))->has('word/settings.xml'));
     }
 
-    public function test_mirror_margins_is_not_added_twice(): void
+    /** @return array<string, array{string}> */
+    public static function existingMirrorForms(): array
+    {
+        return ['plain' => ['<w:mirrorMargins/>'], 'with a value' => ['<w:mirrorMargins w:val="1"/>'], 'with a space' => ['<w:mirrorMargins />']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('existingMirrorForms')]
+    public function test_mirror_margins_is_not_added_twice(string $existing): void
     {
         $bytes = self::withEven();
-        $settings = str_replace('<w:evenAndOddHeaders/>', '<w:mirrorMargins/><w:evenAndOddHeaders/>', self::part($bytes, 'word/settings.xml'));
+        $settings = str_replace('<w:evenAndOddHeaders/>', $existing . '<w:evenAndOddHeaders/>', self::part($bytes, 'word/settings.xml'));
         $out = DocxPatcher::patch(self::rewrite($bytes, ['word/settings.xml' => $settings]), self::spec(true));
         self::assertSame(1, substr_count(self::part($out, 'word/settings.xml'), 'w:mirrorMargins'));
     }
