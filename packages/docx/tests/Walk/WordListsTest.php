@@ -419,7 +419,7 @@ final class WordListsTest extends TestCase
             file_put_contents("$dir/lists.docx", $doc->export(new \Papercut\Docx\DocxExporter())->bytes());
             $proc = proc_open(
                 [$soffice, '-env:UserInstallation=file://' . $dir . '/lo-profile', '--headless', '--convert-to', 'pdf', '--outdir', $dir, "$dir/lists.docx"],
-                [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
+                [1 => ['file', "$dir/soffice.out", 'w'], 2 => ['file', "$dir/soffice.err", 'w']],
                 $pipes,
             );
             self::assertIsResource($proc);
@@ -433,7 +433,11 @@ final class WordListsTest extends TestCase
                 usleep(100_000);
             }
             proc_close($proc);
-            self::assertFileExists("$dir/lists.pdf", 'soffice wrote no PDF');
+            self::assertFileExists("$dir/lists.pdf", sprintf(
+                "soffice wrote no PDF\nstdout: %s\nstderr: %s",
+                trim((string) @file_get_contents("$dir/soffice.out")),
+                trim((string) @file_get_contents("$dir/soffice.err")),
+            ));
             $text = (string) shell_exec(sprintf('%s -layout %s - 2>/dev/null', escapeshellarg($pdftotext), escapeshellarg("$dir/lists.pdf")));
             self::assertMatchesRegularExpression('~1\.\s+alpha~', $text);
             self::assertMatchesRegularExpression('~2\.\s+beta~', $text);
@@ -443,6 +447,8 @@ final class WordListsTest extends TestCase
             self::assertMatchesRegularExpression('~2\.\s+zeta~', $text);
             self::assertMatchesRegularExpression('~3\.\s+large~', $text);
         } finally {
+            // soffice.bin outlives the launcher it was started by, so stop whatever still runs on this profile before deleting it.
+            exec('pkill -9 -f ' . escapeshellarg("$dir/lo-profile") . ' 2>/dev/null');
             exec('rm -rf ' . escapeshellarg($dir));
         }
     }

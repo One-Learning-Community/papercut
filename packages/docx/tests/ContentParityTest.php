@@ -6,8 +6,9 @@ namespace Papercut\Docx\Tests;
 
 use Papercut\{Document, ListNode, Node, Page, Text};
 use Papercut\Docx\DocxExporter;
+use Papercut\Docx\Map\ListMapper;
 use Papercut\Docx\Tests\Support\{Documents, DocxInspector};
-use Papercut\Style\{ComputedStyle, ListMarker, StyleResolver, Theme};
+use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -147,9 +148,8 @@ final class ContentParityTest extends TestCase
             public function enter(Node $node, ComputedStyle $style, Visit $at): bool
             {
                 if ($node instanceof ListNode) {
-                    $depth = 1 + count(array_filter($this->open, static fn (bool $o): bool => $o === $node->isOrdered()));
+                    $marker = ListMapper::markerFor($node, $this->open);
                     $this->open[] = $node->isOrdered();
-                    $marker = $node->markerStyle() ?? ListMarker::forDepth($node->isOrdered(), $depth);
                     foreach ($node->numbers() as $n) {
                         $label = $marker->label($n);
                         if ($label !== '') {

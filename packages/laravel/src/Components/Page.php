@@ -37,7 +37,9 @@ final class Page extends PapercutComponent
             throw UnknownAttribute::for('style')->within($location);
         }
 
-        // Blade camel-cases a slot name: <x-slot:first-header> arrives as "firstHeader".
+        // Blade camel-cases a slot name: <x-slot:first-header> arrives as "firstHeader". Kebab-casing it back
+        // also accepts the camelCase spelling (<x-slot:firstHeader>) as an alias, and when both spellings of a
+        // slot are given, the later one silently replaces the earlier. Both are deliberate.
         $slots = [];
         foreach ($this->namedSlots($data) as $name => $content) {
             $slots[Str::kebab($name)] = $content;
@@ -79,7 +81,8 @@ final class Page extends PapercutComponent
                 'first-footer' => $page->firstFooter(...$nodes),
                 'even-header' => $page->evenHeader(...$nodes),
                 'even-footer' => $page->evenFooter(...$nodes),
-                default => $page->background(...$nodes),
+                'background' => $page->background(...$nodes), // @phpstan-ignore match.alwaysTrue (SLOTS is the only source of $name; the default arm guards a slot added without a case)
+                default => throw new \LogicException("Unhandled page slot \"$name\""),
             };
         }
 

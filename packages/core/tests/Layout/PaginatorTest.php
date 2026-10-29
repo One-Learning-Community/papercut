@@ -465,6 +465,84 @@ final class PaginatorTest extends TestCase
         self::assertStringContainsString('(even page)', implode(' ', $this->warnings));
     }
 
+    public function test_look_ahead_warns_only_for_pages_that_are_rendered(): void
+    {
+        $huge = \Papercut\Column::make(Text::make('Even'))->height(pt(400));
+        $tall = \Papercut\Column::make(Text::make('Letterhead'))->height(pt(100));
+        $pages = $this->paginate(Document::make($this->tall()->firstHeader($tall)->evenHeader($huge)->body('X')), OverflowMode::Clip);
+        self::assertCount(1, $pages);
+        self::assertSame([], $this->warnings, 'page 2 is never rendered, so its band says nothing');
+    }
+
+    public function test_block_that_fits_on_no_page_does_not_leave_an_empty_first_page(): void
+    {
+        $tall = \Papercut\Column::make(Text::make('Letterhead'))->height(pt(100));
+        $block = \Papercut\Column::make(Text::make('Block'))->height(pt(500));
+        $doc = Document::make($this->tall()->firstHeader($tall)->header('Running')->body($block));
+        try {
+            $this->paginate($doc);
+            self::fail('expected overflow');
+        } catch (LayoutOverflow $e) {
+            self::assertStringContainsString('taller than the page body', $e->getMessage());
+        }
+        $pages = $this->paginate($doc, OverflowMode::Clip);
+        self::assertCount(1, $pages);
+        self::assertContains('Letterhead', $this->texts($pages[0]));
+        self::assertCount(1, $this->warnings);
+        self::assertStringContainsString('page > body > column[0]', $this->warnings[0], 'clipped in place on page 1, as without a short page');
+    }
+
+    public function test_block_moves_past_a_short_even_page(): void
+    {
+        $even = \Papercut\Column::make(Text::make('Even'))->height(pt(100));
+        $a = \Papercut\Column::make(Text::make('A'))->height(pt(150));
+        $b = \Papercut\Column::make(Text::make('B'))->height(pt(200));
+        $doc = Document::make($this->tall()->header('Odd')->evenHeader($even)->body($a, $b));
+        foreach ([OverflowMode::Throw, OverflowMode::Clip] as $mode) {
+            $this->warnings = [];
+            $pages = $this->paginate($doc, $mode);
+            self::assertCount(3, $pages, $mode->name);
+            self::assertSame(['Odd', 'A'], $this->texts($pages[0]));
+            self::assertSame(['Even'], $this->texts($pages[1]));
+            self::assertSame(['Odd', 'B'], $this->texts($pages[2]));
+            self::assertSame([], $this->warnings);
+        }
+    }
+
+    public function test_block_moves_two_pages_on_when_only_the_page_after_next_can_hold_it(): void
+    {
+        // Page body 280pt: the first page keeps 100pt, even pages 150pt, odd pages 280pt.
+        $first = \Papercut\Column::make(Text::make('First'))->height(pt(180));
+        $even = \Papercut\Column::make(Text::make('Even'))->height(pt(130));
+        $block = \Papercut\Column::make(Text::make('Block'))->height(pt(190));
+        $doc = Document::make($this->tall()->firstHeader($first)->evenHeader($even)->header('Odd')->body($block));
+        foreach ([OverflowMode::Throw, OverflowMode::Clip] as $mode) {
+            $this->warnings = [];
+            $pages = $this->paginate($doc, $mode);
+            self::assertCount(3, $pages, $mode->name);
+            self::assertSame(['First'], $this->texts($pages[0]));
+            self::assertSame(['Even'], $this->texts($pages[1]));
+            self::assertSame(['Odd', 'Block'], $this->texts($pages[2]));
+            self::assertSame([], $this->warnings);
+        }
+    }
+
+    public function test_layout_warnings_are_not_repeated_when_a_block_is_tried_again(): void
+    {
+        $tall = \Papercut\Column::make(Text::make('Letterhead'))->height(pt(100));
+        $table = \Papercut\Table::make()->columns('300pt 300pt 300pt');
+        for ($i = 0; $i < 60; $i++) {
+            $table = $table->row('a', 'b');
+        }
+        $doc = Document::make($this->tall()->firstHeader($tall)->header('Running')->body($table));
+        foreach ([OverflowMode::Throw, OverflowMode::Clip] as $mode) {
+            $this->warnings = [];
+            $this->paginate($doc, $mode);
+            self::assertSame(array_values(array_unique($this->warnings)), $this->warnings, $mode->name);
+            self::assertCount(2, $this->warnings, $mode->name);
+        }
+    }
+
     public function test_caption_over_a_table_whose_first_row_is_taller_than_a_page_does_not_split_the_row_in_place(): void
     {
         // Accepted: splitting the row in place would truncate fixed-height boxes inside it.

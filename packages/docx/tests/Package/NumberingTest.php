@@ -77,7 +77,7 @@ final class NumberingTest extends TestCase
         self::assertSame('papercut-num-3-0-h2', Numbering::marker(3, 0, 2));
     }
 
-    public function test_invalid_arguments_throw(): void
+    public function test_an_instance_of_no_marker_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         (new Numbering())->instance(ListMarker::None, 1);

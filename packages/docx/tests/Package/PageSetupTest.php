@@ -150,7 +150,7 @@ final class PageSetupTest extends TestCase
     {
         $mirrored = Page::a4()->mirrorMargins()->body(Text::make('one'));
         $d = self::export(Document::make($mirrored, Page::a5()->margin(mm(20), mm(30), mm(20), mm(20))->body(Text::make('two'))));
-        self::assertSame(['Approximated mirrored margins @ page[1]'], array_map(static fn (string $r): string => ucfirst(strtolower($r)), self::exportedReports()));
+        self::assertSame(['Approximated mirrored margins @ page[1]'], self::exportedReports());
 
         self::export(Document::make($mirrored, Page::a5()->body(Text::make('two'))));
         self::assertSame([], self::exportedReports());

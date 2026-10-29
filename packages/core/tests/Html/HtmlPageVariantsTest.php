@@ -6,6 +6,7 @@ namespace Papercut\Tests\Html;
 
 use Papercut\{Document, Image, Page, Text};
 use Papercut\Export\{FontMode, HtmlOptions};
+use Papercut\Html\Css;
 use Papercut\Html\{FontAnswer, FontRequest};
 use Papercut\Tests\Support\TestImages;
 use PHPUnit\Framework\TestCase;
@@ -63,6 +64,43 @@ final class HtmlPageVariantsTest extends TestCase
         self::assertSame(1, count(array_keys($messages, 'html: approximated even-page header and footer at page')));
     }
 
+    public function test_first_header_without_a_normal_header_still_shows(): void
+    {
+        $html = $this->html(Page::a4()->firstHeader(Text::make('Letterhead'))->body(Text::make('Body')));
+        self::assertSame(1, substr_count($html, 'class="pc-header"'));
+        self::assertStringContainsString('Letterhead', $html);
+    }
+
+    /** @return list<string> */
+    private function notes(Document $doc): array
+    {
+        $messages = [];
+        $doc->toHtml(new HtmlOptions(onWarning: function (string $m) use (&$messages): void {
+            $messages[] = $m;
+        }));
+
+        return $messages;
+    }
+
+    public function test_a_set_empty_even_variant_is_noted_too(): void
+    {
+        $note = 'html: approximated even-page header and footer at page';
+        self::assertSame([$note], array_values(array_intersect($this->notes(Document::make($this->page()->evenHeader())), [$note])));
+        self::assertSame([$note], array_values(array_intersect($this->notes(Document::make($this->page()->evenFooter())), [$note])));
+    }
+
+    public function test_each_run_is_noted_at_its_own_page(): void
+    {
+        $notes = $this->notes(Document::make(
+            $this->page(),
+            $this->page()->evenHeader(Text::make('Even top')),
+            $this->page()->evenFooter(Text::make('Even bottom')),
+        ));
+        self::assertNotContains('html: approximated even-page header and footer at page[0]', $notes);
+        self::assertContains('html: approximated even-page header and footer at page[1]', $notes);
+        self::assertContains('html: approximated even-page header and footer at page[2]', $notes);
+    }
+
     public function test_hidden_regions_record_no_fonts_and_resolve_no_images(): void
     {
         $families = [];
@@ -95,10 +133,10 @@ final class HtmlPageVariantsTest extends TestCase
         $page = $this->page()->margin(mm(10), mm(15), mm(20), mm(25));
         $full = new HtmlOptions(fullPage: true);
         $css = $this->html($page->mirrorMargins(), $full);
-        $top = \Papercut\Html\Css::pt(mm(10)->points);
-        $inside = \Papercut\Html\Css::pt(mm(25)->points);
-        $outside = \Papercut\Html\Css::pt(mm(15)->points);
-        $bottom = \Papercut\Html\Css::pt(mm(20)->points);
+        $top = Css::pt(mm(10)->points);
+        $inside = Css::pt(mm(25)->points);
+        $outside = Css::pt(mm(15)->points);
+        $bottom = Css::pt(mm(20)->points);
         self::assertStringContainsString("@page :left{margin:$top $inside $bottom $outside}", $css);
         self::assertStringNotContainsString('@page :left', $this->html($page, $full));
         self::assertStringNotContainsString('@page', $this->html($page->mirrorMargins()));

@@ -7,7 +7,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- First-page headers and footers: `Page::firstHeader()` and `firstFooter()` in PHP, `first-header` and `first-footer` slots in Blade. An empty one means nothing on the first page. Word export sets "Different First Page"; HTML shows the first-page header at the top.
+- First-page headers and footers: `Page::firstHeader()` and `firstFooter()` in PHP, `first-header` and `first-footer` slots in Blade. An empty one means nothing on the first page. Word export sets "Different First Page"; HTML shows the first-page header at the top. The tree walker reports them as the regions `FirstHeader`, `EvenHeader`, `FirstFooter` and `EvenFooter`.
 - Even-page headers and footers: `Page::evenHeader()` and `evenFooter()` in PHP, `even-header` and `even-footer` slots in Blade. Word export sets "Different Odd & Even Pages"; HTML export leaves them out and reports it as approximated.
 - Mirrored margins: `Page::mirrorMargins()` in PHP and `mirror` on `<x-doc::page>` in Blade swap the left and right margins on even pages. Word export sets "Mirror margins"; HTML applies it in print, from the first page run.
 - `rowspan` on table cells: `TableCell::rowspan()` in PHP and `rowspan` on `<x-doc::td>` and `<x-doc::th>` in Blade. Spanning cells lay out in PDF, HTML and Word export, and a group of spanned rows stays together across page breaks unless it is taller than a page.
@@ -18,7 +18,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Lists in Word export are real Word lists (`word/numbering.xml`), except lists with marker `none`, which stay indented paragraphs. Enter continues them, and renumbering and the bullet and number buttons work. Nested lists sit one level deeper, extra blocks in an item stay indented under it, and an item whose number breaks the sequence starts a new Word list from that item on. Numbers Word can't show (below 1, or roman numerals above 3999) keep typed markers and are reported as approximated.
-- Lists have space after them in PDF, Word and HTML: the theme's paragraph spacing, unless the last item already ends with it or the list has a margin of its own, which keeps its own spacing. Nested lists add none. Documents with lists lay out differently.
+- Lists have space after them in PDF, Word and HTML: the theme's paragraph spacing, unless the last item already ends with it or the list has a margin set, which then decides its spacing. Nested lists add none. Documents with lists lay out differently.
 
 ### Fixed
 

@@ -25,41 +25,41 @@ final class ListMapper
     /** @var list<list<array{ordered: bool, numId: ?int, marker: ListMarker, typed: bool, numbers: list<int>, next: int}>> lists open outside the table cells being walked */
     private array $saved = [];
 
-    /** @var ?\WeakMap<BlockElement, true> blocks whose indent is already their total under the list level */
-    private static ?\WeakMap $settled = null;
+    private readonly Settled $settled;
 
     public function __construct(private readonly Numbering $numbering, private readonly Fidelity $fidelity)
     {
+        $this->settled = new Settled();
     }
 
-    /** Whether a list item already produced this block (its indent is its total under the list level). */
-    private static function isSettled(BlockElement $b): bool
+    /** The blocks list items have settled in this export; whatever copies blocks must carry the mark across. */
+    public function settled(): Settled
     {
-        return self::$settled !== null && isset(self::$settled[$b]);
+        return $this->settled;
     }
 
-    private static function settle(BlockElement $b): void
+    /**
+     * The marker the PDF draws for a list: its own, else the default for its depth among enclosing lists of the same kind.
+     * The level in Word only counts the lists since the last cell, but the marker counts every enclosing list.
+     *
+     * @param list<bool> $enclosing the ordered flag of every enclosing list, outermost first
+     */
+    public static function markerFor(ListNode $list, array $enclosing): ListMarker
     {
-        self::$settled ??= new \WeakMap();
-        self::$settled[$b] = true;
-    }
+        $depth = 1 + count(array_filter($enclosing, static fn (bool $o): bool => $o === $list->isOrdered()));
 
-    /** A copy of a block (spacing, pagination) is as settled as the original. */
-    public static function carry(BlockElement $from, BlockElement $to): void
-    {
-        if (self::isSettled($from)) {
-            self::settle($to);
-        }
+        return $list->markerStyle() ?? ListMarker::forDepth($list->isOrdered(), $depth);
     }
 
     public function enter(ListNode $list, string $path): void
     {
-        // The marker follows the depth of its kind across every enclosing list, as the PDF counts it; the level only counts the lists since the last cell.
-        $depth = 1;
+        $enclosing = [];
         foreach ([...$this->saved, $this->open] as $stack) {
-            $depth += count(array_filter($stack, static fn (array $l): bool => $l['ordered'] === $list->isOrdered()));
+            foreach ($stack as $l) {
+                $enclosing[] = $l['ordered'];
+            }
         }
-        $marker = $list->markerStyle() ?? ListMarker::forDepth($list->isOrdered(), $depth);
+        $marker = self::markerFor($list, $enclosing);
         $numbers = $list->numbers();
         $typed = $marker !== ListMarker::None && !self::numberable($marker, $numbers);
         if ($typed) {
@@ -121,15 +121,15 @@ final class ListMapper
         $first = $blocks[0] ?? null;
         if ($marked && $first instanceof Paragraph && Flow::isHairline($first)) {
             // A spacing hairline can't carry a label (Word clips it): its spacing and page break move to a paragraph of normal height.
-            // The hairline's space after was its margin less its own 2-twip line; a normal line gives the full margin back.
+            // The hairline's space after was its margin less its own line; a normal line gives the full margin back.
             $after = $first->style->spaceAfterTwips;
-            $blocks[0] = $first = new Paragraph([], new ParagraphStyle(...[...get_object_vars($first->style), 'spaceAfterTwips' => $after > 0 ? $after + 2 : 0, 'lineSpacingTwips' => null, 'lineSpacingRule' => null]));
+            $blocks[0] = $first = new Paragraph([], new ParagraphStyle(...[...get_object_vars($first->style), 'spaceAfterTwips' => $after > 0 ? $after + Flow::HAIRLINE : 0, 'lineSpacingTwips' => null, 'lineSpacingRule' => null]));
         }
-        if ($marked && !($first instanceof Paragraph && !self::isSettled($first))) {
+        if ($marked && !($first instanceof Paragraph && !$this->settled->has($first))) {
             array_unshift($blocks, new Paragraph([]));
         }
         foreach ($blocks as $k => $b) {
-            if (self::isSettled($b)) {
+            if ($this->settled->has($b)) {
                 continue;
             }
             if ($b instanceof Table) {
@@ -140,14 +140,14 @@ final class ListMapper
                 $offset = $b->style->indentLeftTwips;
                 $b = new Paragraph($b->children, $b->style, $b->headingLevel, Numbering::marker($numId, $ilvl, $b->headingLevel));
                 if ($offset > 0) {
-                    $b = Flow::withParagraph($b, ['indentLeftTwips' => $offset + $text, 'indentFirstLineTwips' => -self::INDENT]);
+                    $b = Flow::withParagraph($b, ['indentLeftTwips' => $offset + $text, 'indentFirstLineTwips' => -self::INDENT], $this->settled);
                 }
             } elseif ($k === 0 && $label !== '') {
-                $b = self::typed($b, $label, $text);
+                $b = $this->typed($b, $label, $text);
             } else {
-                $b = Flow::withParagraph($b, ['indentLeftTwips' => $b->style->indentLeftTwips + $text]);
+                $b = Flow::withParagraph($b, ['indentLeftTwips' => $b->style->indentLeftTwips + $text], $this->settled);
             }
-            self::settle($b);
+            $this->settled->mark($b);
             $blocks[$k] = $b;
         }
 
@@ -179,7 +179,7 @@ final class ListMapper
     }
 
     /** The label as text with a hanging indent: the way lists Word can't number are drawn. */
-    private static function typed(Paragraph $p, string $label, int $text): Paragraph
+    private function typed(Paragraph $p, string $label, int $text): Paragraph
     {
         $children = $p->children;
         $first = $children[0] ?? null;
@@ -192,6 +192,6 @@ final class ListMapper
         return Flow::withParagraph(new Paragraph($children, $p->style, $p->headingLevel, $p->styleId), [
             'indentLeftTwips' => $p->style->indentLeftTwips + $text,
             'indentFirstLineTwips' => -self::INDENT,
-        ]);
+        ], $this->settled);
     }
 }

@@ -74,7 +74,8 @@ final class PageVariantsComponentTest extends TestCase
     {
         $this->expectException(InvalidStructure::class);
         $this->expectExceptionMessage('first-header, first-footer, even-header, even-footer');
-
+        // The newline after the closing slot tag matters: with the body text glued to it, this test
+        // left a Blade output buffer open when the exception was thrown.
         $this->page("<x-doc::page><x-slot:last-header>X</x-slot:last-header>\nBody</x-doc::page>");
     }
 
@@ -91,21 +92,5 @@ final class PageVariantsComponentTest extends TestCase
 
         self::assertStringContainsString('Opening banner', $text);
         self::assertStringContainsString('Body text', $text);
-    }
-
-    private function pdfText(string $pdf): string
-    {
-        $file = tempnam(sys_get_temp_dir(), 'papercut-variants-');
-        file_put_contents($file, $pdf);
-        try {
-            exec('pdftotext ' . escapeshellarg($file) . ' - 2>&1', $out, $code);
-            if ($code !== 0) {
-                self::markTestSkipped('pdftotext (poppler) is not installed.');
-            }
-
-            return implode("\n", $out);
-        } finally {
-            unlink($file);
-        }
     }
 }

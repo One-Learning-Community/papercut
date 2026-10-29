@@ -37,9 +37,8 @@ final class DocxExporter implements Exporter
 
         $pages = $doc->pages();
         foreach ($pages as $i => $page) {
-            $name = count($pages) > 1 ? sprintf('page[%d]', $i) : 'page';
             if ($page->templatePage() !== null) {
-                $fidelity->dropped('PDF page template', $name);
+                $fidelity->dropped('PDF page template', self::pagePath($i, count($pages)));
             }
         }
 
@@ -51,7 +50,7 @@ final class DocxExporter implements Exporter
             foreach ($pages as $i => $page) {
                 $differ = abs($page->margins()->left->points - $page->margins()->right->points) > 0.01;
                 if (!$page->mirrorsMargins() && $differ) {
-                    $fidelity->approximated('mirrored margins', count($pages) > 1 ? sprintf('page[%d]', $i) : 'page');
+                    $fidelity->approximated('mirrored margins', self::pagePath($i, count($pages)));
                 }
             }
         }
@@ -109,6 +108,12 @@ final class DocxExporter implements Exporter
         return new Output($bytes, self::MIME, 'docx');
     }
 
+    /** The path fidelity reports use for a page: indexed only when the document has several. */
+    private static function pagePath(int $index, int $count): string
+    {
+        return $count > 1 ? sprintf('page[%d]', $index) : 'page';
+    }
+
     /**
      * One section per run of pages that look alike: the same page setup, header, footer and layer pictures.
      *
@@ -162,7 +167,7 @@ final class DocxExporter implements Exporter
             if ($previous !== null && $footer === [] && $previous->footer !== []) {
                 $footer = [Flow::hairline()];
             }
-            // A variant that is set gives its blocks (a hairline if set empty (just the floats paragraph in a header part with floats)); an unset one copies the normal part.
+            // A variant that is set gives its blocks, or a hairline when set empty, except that a header part with floats needs none. An unset one copies the normal part.
             [$fh, $ff, $eh, $ef] = [[], [], [], []];
             $page = $first['page'];
             if (self::setsFirst($page)) {
@@ -214,7 +219,7 @@ final class DocxExporter implements Exporter
     }
 
     /**
-     * A first or even part: the variant's blocks if it is set (a hairline if set empty (just the floats paragraph in a header part with floats)), else a copy of the normal part.
+     * A first or even part: the variant's blocks if it is set, with a hairline when it is set empty, except that a header part with floats needs none. An unset variant copies the normal part.
      *
      * @param array{page: Page, regions: array<string, list<BlockElement>>, floats: list<DocxImage>} $run
      * @param list<BlockElement> $normal

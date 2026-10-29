@@ -111,7 +111,7 @@ final class BlockLayouter implements Layouter
             if ($res->status === Status::DoesNotFit || $res->fragment === null) {
                 if ($monolithic) {
                     // unbounded and fresh: cannot happen for well-behaved layouters, but never drop content silently
-                    $engine->context()->warn(sprintf('Content dropped inside fixed-height box: %s[%d]', $child->debugName(), $i));
+                    $engine->context()->warnOnce(sprintf('Content dropped inside fixed-height box: %s[%d]', $child->debugName(), $i));
                     continue;
                 }
                 if ($placed === []) {

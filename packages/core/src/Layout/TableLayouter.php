@@ -296,7 +296,7 @@ final class TableLayouter implements Layouter
         $n = count($content);
         $given = $table->trackList()?->count();
         if ($given !== null && $given !== $n) {
-            $engine->context()->warn(sprintf('Table has %d columns but %d tracks', $n, $given));
+            $engine->context()->warnOnce(sprintf('Table has %d columns but %d tracks', $n, $given));
         }
         $tracks = self::trackList($table);
 
@@ -371,7 +371,7 @@ final class TableLayouter implements Layouter
             $total = array_sum($widths);
         }
         if ($total > $width + self::EPSILON) {
-            $engine->context()->warn(sprintf('Table columns need %.2fpt but only %.2fpt is available', $total, $width));
+            $engine->context()->warnOnce(sprintf('Table columns need %.2fpt but only %.2fpt is available', $total, $width));
         }
 
         $offsets = [];

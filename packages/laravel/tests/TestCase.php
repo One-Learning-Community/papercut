@@ -68,4 +68,22 @@ abstract class TestCase extends Orchestra
 
         return $this->app;
     }
+
+    /** The text of a PDF as poppler's pdftotext reads it; skips the test when pdftotext is not installed. */
+    protected function pdfText(string $pdf): string
+    {
+        $file = tempnam(sys_get_temp_dir(), 'papercut-text-');
+        file_put_contents($file, $pdf);
+        try {
+            exec('pdftotext ' . escapeshellarg($file) . ' - 2>/dev/null', $out, $code);
+            if ($code === 127) {
+                self::markTestSkipped('pdftotext (poppler) is not installed.');
+            }
+            self::assertSame(0, $code, 'pdftotext failed');
+
+            return implode("\n", $out);
+        } finally {
+            unlink($file);
+        }
+    }
 }

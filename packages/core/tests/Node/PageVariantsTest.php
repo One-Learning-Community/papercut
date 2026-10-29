@@ -59,6 +59,14 @@ final class PageVariantsTest extends TestCase
         self::assertSame($page->footerNodes(), $page->footerNodesOf(PageVariant::Default));
     }
 
+    public function test_an_unset_variant_has_no_nodes_of_its_own(): void
+    {
+        $page = Page::a4()->header('h')->footer('f');
+        self::assertSame([], $page->headerNodesOf(PageVariant::Even));
+        self::assertSame([], $page->footerNodesOf(PageVariant::Even));
+        self::assertSame([], $page->headerNodesOf(PageVariant::First));
+    }
+
     public function test_mirrored_margins_swap_left_and_right_on_even_pages(): void
     {
         $page = Page::a4()->margin(mm(10), mm(15), mm(20), mm(25))->mirrorMargins();

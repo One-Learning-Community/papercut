@@ -148,11 +148,25 @@ final class DocxPatcherTest extends TestCase
 
     public function test_mirror_margins_off_leaves_settings_alone(): void
     {
+        $base = new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'));
         foreach ([self::plain(), self::withEven()] as $bytes) {
-            self::assertSame(DocxPatcher::patch($bytes, self::spec(false)), DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'))));
-            self::assertStringNotContainsString(self::MIRROR, self::part(DocxPatcher::patch($bytes, self::spec(false)), 'word/document.xml'));
+            $off = DocxPatcher::patch($bytes, self::spec(false));
+            self::assertSame(DocxPatcher::patch($bytes, $base), $off);
+            $settings = DocxInspector::of($off);
+            if ($settings->has('word/settings.xml')) {
+                self::assertStringNotContainsString('w:mirrorMargins', $settings->part('word/settings.xml'));
+            }
+            self::assertStringContainsString('w:mirrorMargins', self::part(DocxPatcher::patch($bytes, self::spec(true)), 'word/settings.xml'));
         }
         self::assertFalse(DocxInspector::of(DocxPatcher::patch(self::plain(), self::spec(false)))->has('word/settings.xml'));
+    }
+
+    public function test_mirror_margins_is_not_added_twice(): void
+    {
+        $bytes = self::withEven();
+        $settings = str_replace('<w:evenAndOddHeaders/>', '<w:mirrorMargins/><w:evenAndOddHeaders/>', self::part($bytes, 'word/settings.xml'));
+        $out = DocxPatcher::patch(self::rewrite($bytes, ['word/settings.xml' => $settings]), self::spec(true));
+        self::assertSame(1, substr_count(self::part($out, 'word/settings.xml'), 'w:mirrorMargins'));
     }
 
     public function test_mirror_patch_fails_loudly_when_markup_changes(): void
@@ -249,8 +263,15 @@ final class DocxPatcherTest extends TestCase
     public function test_unregistered_num_id_fails_loudly(): void
     {
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('php-docx output changed');
+        $this->expectExceptionMessage('php-docx output changed: list paragraph refers to unregistered numId 9');
         DocxPatcher::patch(self::marked('papercut-num-9-0'), self::numSpec(self::numbering()));
+    }
+
+    public function test_num_id_zero_fails_loudly(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('php-docx output changed: list paragraph refers to unregistered numId 0');
+        DocxPatcher::patch(self::marked('papercut-num-0-0'), self::numSpec(self::numbering()));
     }
 
     public function test_heading_marker_restores_heading_style(): void
@@ -271,7 +292,7 @@ final class DocxPatcherTest extends TestCase
     public function test_leftover_marker_fails_loudly(): void
     {
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('php-docx output changed');
+        $this->expectExceptionMessage('php-docx output changed: list paragraph style in word/document.xml not found');
         DocxPatcher::patch(self::marked('papercut-num-odd'), self::numSpec(self::numbering()));
     }
 
