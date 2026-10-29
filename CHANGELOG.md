@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
 ### Added
 
 - `papercut:fonts:install` saves the family's licence (`OFL.txt`, `LICENSE.txt` or `UFL.txt`) beside the font files, from Google's fonts repository. If it can't be downloaded, the command warns and installs the fonts anyway; `--force` replaces an existing copy.
