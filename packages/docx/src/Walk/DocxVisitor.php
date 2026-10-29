@@ -7,7 +7,7 @@ namespace Papercut\Docx\Walk;
 use Dskripchenko\PhpDocx\Element\{BlockElement, Image as DocxImage, PageBreak as DocxPageBreak, Paragraph};
 use Dskripchenko\PhpDocx\Style\{Alignment, HorizontalAnchor, ImagePosition, ParagraphStyle, VerticalAnchor};
 use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
-use Papercut\Docx\Map\{BoxMapper, Fade, Flow, ImageMapper, ListMapper, RowMapper, TableMapper, TextMapper, Units};
+use Papercut\Docx\Map\{BoxMapper, Fade, Flow, ImageMapper, InlineRow, ListMapper, RowMapper, TableMapper, TextMapper, Units};
 use Papercut\Export\Fidelity;
 use Papercut\Layout\{TableGrid, WidthResolver};
 use Papercut\Style\{Align, ComputedStyle, Direction, Justify, TextAlign};
@@ -50,6 +50,7 @@ final class DocxVisitor implements TreeVisitor
         private readonly TextMapper $text,
         private readonly BoxMapper $boxes,
         private readonly RowMapper $rows,
+        private readonly InlineRow $inline,
         private readonly TableMapper $tables,
         private readonly ListMapper $lists,
         private readonly ImageMapper $images,
@@ -186,7 +187,7 @@ final class DocxVisitor implements TreeVisitor
             $node instanceof ListItem => $this->lists->item(Flow::blocks($frame)),
             $node instanceof Link => $this->leaveLink($frame),
             $node instanceof Table => [$this->tables->table($style, $frame)],
-            $frame->isRow => [$this->rows->row($style, $frame, $at->path())],
+            $frame->isRow => [$this->inline->line($style, $frame, $at->path()) ?? $this->rows->row($style, $frame, $at->path())],
             default => Flow::blocks($frame),
         };
         // A column centres or end-aligns a child that doesn't stretch; for a paragraph that is its alignment.

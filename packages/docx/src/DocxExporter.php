@@ -12,7 +12,7 @@ use Dskripchenko\PhpDocx\Section;
 use Dskripchenko\PhpDocx\Writer\Word2007Writer;
 use Papercut\Backend\DefaultBackend;
 use Papercut\Document;
-use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, LineMetrics, ListMapper, Raster, RowMapper, TableMapper, TextMapper};
+use Papercut\Docx\Map\{BoxMapper, Flow, ImageMapper, LineMetrics, InlineRow, ListMapper, Raster, RowMapper, TableMapper, TextMapper};
 use Papercut\Docx\Package\{DocxPatcher, PageSetupMapper, PatchSpec};
 use Papercut\Docx\Walk\DocxVisitor;
 use Papercut\Export\{ExportOptions, Exporter, Fidelity, NoteReporter, Output};
@@ -44,12 +44,14 @@ final class DocxExporter implements Exporter
         }
 
         $boxes = new BoxMapper($fidelity);
+        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity);
         $visitor = new DocxVisitor(
             $fidelity,
             WidthResolver::for($options),
-            new TextMapper(new LineMetrics($options->fonts()), $fidelity),
+            $text,
             $boxes,
             new RowMapper($fidelity, $boxes),
+            new InlineRow($fidelity),
             new TableMapper($fidelity, $boxes),
             new ListMapper(),
             new ImageMapper($fidelity, DefaultBackend::make(false), Raster::detect()),
