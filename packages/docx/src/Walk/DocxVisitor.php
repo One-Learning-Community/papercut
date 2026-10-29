@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Walk;
 
-use Dskripchenko\PhpDocx\Element\{BlockElement, Image as DocxImage, PageBreak as DocxPageBreak, Paragraph, Table as DocxTable};
+use Dskripchenko\PhpDocx\Element\{BlockElement, Image as DocxImage, PageBreak as DocxPageBreak, Paragraph};
 use Dskripchenko\PhpDocx\Style\{Alignment, HorizontalAnchor, ImagePosition, ParagraphStyle, VerticalAnchor};
 use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, View};
 use Papercut\Docx\Map\{BoxMapper, Fade, Flow, ImageMapper, InlineRow, ListMapper, RowMapper, TableMapper, TextMapper, Units};
@@ -243,11 +243,6 @@ final class DocxVisitor implements TreeVisitor
                 : null;
             $blocks = [$this->boxes->stack($frame, $at->path()) ?? $this->boxes->box($blocks, $style, $frame->width, $at->path(), $align, $childMin)];
             $boxed = true;
-        }
-        // The strip look is a two-row table; kept together, its bar row stays with the code row.
-        if ($style->keepTogether && $node instanceof View && StyleName::leads($node->styleName(), 'code-block')) {
-            $blocks = array_map(fn (BlockElement $b): BlockElement => $b instanceof DocxTable && count($b->rows) > 1
-                ? Flow::keepRowsWithNext($b, $this->lists->settled(), 0, count($b->rows) - 2) : $b, $blocks);
         }
         $parent->items[] = ['blocks' => $blocks, 'style' => $style, 'index' => $at->index(), 'boxed' => $boxed];
     }

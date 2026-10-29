@@ -60,6 +60,11 @@ final class Flow
     {
         $last = count($blocks) - 1;
         foreach ($blocks as $i => $b) {
+            if ($b instanceof Table && $s->keepTogether && $b->rows !== []) {
+                // Each row stays with the next; the last one too when more of the kept block follows.
+                $blocks[$i] = self::keepRowsWithNext($b, $settled, 0, count($b->rows) - ($i < $last ? 1 : 2));
+                continue;
+            }
             if (!$b instanceof Paragraph) {
                 continue;
             }
