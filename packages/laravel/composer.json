@@ -50,10 +50,12 @@
         "bacon/bacon-qr-code": "^3.1",
         "orchestra/testbench": "^11.3",
         "papercut/docx": "^0.4",
+        "phiki/phiki": "^2.2",
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4"
     },
     "suggest": {
+        "phiki/phiki": "Syntax highlighting in code blocks (TextMate grammars and themes)",
         "papercut/docx": "Word (.docx) export: ->docx() and ?format=docx previews"
     },
     "autoload": {
