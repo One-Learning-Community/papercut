@@ -343,6 +343,19 @@ final class HtmlConverterTest extends TestCase
         ], self::notes($t));
     }
 
+    public function test_resolver_called_once_per_trimmed_src(): void
+    {
+        $calls = [];
+        $images = function (string $s) use (&$calls): ?string {
+            $calls[] = $s;
+            return $s === 'gone.png' ? null : TestImages::png();
+        };
+        $html = str_repeat('<img src="a.png">', 50) . '<img src=" a.png ">' . str_repeat('<img src="gone.png" alt="x">', 5);
+        Markup::html($html, new MarkupOptions(images: $images));
+        self::assertSame(['a.png', 'gone.png'], array_map('trim', $calls));
+        self::assertCount(2, $calls);
+    }
+
     public function test_theme_ignores_style_and_original_applies_it(): void
     {
         $html = '<figure style="max-width: 221px;"><img src="a.png" width="221" height="266" style="width: 100px"></figure>';

@@ -102,6 +102,12 @@ final class EditorImages implements ImageResolver
 'markup' => ['images' => \App\Markup\EditorImages::class],
 ```
 
+A single tag can use a different resolver with the `images` attribute: `<x-doc::markup :html="$body" images="App\Markup\LegacyImages" />`. The class must implement `Papercut\Laravel\Markup\ImageResolver`, like the config value. `images="none"` turns images off for that tag, so each image shows its alt text, as for a missing image.
+
+Within one markup conversion the resolver is called once for each distinct `src` (trimmed of surrounding whitespace); later images with the same `src` reuse the answer, including a null.
+
+Papercut builds a resolver once per request, queue job or Octane request, and every markup tag in it shares that instance. A cache in a property lasts that long; for anything longer use Laravel's cache.
+
 ## Preview
 
 | Key | Default | Description |

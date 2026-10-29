@@ -25,6 +25,9 @@ class PapercutManager
     private ?HtmlOptions $html = null;
     private ?MarkupOptions $markup = null;
 
+    /** @var array<class-string<Markup\ImageResolver>, \Closure> resolvers named by a markup tag's `images` attribute, one instance per class */
+    private array $imageResolvers = [];
+
     public function __construct(private readonly NodeRegistry $registry, private readonly PreviewRegistry $previews)
     {
     }
@@ -107,6 +110,25 @@ class PapercutManager
     public function markupOptions(): MarkupOptions
     {
         return $this->markup ??= $this->buildMarkupOptions();
+    }
+
+    /**
+     * The resolver for a markup tag's `images` attribute: the class is built through the container once per manager and shared by every tag naming it.
+     *
+     * @return \Closure(string): ?string
+     */
+    public function markupImageResolver(string $class): \Closure
+    {
+        if (isset($this->imageResolvers[$class])) {
+            return $this->imageResolvers[$class];
+        }
+        if (!is_subclass_of($class, Markup\ImageResolver::class)) {
+            throw new \InvalidArgumentException('Invalid ' . Tag::of('markup') . ' images: ' . var_export($class, true) . '; expected an invokable class name implementing ' . Markup\ImageResolver::class . " or 'none'");
+        }
+        /** @var Markup\ImageResolver $instance */
+        $instance = self::build('markup.images', $class, Tag::of('markup') . ' images');
+
+        return $this->imageResolvers[$class] = $instance(...);
     }
 
     private function buildMarkupOptions(): MarkupOptions
@@ -268,7 +290,7 @@ class PapercutManager
     }
 
     /** Builds a class through the container; a factory's own InvalidArgumentException passes through unchanged. */
-    private static function build(string $key, string $class): object
+    private static function build(string $key, string $class, ?string $what = null): object
     {
         try {
             return app($class);
@@ -277,7 +299,7 @@ class PapercutManager
             if ($inner instanceof \InvalidArgumentException) {
                 throw $inner;
             }
-            throw new \InvalidArgumentException("Cannot build papercut.$key resolver " . var_export($class, true) . ': ' . $e->getMessage(), 0, $e);
+            throw new \InvalidArgumentException('Cannot build ' . ($what ?? "papercut.$key") . ' resolver ' . var_export($class, true) . ': ' . $e->getMessage(), 0, $e);
         }
     }
 

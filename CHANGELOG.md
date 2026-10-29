@@ -7,6 +7,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `images` attribute on `<x-doc::markup>`: an `ImageResolver` class for that tag, or `none` to show alt text instead of images. `PapercutManager::markupImageResolver()` builds each named class once per manager.
 - `FontSet::withWordName()` and `wordName()` give a family the name Word should use for it (Cousine defaults to `Courier New`), and `FontSet::info()` reports a family's `FontClass`, PANOSE classification and fixed-pitch flag from its font file. In Laravel the names come from `papercut.font_word_names`.
 - Word export writes each family's Word name in runs and the document default, and adds `word/fontTable.xml` with PANOSE, family class and pitch so Word picks a matching stand-in for a missing font.
 - Cousine (regular, bold, italic, bold italic; SIL OFL) is bundled next to Inter. The font family keyword `monospace` resolves to the theme's new `monoFamily` (default `Cousine`; `Theme::with(monoFamily: ...)`, `papercut.theme.mono_family` in Laravel). A family literally named "monospace" cannot be registered.
@@ -24,6 +25,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Markup conversion calls the image resolver once per distinct `src` (trimmed), reusing the result, including a null, for later images with the same `src`. The resolver now receives the trimmed `src`.
 - HTML export ends each font stack with the generic family matching the font's class: `monospace` for Cousine and other fixed-pitch fonts, `serif` for serif fonts, and `system-ui, sans-serif` otherwise (unchanged for Inter and unknown families).
 - Lists in Word export are real Word lists (`word/numbering.xml`), except lists with marker `none`, which stay indented paragraphs. Enter continues them, and renumbering and the bullet and number buttons work. Nested lists sit one level deeper, extra blocks in an item stay indented under it, and an item whose number breaks the sequence starts a new Word list from that item on. Numbers Word can't show (below 1, or roman numerals above 3999) keep typed markers and are reported as approximated.
 - Lists have space after them in PDF, Word and HTML: the theme's paragraph spacing, unless the last item already ends with it or the list has a margin set, which then decides its spacing. Nested lists add none. Documents with lists lay out differently.

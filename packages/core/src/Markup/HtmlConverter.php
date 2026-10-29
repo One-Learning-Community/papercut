@@ -106,6 +106,9 @@ final class HtmlConverter
     /** How many code-like elements (code, kbd, samp, tt) outside a `pre` enclose the current node; their text takes the `code` style. */
     private int $code = 0;
 
+    /** @var array<string, string|null> the resolver's answer per trimmed src in this conversion, nulls included */
+    private array $resolved = [];
+
     private function __construct(private readonly MarkupOptions $options)
     {
         $this->run = new InlineRun();
@@ -929,19 +932,24 @@ final class HtmlConverter
         return $size !== false && $size[0] > 0 && $size[1] > 0 ? $height * $size[0] / $size[1] : null;
     }
 
-    /** The image bytes for $src from the app's resolver, or null when there are none Papercut can read (or no src). */
+    /** The image bytes for $src from the app's resolver (asked once per distinct trimmed src), or null when there are none Papercut can read (or no src). */
     private function resolve(string $src): ?string
     {
         $resolver = $this->options->images;
-        if ($resolver === null || trim($src, " \t\n\r\f") === '') {
+        $src = trim($src, " \t\n\r\f");
+        if ($resolver === null || $src === '') {
             return null;
+        }
+        if (array_key_exists($src, $this->resolved)) {
+            return $this->resolved[$src];
         }
         try {
             $bytes = $resolver($src);
         } catch (\Throwable) {
-            return null;
+            $bytes = null;
         }
-        return is_string($bytes) && ImageFormat::sniff($bytes) !== null ? $bytes : null;
+
+        return $this->resolved[$src] = is_string($bytes) && ImageFormat::sniff($bytes) !== null ? $bytes : null;
     }
 
     /** An iframe, video or audio becomes a paragraph linking to its `src`; its own content is not shown. */

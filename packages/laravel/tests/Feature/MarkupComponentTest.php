@@ -10,6 +10,9 @@ use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Facades\Papercut;
 use Papercut\Laravel\PapercutManager;
 use Papercut\Laravel\Tests\Fixtures\FixtureImageResolver;
+use Papercut\Laravel\Tests\Fixtures\RecordingImageResolver;
+use Papercut\Laravel\Tests\Fixtures\RecordingImagesA;
+use Papercut\Laravel\Tests\Fixtures\RecordingImagesB;
 use Papercut\Laravel\Tests\TestCase;
 use Papercut\Style\TextAlign;
 use Papercut\Text;
@@ -89,6 +92,47 @@ final class MarkupComponentTest extends TestCase
         $this->fresh();
         $n = $this->nodeFrom('<x-doc::markup :html="$h" />', ['h' => '<img src="a.png">']);
         self::assertTrue($n instanceof Image || ($n instanceof View && $n->children()[0] instanceof Image));
+    }
+
+    public function test_images_attribute_overrides_config(): void
+    {
+        config(['papercut.markup.images' => RecordingImagesB::class]);
+        $this->fresh();
+        RecordingImageResolver::reset();
+        $a = $this->nodeFrom('<x-doc::markup :html="$h" images="' . RecordingImagesA::class . '" />', ['h' => '<img src="a.png">']);
+        $b = $this->nodeFrom('<x-doc::markup :html="$h" />', ['h' => '<img src="b.png">']);
+        self::assertSame([RecordingImagesA::class . ':a.png', RecordingImagesB::class . ':b.png'], RecordingImageResolver::$calls);
+        foreach ([$a, $b] as $n) {
+            self::assertTrue($n instanceof Image || ($n instanceof View && $n->children()[0] instanceof Image));
+        }
+    }
+
+    public function test_images_none_shows_alt_text(): void
+    {
+        config(['papercut.markup.images' => RecordingImagesB::class]);
+        $this->fresh();
+        RecordingImageResolver::reset();
+        $n = $this->nodeFrom('<x-doc::markup :html="$h" images="none" />', ['h' => '<p><img src="a.png" alt="A picture"></p>']);
+        self::assertSame([], RecordingImageResolver::$calls);
+        self::assertSame(['A picture'], array_map(fn ($s) => $s->text, $n->spanList()));
+    }
+
+    public function test_images_attribute_rejects_non_resolver_class(): void
+    {
+        $this->fresh();
+        $this->expectExceptionMessage('Invalid <x-doc::markup> images: ' . var_export(\stdClass::class, true) . '; expected an invokable class name implementing ' . \Papercut\Laravel\Markup\ImageResolver::class . " or 'none'");
+        $this->nodeFrom('<x-doc::markup :html="$h" images="' . \stdClass::class . '" />', ['h' => '<p>x</p>']);
+    }
+
+    public function test_resolver_instance_shared_across_tags(): void
+    {
+        $this->fresh();
+        RecordingImageResolver::reset();
+        $tag = '<x-doc::markup :html="$h" images="' . RecordingImagesA::class . '" />';
+        $this->nodeFrom($tag, ['h' => '<img src="a.png">']);
+        $this->nodeFrom($tag, ['h' => '<img src="b.png">']);
+        self::assertSame(1, RecordingImageResolver::$built);
+        self::assertCount(2, RecordingImageResolver::$calls);
     }
 
     public function test_config_styles_and_tag_override(): void
