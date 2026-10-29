@@ -16,7 +16,7 @@ final class Choices extends PapercutComponent
     /** @return list<string> */
     protected function ownAttributes(): array
     {
-        return ['type', 'emphasize-selected'];
+        return ['type', 'emphasize-selected', 'variant'];
     }
 
     protected function build(array $data): object

@@ -18,7 +18,7 @@ final class KeyValue extends PapercutComponent
     /** @return list<string> */
     protected function ownAttributes(): array
     {
-        return ['label-width'];
+        return ['label-width', 'variant'];
     }
 
     protected function build(array $data): object

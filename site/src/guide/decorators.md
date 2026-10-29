@@ -288,6 +288,31 @@ You're not limited to the built-in tones. Define the styles for a new one and us
 <x-doc::badge type="success">Passed</x-doc::badge>
 ```
 
+### Variants
+
+A variant restyles every part of a decorator at once. `variant="large"` makes the decorator also apply `<name>.large` after each of its built-in names, whenever your theme defines that name. Define only the parts the variant changes:
+
+```php
+'styles' => [
+    'section.title.large' => ['font-size' => '16pt'],
+    'section.large'       => ['margin-bottom' => '14pt'],
+],
+```
+
+```blade
+<x-doc::section title="Results" variant="large">...</x-doc::section>
+```
+
+```php
+use Papercut\Decorator\Section;
+
+Section::make('...')->title('Results')->variant('large');
+```
+
+Several variants can be given, separated by spaces (`variant="large compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens. Variants come after the tone (`callout.title.warning`, then `callout.title.large`) and before your own `style=""` and style modifiers, which still win on the outer box.
+
+In Blade, a variant for which the theme has no style on any part of that decorator throws an error listing the names it looked for. In PHP, a variant nothing styles does nothing, because the decorator has no theme to check against. No variant styles ship by default.
+
 ## A full example
 
 The `responses` example uses all eight decorators to lay out a completed feedback form. It's available in [Blade](https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php) and in [PHP](https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php).

@@ -21,3 +21,7 @@ Colours are Tailwind palette names.
 A `warning` callout applies `callout` and then `callout.warning`, and its title applies `callout.title` and then `callout.title.warning`. Where they overlap, the later style wins. In practice the base style sets the shape and the tone style sets the colours, so you can replace either one on its own.
 
 Badges work the same way (`badge`, then `badge.<tone>`), and so do selected checkboxes (`choice.marker`, then `choice.marker.selected`).
+
+## Variants
+
+With `variant="large"` (`->variant('large')` in PHP), every name above that a decorator applies is followed by the same name with `.large` added, such as `section.title.large` or `callout.title.large`, if your theme defines it. The order is the built-in name, the tone, the variant, then your own `style=""`. Tone names (`badge.<tone>`, `callout.<tone>`, `callout.title.<tone>`) do not take variant suffixes: variants follow the tone-less part names. Variant styles are not built in. See [Variants](/guide/decorators.md#variants).

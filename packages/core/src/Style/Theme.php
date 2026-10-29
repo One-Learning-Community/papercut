@@ -79,6 +79,9 @@ final class Theme
         if (preg_match('/\s/', $name) === 1) {
             throw new \InvalidArgumentException("Style name '$name' must not contain whitespace; it could never be resolved.");
         }
+        if (str_contains($name, '?')) {
+            throw new \InvalidArgumentException("Style name '$name' must not contain '?'; it could never be resolved.");
+        }
         $styles = $this->styles;
         $styles[$name] = $style;
         return $this->withStyles($styles);
@@ -96,6 +99,14 @@ final class Theme
         }
         $merged = null;
         foreach ($parts as $name) {
+            // A trailing "?" marks an optional name, which decorators use for variants: skipped when undefined.
+            $optional = str_ends_with($name, '?');
+            if ($optional) {
+                $name = substr($name, 0, -1);
+                if (!isset($this->styles[$name]) && DefaultStyles::get($name) === null) {
+                    continue;
+                }
+            }
             $style = $this->styles[$name] ?? DefaultStyles::get($name)
                 ?? throw UnknownAttribute::for($name, Suggest::closest($name, [
                     ...array_map(strval(...), array_keys($this->styles)),
@@ -103,7 +114,7 @@ final class Theme
                 ]), 'style');
             $merged = $merged === null ? $style : $merged->merge($style);
         }
-        return $merged;
+        return $merged ?? new Style();
     }
 
     public function with(
