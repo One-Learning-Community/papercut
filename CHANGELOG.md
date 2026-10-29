@@ -5,6 +5,12 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-29
+
+### Changed
+
+- Composer downloads of every package leave out tests, benchmarks and development configuration (`.gitattributes` `export-ignore`), so `papercut/docx` installs at about a tenth of its 0.4.0 size and `papercut/core` keeps only its source and bundled fonts.
+
 ## [0.4.0] - 2026-10-29
 
 ### Added
