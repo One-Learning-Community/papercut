@@ -84,4 +84,14 @@ final class DecoratorVariantsTest extends TestCase
         $this->expectException(UnknownAttribute::class);
         $this->nodeFrom('<x-doc::code style="foo?">x</x-doc::code>');
     }
+
+    public function test_a_variant_that_collides_with_a_part_name_is_rejected(): void
+    {
+        try {
+            $this->nodeFrom('<x-doc::choices variant="selected"><x-doc::choice selected>a</x-doc::choice></x-doc::choices>');
+            self::fail('Expected InvalidStructure');
+        } catch (InvalidStructure $e) {
+            self::assertStringContainsString("'selected' collides", $e->getMessage());
+        }
+    }
 }

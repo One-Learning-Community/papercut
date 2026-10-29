@@ -18,14 +18,8 @@ final readonly class FontInfo
     /** Unreadable or malformed files give class Other, no PANOSE and variable pitch. */
     public static function read(string $path): self
     {
-        $key = $path . '|' . (int) @filemtime($path) . '|' . (int) @filesize($path);
-
-        return self::cached($key, $path);
-    }
-
-    private static function cached(string $key, string $path): self
-    {
         static $cache = [];
+        $key = $path . '|' . (int) @filemtime($path) . '|' . (int) @filesize($path);
 
         return $cache[$key] ??= self::parse($path);
     }
@@ -47,11 +41,11 @@ final readonly class FontInfo
         $kind = ord($panose[0]);
         $class = match (true) {
             $fixed => FontClass::Mono,
-            $kind === 2 => in_array(ord($panose[1]), [0, 1, 11, 12, 13], true) ? FontClass::Sans : FontClass::Serif,
+            $kind === 2 => in_array(ord($panose[1]), [0, 1, 11, 12, 13, 14, 15], true) ? FontClass::Sans : FontClass::Serif,
             $kind === 3 => FontClass::Script,
             $kind === 4 => FontClass::Decorative,
-            $kind === 5 => FontClass::Other,
-            default => FontClass::Sans,
+            $kind <= 1 => FontClass::Sans, // any, no fit
+            default => FontClass::Other, // pictorial (5), and kinds PANOSE 1.0 does not define
         };
 
         return new self($class, strtoupper(bin2hex($panose)), $fixed);

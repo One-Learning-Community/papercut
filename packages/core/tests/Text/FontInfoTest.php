@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 final class FontInfoTest extends TestCase
 {
     private const string INTER = __DIR__ . '/../../resources/fonts/Inter/Inter-Regular.ttf';
+    private const string COUSINE = __DIR__ . '/../../resources/fonts/Cousine/Cousine-Regular.ttf';
 
     public function test_inter_is_sans_variable(): void
     {
@@ -48,10 +49,24 @@ final class FontInfoTest extends TestCase
         }
     }
 
+    public function test_fixed_pitch_font_without_os2_is_mono_with_no_panose(): void
+    {
+        $path = $this->withoutOs2(self::COUSINE);
+        try {
+            $info = FontInfo::read($path);
+            self::assertSame(FontClass::Mono, $info->class);
+            self::assertNull($info->panose);
+            self::assertTrue($info->fixedPitch);
+        } finally {
+            unlink($path);
+        }
+    }
+
     public function test_malformed_files_are_other_and_silent(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'bad');
-        file_put_contents($path, pack('Nn', 0x10000, 40) . 'short');
+        // A full 12-byte header that claims 40 tables the file does not hold.
+        file_put_contents($path, pack('Nnnnn', 0x10000, 40, 0, 0, 0));
         try {
             self::assertNull(TrueTypeTables::open($path));
             self::assertSame(FontClass::Other, FontInfo::read($path)->class);
@@ -88,10 +103,14 @@ final class FontInfoTest extends TestCase
         yield 'text, cove' => ["\x02\x02", FontClass::Serif];
         yield 'text, normal sans' => ["\x02\x0B", FontClass::Sans];
         yield 'text, any' => ["\x02\x00", FontClass::Sans];
+        yield 'text, flared' => ["\x02\x0E", FontClass::Sans];
+        yield 'text, rounded' => ["\x02\x0F", FontClass::Sans];
         yield 'hand-written' => ["\x03\x00", FontClass::Script];
         yield 'decorative' => ["\x04\x00", FontClass::Decorative];
         yield 'symbol' => ["\x05\x00", FontClass::Other];
         yield 'no fit' => ["\x01\x00", FontClass::Sans];
+        yield 'kind PANOSE 1.0 does not define' => ["\x06\x00", FontClass::Other];
+        yield 'highest byte' => ["\xFF\x00", FontClass::Other];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('panoseClasses')]
@@ -105,10 +124,10 @@ final class FontInfoTest extends TestCase
         }
     }
 
-    /** Inter with its OS/2 table renamed away, so the directory no longer lists one. */
-    private function withoutOs2(): string
+    /** A font with its OS/2 table renamed away, so the directory no longer lists one. */
+    private function withoutOs2(string $font = self::INTER): string
     {
-        $data = (string) file_get_contents(self::INTER);
+        $data = (string) file_get_contents($font);
         $pos = strpos(substr($data, 12, 16 * self::tableCount($data)), 'OS/2');
         self::assertNotFalse($pos);
         $path = tempnam(sys_get_temp_dir(), 'no-os2');

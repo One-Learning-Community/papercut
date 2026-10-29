@@ -92,6 +92,17 @@ final class ItemizerTest extends TestCase
         );
     }
 
+    public function test_an_empty_pre_wrap_span_between_normal_spans_adds_no_second_space(): void
+    {
+        $items = $this->itemizer()->itemize([
+            Span::text('a '),
+            Span::text('', Style::make(whiteSpace: WhiteSpace::PreWrap)),
+            Span::text(' b'),
+        ], $this->root());
+
+        self::assertSame(['word:a', 'space: ', 'word:b'], self::kinds($items));
+    }
+
     public function test_break_opportunities(): void
     {
         $items = $this->itemizer()->itemize([Span::text('well-known and/or 漢字')], $this->root());

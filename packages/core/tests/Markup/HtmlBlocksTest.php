@@ -237,6 +237,31 @@ final class HtmlBlocksTest extends TestCase
         }
     }
 
+    public function test_resolver_gets_the_trimmed_src_once_per_distinct_src(): void
+    {
+        $seen = [];
+        $o = new MarkupOptions(images: function (string $src) use (&$seen): string {
+            $seen[] = $src;
+            return TestImages::png();
+        });
+        Markup::html("<img src=\"  a.png\t\"><img src=\"a.png\"><img src=\"\nb.png \">", $o);
+
+        self::assertSame(['a.png', 'b.png'], $seen);
+    }
+
+    public function test_a_throwing_resolver_is_called_once_for_two_identical_srcs(): void
+    {
+        $calls = [];
+        $o = new MarkupOptions(images: function (string $src) use (&$calls): ?string {
+            $calls[] = $src;
+            throw new \RuntimeException('disk');
+        });
+        $v = Markup::html('<img src=" a.png " alt="first"><img src="a.png" alt="second">', $o);
+
+        self::assertSame(['a.png'], $calls);
+        self::assertSame(2, count(self::notes($v)));
+    }
+
     public function test_image_without_src_skips_the_resolver_and_notes_shorten_long_srcs(): void
     {
         $calls = 0;

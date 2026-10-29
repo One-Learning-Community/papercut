@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Rendering;
 
+use Papercut\Laravel\Components\Pre;
 use Papercut\Laravel\Tag;
 use Illuminate\Support\HtmlString;
 use Papercut\Laravel\Exception\InvalidStructure;
@@ -68,8 +69,14 @@ final class NodeRegistry
         return new HtmlString('[[pc:' . $this->scopes[$key]['nonce'] . ':' . $id . ']]');
     }
 
-    /** @return list<object|string> */
-    public function segments(string $html): array
+    /**
+     * The rendered html as text and node objects. Pre's compile-time start mark (U+E000) can end up in
+     * text that only mentions a pre tag (inside a PHP string); {@see Pre::unmark()} removes it from the
+     * text segments unless $keepStartMark: a pre slot reads its own mark and unmarks the rest itself.
+     *
+     * @return list<object|string>
+     */
+    public function segments(string $html, bool $keepStartMark = false): array
     {
         $key = array_key_last($this->scopes);
         $parts = preg_split('/(\[\[pc:[0-9a-f]{16}:\d+\]\])/i', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
@@ -105,6 +112,12 @@ final class NodeRegistry
                 }
                 $this->scopes[$key]['taken'][$id] = true;
                 $node = $this->scopes[$key]['nodes'][$id];
+            }
+            if ($node === null && !$keepStartMark) {
+                $part = Pre::unmark($part);
+                if ($part === '') {
+                    continue;
+                }
             }
             if ($node !== null) {
                 $out[] = $node;

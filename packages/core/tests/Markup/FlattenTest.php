@@ -12,6 +12,8 @@ use Papercut\Markup\Markup;
 use Papercut\Markup\Note;
 use Papercut\Span;
 use Papercut\Text;
+use Papercut\Style\Style;
+use Papercut\Value\Color;
 use Papercut\View;
 use PHPUnit\Framework\TestCase;
 
@@ -31,6 +33,25 @@ final class FlattenTest extends TestCase
     {
         $t = Text::make('x');
         self::assertSame($t, Markup::flatten($t));
+    }
+
+    public function test_a_pre_text_moves_its_name_onto_its_spans_and_keeps_its_own_style(): void
+    {
+        $pre = Text::make('a  b')->apply('pre')->apply(Style::make(background: Color::parse('#00ff00')));
+        $flat = Markup::flatten($pre);
+
+        self::assertNull($flat->styleName());
+        self::assertSame('pre', $flat->spanList()[0]->styleName);
+        self::assertSame('#00ff00', (string) $flat->style()->background);
+    }
+
+    public function test_a_text_with_another_style_name_is_returned_unchanged(): void
+    {
+        $t = Text::make('x')->apply('quote');
+        $flat = Markup::flatten($t);
+
+        self::assertSame($t, $flat);
+        self::assertNull($flat->spanList()[0]->styleName);
     }
 
     public function test_image_is_dropped_with_a_note(): void

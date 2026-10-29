@@ -81,6 +81,31 @@ final class TextMapperTest extends TestCase
         self::assertNull($this->para(Text::p('x'))->headingLevel);
     }
 
+    public function test_a_line_break_inside_a_link_stays_in_one_hyperlink(): void
+    {
+        $url = 'https://example.test';
+        $t = Text::spans(new Span('one', href: $url), Span::break(), Span::break(), new Span('two', href: $url), Span::break(), new Span('after'));
+        $p = $this->para($t);
+
+        self::assertCount(3, $p->children);
+        self::assertInstanceOf(Hyperlink::class, $p->children[0]);
+        self::assertSame(['one', "\n", "\n", 'two'], array_map(static fn ($r): string => $r instanceof Run ? $r->text : '?', $p->children[0]->children));
+        // a break between a link and plain text is not part of the link
+        self::assertInstanceOf(Run::class, $p->children[1]);
+        self::assertSame("\n", $p->children[1]->text);
+        self::assertInstanceOf(Run::class, $p->children[2]);
+    }
+
+    public function test_a_line_break_between_two_different_links_joins_neither(): void
+    {
+        $p = $this->para(Text::spans(new Span('a', href: 'https://a.test'), Span::break(), new Span('b', href: 'https://b.test')));
+
+        self::assertCount(3, $p->children);
+        self::assertInstanceOf(Hyperlink::class, $p->children[0]);
+        self::assertInstanceOf(Run::class, $p->children[1]);
+        self::assertInstanceOf(Hyperlink::class, $p->children[2]);
+    }
+
     public function test_spans_links_breaks_and_backgrounds(): void
     {
         $t = Text::spans(

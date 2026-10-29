@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Laravel\Tests\Feature;
 
 use Orchestra\Testbench\Attributes\DefineEnvironment;
+use Papercut\Laravel\Components\Pre;
 use Papercut\Laravel\Facades\Papercut;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Tests\TestCase;
@@ -165,5 +166,85 @@ final class PreCodeComponentsTest extends TestCase
         self::assertSame($theme->named('code')->fontFamily, $resolved->fontFamily);
         self::assertNotNull($resolved->fontFamily);
         self::assertSame(700, $resolved->fontWeight);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function literalPreTags(): iterable
+    {
+        yield 'verbatim block in a code' => ['<x-doc::text><x-doc::code>@verbatim<x-doc::pre>x</x-doc::pre>@endverbatim</x-doc::code></x-doc::text>'];
+        yield 'verbatim block in a pre' => ['<x-doc::pre>@verbatim<x-doc::pre>x</x-doc::pre>@endverbatim</x-doc::pre>'];
+        yield 'php string in a text' => ["@php \$s = '<x-doc::pre>'; @endphp<x-doc::text>shown: {{ \$s }}</x-doc::text>"];
+        yield 'php string in a pre' => ["@php \$s = '<x-doc::pre>'; @endphp<x-doc::pre>shown: {{ \$s }}</x-doc::pre>"];
+        yield 'php string in a code' => ["@php \$s = '<x-doc::pre>'; @endphp<x-doc::text><x-doc::code>{{ \$s }}</x-doc::code></x-doc::text>"];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('literalPreTags')]
+    public function test_pre_tags_written_as_text_leave_no_sentinel(string $template): void
+    {
+        $t = $this->nodeFrom($template);
+        self::assertInstanceOf(Text::class, $t);
+        $text = self::flat($t);
+        self::assertStringNotContainsString("\u{E000}", $text);
+        self::assertStringContainsString('<x-doc::pre>', $text);
+    }
+
+    public function test_pre_tag_mentioned_in_a_bound_attribute_leaves_no_sentinel(): void
+    {
+        $link = $this->nodeFrom("<x-doc::link :href=\"'#a<x-doc::pre>'\">x</x-doc::link>");
+        self::assertInstanceOf(\Papercut\Link::class, $link);
+        self::assertSame('#a<x-doc::pre>', $link->uri());
+    }
+
+    public function test_code_with_a_style_object_keeps_its_other_style_attributes(): void
+    {
+        $style = \Papercut\Style\Style::make(italic: true);
+        $t = $this->nodeFrom('<x-doc::p><x-doc::code :style="$s" bold>x</x-doc::code></x-doc::p>', ['s' => $style]);
+        $span = $t->spanList()[0];
+
+        self::assertSame(700, $span->style->fontWeight);
+        self::assertTrue($span->style->italic);
+        self::assertSame('code', $span->styleName);
+    }
+
+    public function test_pre_with_a_style_object_keeps_the_pre_style_name(): void
+    {
+        $style = \Papercut\Style\Style::make(italic: true);
+        $t = $this->nodeFrom('<x-doc::pre :style="$s" bold>x</x-doc::pre>', ['s' => $style]);
+
+        self::assertSame('pre', $t->styleName());
+        self::assertSame(700, $t->style()->fontWeight);
+        self::assertTrue($t->style()->italic);
+    }
+
+    public function test_layered_pre_and_code_names_render_as_pre_and_code_in_html(): void
+    {
+        config(['papercut.styles' => ['mine' => ['color' => '#ff0000']]]);
+        $html = Papercut::view('pdf.layered-styles')->html()->toHtml();
+
+        self::assertMatchesRegularExpression('~<pre [^>]*overflow-wrap:anywhere;tab-size:4~', $html);
+        self::assertMatchesRegularExpression('~<pre [^>]*overflow-wrap:anywhere[^>]*>a  b</pre>~', $html);
+        self::assertStringContainsString('<code ', $html);
+    }
+
+    public function test_a_private_use_character_in_ordinary_text_survives(): void
+    {
+        $icon = "\u{E000}";
+        $t = $this->nodeFrom('<x-doc::text>a{{ $i }}b</x-doc::text>', ['i' => $icon]);
+        self::assertSame("a{$icon}b", $t->spanList()[0]->text);
+
+        $pre = $this->nodeFrom('<x-doc::pre>{{ $i }}x</x-doc::pre>', ['i' => $icon]);
+        self::assertSame("{$icon}x", self::flat($pre));
+
+        $inPre = $this->nodeFrom("<x-doc::pre>a{$icon}b</x-doc::pre>");
+        self::assertSame("a{$icon}b", self::flat($inPre));
+    }
+
+    public function test_the_hook_leaves_verbatim_regions_alone(): void
+    {
+        $template = '@verbatim<x-doc::pre>x</x-doc::pre>@endverbatim<x-doc::pre>y</x-doc::pre>';
+        $out = Pre::markOpeningTags($template);
+
+        self::assertSame(1, substr_count($out, Pre::START));
+        self::assertStringStartsWith('@verbatim<x-doc::pre>x</x-doc::pre>@endverbatim', $out);
     }
 }

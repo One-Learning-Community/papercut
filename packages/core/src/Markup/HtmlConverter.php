@@ -17,6 +17,7 @@ use Papercut\Paint\Link as LinkPolicy;
 use Papercut\Span;
 use Papercut\Style\ListMarker;
 use Papercut\Style\Style;
+use Papercut\Style\StyleName;
 use Papercut\Styled;
 use Papercut\Table;
 use Papercut\TableCell;
@@ -1073,7 +1074,7 @@ final class HtmlConverter
         if (count($blocks) === 1 && $blocks[0] instanceof Text && $blocks[0]->preset() === 'p') {
             return self::bare($blocks[0])->withNotes(...$this->notes);
         }
-        if (count($blocks) === 1 && $blocks[0] instanceof Text && $blocks[0]->styleName() === 'pre') {
+        if (count($blocks) === 1 && $blocks[0] instanceof Text && StyleName::leads($blocks[0]->styleName(), 'pre')) {
             return $blocks[0]->withNotes(...$this->notes);
         }
         return View::make(...$blocks)->withNotes(...$this->notes);

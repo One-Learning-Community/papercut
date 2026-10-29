@@ -16,6 +16,8 @@ Colours are Tailwind palette names.
 | `pre`, `code` | Monospace (the theme's mono family) at `0.9em` on a `slate-100` background. `pre` also keeps spaces, tabs and line breaks (`white-space: pre-wrap`), with 6pt 8pt padding and a 6pt bottom margin. `code` is inline, with no padding. |
 | `badge`, `badge.<tone>` | A bold pill at `0.9em`, in `slate`, `sky`, `emerald`, `amber` or `red` for `neutral`, `note`, `tip`, `warning` and `danger`: the background in `-100`, the text in `-800`. |
 
+Setting `pre` or `code` in your theme replaces the whole built-in style, not just the properties you give: a `pre` that sets only `font-family` loses `white-space: pre-wrap`, its padding and its background. To change the font, set `mono_family` instead. When you do override `pre`, include `white-space: pre-wrap`.
+
 ## How the names combine
 
 A `warning` callout applies `callout` and then `callout.warning`, and its title applies `callout.title` and then `callout.title.warning`. Where they overlap, the later style wins. In practice the base style sets the shape and the tone style sets the colours, so you can replace either one on its own.

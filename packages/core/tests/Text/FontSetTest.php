@@ -98,4 +98,20 @@ final class FontSetTest extends TestCase
         self::assertSame('Inter', (new FontSet())->wordName('Inter'));
         self::assertSame('Tinos', $set->withWordName('Inter', 'Tinos')->wordName('Inter'));
     }
+
+    public function test_word_names_given_to_the_constructor_match_case_insensitively(): void
+    {
+        $set = new FontSet(wordNames: ['Brand Sans' => 'Arial']);
+
+        self::assertSame('Arial', $set->wordName('brand sans'));
+        self::assertSame('Arial', $set->wordName('BRAND SANS'));
+    }
+
+    public function test_a_numeric_family_name_keeps_its_word_name(): void
+    {
+        $set = (new FontSet())->withWordName('1', 'One')->withWordName('2', 'Two');
+
+        self::assertSame('One', $set->wordName('1'));
+        self::assertSame('Two', $set->wordName('2'));
+    }
 }

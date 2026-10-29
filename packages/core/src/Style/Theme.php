@@ -13,6 +13,9 @@ use function Papercut\pt;
 
 final class Theme
 {
+    /** The mono family used unless a theme names another. */
+    public const string DEFAULT_MONO_FAMILY = 'Cousine';
+
     private const array HEADING_SIZES = [1 => 24.0, 2 => 18.0, 3 => 14.0, 4 => 12.0];
 
     /**
@@ -28,8 +31,11 @@ final class Theme
         public readonly int $minLines,
         private readonly array $styles = [],
         /** The family the `monospace` font keyword resolves to. */
-        public readonly string $monoFamily = 'Cousine',
+        public readonly string $monoFamily = self::DEFAULT_MONO_FAMILY,
     ) {
+        if (trim($monoFamily) === '' || strtolower(trim($monoFamily)) === 'monospace') {
+            throw new \InvalidArgumentException("The mono family must name a real font family, not '$monoFamily': the keyword `monospace` stands for it.");
+        }
     }
 
     public static function default(): self

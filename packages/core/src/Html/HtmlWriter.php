@@ -12,7 +12,7 @@ use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
 use Papercut\Layout\{GridCell, TableGrid, WidthResolver};
-use Papercut\Style\{ComputedStyle, Justify, ListMarker};
+use Papercut\Style\{ComputedStyle, Justify, ListMarker, StyleName};
 use Papercut\Text\FontStyle;
 use Papercut\Value\{Auto, Fr, Length, Percent};
 use Papercut\Tree\{Region, TreeVisitor, Visit};
@@ -301,7 +301,7 @@ final class HtmlWriter implements TreeVisitor
     private function text(Text $t, ComputedStyle $s, ComputedStyle $parent, Visit $at): string
     {
         $override = self::overridesDecoration($s, $parent);
-        $pre = $t->styleName() === 'pre';
+        $pre = StyleName::leads($t->styleName(), 'pre');
         $tag = match (true) {
             $pre => 'pre',
             in_array($t->preset(), ['h1', 'h2', 'h3', 'h4'], true) => $t->preset(),
@@ -341,7 +341,7 @@ final class HtmlWriter implements TreeVisitor
             $diff['background-color'] = Css::color($own->background);
         }
         $body = self::esc($span->text);
-        $code = $span->styleName === 'code';
+        $code = StyleName::leads($span->styleName, 'code');
         if ($code) {
             $diff = [...$this->fontCss($style), ...$diff];
         }

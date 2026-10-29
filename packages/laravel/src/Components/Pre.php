@@ -8,6 +8,7 @@ use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\Laravel\Tag;
 use Papercut\Span;
+use Papercut\Style\Style;
 use Papercut\Text;
 
 /**
@@ -37,12 +38,35 @@ final class Pre extends PapercutComponent
             . '|\{\{\s*\$attributes(?:[^}]+?)?\s*\}\}'
             . '|[\w\-:.@%]+(?:=(?:"[^"]*"|\'[^\']*\'|[^\'"=<>\s]+))?'
             . '))*)\s*(?<close>\/?)>/';
-
-        return preg_replace_callback(
+        $mark = static fn (string $part): string => preg_replace_callback(
             $pattern,
             static fn (array $m): string => $m['close'] === '/' ? $m[0] : $m[0] . self::START,
-            $template,
-        ) ?? $template;
+            $part,
+        ) ?? $part;
+
+        // @verbatim regions are output as written, so no mark may go into them.
+        $parts = preg_split('/(@verbatim.*?@endverbatim)/s', $template, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+        if ($parts === false) {
+            return $template;
+        }
+
+        return implode('', array_map(static fn (string $part): string => str_starts_with($part, '@verbatim') ? $part : $mark($part), $parts));
+    }
+
+    /**
+     * Removes START where the compile-time hook left it in text that only mentions a pre tag (inside a
+     * PHP string): right after something shaped like a pre opening tag, escaped or not. A U+E000 anywhere
+     * else is the author's own character and stays.
+     */
+    public static function unmark(string $text): string
+    {
+        $prefix = config('papercut.prefix', 'doc');
+        if (!is_string($prefix) || !str_contains($text, self::START)) {
+            return $text;
+        }
+        $pattern = '/((?:<|&lt;)\s*x[-:]' . preg_quote($prefix, '/') . '::pre\b[^<>]*?(?:>|&gt;))' . self::START . '/u';
+
+        return preg_replace($pattern, '$1', $text) ?? $text;
     }
 
     protected function build(array $data): object
@@ -61,14 +85,16 @@ final class Pre extends PapercutComponent
         $name = $own['style'] ?? null;
 
         // A named style layers over `pre`, so the monospace font and pre-wrap survive it.
-        return $this->applyStyle(Text::spans(...$spans), $style, is_string($name) ? 'pre ' . $name : ($name ?? 'pre'));
+        $text = $this->applyStyle(Text::spans(...$spans), $style, is_string($name) ? 'pre ' . $name : 'pre');
+
+        return $name instanceof Style ? $this->applyStyle($text, [], $name) : $text;
     }
 
     /** @param array<string, mixed> $data */
     private function rawSlot(array $data): string
     {
         $text = '';
-        foreach (app(NodeRegistry::class)->segments((string) ($data['slot'] ?? '')) as $seg) {
+        foreach (app(NodeRegistry::class)->segments((string) ($data['slot'] ?? ''), keepStartMark: true) as $seg) {
             if (!is_string($seg)) {
                 throw new InvalidStructure(Tag::of('pre') . ' can only contain text; tags inside it are not parsed and components are not allowed');
             }
@@ -99,6 +125,7 @@ final class Pre extends PapercutComponent
         if ($marked) {
             $text = substr($text, strlen(self::START));
         }
+        $text = self::unmark($text);
         $lines = preg_split('/\r\n|\n|\r/', $text) ?: [''];
         if (trim($lines[0]) === '') {
             array_shift($lines);

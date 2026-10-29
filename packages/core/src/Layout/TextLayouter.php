@@ -334,7 +334,9 @@ final class TextLayouter implements Layouter
      * A merged run is drawn as one string, so it is as wide as the font says
      * that string is (kerning across item boundaries included), not the sum of
      * its items. The difference goes to the run's last item and shifts every
-     * later item on the line, so decorations and links match the drawn text.
+     * later item on the line, so decorations and links match the drawn text. A tab
+     * stop is fixed, so a tab absorbs the shift so far (its width shrinks, never
+     * below zero) and the text after it lands on the stop.
      *
      * @param list<array{item: InlineItem, x: float, w: float}> $placed
      * @return list<array{item: InlineItem, x: float, w: float}>
@@ -351,14 +353,18 @@ final class TextLayouter implements Layouter
                 $delta = $first->font->advance($text, $first->size, $first->style->letterSpacing) - array_sum(array_column($group, 'w'));
             }
             $last = count($group) - 1;
+            $isTab = $group[0]['item']->kind === 'tab';
             foreach ($group as $k => $p) {
                 $p['x'] += $shift;
+                if ($isTab) {
+                    $p['w'] = max(0.0, $p['w'] - $shift);
+                }
                 if ($k === $last) {
                     $p['w'] += $delta;
                 }
                 $out[] = $p;
             }
-            $shift += $delta;
+            $shift = $isTab ? 0.0 : $shift + $delta;
         }
         return $out;
     }

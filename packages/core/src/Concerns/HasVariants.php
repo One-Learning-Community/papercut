@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Concerns;
 
 use InvalidArgumentException;
+use Papercut\Exception\InvalidVariant;
 
 /**
  * Variants for decorators: `variant('large')` makes every part the decorator styles also apply
@@ -25,6 +26,15 @@ trait HasVariants
         foreach ($words as $word) {
             if (preg_match('/^[a-z0-9-]+$/', $word) !== 1) {
                 throw new InvalidArgumentException("A variant is a lowercase word of a-z, 0-9 and hyphens, got '$word'.");
+            }
+        }
+        $segments = [];
+        foreach ($this->partNames() as $part) {
+            array_push($segments, ...explode('.', $part));
+        }
+        foreach ($words as $word) {
+            if (in_array($word, $segments, true)) {
+                throw new InvalidVariant("The variant '$word' collides with a part name of this decorator (a name segment of: " . implode(', ', $this->partNames()) . '); pick another word.');
             }
         }
         $clone = clone $this;

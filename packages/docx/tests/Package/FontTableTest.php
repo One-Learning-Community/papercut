@@ -27,20 +27,22 @@ final class FontTableTest extends TestCase
         $raw = (new \Dskripchenko\PhpDocx\Writer\Word2007Writer(new \Dskripchenko\PhpDocx\Style\StyleRegistry()))->write(
             new \Dskripchenko\PhpDocx\Document(new \Dskripchenko\PhpDocx\Section([new \Dskripchenko\PhpDocx\Element\Paragraph([new \Dskripchenko\PhpDocx\Element\Run('x')])])),
         );
-        $zip = new \ZipArchive();
         $file = (string) tempnam(sys_get_temp_dir(), 'docx');
-        file_put_contents($file, $raw);
-        $zip->open($file);
-        $zip->addFromString('word/fontTable.xml', $table);
-        $rels = (string) $zip->getFromName('word/_rels/document.xml.rels');
-        $zip->addFromString('word/_rels/document.xml.rels', str_replace('</Relationships>', '<Relationship Id="rId99" Type="' . self::REL . '" Target="fontTable.xml"/></Relationships>', $rels));
-        $types = (string) $zip->getFromName('[Content_Types].xml');
-        $zip->addFromString('[Content_Types].xml', str_replace('</Types>', '<Override PartName="/word/fontTable.xml" ContentType="' . self::TYPE . '"/></Types>', $types));
-        $zip->close();
-        $seeded = (string) file_get_contents($file);
-        unlink($file);
+        try {
+            file_put_contents($file, $raw);
+            $zip = new \ZipArchive();
+            $zip->open($file);
+            $zip->addFromString('word/fontTable.xml', $table);
+            $rels = (string) $zip->getFromName('word/_rels/document.xml.rels');
+            $zip->addFromString('word/_rels/document.xml.rels', str_replace('</Relationships>', '<Relationship Id="rId99" Type="' . self::REL . '" Target="fontTable.xml"/></Relationships>', $rels));
+            $types = (string) $zip->getFromName('[Content_Types].xml');
+            $zip->addFromString('[Content_Types].xml', str_replace('</Types>', '<Override PartName="/word/fontTable.xml" ContentType="' . self::TYPE . '"/></Types>', $types));
+            $zip->close();
 
-        return $seeded;
+            return (string) file_get_contents($file);
+        } finally {
+            unlink($file);
+        }
     }
 
     public function test_runs_use_word_name(): void
@@ -117,6 +119,17 @@ final class FontTableTest extends TestCase
         self::assertSame(1, $d->count("//w:font[@w:name='Inter']", 'word/fontTable.xml'));
         self::assertSame(1, $d->count("//w:font[@w:name='Other']", 'word/fontTable.xml'));
         self::assertSame(1, substr_count($d->part('word/_rels/document.xml.rels'), self::REL));
+    }
+
+    public function test_existing_entry_with_an_escaped_name_is_not_duplicated(): void
+    {
+        $seeded = self::seeded('<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:font w:name="A &amp; B"/></w:fonts>');
+        $name = (new FontSet())->withWordName('Inter', 'A & B')->wordName('Inter');
+
+        $d = DocxInspector::of(DocxPatcher::patch($seeded, new PatchSpec($name, 20, null, new \DateTimeImmutable('2000-01-01'), fonts: [$name => new FontInfo(FontClass::Sans, null, false)])));
+
+        self::assertSame(1, $d->count('//w:font', 'word/fontTable.xml'));
+        self::assertSame(1, $d->count('//w:font[@w:name="A & B"]', 'word/fontTable.xml'));
     }
 
     public function test_word_name_is_escaped(): void

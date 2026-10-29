@@ -25,7 +25,7 @@ class PapercutManager
     private ?HtmlOptions $html = null;
     private ?MarkupOptions $markup = null;
 
-    /** @var array<class-string<Markup\ImageResolver>, \Closure> resolvers named by a markup tag's `images` attribute, one instance per class */
+    /** @var array<string, \Closure> markup image resolvers by class name without a leading backslash, one instance per class */
     private array $imageResolvers = [];
 
     public function __construct(private readonly NodeRegistry $registry, private readonly PreviewRegistry $previews)
@@ -113,22 +113,37 @@ class PapercutManager
     }
 
     /**
-     * The resolver for a markup tag's `images` attribute: the class is built through the container once per manager and shared by every tag naming it.
+     * The resolver for a markup tag's `images` attribute: the class is built through the container once per manager and
+     * shared by every markup tag naming it, and by `papercut.markup.images` when that names the same class.
      *
      * @return \Closure(string): ?string
      */
-    public function markupImageResolver(string $class): \Closure
+    public function markupImageResolver(mixed $class): \Closure
     {
-        if (isset($this->imageResolvers[$class])) {
-            return $this->imageResolvers[$class];
+        if (!is_string($class) || !is_subclass_of($class, Markup\ImageResolver::class)) {
+            throw self::invalidMarkupImages($class);
         }
-        if (!is_subclass_of($class, Markup\ImageResolver::class)) {
-            throw new \InvalidArgumentException('Invalid ' . Tag::of('markup') . ' images: ' . var_export($class, true) . '; expected an invokable class name implementing ' . Markup\ImageResolver::class . " or 'none'");
-        }
-        /** @var Markup\ImageResolver $instance */
-        $instance = self::build('markup.images', $class, Tag::of('markup') . ' images');
 
-        return $this->imageResolvers[$class] = $instance(...);
+        return $this->sharedImageResolver($class, 'markup.images', Tag::of('markup') . ' images');
+    }
+
+    /** The error for a bad `images` attribute on a markup tag. */
+    private static function invalidMarkupImages(mixed $value): \InvalidArgumentException
+    {
+        return new \InvalidArgumentException('Invalid ' . Tag::of('markup') . ' images: ' . (is_scalar($value) ? var_export($value, true) : get_debug_type($value)) . '; expected an invokable class name implementing ' . Markup\ImageResolver::class . " or 'none'");
+    }
+
+    /** @return \Closure(string): ?string */
+    private function sharedImageResolver(string $class, string $key, ?string $what = null): \Closure
+    {
+        $class = ltrim($class, '\\');
+        if (!isset($this->imageResolvers[$class])) {
+            /** @var Markup\ImageResolver $instance */
+            $instance = self::build($key, $class, $what);
+            $this->imageResolvers[$class] = $instance(...);
+        }
+
+        return $this->imageResolvers[$class];
     }
 
     private function buildMarkupOptions(): MarkupOptions
@@ -144,7 +159,9 @@ class PapercutManager
             throw new \InvalidArgumentException('Invalid papercut.markup.blank_paragraphs: ' . (is_scalar($blank) ? var_export($blank, true) : get_debug_type($blank)) . "; expected 'drop' or 'keep'");
         }
 
-        return new MarkupOptions(styles: $mode, images: self::resolver('markup.images', Markup\ImageResolver::class), blankParagraphs: $paragraphs);
+        $images = self::configuredClass('markup.images', Markup\ImageResolver::class);
+
+        return new MarkupOptions(styles: $mode, images: $images === null ? null : $this->sharedImageResolver($images, 'markup.images'), blankParagraphs: $paragraphs);
     }
 
     private function buildExportOptions(): ExportOptions
@@ -164,12 +181,16 @@ class PapercutManager
         } catch (InvalidValue $e) {
             throw $e->within('in config papercut.theme.color');
         }
+        $mono = $cfg['mono_family'] ?? null;
+        if ($mono !== null && !is_string($mono)) {
+            throw new \InvalidArgumentException('Invalid papercut.theme.mono_family: ' . (is_scalar($mono) ? var_export($mono, true) : get_debug_type($mono)) . '; expected a font family name');
+        }
         $theme = Theme::default()->with(
             fontFamily: isset($cfg['font_family']) ? (string) $cfg['font_family'] : null,
             fontSize: self::positive($cfg, 'font_size'),
             color: $color,
             lineHeight: self::positive($cfg, 'line_height'),
-            monoFamily: isset($cfg['mono_family']) ? (string) $cfg['mono_family'] : null,
+            monoFamily: $mono,
         );
         /** @var array<string, array<string, mixed>> $styles */
         $styles = (array) config('papercut.styles', []);
@@ -309,6 +330,24 @@ class PapercutManager
      */
     private static function resolver(string $key, string $interface): ?\Closure
     {
+        $class = self::configuredClass($key, $interface);
+        if ($class === null) {
+            return null;
+        }
+        /** @var Html\ImageUrlResolver|Html\FontUrlResolver|Markup\ImageResolver $instance */
+        $instance = self::build($key, $class);
+
+        return $instance(...);
+    }
+
+    /**
+     * The class name set at `papercut.$key`, or null when unset.
+     *
+     * @param class-string $interface the interface the class must implement
+     * @return class-string|null
+     */
+    private static function configuredClass(string $key, string $interface): ?string
+    {
         $class = config('papercut.' . $key);
         if ($class === null) {
             return null;
@@ -316,10 +355,8 @@ class PapercutManager
         if (!is_string($class) || !is_subclass_of($class, $interface)) {
             throw new \InvalidArgumentException("Invalid papercut.$key: " . (is_scalar($class) ? var_export($class, true) : get_debug_type($class)) . "; expected an invokable class name implementing $interface or null");
         }
-        /** @var Html\ImageUrlResolver|Html\FontUrlResolver|Markup\ImageResolver $instance */
-        $instance = self::build($key, $class);
 
-        return $instance(...);
+        return $class;
     }
 
     private static function strict(): bool

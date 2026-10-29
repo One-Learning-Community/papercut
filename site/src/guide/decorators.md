@@ -309,7 +309,7 @@ use Papercut\Decorator\Section;
 Section::make('...')->title('Results')->variant('large');
 ```
 
-Several variants can be given, separated by spaces (`variant="large compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens. Variants come after the tone (`callout.title.warning`, then `callout.title.large`) and before your own `style=""` and style modifiers, which still win on the outer box.
+Several variants can be given, separated by spaces (`variant="large compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens, and it cannot be a word that appears in one of the decorator's own part names (`selected` or `radio` on choices, `title` on a card), because the name it produces would be an existing part's. Papercut rejects such a word with an error naming the collision. Variants come after the tone (`callout.title.warning`, then `callout.title.large`) and before your own `style=""` and style modifiers, which still win on the outer box.
 
 In Blade, a variant for which the theme has no style on any part of that decorator throws an error listing the names it looked for. In PHP, a variant nothing styles does nothing, because the decorator has no theme to check against. No variant styles ship by default.
 

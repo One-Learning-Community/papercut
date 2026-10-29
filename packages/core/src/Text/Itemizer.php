@@ -36,7 +36,7 @@ final class Itemizer
         $atStart = true;
 
         foreach ($spans as $span) {
-            $style = $paragraph->child($this->theme === null ? $span->style : $this->theme->spanStyle($span));
+            $style = $paragraph->child(($this->theme ?? Theme::default())->spanStyle($span));
             $font = $this->primary($style);
             if ($span->lineBreak) {
                 $pending = null;
@@ -45,12 +45,13 @@ final class Itemizer
                 continue;
             }
             if ($style->whiteSpace === WhiteSpace::PreWrap) {
-                if ($pending !== null) {
-                    $items[] = $pending;
-                    $pending = null;
-                }
                 $own = $this->preWrap($span, $style, $font);
                 if ($own !== []) {
+                    // A pending normal space is flushed only by a pre-wrap span that produced items.
+                    if ($pending !== null) {
+                        $items[] = $pending;
+                        $pending = null;
+                    }
                     array_push($items, ...$own);
                     $atStart = $own[count($own) - 1]->kind === 'break';
                 }

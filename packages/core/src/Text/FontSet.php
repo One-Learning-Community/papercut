@@ -7,16 +7,20 @@ namespace Papercut\Text;
 /** Format-neutral font configuration: extra faces on top of the bundled Inter and Cousine, and glyph fallback families. */
 final readonly class FontSet
 {
+    /** @var array<string, string> the name Word should use for a family, by lowercased family */
+    private array $wordNames;
+
     /**
      * @param list<FontFace> $faces
      * @param list<string> $fallbacks families tried, in order, for glyphs the primary font lacks
-     * @param array<string, string> $wordNames the name Word should use for a family, by lowercased family
+     * @param array<string, string> $wordNames the name Word should use for a family, keyed by family (any case)
      */
     public function __construct(
         public array $faces = [],
         public array $fallbacks = [],
-        private array $wordNames = [],
+        array $wordNames = [],
     ) {
+        $this->wordNames = array_change_key_case($wordNames, CASE_LOWER);
     }
 
     /** @return list<FontFace> the bundled Inter then Cousine faces, in registration order */
@@ -65,7 +69,10 @@ final readonly class FontSet
     /** The name Word should use for a family (case-insensitive match; the last call for a family wins). */
     public function withWordName(string $family, string $wordName): self
     {
-        return new self($this->faces, $this->fallbacks, [...$this->wordNames, strtolower($family) => $wordName]);
+        $names = $this->wordNames;
+        $names[strtolower($family)] = $wordName;
+
+        return new self($this->faces, $this->fallbacks, $names);
     }
 
     /** The Word name set for the family, else Courier New for the bundled Cousine, else the family itself. */

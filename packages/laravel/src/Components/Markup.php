@@ -6,7 +6,6 @@ namespace Papercut\Laravel\Components;
 
 use Illuminate\Contracts\Support\Htmlable;
 use Papercut\Laravel\Exception\InvalidStructure;
-use Papercut\Laravel\Markup\ImageResolver;
 use Papercut\Laravel\PapercutManager;
 use Papercut\Laravel\Tag;
 use Papercut\Markup\{BlankParagraphs, Markup as Converter, MarkupOptions, StyleMode};
@@ -67,9 +66,6 @@ final class Markup extends PapercutComponent
 
         $images = $base->images;
         if (isset($own['images'])) {
-            if (!is_string($own['images'])) {
-                throw new \InvalidArgumentException('Invalid ' . Tag::of('markup') . ' images: ' . self::show($own['images']) . '; expected an invokable class name implementing ' . ImageResolver::class . " or 'none'");
-            }
             $images = $own['images'] === 'none' ? null : $manager->markupImageResolver($own['images']);
         }
 

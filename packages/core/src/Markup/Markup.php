@@ -11,6 +11,7 @@ use Papercut\ListItem;
 use Papercut\ListNode;
 use Papercut\Node;
 use Papercut\Span;
+use Papercut\Style\StyleName;
 use Papercut\Table;
 use Papercut\Text;
 use Papercut\View;
@@ -41,7 +42,9 @@ final class Markup
     public static function flatten(View|Text $converted): Text
     {
         if ($converted instanceof Text) {
-            return $converted->styleName() === null ? $converted : Text::spans(...self::named($converted))->withNotes(...$converted->notes());
+            return !StyleName::leads($converted->styleName(), 'pre')
+                ? $converted
+                : Text::spans(...self::named($converted))->apply($converted->style())->withNotes(...$converted->notes());
         }
 
         $blocks = [];
@@ -63,15 +66,15 @@ final class Markup
     }
 
     /**
-     * The text's spans. A block style name (`pre`) moves onto its spans, so what lives in the
-     * text properties, such as pre-wrap and the monospace font, survives when the block is flattened into a line.
+     * The text's spans. The block style name `pre` moves onto its spans, so what lives in the
+     * style, such as pre-wrap and the monospace font, survives when the block is flattened into a line.
      *
      * @return list<Span>
      */
     private static function named(Text $text): array
     {
         $name = $text->styleName();
-        if ($name === null) {
+        if (!StyleName::leads($name, 'pre')) {
             return $text->spanList();
         }
         return array_map(static fn (Span $s): Span => $s->lineBreak || $s->styleName !== null ? $s : new Span($s->text, $s->style, $s->href, false, $name), $text->spanList());

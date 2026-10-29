@@ -215,4 +215,20 @@ final class VariantsTest extends TestCase
             }
         }
     }
+
+    /** @return iterable<string, array{Decorator, string}> */
+    public static function collidingVariants(): iterable
+    {
+        yield 'selected on choices' => [ChoiceList::checkbox()->option('a', true), 'selected'];
+        yield 'radio on choices' => [ChoiceList::radio()->option('a'), 'radio'];
+        yield 'title on a card' => [Card::make('x')->title('t'), 'title'];
+    }
+
+    #[DataProvider('collidingVariants')]
+    public function test_a_variant_equal_to_a_part_name_segment_is_rejected(Decorator $decorator, string $word): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidVariant::class);
+        $this->expectExceptionMessage("'$word' collides");
+        $decorator->variant($word);
+    }
 }

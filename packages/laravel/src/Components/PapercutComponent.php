@@ -10,6 +10,7 @@ use Illuminate\View\Component;
 use Illuminate\View\ComponentSlot;
 use Papercut\Decorator\Decorator;
 use Papercut\Exception\InvalidValue;
+use Papercut\Exception\InvalidVariant;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Style\Style;
 use Papercut\Exception\UnknownAttribute;
@@ -62,6 +63,8 @@ abstract class PapercutComponent extends Component
             // so a URL's "&" reaches a QR code or link as "&", not "&amp;".
             if (is_string($value)) {
                 $value = htmlspecialchars_decode($value, ENT_QUOTES);
+                // Pre's compile-time start mark lands in a string attribute that only mentions a pre tag.
+                $value = Pre::unmark($value);
             }
             if ($key === 'style' || in_array($key, $this->ownAttributes(), true)) {
                 $own[$key] = $value;
@@ -279,6 +282,8 @@ abstract class PapercutComponent extends Component
         $where = 'on ' . Tag::of($this->tag());
         try {
             $decorator = $decorator->variant($names);
+        } catch (InvalidVariant $e) {
+            throw new InvalidStructure($e->getMessage() . ' ' . $where . '.');
         } catch (\InvalidArgumentException $e) {
             throw InvalidValue::for('variant', $names)->because('expected lowercase words of a-z, 0-9 and hyphens')->withContext('variant')->within($where);
         }

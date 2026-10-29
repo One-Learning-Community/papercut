@@ -17,10 +17,9 @@ final class LineMetricsTest extends TestCase
         self::assertSame(1.2099609375, $m->natural('inter'));
     }
 
-    public function test_line_metrics_unchanged(): void
+    public function test_bundled_cousine_natural_line_height(): void
     {
         $m = new LineMetrics(new FontSet());
-        self::assertSame(1.2099609375, $m->natural('Inter'));
         self::assertSame(1.1328125, $m->natural('Cousine'));
     }
 

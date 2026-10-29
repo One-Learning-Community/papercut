@@ -32,9 +32,6 @@ final class Code extends PapercutComponent
 
         ['own' => $own, 'style' => $style] = $this->attrs($data);
         $name = $own['style'] ?? null;
-        if ($name instanceof Style) {
-            $style = [];
-        }
         $location = 'on ' . Tag::of('code');
         try {
             if (is_string($name)) {
