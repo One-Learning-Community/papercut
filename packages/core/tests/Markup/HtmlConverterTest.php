@@ -156,21 +156,89 @@ final class HtmlConverterTest extends TestCase
         }
     }
 
-    public function test_pre_keeps_its_line_breaks(): void
+    public function test_markup_pre_keeps_spaces_and_lines(): void
     {
-        $t = Markup::html("<pre>line  1\n<b>line</b> 2\n\nline 4\n</pre>");
+        $t = Markup::html("<pre>a  b\n  c</pre>");
         self::assertInstanceOf(Text::class, $t);
-        self::assertSame(['line 1', '', 'line', ' 2', '', '', 'line 4'], self::spanTexts($t->spanList()));
+        self::assertSame('pre', $t->styleName());
+        self::assertSame(['a  b', '', '  c'], self::spanTexts($t->spanList()));
+        self::assertSame([false, true, false], array_map(fn (Span $s) => $s->lineBreak, $t->spanList()));
+    }
+
+    public function test_pre_keeps_inline_markup_blank_lines_and_tabs(): void
+    {
+        $t = Markup::html("<pre>line  1\n<b>line</b> 2\n\n\tline 4\n</pre>");
+        self::assertInstanceOf(Text::class, $t);
+        self::assertSame(['line  1', '', 'line', ' 2', '', '', "\tline 4"], self::spanTexts($t->spanList()));
         self::assertSame([false, true, false, false, true, true, false], array_map(fn (Span $s) => $s->lineBreak, $t->spanList()));
-        self::assertSame([[FidelityLevel::Approximated, 'markup <pre> (tag removed, content kept)', 'pre[0]']], self::notes($t));
+    }
+
+    public function test_markup_pre_code_is_one_block(): void
+    {
+        $v = Markup::html("<p>Before</p><pre><code>x = 1;\n  y = 2;</code></pre><p>After</p>");
+        self::assertInstanceOf(View::class, $v);
+        $texts = self::texts($v);
+        self::assertCount(3, $texts);
+        self::assertSame('pre', $texts[1]->styleName());
+        self::assertSame(['x = 1;', '', '  y = 2;'], self::spanTexts($texts[1]->spanList()));
+        foreach ($texts[1]->spanList() as $span) {
+            self::assertNull($span->styleName, 'the inner code style is not applied inside pre');
+        }
+    }
+
+    public function test_markup_inline_code_kbd_samp_tt_use_code_style(): void
+    {
+        foreach (['code', 'kbd', 'samp', 'tt'] as $tag) {
+            $t = Markup::html("<p>Press <$tag>Ctrl</$tag> now</p>");
+            self::assertInstanceOf(Text::class, $t, $tag);
+            $span = $t->spanList()[1];
+            self::assertSame('Ctrl', $span->text, $tag);
+            self::assertSame('code', $span->styleName, $tag);
+            self::assertNull($t->spanList()[0]->styleName, $tag);
+            self::assertNull($t->spanList()[2]->styleName, $tag);
+            self::assertSame([], self::notes($t), $tag);
+        }
+    }
+
+    public function test_code_style_reaches_nested_inline_markup(): void
+    {
+        $t = Markup::html('<p>a <code>x <b>y</b></code> z</p>');
+        self::assertInstanceOf(Text::class, $t);
+        self::assertSame([null, 'code', 'code', null], array_map(fn (Span $s) => $s->styleName, $t->spanList()));
+        self::assertSame(700, $t->spanList()[2]->style->fontWeight);
+    }
+
+    public function test_a_pre_after_loose_list_text_joins_the_item(): void
+    {
+        $v = Markup::html('<ul><li>a</li><pre>b</pre></ul>');
+        self::assertInstanceOf(View::class, $v);
+        $l = $v->children()[0];
+        self::assertInstanceOf(ListNode::class, $l);
+        self::assertCount(1, $l->items());
+        self::assertCount(2, $l->items()[0]->children());
+    }
+
+    public function test_flattened_pre_keeps_its_style_name_on_the_spans(): void
+    {
+        $t = Markup::flatten(Markup::html("<pre>a  b\n c</pre>"));
+        $named = array_filter($t->spanList(), fn (Span $s) => !$s->lineBreak);
+        self::assertSame(['pre', 'pre'], array_values(array_map(fn (Span $s) => $s->styleName, $named)));
+        $v = Markup::flatten(Markup::html("<p>x</p><pre>a</pre>"));
+        self::assertSame([null, 'pre'], array_values(array_map(fn (Span $s) => $s->styleName, array_filter($v->spanList(), fn (Span $s) => !$s->lineBreak))));
+    }
+
+    public function test_markup_pre_has_no_approximation_note(): void
+    {
+        $t = Markup::html("<pre>a\n b</pre>");
+        self::assertSame([], self::notes($t));
     }
 
     public function test_unknown_tag_notes_once_per_tag_name(): void
     {
-        $v = Markup::html('<p><abbr>a</abbr> <abbr>b</abbr></p><p><abbr>c</abbr><kbd>d</kbd></p>');
+        $v = Markup::html('<p><abbr>a</abbr> <abbr>b</abbr></p><p><abbr>c</abbr><cite>d</cite></p>');
         self::assertSame([
             [FidelityLevel::Approximated, 'markup <abbr> (tag removed, content kept)', 'p[0] > abbr[0]'],
-            [FidelityLevel::Approximated, 'markup <kbd> (tag removed, content kept)', 'p[1] > kbd[1]'],
+            [FidelityLevel::Approximated, 'markup <cite> (tag removed, content kept)', 'p[1] > cite[1]'],
         ], self::notes($v));
     }
 

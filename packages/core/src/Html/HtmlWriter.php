@@ -22,6 +22,7 @@ final class HtmlWriter implements TreeVisitor
 {
     private string $out = '';
     private readonly int $pageCount;
+    private readonly \Papercut\Style\Theme $theme;
     private ?Page $page = null;
     /** Output held back while a hidden region is walked; null outside one. */
     private ?string $held = null;
@@ -62,6 +63,7 @@ final class HtmlWriter implements TreeVisitor
     ) {
         $this->strays = new \WeakMap();
         $this->pageCount = count($doc->pages());
+        $this->theme = $options->theme();
     }
 
     public static function esc(string $s): string
@@ -299,8 +301,17 @@ final class HtmlWriter implements TreeVisitor
     private function text(Text $t, ComputedStyle $s, ComputedStyle $parent, Visit $at): string
     {
         $override = self::overridesDecoration($s, $parent);
-        $tag = in_array($t->preset(), ['h1', 'h2', 'h3', 'h4'], true) ? $t->preset() : 'p';
+        $pre = $t->styleName() === 'pre';
+        $tag = match (true) {
+            $pre => 'pre',
+            in_array($t->preset(), ['h1', 'h2', 'h3', 'h4'], true) => $t->preset(),
+            default => 'p',
+        };
         $decls = [...Css::box($s), ...$this->textCss($s, $parent, $at->path()), ...($this->parentIsFlex($at) ? Css::flexItem($s) : []), ...Css::pagination($s, $parent)];
+        if ($pre) {
+            // The browser's own pre rules (margin, font, tab width, white-space: pre) are replaced by the style's; long lines wrap like the PDF's.
+            $decls = ['margin' => '0', 'overflow-wrap' => 'anywhere', 'tab-size' => '4', ...$this->fontCss($s), ...$decls, 'white-space' => $s->whiteSpace->value];
+        }
         $this->out .= '<' . $tag . self::styleAttr($decls) . '>';
         $nested = false;
         foreach ($t->spanList() as $span) {
@@ -323,21 +334,28 @@ final class HtmlWriter implements TreeVisitor
             $this->out .= '<br>';
             return false;
         }
-        $style = $text->child($span->style);
+        $own = $this->theme->spanStyle($span);
+        $style = $text->child($own);
         $diff = $this->textCss($style, $text, $path);
-        if ($span->style->background !== null && !$span->style->background->isTransparent()) {
-            $diff['background-color'] = Css::color($span->style->background);
+        if ($own->background !== null && !$own->background->isTransparent()) {
+            $diff['background-color'] = Css::color($own->background);
         }
         $body = self::esc($span->text);
-        if ($diff !== []) {
-            $body = '<span' . self::styleAttr($diff) . '>' . $body . '</span>';
+        $code = $span->styleName === 'code';
+        if ($code) {
+            $diff = [...$this->fontCss($style), ...$diff];
+        }
+        $wrapped = $diff !== [] || $code;
+        if ($wrapped) {
+            $el = $code ? 'code' : 'span';
+            $body = '<' . $el . self::styleAttr($diff) . '>' . $body . '</' . $el . '>';
         }
         if ($span->href !== null) {
             $href = self::href($span->href);
             if ($this->linkDepth > 0) {
                 // An anchor inside an anchor is restructured by HTML parsers: keep the text and styles, lose the inner link.
                 $nested = true;
-                $body = $diff === [] ? '<span>' . $body . '</span>' : $body;
+                $body = $wrapped ? $body : '<span>' . $body . '</span>';
             } else {
                 $body = '<a href="' . self::esc($href) . '">' . $body . '</a>';
             }
@@ -345,6 +363,16 @@ final class HtmlWriter implements TreeVisitor
         $this->out .= $body;
 
         return self::overridesDecoration($style, $text);
+    }
+
+    /**
+     * The face and size, whatever the parent has: for elements whose browser default would otherwise show through.
+     *
+     * @return array<string,string>
+     */
+    private function fontCss(ComputedStyle $s): array
+    {
+        return array_intersect_key(Css::text($s, null, $this->options->fonts()->fallbacks, $this->options->fonts()), ['font-family' => 1, 'font-size' => 1]);
     }
 
     private function link(Link $l, ComputedStyle $s, ComputedStyle $parent, Visit $at): string

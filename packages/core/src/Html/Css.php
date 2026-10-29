@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Html;
 
-use Papercut\Style\{Align, ComputedStyle, Justify, Theme};
+use Papercut\Style\{Align, ComputedStyle, Justify, Theme, WhiteSpace};
 use Papercut\Text\{FontClass, FontSet};
 use Papercut\Value\{Auto, Color, Edges, Length, Percent};
 
@@ -132,6 +132,10 @@ final class Css
                 default => 'none',
             };
         }
+        if ($parent === null ? $s->whiteSpace !== WhiteSpace::Normal : $s->whiteSpace !== $parent->whiteSpace) {
+            $d['white-space'] = $s->whiteSpace->value;
+        }
+
         return $d;
     }
 

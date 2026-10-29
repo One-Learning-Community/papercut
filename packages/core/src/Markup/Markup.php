@@ -41,7 +41,7 @@ final class Markup
     public static function flatten(View|Text $converted): Text
     {
         if ($converted instanceof Text) {
-            return $converted;
+            return $converted->styleName() === null ? $converted : Text::spans(...self::named($converted))->withNotes(...$converted->notes());
         }
 
         $blocks = [];
@@ -63,13 +63,28 @@ final class Markup
     }
 
     /**
+     * The text's spans. A block style name (`pre`) moves onto its spans, so what lives in the
+     * text properties, such as pre-wrap and the monospace font, survives when the block is flattened into a line.
+     *
+     * @return list<Span>
+     */
+    private static function named(Text $text): array
+    {
+        $name = $text->styleName();
+        if ($name === null) {
+            return $text->spanList();
+        }
+        return array_map(static fn (Span $s): Span => $s->lineBreak || $s->styleName !== null ? $s : new Span($s->text, $s->style, $s->href, false, $name), $text->spanList());
+    }
+
+    /**
      * @param list<list<Span>> $blocks
      * @param list<Note> $notes
      */
     private static function collect(Node|Component $node, array &$blocks, array &$notes): void
     {
         if ($node instanceof Text) {
-            $blocks[] = $node->spanList();
+            $blocks[] = self::named($node);
             array_push($notes, ...$node->notes());
         } elseif ($node instanceof View || $node instanceof ListItem) {
             if ($node instanceof View) {

@@ -13,6 +13,7 @@ Colours are Tailwind palette names.
 | `field`, `field.label`, `field.placeholder` | 1pt `slate-300` border, 3pt radius. A `0.9em` `slate-600` label. An italic `slate-400` placeholder. |
 | `choice`, `choice.option`, `choice.marker`, `choice.marker.radio`, `choice.marker.selected`, `choice.mark`, `choice.mark.radio`, `choice.label.selected` | A `0.75em` marker with a 1pt `slate-400` border, round for radio. Selected: a `slate-800` border, a `0.42em` inner mark and a bold label. 6pt between marker and label. |
 | `key-value`, `key-value.label`, `key-value.value` | No borders. Labels in `slate-600`. |
+| `pre`, `code` | Monospace (the theme's mono family) at `0.9em` on a `slate-100` background. `pre` also keeps spaces, tabs and line breaks (`white-space: pre-wrap`), with 6pt 8pt padding and a 6pt bottom margin. `code` is inline, with no padding. |
 | `badge`, `badge.<tone>` | A bold pill at `0.9em`, in `slate`, `sky`, `emerald`, `amber` or `red` for `neutral`, `note`, `tip`, `warning` and `danger`: the background in `-100`, the text in `-800`. |
 
 ## How the names combine

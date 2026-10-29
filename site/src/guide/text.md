@@ -36,9 +36,34 @@ $document = Document::make(Page::a4()->body(
 
 On text tags, `align` and `size` are shorthand for `text-align` and `font-size`. On boxes, `align` positions the children instead.
 
+## Keeping spaces and line breaks
+
+By default runs of whitespace collapse to one space and a newline is just a space. The `white-space` style attribute (`Style::make(whiteSpace: WhiteSpace::PreWrap)` in PHP) changes that. It takes `normal` (the default) or `pre-wrap`, and it is inherited, so it can be set on a box or on a single span.
+
+Under `pre-wrap`:
+
+- spaces are kept, one for each space in the text, including a line's leading spaces;
+- a newline (`\n`, `\r\n` or `\r`) starts a new line;
+- a tab moves to the next multiple of four space widths, counted from the start of the line;
+- a line longer than the box still wraps, at a space where it can and anywhere otherwise. The spaces at a wrap point are dropped rather than carried to the next line, but the spaces that start a line of the source stay;
+- justified text is not stretched on these lines, since their spaces are layout.
+
+A `pre-wrap` span inside normal text keeps its own spaces while the text around it collapses. In HTML a `pre` block is written as `<pre>` and inline `code` as `<code>`, with `white-space: pre-wrap` and `tab-size: 4`. In Word the spaces are kept, tabs become real tabs and line breaks become `w:br`; Word's tab stops differ from four space widths, so tabbed text can line up differently there than in the PDF.
+
+In Blade, `<x-doc::pre>` makes a block in the `pre` style (monospace, `pre-wrap`) and `<x-doc::code>` an inline `code` span inside a text tag. Both take their content literally, so a variable echoed with `{{ $code }}` keeps its `<`, `&` and quotes:
+
+```blade
+<x-doc::p>Call <x-doc::code>render()</x-doc::code> once.</x-doc::p>
+<x-doc::pre>
+    if ($a < $b && $c) {
+        echo "ok";
+    }
+</x-doc::pre>
+```
+
 ## Inline formatting
 
-Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline tags: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<span>` with style attributes, `<a href>` and `<br>`. Any other tag throws an error.
+Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline tags: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<span>` with style attributes, `<a href>`, `<br>` and `<code>`. Any other tag throws an error.
 
 ::: code-tabs#style
 @tab Blade
@@ -57,7 +82,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-`<mark>` gives its text a `yellow-200` background.
+`<mark>` gives its text a `yellow-200` background. `<code>` sets it in the monospace font with the `code` style.
 
 In PHP you can also build the runs of text yourself:
 

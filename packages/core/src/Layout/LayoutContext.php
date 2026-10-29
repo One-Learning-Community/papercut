@@ -60,7 +60,7 @@ final class LayoutContext
     {
         return $this->itemizer ??= new Itemizer($this->fonts, function (string $msg): void {
             $this->warn($msg);
-        }, $this->fallbackFamilies);
+        }, $this->fallbackFamilies, $this->theme);
     }
 
     /** $withPath false: the message already names its node. */

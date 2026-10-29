@@ -59,6 +59,8 @@ final readonly class ComputedStyle
         public bool $inList = false,
         /** Inherited: the family the `monospace` keyword stands for. */
         public string $monoFamily = 'Cousine',
+        /** Inherited: how the text layout treats spaces, tabs and newlines. */
+        public WhiteSpace $whiteSpace = WhiteSpace::Normal,
     ) {
     }
 
@@ -172,6 +174,7 @@ final readonly class ComputedStyle
             bookmarkLevel: $style->bookmarkLevel,
             inList: $inList ?? $this->inList,
             monoFamily: $this->monoFamily,
+            whiteSpace: $style->whiteSpace ?? $this->whiteSpace,
         );
     }
 

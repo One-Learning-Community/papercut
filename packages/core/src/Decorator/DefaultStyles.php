@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Decorator;
 
-use Papercut\Style\{Align, Direction, Justify, Style};
+use Papercut\Style\{Align, Direction, Justify, Style, WhiteSpace};
 use Papercut\Value\{Color, Edges, Length};
 
 use function Papercut\pt;
@@ -141,6 +141,17 @@ final class DefaultStyles
         foreach (['neutral' => 'slate', 'note' => 'sky', 'tip' => 'emerald', 'warning' => 'amber', 'danger' => 'red'] as $tone => $hue) {
             $s['badge.' . $tone] = Style::make(background: self::c($hue . '-100'), color: self::c($hue . '-800'));
         }
+
+        // Preformatted text: the theme's mono family at 0.9em, spaces and line breaks kept.
+        $s['pre'] = Style::make(
+            fontFamily: 'monospace',
+            fontSize: Length::em(0.9),
+            whiteSpace: WhiteSpace::PreWrap,
+            background: self::c('slate-100'),
+            padding: self::sides(6, 8, 6, 8),
+            margin: self::sides(0, 0, 6, 0),
+        );
+        $s['code'] = Style::make(fontFamily: 'monospace', fontSize: Length::em(0.9), background: self::c('slate-100'));
 
         return $s;
     }

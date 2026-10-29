@@ -32,6 +32,8 @@ On boxes, `align` is short for `align-items`.
 | `<x-doc::h1>` to `<x-doc::h4>` | `align`, `size` | Style. Heading presets. |
 | `<x-doc::markup>` | `html` or `text`, `styles`, `blank-paragraphs` | Converts stored HTML or plain text. See [Rich text](/guide/rich-text.md). |
 | `<x-doc::link>` | `href` | Style. `href` is required. |
+| `<x-doc::pre>` | none | Style. A preformatted block in the `pre` style. The content is literal: tags are not parsed and entities are decoded, so `{{ $code }}` comes out exactly as the variable's value. The first and last blank lines are dropped and the common leading indentation is removed (Blade trims the slot, so the first line is left as it is and the indentation is taken from the lines after it). Components inside are an error. |
+| `<x-doc::code>` | none | Style, applied to the span. Inline code in the `code` style, for use inside `<x-doc::text>`, `<x-doc::p>` and the other text tags. The content is literal text. |
 
 On text tags, `align` is `text-align` and `size` is `font-size`.
 

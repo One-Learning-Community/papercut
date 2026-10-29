@@ -69,7 +69,7 @@ final class DocxExporter implements Exporter
         $root = $styles->root();
         $fonts = new WordFonts($options->fonts());
         $fonts->name($root->fontFamily);
-        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts);
+        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts, $options->theme());
         $visitor = new DocxVisitor(
             $fidelity,
             WidthResolver::for($options),

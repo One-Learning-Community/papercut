@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Tests\Map;
 
-use Dskripchenko\PhpDocx\Element\{Field, Hyperlink, LineBreak, Paragraph, Run};
+use Dskripchenko\PhpDocx\Element\{Field, Hyperlink, Paragraph, Run};
 use Dskripchenko\PhpDocx\Style\Alignment;
 use Papercut\{Document, Page, PageNumber, Span, Text, View};
 use Papercut\Docx\DocxExporter;
@@ -92,7 +92,8 @@ final class TextMapperTest extends TestCase
         self::assertInstanceOf(Hyperlink::class, $p->children[0]);
         self::assertSame('https://example.test', $p->children[0]->href);
         self::assertInstanceOf(Run::class, $p->children[0]->children[0]);
-        self::assertInstanceOf(LineBreak::class, $p->children[1]);
+        self::assertInstanceOf(Run::class, $p->children[1]);
+        self::assertSame("\n", $p->children[1]->text);
         $marked = $p->children[2];
         self::assertInstanceOf(Run::class, $marked);
         self::assertSame([], self::reports($this->fidelity));

@@ -13,6 +13,8 @@ final readonly class Span
         public Style $style = new Style(),
         public ?string $href = null,
         public bool $lineBreak = false,
+        /** A theme style the span takes first; $style is the span's own overrides on top of it. */
+        public ?string $styleName = null,
     ) {
     }
 

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Map;
 
-use Dskripchenko\PhpDocx\Element\{Field, Hyperlink, InlineElement, LineBreak, Paragraph, Run};
+use Dskripchenko\PhpDocx\Element\{Field, Hyperlink, InlineElement, Paragraph, Run};
 use Dskripchenko\PhpDocx\Style\{Alignment, ParagraphStyle, RunStyle};
 use Papercut\{Node, PageNumber, Text, View};
 use Papercut\Docx\Package\DocxPatcher;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\Fidelity;
 use Papercut\Paint\Link;
-use Papercut\Style\{ComputedStyle, TextAlign};
+use Papercut\Style\{ComputedStyle, TextAlign, Theme};
 use Papercut\Tree\Visit;
 use Papercut\Value\{Color, Length};
 
@@ -22,6 +22,7 @@ final class TextMapper
         private readonly LineMetrics $metrics,
         private readonly Fidelity $fidelity,
         private readonly WordFonts $fonts,
+        private readonly ?Theme $theme = null,
     ) {
     }
 
@@ -32,20 +33,18 @@ final class TextMapper
         $backdrop ??= Color::white();
         $children = [];
         foreach ($t->spanList() as $span) {
-            if ($span->lineBreak) {
-                $children[] = new LineBreak();
-                continue;
-            }
             // A span's own colours fade with the text; inherited ones already have.
-            $cs = $s->child($span->style);
-            $spanBg = Fade::over($span->style->background, $s->opacity, $backdrop);
-            $rs = $this->runStyle($span->style->color === null ? $cs : new ComputedStyle(...[...get_object_vars($cs), 'color' => Fade::over($cs->color, $s->opacity, $spanBg ?? $backdrop) ?? $cs->color]));
+            $own = ($this->theme ?? Theme::default())->spanStyle($span);
+            $cs = $s->child($own);
+            $spanBg = Fade::over($own->background, $s->opacity, $backdrop);
+            $rs = $this->runStyle($own->color === null ? $cs : new ComputedStyle(...[...get_object_vars($cs), 'color' => Fade::over($cs->color, $s->opacity, $spanBg ?? $backdrop) ?? $cs->color]));
             $bg = Units::fill($spanBg);
             if ($bg !== null) {
                 // php-docx writes no run shading, but writes a highlight as given: DocxPatcher turns this one into w:shd.
                 $rs = new RunStyle(...[...get_object_vars($rs), 'highlight' => DocxPatcher::shading($bg)]);
             }
-            $run = new Run($span->text, $rs);
+            // A line break is a run of its own, so a blank line takes the height of the text around it.
+            $run = new Run($span->lineBreak ? "\n" : $span->text, $rs);
             $href = $span->href ?? $blockHref;
             $children[] = $href !== null ? self::hyperlink($href, [$run]) : $run;
         }

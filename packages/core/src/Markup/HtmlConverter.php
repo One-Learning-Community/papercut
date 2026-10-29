@@ -100,8 +100,11 @@ final class HtmlConverter
     /** @var array<string, true>|null the features noted so far for the table in hand (once per table, not per cell); null outside a table */
     private ?array $partNoted = null;
 
-    /** How many `pre` elements enclose the current node; inside one, newlines are line breaks. */
+    /** How many `pre` elements enclose the current node; inside one, spaces and tabs are kept and newlines are line breaks. */
     private int $pre = 0;
+
+    /** How many code-like elements (code, kbd, samp, tt) outside a `pre` enclose the current node; their text takes the `code` style. */
+    private int $code = 0;
 
     private function __construct(private readonly MarkupOptions $options)
     {
@@ -160,12 +163,12 @@ final class HtmlConverter
         } elseif ($node instanceof \Dom\Text && $this->pre > 0) {
             foreach (preg_split('/\r\n|\n|\r/', $node->data) ?: [] as $i => $line) {
                 if ($i > 0) {
-                    $this->run->break();
+                    $this->run->break(true);
                 }
-                $this->run->text($line, $style, $href);
+                $this->run->text($line, $style, $href, true, $this->code > 0 ? 'code' : null);
             }
         } elseif ($node instanceof \Dom\Text) {
-            $this->run->text($node->data, $style, $href);
+            $this->run->text($node->data, $style, $href, false, $this->code > 0 ? 'code' : null);
         }
     }
 
@@ -190,7 +193,15 @@ final class HtmlConverter
                 $this->styled($own, $preset, fn () => $this->block($el, $style, $href, $preset, self::HEADINGS[$tag]));
                 return;
             case 'br':
-                $this->run->break();
+                $this->run->break($this->pre > 0);
+                return;
+            case 'pre':
+                $this->pre++;
+                try {
+                    $this->styled($own, $preset, fn () => $this->block($el, $style, $href, $preset, 'pre'));
+                } finally {
+                    $this->pre--;
+                }
                 return;
             case 'a':
                 $this->children($el, $style->merge($own), $this->link($el, $href), $preset);
@@ -250,6 +261,16 @@ final class HtmlConverter
             'mark' => new Style(background: Color::named('yellow-200')),
             default => null,
         };
+        if (in_array($tag, ['code', 'kbd', 'samp', 'tt'], true)) {
+            $named = $this->pre === 0;
+            $this->code += $named ? 1 : 0;
+            try {
+                $this->children($el, $style->merge($own), $href, $preset);
+            } finally {
+                $this->code -= $named ? 1 : 0;
+            }
+            return;
+        }
         if ($add !== null) {
             $this->children($el, $style->merge($add)->merge($own), $href, $preset);
             return;
@@ -266,12 +287,7 @@ final class HtmlConverter
             $this->children($el, $style->merge($own), $href, $preset);
             return;
         }
-        $this->pre += $tag === 'pre' ? 1 : 0;
-        try {
-            $this->styled($own, $preset, fn () => $this->block($el, $style, $href, $preset, 'p'));
-        } finally {
-            $this->pre -= $tag === 'pre' ? 1 : 0;
-        }
+        $this->styled($own, $preset, fn () => $this->block($el, $style, $href, $preset, 'p'));
     }
 
     /**
@@ -438,7 +454,7 @@ final class HtmlConverter
         $items = $this->items ?? [];
         $pending = [];
         foreach ($content as $block) {
-            $text = $block instanceof Text && $block->preset() === null;
+            $text = $block instanceof Text && $block->preset() === null && $block->styleName() === null;
             if ($pending === [] && !$text && $items !== []) {
                 $last = array_pop($items);
                 $joined = ListItem::make(...[...$last->children(), $block]);
@@ -996,7 +1012,11 @@ final class HtmlConverter
     private static function paragraph(array $spans, ?string $preset): Text
     {
         $text = Text::spans(...$spans);
-        return $preset === null ? $text : $text->withPreset($preset);
+        return match ($preset) {
+            null => $text,
+            'pre' => $text->apply('pre'),
+            default => $text->withPreset($preset),
+        };
     }
 
     /** Records a note at the current element; the path is joined only here, so deep input stays linear in memory. */
@@ -1044,6 +1064,9 @@ final class HtmlConverter
         $blocks = self::trimmed($this->blocks);
         if (count($blocks) === 1 && $blocks[0] instanceof Text && $blocks[0]->preset() === 'p') {
             return self::bare($blocks[0])->withNotes(...$this->notes);
+        }
+        if (count($blocks) === 1 && $blocks[0] instanceof Text && $blocks[0]->styleName() === 'pre') {
+            return $blocks[0]->withNotes(...$this->notes);
         }
         return View::make(...$blocks)->withNotes(...$this->notes);
     }
