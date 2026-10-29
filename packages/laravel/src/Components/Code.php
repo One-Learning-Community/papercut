@@ -30,13 +30,25 @@ final class Code extends PapercutComponent
         }
         $text = html_entity_decode(trim($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        ['style' => $style] = $this->attrs($data);
+        ['own' => $own, 'style' => $style] = $this->attrs($data);
+        $name = $own['style'] ?? null;
+        if ($name instanceof Style) {
+            $style = [];
+        }
+        $location = 'on ' . Tag::of('code');
         try {
-            $own = Style::fromAttributes($style);
+            if (is_string($name)) {
+                $this->requireThemeStyles(preg_split('/\s+/', trim($name), -1, PREG_SPLIT_NO_EMPTY) ?: [$name]);
+            }
+            $spanStyle = Style::fromAttributes($style);
+            if ($name instanceof Style) {
+                $spanStyle = $name->merge($spanStyle);
+            }
         } catch (UnknownAttribute | InvalidValue $e) {
-            throw $e->within('on ' . Tag::of('code'));
+            throw $e->within($location);
         }
 
-        return Text::spans(new Span($text, $own, null, false, 'code'));
+        // A named style layers over `code`, so the monospace font survives it.
+        return Text::spans(new Span($text, $spanStyle, null, false, is_string($name) ? 'code ' . $name : 'code'));
     }
 }
