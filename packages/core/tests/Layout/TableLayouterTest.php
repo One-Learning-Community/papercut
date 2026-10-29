@@ -922,4 +922,39 @@ final class TableLayouterTest extends TestCase
         self::assertCount(1, $stray);
         self::assertStringContainsString('body > column[1] > td[0]]', $stray[0]);
     }
+
+    /**
+     * @return array<string, array{\Papercut\Style\Style}>
+     */
+    public static function cellWidthConstraints(): array
+    {
+        return [
+            'max-width' => [new \Papercut\Style\Style(maxWidth: \Papercut\px(1))],
+            'min-width' => [new \Papercut\Style\Style(minWidth: \Papercut\px(5000))],
+            'width' => [new \Papercut\Style\Style(width: \Papercut\px(1))],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('cellWidthConstraints')]
+    public function test_min_and_max_width_on_a_cell_never_make_it_a_stray_cell(\Papercut\Style\Style $style): void
+    {
+        $doc = \Papercut\Document::make(\Papercut\Page::a4()->body(
+            Table::make()->columns('100pt 1fr')->row(TableCell::make('x')->apply($style), 'y'),
+        ));
+        $warnings = [];
+        $doc->toPdf(new \Papercut\Export\PdfOptions(
+            backend: new \Papercut\Tests\Support\FakeBackend(),
+            onWarning: function (string $m) use (&$warnings): void { $warnings[] = $m; },
+        ));
+
+        self::assertSame([], $warnings);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('cellWidthConstraints')]
+    public function test_a_cell_width_constraint_leaves_the_columns_where_the_track_list_puts_them(\Papercut\Style\Style $style): void
+    {
+        $t = Table::make()->columns('100pt 1fr')->row(TableCell::make('x')->apply($style), 'y');
+        $runs = LayoutHarness::runs((new LayoutHarness())->layout($t, 400)->fragment);
+        self::assertSame([6.0, 106.0], array_column($runs, 'x'));
+    }
 }

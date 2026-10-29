@@ -1059,7 +1059,14 @@ final class TableLayouter implements Layouter
     /** Lays a cell out at exactly $width, with the theme's cell defaults. */
     private function layoutCell(TableCell $cell, int $j, float $width, ComputedStyle $rowStyle, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
-        return ExactWidth::layout($this->prepare($cell, $engine->context()->theme), $width, $rowStyle, $c, $token, $engine, $j);
+        $prepared = $this->prepare($cell, $engine->context()->theme);
+        // The column decides the cell's width: a width/min/max that disagrees is pinned to it. Pinning
+        // clones the cell, and the clone must stay marked as a table cell or it warns as a stray one.
+        $pinned = ExactWidth::pin($prepared, $width, $engine->styleOf($prepared, $rowStyle, $j));
+        if ($pinned instanceof TableCell && $pinned !== $prepared) {
+            $this->inTable[$pinned] = true;
+        }
+        return ExactWidth::layout($pinned, $width, $rowStyle, $c, $token, $engine, $j);
     }
 
     /**

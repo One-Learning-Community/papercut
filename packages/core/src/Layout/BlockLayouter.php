@@ -108,15 +108,6 @@ final class BlockLayouter implements Layouter
             if ($monolithic && $res->status === Status::Partial && $res->fragment !== null && $res->token !== null) {
                 $res = LayoutResult::complete(self::continueInPlace($res->fragment, $res->token, $child, $width, $i, $style, $engine));
             }
-            if (($res->status === Status::DoesNotFit || $res->fragment === null) && !$fresh && $c->fresh && self::onlyKeepChain($placed, $i)) {
-                // Nothing but a keepWithNext chain is above this child on a fresh page: if it can split in place, let it,
-                // rather than leaving the chain alone on the page and the child starting on the next one.
-                $retry = $engine->layout($child, $style, new Constraints($width, $height, true), $resuming ? $resumeToken : null, $i);
-                if ($retry->status === Status::Partial && $retry->fragment !== null) {
-                    $res = $retry;
-                    $fresh = true;
-                }
-            }
             if ($res->status === Status::DoesNotFit || $res->fragment === null) {
                 if ($monolithic) {
                     // unbounded and fresh: cannot happen for well-behaved layouters, but never drop content silently
@@ -264,26 +255,6 @@ final class BlockLayouter implements Layouter
             return $node->children();
         }
         throw new \LogicException(sprintf('BlockLayouter cannot lay out %s.', $node::class));
-    }
-
-    /**
-     * True when everything placed so far is one keepWithNext chain running up to child $i.
-     *
-     * @param list<array{node: Node, style: ComputedStyle, index: int, width: float, fresh: bool, token: ?BreakToken, fragment: Fragment, x: float, y: float, height: float, before: float}> $placed
-     */
-    private static function onlyKeepChain(array $placed, int $i): bool
-    {
-        if ($placed === []) {
-            return false;
-        }
-        $next = $i;
-        for ($k = count($placed) - 1; $k >= 0; $k--) {
-            if ($placed[$k]['index'] !== $next - 1 || !$placed[$k]['style']->keepWithNext) {
-                return false;
-            }
-            $next--;
-        }
-        return true;
     }
 
     /**

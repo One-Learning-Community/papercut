@@ -248,36 +248,16 @@ final class PaginatorTest extends TestCase
         self::assertStringContainsString('header and footer leave no room', $this->warnings[0]);
     }
 
-    /** @return list<list<string>> */
-    private function captionedTable(bool $intro): array
+    public function test_caption_over_a_table_whose_first_row_is_taller_than_a_page_does_not_split_the_row_in_place(): void
     {
+        // Accepted: splitting the row in place would truncate fixed-height boxes inside it.
         // body 180 x 52: three lines a page; the table's first row is eight lines
         $tall = \Papercut\View::make(...array_map(static fn (int $i): Text => Text::make("T$i"), range(1, 8)));
         $table = \Papercut\Table::make()->columns('1fr')->row($tall);
-        $blocks = [Text::make('Caption')->keepWithNext(), $table];
-        if ($intro) {
-            array_unshift($blocks, Text::make('Intro'));
-        }
-        $pages = $this->paginate(Document::make($this->small()->body(...$blocks)), OverflowMode::Throw);
-        return array_map(fn ($p) => $this->texts($p), $pages);
-    }
-
-    public function test_a_caption_never_sits_alone_above_a_table_whose_first_row_is_taller_than_a_page(): void
-    {
-        $pages = $this->captionedTable(true);
-        foreach ($pages as $texts) {
-            self::assertNotSame(['Caption'], $texts);
-        }
-        self::assertSame(['Intro'], $pages[0]);
-        self::assertSame('Caption', $pages[1][0]);
-        self::assertSame('T1', $pages[1][1]);
-    }
-
-    public function test_a_caption_at_the_top_of_a_document_shares_the_page_with_the_first_slice(): void
-    {
-        $pages = $this->captionedTable(false);
-        self::assertSame('Caption', $pages[0][0]);
-        self::assertSame('T1', $pages[0][1]);
+        $doc = Document::make($this->small()->body(Text::make('Intro'), Text::make('Caption')->keepWithNext(), $table));
+        $pages = array_map(fn ($p) => $this->texts($p), $this->paginate($doc, OverflowMode::Throw));
+        // The caption is left alone on its own page; the first row starts on the next one and splits there.
+        self::assertSame([['Intro'], ['Caption'], ['T1', 'T2', 'T3', 'T4', 'T5'], ['T6', 'T7', 'T8']], $pages);
     }
 }
 

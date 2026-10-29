@@ -30,12 +30,52 @@ final class RuleTest extends TestCase
         self::assertSame(0, $d->count('/w:document/w:body/w:p/w:pPr/w:pBdr'));
     }
 
-    public function test_a_signature_line_in_a_row_stays_a_cell_border(): void
+    public function test_a_growing_signature_line_in_a_row_is_the_bottom_border_of_its_cell(): void
     {
         $line = View::make()->apply(Style::make(borderWidth: \Papercut\Value\Edges::of(pt(0), pt(0), pt(1), pt(0)), grow: 1));
         $d = self::export(Row::make('Signed:', $line));
         self::assertSame(0, $d->count('//w:pBdr'));
-        // identical to the export before `<hr>` support: the line stays a cell of the row, never a paragraph border
         self::assertSame(2, $d->count('/w:document/w:body/w:tbl/w:tr/w:tc'));
+        self::assertSame(1, $d->count('//w:tc/w:tcPr/w:tcBorders/w:bottom[@w:val="single"]'));
+        self::assertSame(1, $d->count('//w:tc[2]/w:tcPr/w:tcBorders/w:bottom[@w:val="single"]'));
+        self::assertSame(0, $d->count('//w:tc[1]/w:tcPr/w:tcBorders'));
+    }
+
+    public function test_a_fixed_width_signature_line_in_a_row_is_the_bottom_border_of_its_cell(): void
+    {
+        $line = View::make()->apply(Style::make(borderWidth: \Papercut\Value\Edges::of(pt(0), pt(0), pt(1), pt(0)), width: pt(150)));
+        $d = self::export(Row::make('Signed:', $line));
+        self::assertSame(0, $d->count('//w:pBdr'));
+        self::assertSame(1, $d->count('//w:tc/w:tcPr/w:tcBorders/w:bottom[@w:val="single"]'));
+        self::assertSame(1, $d->count('//w:tc[w:tcPr/w:tcBorders/w:bottom][w:tcPr/w:tcW/@w:w="3000"]'));
+    }
+
+    public function test_a_bordered_view_with_text_in_a_row_keeps_its_bottom_border(): void
+    {
+        $name = View::make(\Papercut\Text::make('Name'))->apply(Style::make(borderWidth: \Papercut\Value\Edges::of(pt(0), pt(0), pt(1), pt(0)), grow: 1));
+        $d = self::export(Row::make('Signed:', $name));
+        self::assertSame(1, $d->count('//w:tc/w:tcPr/w:tcBorders/w:bottom[@w:val="single"]'));
+        self::assertSame(1, $d->count('//w:tc[2]/w:tcPr/w:tcBorders/w:bottom[@w:val="single"]'));
+        self::assertStringContainsString('Name', $d->bodyText());
+    }
+
+    public function test_the_label_beside_a_signature_line_keeps_its_word_slack(): void
+    {
+        $line = View::make()->apply(Style::make(borderWidth: \Papercut\Value\Edges::of(pt(0), pt(0), pt(1), pt(0)), grow: 1));
+        $plain = View::make()->apply(Style::make(grow: 1));
+        $withLine = self::export(Row::make('Signed:', $line))->value('//w:tc[1]/w:tcPr/w:tcW/@w:w');
+        $spacer = self::export(Row::make('Signed:', $plain))->value('//w:tc[1]/w:tcPr/w:tcW/@w:w');
+        self::assertSame($spacer, $withLine);
+        self::assertGreaterThan(714, (int) $withLine);
+    }
+
+    public function test_a_padding_only_empty_view_in_a_row_stays_empty_space(): void
+    {
+        $pad = View::make()->apply(Style::make(padding: \Papercut\Value\Edges::all(pt(4)), grow: 1));
+        $plain = View::make()->apply(Style::make(grow: 1));
+        $a = self::export(Row::make('a', $pad, 'b'));
+        $b = self::export(Row::make('a', $plain, 'b'));
+        self::assertSame($b->values('//w:tc/w:tcPr/w:tcW/@w:w'), $a->values('//w:tc/w:tcPr/w:tcW/@w:w'));
+        self::assertSame(0, $a->count('//w:tcMar'));
     }
 }
