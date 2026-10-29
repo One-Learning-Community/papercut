@@ -151,15 +151,14 @@ final class PhikiHighlighter implements Highlighter
         $language = $this->canonical($language);
         $theme = strtolower($theme);
         $colors = $this->editorColors($theme);
-        $code = rtrim(str_replace(["\r\n", "\r"], "\n", $code), "\n");
-
-        try {
-            $tokenLines = $this->phiki->codeToHighlightedTokens($code, $language, $theme);
-        } catch (UnrecognisedGrammarException $e) {
-            throw new UnknownLanguage(sprintf('Unknown code language "%s".', $original), 0, $e);
-        } catch (UnrecognisedThemeException $e) {
-            throw new UnknownTheme(sprintf('Unknown code theme "%s".', $theme), 0, $e);
+        $code = str_replace(["\r\n", "\r"], "\n", $code);
+        if ($code === '') {
+            // Phiki turns the empty string into one empty line; there is nothing to show.
+            $this->tokenise('', $language, $theme, $original);
+            return new HighlightedCode([], $colors['background'], $colors['foreground']);
         }
+
+        $tokenLines = $this->tokenise($code, $language, $theme, $original);
 
         $lines = [];
         foreach ($tokenLines as $tokenLine) {
@@ -175,12 +174,20 @@ final class PhikiHighlighter implements Highlighter
             }
             $lines[] = $line;
         }
-        // Phiki ends every line with a newline, so the code is followed by one empty line.
-        if ($lines !== [] && end($lines) === []) {
-            array_pop($lines);
-        }
 
         return new HighlightedCode($lines, $colors['background'], $colors['foreground']);
+    }
+
+    /** @return iterable<array<\Phiki\Token\HighlightedToken>> */
+    private function tokenise(string $code, string $language, string $theme, string $original): iterable
+    {
+        try {
+            return $this->phiki->codeToHighlightedTokens($code, $language, $theme);
+        } catch (UnrecognisedGrammarException $e) {
+            throw new UnknownLanguage(sprintf('Unknown code language "%s".', $original), 0, $e);
+        } catch (UnrecognisedThemeException $e) {
+            throw new UnknownTheme(sprintf('Unknown code theme "%s".', $theme), 0, $e);
+        }
     }
 
     public function displayName(string $language): ?string

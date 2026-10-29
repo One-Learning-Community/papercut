@@ -154,9 +154,9 @@ final class DefaultStyles
         $s['code'] = Style::make(fontFamily: 'monospace', fontSize: Length::em(0.9), background: self::c('slate-100'));
 
         // Code blocks: geometry only; the colours come from the code theme (see CodeBlock).
-        $s['code-block'] = Style::make(padding: self::sides(6, 8, 6, 8), margin: self::sides(0, 0, 6, 0), radius: pt(3), borderWidth: Edges::all(pt(0.5)));
+        $s['code-block'] = Style::make(padding: self::sides(6, 8, 6, 8), margin: self::sides(0, 0, 6, 0), radius: pt(3), borderWidth: Edges::all(pt(0.5)), fontWeight: 400, italic: false, underline: false, strike: false);
         $s['code-block.code'] = Style::make(fontFamily: 'monospace', fontSize: Length::em(0.9), whiteSpace: WhiteSpace::PreWrap);
-        $s['code-block.label'] = Style::make(fontSize: Length::em(0.7), fontWeight: 600, letterSpacing: pt(0.4), textAlign: TextAlign::Right, margin: self::sides(0, 0, 2, 0));
+        $s['code-block.label'] = Style::make(fontSize: Length::em(0.7), fontWeight: 600, italic: false, underline: false, strike: false, letterSpacing: pt(0.4), textAlign: TextAlign::Right, margin: self::sides(0, 0, 2, 0));
         $s['code-block.bar'] = Style::make(padding: self::sides(2, 8, 2, 8), borderWidth: Edges::of($zero, $zero, pt(0.5), $zero));
         $s['code-block.strip'] = Style::make(padding: Edges::all($zero));
         $s['code-block.code.strip'] = Style::make(padding: self::sides(6, 8, 6, 8));

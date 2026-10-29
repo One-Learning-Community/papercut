@@ -64,6 +64,45 @@ final class CodeBlockTest extends TestCase
         return new Note(FidelityLevel::Dropped, $feature);
     }
 
+    /** @return array<string, string> run text => font id */
+    private static function fontIds(\Papercut\Node|\Papercut\Component $node): array
+    {
+        $page = Page::size(pt(300), pt(220))->margin(pt(10))->headerGap(pt(0))->footerGap(pt(0));
+        $b = new \Papercut\Tests\Support\FakeBackend();
+        $ctx = new \Papercut\Layout\LayoutContext(\Papercut\Text\FontRegistry::withDefaults($b), \Papercut\Style\Theme::default(), $b, \Papercut\OverflowMode::Throw, static function (string $w): void {});
+        $pages = \Papercut\Paint\Painter::paint((new \Papercut\Layout\Paginator(new \Papercut\Layout\LayoutEngine($ctx), $ctx))->paginate(Document::make($page->body($node))));
+        $ids = [];
+        foreach ($pages[0]->ops as $o) {
+            if ($o instanceof \Papercut\Paint\TextRun) {
+                $ids[trim($o->text)] = $o->font->id();
+            }
+        }
+        return $ids;
+    }
+
+    public function test_code_in_a_blockquote_is_not_italic_except_theme_italics(): void
+    {
+        $block = CodeBlock::make("<?php\n// hi\necho 1;")->language('php');
+        $plain = self::fontIds($block);
+        $quoted = self::fontIds(\Papercut\Decorator\Blockquote::make($block));
+        self::assertArrayHasKey('echo', $quoted);
+        self::assertSame($plain['echo'], $quoted['echo']);
+        self::assertSame($plain['// hi'], $quoted['// hi']);
+        self::assertNotSame($quoted['echo'], $quoted['// hi']);
+    }
+
+    public function test_trailing_newlines_are_the_same_on_the_plain_and_highlighted_paths(): void
+    {
+        foreach (["a\n\n" => 2, "a\n" => 1, 'a' => 1, "a\r\n\r\n" => 2] as $code => $lines) {
+            foreach (['php', 'text'] as $language) {
+                $view = CodeBlock::make($code)->language($language)->render();
+                $text = self::textAt($view, count($view->children()) - 1);
+                $breaks = count(array_filter($text->spanList(), static fn (\Papercut\Span $s): bool => $s->lineBreak));
+                self::assertSame($lines - 1, $breaks, json_encode($code) . " as $language");
+            }
+        }
+    }
+
     public function test_renders_coloured_spans_and_a_label_line(): void
     {
         $view = CodeBlock::make("<?php\n// hi")->language('php')->render();

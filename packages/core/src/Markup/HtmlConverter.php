@@ -860,9 +860,6 @@ final class HtmlConverter
         if ($flat) {
             $this->note(FidelityLevel::Approximated, 'markup inside a code block');
         }
-        if (str_ends_with($code, "\n")) {
-            $code = substr($code, 0, -1);
-        }
         $this->blocks[] = [CodeBlock::make($code)->language($language)->highlighting($options)->render(), false];
     }
 

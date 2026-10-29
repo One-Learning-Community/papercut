@@ -81,6 +81,12 @@ final class Pre extends PapercutComponent
     {
         $lines = self::lines(self::literal($this->rawSlot($data)));
         ['own' => $own] = $this->attrs($data);
+        // An empty language or theme is the same as none (a Blade variable that came out blank).
+        foreach (['language', 'theme'] as $name) {
+            if (($own[$name] ?? null) === '') {
+                unset($own[$name]);
+            }
+        }
         if (isset($own['language'])) {
             return $this->codeBlock($lines, $own, $data);
         }

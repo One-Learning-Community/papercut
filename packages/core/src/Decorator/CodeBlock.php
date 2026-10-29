@@ -49,7 +49,9 @@ final class CodeBlock implements Decorator
     public static function make(string $code): self
     {
         $block = new self();
-        $block->code = $code;
+        $code = str_replace(["\r\n", "\r"], "\n", $code);
+        // One final newline ends the last line; any further ones are the author's blank lines.
+        $block->code = str_ends_with($code, "\n") ? substr($code, 0, -1) : $code;
         return $block;
     }
 
@@ -143,7 +145,7 @@ final class CodeBlock implements Decorator
         $labelText = $this->labelText($lower, $language, $displayName);
 
         $spans = self::spans($highlighted, $coloured);
-        $code = Text::spans(...$spans)->apply($block->part('code-block.code'));
+        $code = Text::spans(...$spans)->htmlCode($language)->apply($block->part('code-block.code'));
 
         $strip = in_array('strip', $block->variants(), true);
         $caption = in_array('caption', $block->variants(), true);

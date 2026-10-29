@@ -52,13 +52,32 @@ final class PhikiHighlighterTest extends TestCase
         self::assertSame('#0a7a4b', (string) self::find($h, 'a')->color);
     }
 
+    public function test_storage_keywords_take_the_keyword_colour(): void
+    {
+        $h = (new PhikiHighlighter())->highlight("<?php\nclass A {}\nconst X = 1;\ninterface I {}", 'php', 'papercut-light');
+        foreach (['class', 'const', 'interface'] as $word) {
+            self::assertSame('#8250df', (string) self::find($h, $word)->color, $word);
+        }
+    }
+
+    public function test_markup_tag_and_attribute_names_are_coloured_but_tag_punctuation_is_not(): void
+    {
+        foreach (['html' => '<a href="x">y</a>', 'xml' => '<a href="x">y</a>', 'vue' => "<template>\n  <a href=\"x\">y</a>\n</template>"] as $lang => $code) {
+            $h = (new PhikiHighlighter())->highlight($code, $lang, 'papercut-light');
+            self::assertSame('#116329', (string) self::find($h, 'a')->color, $lang . ' tag name');
+            self::assertSame('#0550ae', (string) self::find($h, 'href')->color, $lang . ' attribute name');
+            self::assertSame('#24292f', (string) ($h->lines[0][0]->color ?? $h->foreground), $lang . ' tag punctuation stays the text colour');
+        }
+    }
+
     public function test_text_round_trips(): void
     {
         $h = new PhikiHighlighter();
         foreach (["a = 1\nb = 2", "a = 1\nb = 2\n", "a = 1\r\nb = 2\r\n", ''] as $code) {
             $lines = $h->highlight($code, 'python', 'papercut-light')->lines;
             $text = implode("\n", array_map(static fn (array $l): string => implode('', array_map(static fn (CodeToken $t): string => $t->text, $l)), $lines));
-            self::assertSame(rtrim(str_replace(["\r\n", "\r"], "\n", $code), "\n"), $text);
+            // The adapter keeps every line the author wrote, including trailing blank ones.
+            self::assertSame(str_replace(["\r\n", "\r"], "\n", $code), $text);
         }
     }
 

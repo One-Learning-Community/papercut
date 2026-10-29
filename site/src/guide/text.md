@@ -116,6 +116,16 @@ By default the label sits at the top right of the box, on a small line above the
 
 In PHP use `->variant('strip')` or `->variant('caption')`; the two can't be combined. Set a default for every block with `papercut.code.variant` in Laravel, or `new CodeHighlighting(variant: 'caption')` in PHP.
 
+### Keeping a block on one page
+
+A block that would straddle a page break is split like any other text. To move it to the next page whole, use `->keepTogether()` in PHP, or `keep-together` on `<x-doc::pre>`:
+
+```blade
+<x-doc::pre language="php" keep-together>$a = 1;</x-doc::pre>
+```
+
+A block taller than a page still splits. In Word the default look keeps its lines together, and `strip` keeps its header bar with the code.
+
 ### Themes and colours
 
 The colours come from the TextMate theme: the block's background and text, and every token. The default theme is `papercut-light`. Pick another per block, or for all of them:
@@ -176,6 +186,8 @@ $block = CodeBlock::make('demo text')
 ```
 :::
 
+Register on your own `new PhikiHighlighter()` and pass it to `new CodeHighlighting($highlighter, ...)`, as above. Don't register on the shared default (`CodeHighlighting::default()->highlighter()`): it is one instance for the whole process, so everything you add would reach every document after it.
+
 An injection grammar (VS Code style, with an `injectionSelector` and `patterns`) is merged into each grammar listed in `into`, named by scope. It applies when one of those is the block's language, not where that grammar is only embedded inside another. Register the host grammars first (in config, `grammars` is read before `injections`); bundled ones are already there. A registered grammar can be embedded in another by its scope name. A path that doesn't exist, or a file that isn't a valid grammar or theme, throws when the highlighter is built, and in Laravel the message names the config key, such as `papercut.code.grammars.demo`.
 
 ### In markup
@@ -184,7 +196,9 @@ An injection grammar (VS Code style, with an `injectionSelector` and `patterns`)
 
 ### Word and HTML
 
-In Word, the default look is shaded, bordered paragraphs, and `strip` and `caption` are tables. In HTML, a code block is a `<pre>` with coloured spans.
+In Word, the default look is shaded, bordered paragraphs, and `strip` and `caption` are tables. In HTML, a code block is a `<pre><code>` with coloured spans, and `class="language-php"` on the `<code>` when there is a language.
+
+Word can't round corners, so the default look's `radius` is reported as dropped (`strip` has it too; `caption` has none). Strict Word export throws for it unless you set `radius: 0` on the block. The label's weight of 600 is reported as approximated, which strict export allows.
 
 ## Inline formatting
 

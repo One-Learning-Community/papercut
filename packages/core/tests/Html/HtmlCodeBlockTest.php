@@ -34,4 +34,17 @@ final class HtmlCodeBlockTest extends TestCase
         $html = $this->html(CodeBlock::make('echo 1;')->language('php'));
         self::assertMatchesRegularExpression('~<[a-z]+ style="[^"]*color:#94a3b8[^"]*">PHP<~i', $html);
     }
+
+    public function test_code_is_wrapped_in_code_with_a_language_class(): void
+    {
+        $html = $this->html(CodeBlock::make('echo 1;')->language('php'));
+        self::assertMatchesRegularExpression('~<pre[^>]*><code class="language-php">.*</code></pre>~s', $html);
+    }
+
+    public function test_code_without_a_language_has_no_class(): void
+    {
+        $html = $this->html(CodeBlock::make('echo 1;'));
+        self::assertMatchesRegularExpression('~<pre[^>]*><code>.*</code></pre>~s', $html);
+        self::assertStringNotContainsString('language-', $html);
+    }
 }

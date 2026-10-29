@@ -88,6 +88,18 @@ final class CodeBlockComponentTest extends TestCase
         self::assertInstanceOf(Text::class, $this->nodeFrom('<x-doc::pre>x</x-doc::pre>'));
     }
 
+    public function test_an_empty_language_is_absent(): void
+    {
+        self::assertInstanceOf(Text::class, $this->nodeFrom('<x-doc::pre language="">x</x-doc::pre>'));
+        self::assertInstanceOf(Text::class, $this->nodeFrom('<x-doc::pre language="" theme="">x</x-doc::pre>'));
+    }
+
+    public function test_an_empty_theme_is_absent(): void
+    {
+        $view = $this->rendered('<x-doc::pre language="php" theme="">$a = 1;</x-doc::pre>');
+        self::assertSame('#f6f8fa', (string) $view->style()->background);
+    }
+
     public function test_language_pre_keeps_its_literal_slot(): void
     {
         $view = $this->rendered("<x-doc::pre language=\"text\">\n    {{ '<a & b>' }}\n      deeper\n</x-doc::pre>");

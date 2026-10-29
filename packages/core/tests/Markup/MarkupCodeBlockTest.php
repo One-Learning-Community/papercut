@@ -47,6 +47,17 @@ final class MarkupCodeBlockTest extends TestCase
         return false;
     }
 
+    public function test_only_one_trailing_newline_is_dropped_so_blank_lines_survive(): void
+    {
+        foreach (['php', 'text'] as $lang) {
+            $wrap = static fn (string $code): View|Text => Markup::html('<pre><code class="language-' . $lang . '">' . $code . '</code></pre>');
+            self::assertEquals($wrap('a'), $wrap("a\n"), $lang . ': one final newline just ends the line');
+            self::assertNotEquals($wrap("a\n"), $wrap("a\n\n"), $lang . ': the second newline is a blank line');
+            self::assertEquals($wrap("a\n\n"), $wrap("a\n\n"));
+            self::assertNotEquals($wrap("a\n\n"), $wrap("a\n\n\n"), $lang . ': and a third is another');
+        }
+    }
+
     public function test_language_class_on_code_makes_a_code_block(): void
     {
         $v = Markup::html('<pre><code class="language-php">$a = 1;</code></pre>');

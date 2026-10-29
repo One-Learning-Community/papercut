@@ -66,9 +66,54 @@ final class CodeBlockDocxTest extends TestCase
         self::assertCount(1, $second);
     }
 
+    public function test_keep_together_keeps_every_paragraph_on_one_page(): void
+    {
+        $d = self::export(self::block()->keepTogether());
+        $paras = $d->values(self::P . '[w:pPr/w:pBdr]/w:pPr/w:keepLines');
+        $all = $d->values(self::P . '[w:pPr/w:pBdr]');
+        self::assertGreaterThan(1, count($all));
+        self::assertCount(count($all), $paras, 'keep lines together on every paragraph');
+        // keep with next on all but the last
+        self::assertCount(count($all) - 1, $d->values(self::P . '[w:pPr/w:pBdr]/w:pPr/w:keepNext'));
+        self::assertSame([], $d->values(self::P . '[w:pPr/w:pBdr][last()]/w:pPr/w:keepNext'));
+    }
+
+    public function test_without_keep_together_nothing_is_kept(): void
+    {
+        $d = self::export(self::block());
+        self::assertSame([], $d->values('//w:keepLines'));
+        // only the label stays with its code
+        self::assertCount(1, $d->values('//w:keepNext'));
+    }
+
+    public function test_keep_together_on_the_strip_look_keeps_the_bar_row_with_the_code_row(): void
+    {
+        $d = self::export(self::block()->variant('strip')->keepTogether());
+        self::assertCount(2, $d->values('/w:document/w:body/w:tbl/w:tr/w:trPr/w:cantSplit'));
+        self::assertCount(1, $d->values('/w:document/w:body/w:tbl/w:tr[1]//w:p/w:pPr/w:keepNext'));
+        self::assertSame([], $d->values('/w:document/w:body/w:tbl/w:tr[2]//w:p/w:pPr/w:keepNext'));
+    }
+
+    public function test_keep_together_on_the_caption_look_keeps_the_label_and_cannot_split_the_box(): void
+    {
+        $d = self::export(self::block()->variant('caption')->keepTogether());
+        self::assertCount(1, $d->values('/w:document/w:body/w:p/w:pPr/w:keepNext'));
+        self::assertNotSame([], $d->values('/w:document/w:body/w:tbl/w:tr/w:trPr/w:cantSplit'));
+    }
+
     public function test_text_containing_the_patch_markers_exports(): void
     {
         $d = self::export(\Papercut\Text::make('See papercut-spec and papercut-shd-abcdef and papercut-sp8-aabbcc for details'));
         self::assertStringContainsString('papercut-spec', implode('', $d->values('//w:t')));
+    }
+
+    public function test_a_code_block_first_in_a_list_item_gets_its_own_marker_paragraph(): void
+    {
+        $d = self::export(\Papercut\ListNode::ordered(\Papercut\ListItem::make(self::block())));
+        // The marker paragraph is the only numbered one and has no border or shading.
+        self::assertCount(1, $d->values(self::P . '/w:pPr/w:numPr'));
+        self::assertNotSame([], $d->values(self::P . '[w:pPr/w:numPr][not(w:pPr/w:pBdr)][not(w:pPr/w:shd)]'));
+        self::assertSame([], $d->values(self::P . '[w:pPr/w:numPr][w:pPr/w:pBdr]'));
+        self::assertNotSame([], $d->values(self::P . '[w:pPr/w:pBdr][not(w:pPr/w:numPr)]'));
     }
 }

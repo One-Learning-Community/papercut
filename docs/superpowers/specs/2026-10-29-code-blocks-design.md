@@ -70,6 +70,8 @@ The approved default palette (the default theme's token colours, on a light tint
 | variable | `#953800` |
 | number, constant | `#0550ae` |
 | type, class name | `#6639ba` |
+| markup tag name | `#116329` |
+| markup attribute name | `#0550ae` |
 | other text | `#24292f` |
 | block background | `#f6f8fa`; border `#e2e8f0` |
 | label | `#94a3b8` |
