@@ -7,6 +7,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `papercut:fonts:install` saves the family's licence (`OFL.txt`, `LICENSE.txt` or `UFL.txt`) beside the font files, from Google's fonts repository. If it can't be downloaded, the command warns and installs the fonts anyway; `--force` replaces an existing copy.
 - Decorator variants: `variant("large")` in PHP and `variant="large"` in Blade make a decorator also apply `<name>.large` for every part it styles, when the theme defines it. `Decorator::partNames()` lists a decorator's parts. In Blade a variant that styles no part throws; in PHP it does nothing. Style names ending in `?` are optional in `Theme::named()` and are skipped when undefined; `style=""` in Blade rejects them.
 - `images` attribute on `<x-doc::markup>`: an `ImageResolver` class for that tag, or `none` to show alt text instead of images. `PapercutManager::markupImageResolver()` builds each named class once per manager.
 - `FontSet::withWordName()` and `wordName()` give a family the name Word should use for it (Cousine defaults to `Courier New`), and `FontSet::info()` reports a family's `FontClass`, PANOSE classification and fixed-pitch flag from its font file. In Laravel the names come from `papercut.font_word_names`.

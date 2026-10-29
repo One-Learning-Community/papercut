@@ -438,7 +438,7 @@ Inter (regular, bold, italic, bold italic) is bundled and always available. Regi
 'theme' => ['font_family' => 'Merriweather', 'font_size' => 10],
 ```
 
-`php artisan papercut:fonts:install "Merriweather" --weights=400,700 --italic` downloads a family's TrueType files from Google Fonts into `resources/fonts/<Family>/` (`--path` to change, `--force` to overwrite) and prints the `fonts` entry to paste into the config. The files are downloaded once and committed with the app; rendering never touches the network.
+`php artisan papercut:fonts:install "Merriweather" --weights=400,700 --italic` downloads a family's TrueType files from Google Fonts into `resources/fonts/<Family>/` (`--path` to change, `--force` to overwrite), saves the family's licence beside them (`OFL.txt`, `LICENSE.txt` or `UFL.txt`, from Google's [fonts repository](https://github.com/google/fonts)) and prints the `fonts` entry to paste into the config. The files are downloaded once and committed with the app; rendering never touches the network.
 
 `php artisan papercut:fonts` lists every available face and reports whether each file is `ok`, `missing` or `invalid`. A glyph missing from the primary family is looked up in `fallback_fonts`; if no family has it, a warning is logged (`[papercut] ...`).
 
