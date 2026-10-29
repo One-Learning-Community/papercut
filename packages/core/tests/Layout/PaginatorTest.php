@@ -248,6 +248,33 @@ final class PaginatorTest extends TestCase
         self::assertStringContainsString('header and footer leave no room', $this->warnings[0]);
     }
 
+    public function test_a_table_too_wide_in_a_header_that_is_never_rendered_does_not_throw(): void
+    {
+        $wide = \Papercut\Table::make()->columns('400pt 400pt')->row('a', 'b');
+        $pages = $this->paginate(Document::make($this->tall()->header('H')->evenHeader($wide)->body('one page')));
+        self::assertCount(1, $pages);
+        self::assertSame([], $this->warnings);
+    }
+
+    public function test_a_table_too_wide_in_a_header_throws_once_that_header_is_rendered(): void
+    {
+        $wide = \Papercut\Table::make()->columns('400pt 400pt')->row('a', 'b');
+        $this->expectException(LayoutOverflow::class);
+        $this->expectExceptionMessage('even-header');
+        $this->paginate(Document::make($this->tall()->header('H')->evenHeader($wide)->body(...self::lines(40))));
+    }
+
+    public function test_a_shrunk_table_in_a_header_is_reported_only_once_that_header_is_rendered(): void
+    {
+        $wide = \Papercut\Table::make()->columns('auto auto')->row(str_repeat('a', 40), str_repeat('b', 40));
+        $this->paginate(Document::make($this->tall()->header('H')->evenHeader($wide)->body('one page')));
+        self::assertSame([], $this->warnings);
+        $this->warnings = [];
+        $this->paginate(Document::make($this->tall()->header('H')->evenHeader($wide)->body(...self::lines(40))));
+        self::assertCount(1, $this->warnings);
+        self::assertStringContainsString('approximated table columns narrower than their content', implode("\n", $this->warnings));
+    }
+
     private function tall(): Page
     {
         // 200x300 page, 10pt margins, no gaps
@@ -535,12 +562,10 @@ final class PaginatorTest extends TestCase
             $table = $table->row('a', 'b');
         }
         $doc = Document::make($this->tall()->firstHeader($tall)->header('Running')->body($table));
-        foreach ([OverflowMode::Throw, OverflowMode::Clip] as $mode) {
-            $this->warnings = [];
-            $this->paginate($doc, $mode);
-            self::assertSame(array_values(array_unique($this->warnings)), $this->warnings, $mode->name);
-            self::assertCount(2, $this->warnings, $mode->name);
-        }
+        // Clip mode: in Throw mode hand-set columns wider than the page throw instead of warning
+        $this->paginate($doc, OverflowMode::Clip);
+        self::assertSame(array_values(array_unique($this->warnings)), $this->warnings);
+        self::assertCount(2, $this->warnings);
     }
 
     public function test_caption_over_a_table_whose_first_row_is_taller_than_a_page_does_not_split_the_row_in_place(): void

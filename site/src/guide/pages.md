@@ -348,7 +348,7 @@ To leave the panel empty, pass `bookmarks: false` to `PdfOptions`, or set `'book
 
 ## Content that doesn't fit
 
-Occasionally something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page. By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.
+Occasionally something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.
 
 If you'd rather get the rest of the document, you can have Papercut clip the oversized content and log a warning instead:
 

@@ -57,6 +57,12 @@ Auto columns normally take only the width their content needs, so a table of sho
 $table = Table::make()->columns('auto auto auto')->fillWidth()->row('Mon', 'Tue', 'Wed');
 ```
 
+### Tables wider than their box
+
+When the columns don't fit even at their narrowest (the longest word in each, or the longest piece between hyphens and slashes), the widest `auto` and `fr` columns give way first. They're narrowed to a shared width so the table fits, and long words in them break across lines. Narrow columns keep their width. A column never gets narrower than its content can go: its cell padding plus its widest letter, or the full width of a fixed-width box or a nested table's own narrowest columns. Images, SVGs and PDF pages scale down. This is reported as an approximation through `onWarning`, with how much more room the table needed. Smaller text or less cell padding keeps words whole.
+
+Length columns (`25mm`) keep the width you gave them. If they, or the narrowest widths left after shrinking, still don't fit, the table can't fit its box: Papercut throws a `LayoutOverflow` or, in clip mode, draws the table too wide and warns. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). Tables from `Markup::html()` shrink their length columns too.
+
 ## Cells
 
 A cell can hold any content, not just text: a column with two lines, an image or a badge, for example. Use `colspan` to make a cell span several columns and `rowspan` to make it span several rows. `<x-doc::th>` is a header cell, and its text is bold.

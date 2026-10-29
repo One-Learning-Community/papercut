@@ -140,7 +140,7 @@ final class DocxVisitor implements TreeVisitor
             }
         } elseif ($node instanceof Table) {
             $frame->grid = TableGrid::of($node);
-            $frame->columns = TableMapper::settle($this->widths->tableColumns($node, $style, $width), WidthResolver::tracks($node));
+            $frame->columns = TableMapper::settle($this->widths->tableColumns($node, $style, $width, $at->path()), WidthResolver::tracks($node));
         } elseif ($node instanceof TableRow) {
             $frame->rowIndex = $parent->rowsSeen++;
             $frame->header = $at->inHeader() && $at->parent() instanceof Table && $at->parent()->repeatsHeader();
