@@ -46,7 +46,65 @@ final class DocxPatcher
             'default run properties in word/styles.xml',
         );
 
+        if ($spec->mirrorMargins) {
+            $parts = self::mirrorMargins($parts);
+        }
+
         return DeterministicZip::write($parts, $spec->time);
+    }
+
+    /**
+     * @param array<string, string> $parts
+     * @return array<string, string>
+     */
+    private static function mirrorMargins(array $parts): array
+    {
+        if (isset($parts['word/settings.xml'])) {
+            $parts['word/settings.xml'] = self::replaceOnce('~<w:evenAndOddHeaders/>~', '<w:mirrorMargins/><w:evenAndOddHeaders/>', $parts['word/settings.xml'], '<w:evenAndOddHeaders/> in word/settings.xml');
+
+            return $parts;
+        }
+
+        return self::addPart(
+            $parts,
+            'word/settings.xml',
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                . '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:mirrorMargins/></w:settings>',
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',
+        );
+    }
+
+    /**
+     * Adds a part under word/ that php-docx did not write: the file, its relationship in document.xml.rels (a new rId)
+     * and its content-type override.
+     *
+     * @param array<string, string> $parts
+     * @return array<string, string>
+     */
+    private static function addPart(array $parts, string $name, string $xml, string $relType, string $contentType): array
+    {
+        if (isset($parts[$name])) {
+            throw new \LogicException('php-docx output changed: ' . $name . ' already exists');
+        }
+        $rels = $parts['word/_rels/document.xml.rels'] ?? '';
+        preg_match_all('~\bId="rId(\d+)"~', $rels, $m);
+        $id = 'rId' . ($m[1] === [] ? 1 : max(array_map('intval', $m[1])) + 1);
+        $parts['word/_rels/document.xml.rels'] = self::replaceOnce(
+            '~</Relationships>~',
+            '<Relationship Id="' . $id . '" Type="' . $relType . '" Target="' . self::attr(substr($name, strlen('word/'))) . '"/></Relationships>',
+            $rels,
+            '</Relationships> in word/_rels/document.xml.rels',
+        );
+        $parts['[Content_Types].xml'] = self::replaceOnce(
+            '~</Types>~',
+            '<Override PartName="/' . self::attr($name) . '" ContentType="' . $contentType . '"/></Types>',
+            $parts['[Content_Types].xml'] ?? '',
+            '</Types> in [Content_Types].xml',
+        );
+        $parts[$name] = $xml;
+
+        return $parts;
     }
 
     private static function replaceOnce(string $pattern, string $replacement, string $subject, string $what): string

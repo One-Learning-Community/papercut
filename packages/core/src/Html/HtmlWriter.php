@@ -23,6 +23,8 @@ final class HtmlWriter implements TreeVisitor
     private string $out = '';
     private readonly int $pageCount;
     private ?Page $page = null;
+    /** Output held back while a hidden region is walked; null outside one. */
+    private ?string $held = null;
 
     /** @var list<ComputedStyle> */
     private array $styles = [];
@@ -114,6 +116,9 @@ final class HtmlWriter implements TreeVisitor
         if ($page->headerNodes() !== [] || $page->footerNodes() !== []) {
             $this->fidelity->approximated('header and footer once per page', $path);
         }
+        if ($page->evenHeaderNodes() !== null || $page->evenFooterNodes() !== null) {
+            $this->fidelity->approximated('even-page header and footer', $path);
+        }
         if ($page->templatePage() !== null) {
             $this->fidelity->dropped('PDF page template', $path);
         }
@@ -143,24 +148,51 @@ final class HtmlWriter implements TreeVisitor
         $this->edges = [];
         $m = $this->page?->margins();
         $this->regionWidth = $this->page === null || $m === null ? 0.0 : max(0.0, $this->page->width() - $m->left->points - $m->right->points);
-        $this->recordFont($root, null);
-        $style = match ($region) {
-            Region::Header => ' style="margin-bottom:' . Css::pt($this->page?->headerGapLength()->points ?? 0.0) . '"',
-            Region::Footer => ' style="margin-top:' . Css::pt($this->page?->footerGapLength()->points ?? 0.0) . '"',
-            Region::Overlay => ' style="position:absolute;inset:0"',
+        $style = match (true) {
+            $region->isHeader() => ' style="margin-bottom:' . Css::pt($this->page?->headerGapLength()->points ?? 0.0) . '"',
+            $region->isFooter() => ' style="margin-top:' . Css::pt($this->page?->footerGapLength()->points ?? 0.0) . '"',
+            $region === Region::Overlay => ' style="position:absolute;inset:0"',
             default => '',
         };
-        $this->out .= '<div class="pc-' . $region->value . '"' . $style . '>';
+        if (!$this->shown($region)) {
+            $this->held = $this->out;
+        } else {
+            $this->recordFont($root, null);
+        }
+        $class = $region->isHeader() ? 'header' : ($region->isFooter() ? 'footer' : $region->value);
+        $this->out .= '<div class="pc-' . $class . '"' . $style . '>';
+    }
+
+    /** One HTML run shows its top: the first-page header if set, else the normal one; and the normal footer. */
+    private function shown(Region $region): bool
+    {
+        $first = $this->page?->firstHeaderNodes();
+
+        return match ($region) {
+            Region::Header => $first === null,
+            Region::FirstHeader => $first !== null && $first !== [],
+            Region::EvenHeader, Region::FirstFooter, Region::EvenFooter => false,
+            default => true,
+        };
     }
 
     public function leaveRegion(Region $region): void
     {
-        $this->out .= '</div>';
+        if ($this->held !== null) {
+            $this->out = $this->held;
+            $this->held = null;
+        } else {
+            $this->out .= '</div>';
+        }
         $this->styles = [];
     }
 
     public function enter(Node $node, ComputedStyle $style, Visit $at): bool
     {
+        // A hidden region is not walked: it loads no images, records no fonts and raises no notes.
+        if ($this->held !== null) {
+            return false;
+        }
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);
         $closer = match (true) {
@@ -191,6 +223,9 @@ final class HtmlWriter implements TreeVisitor
 
     public function leave(Node $node, ComputedStyle $style, Visit $at): void
     {
+        if ($this->held !== null) {
+            return;
+        }
         array_pop($this->styles);
         array_pop($this->edges);
         if ($node instanceof Link) {

@@ -98,9 +98,9 @@ final class DocxVisitor implements TreeVisitor
         }
         $blocks = Flow::blocks($root);
         // Word pushes the body below the header's full extent, spacing included, so the gap rides on the header.
-        if ($blocks !== [] && $region === Region::Header) {
+        if ($blocks !== [] && $region->isHeader()) {
             $blocks = Flow::spaceAfter($blocks, $this->page?->headerGapLength()->points ?? 0.0);
-        } elseif ($blocks !== [] && $region === Region::Footer) {
+        } elseif ($blocks !== [] && $region->isFooter()) {
             $blocks = Flow::spaceBefore($blocks, $this->page?->footerGapLength()->points ?? 0.0);
         }
         $this->regions[$region->value] = $blocks;

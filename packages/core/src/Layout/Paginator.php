@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Column, Document, OverflowMode, Page, View};
+use Papercut\{Column, Document, OverflowMode, Page, PageVariant, View};
 use Papercut\Value\{Length, Percent};
 use Papercut\Exception\LayoutOverflow;
 use Papercut\Style\ComputedStyle;
@@ -12,7 +12,7 @@ use Papercut\Style\ComputedStyle;
 /**
  * Flows each Page template's body across physical pages between its header
  * and footer, with its background behind. Header, footer and background
- * fragments are laid out once per template and reused on every page.
+ * fragments are laid out once per template (once per variant) and reused on the pages that use them.
  */
 final class Paginator
 {
@@ -48,69 +48,112 @@ final class Paginator
         $w = $page->width();
         $h = $page->height();
         $m = $page->margins();
-        $left = $m->left->points;
         $top = $m->top->points;
-        $contentWidth = $w - $left - $m->right->points;
+        $contentWidth = $w - $m->left->points - $m->right->points;
         $contentHeight = $h - $top - $m->bottom->points;
+        $runStart = count($out);
 
-        $header = $this->slot($page->headerNodes(), $root, $contentWidth, 'header');
-        $footer = $this->slot($page->footerNodes(), $root, $contentWidth, 'footer');
-        $headerSpace = $header === null ? 0.0 : $header->height + $page->headerGapLength()->points;
-        $footerSpace = $footer === null ? 0.0 : $footer->height + $page->footerGapLength()->points;
+        /** @var array<string, ?Fragment> $headers each variant's header, laid out once per run */
+        $headers = [];
+        /** @var array<string, ?Fragment> $footers */
+        $footers = [];
+        /** @var array<string, array{header: ?Fragment, footer: ?Fragment, headerSpace: float, footerSpace: float}> $bands */
+        $bands = [];
+        $bandsFor = function (PageVariant $hv, PageVariant $fv) use ($page, $root, $contentWidth, $contentHeight, $name, &$headers, &$footers, &$bands): array {
+            $key = $hv->value . '|' . $fv->value;
+            if (isset($bands[$key])) {
+                return $bands[$key];
+            }
+            if (!array_key_exists($hv->value, $headers)) {
+                $headers[$hv->value] = $this->slot($page->headerNodesOf($hv), $root, $contentWidth, self::slotName('header', $hv));
+            }
+            if (!array_key_exists($fv->value, $footers)) {
+                $footers[$fv->value] = $this->slot($page->footerNodesOf($fv), $root, $contentWidth, self::slotName('footer', $fv));
+            }
+            $header = $headers[$hv->value];
+            $footer = $footers[$fv->value];
+            $headerSpace = $header === null ? 0.0 : $header->height + $page->headerGapLength()->points;
+            $footerSpace = $footer === null ? 0.0 : $footer->height + $page->footerGapLength()->points;
 
-        if ($contentHeight - $headerSpace - $footerSpace <= 0.0) {
-            if ($this->ctx->overflow === OverflowMode::Throw || $contentHeight <= 0.0) {
-                throw new LayoutOverflow($name, 'header and footer leave no room for content');
+            if ($contentHeight - $headerSpace - $footerSpace <= 0.0) {
+                $label = $name . match (true) {
+                    $hv === PageVariant::First || $fv === PageVariant::First => ' (first page)',
+                    $hv === PageVariant::Even || $fv === PageVariant::Even => ' (even page)',
+                    default => '',
+                };
+                if ($this->ctx->overflow === OverflowMode::Throw || $contentHeight <= 0.0) {
+                    throw new LayoutOverflow($label, 'header and footer leave no room for content');
+                }
+                // Clip mode: header and footer (with their gaps) each keep at most a third of the page body.
+                $limit = $contentHeight / 3;
+                if ($header !== null && $headerSpace > $limit) {
+                    $header = self::clipTo($header, max(0.0, $limit - $page->headerGapLength()->points));
+                    $headerSpace = $limit;
+                }
+                if ($footer !== null && $footerSpace > $limit) {
+                    $footer = self::clipTo($footer, max(0.0, $limit - $page->footerGapLength()->points));
+                    $footerSpace = $limit;
+                }
+                $this->ctx->warn(sprintf('Content clipped: header and footer leave no room for content on "%s"; each was clipped to a third of the page body.', $label), withPath: false);
             }
-            // Clip mode: header and footer (with their gaps) each keep at most a third of the page body.
-            $limit = $contentHeight / 3;
-            if ($header !== null && $headerSpace > $limit) {
-                $header = self::clipTo($header, max(0.0, $limit - $page->headerGapLength()->points));
-                $headerSpace = $limit;
-            }
-            if ($footer !== null && $footerSpace > $limit) {
-                $footer = self::clipTo($footer, max(0.0, $limit - $page->footerGapLength()->points));
-                $footerSpace = $limit;
-            }
-            $this->ctx->warn(sprintf('Content clipped: header and footer leave no room for content on "%s"; each was clipped to a third of the page body.', $name), withPath: false);
-        }
-        $bodyY = $top + $headerSpace;
-        $bodyHeight = $contentHeight - $headerSpace - $footerSpace;
+            return $bands[$key] = ['header' => $header, 'footer' => $footer, 'headerSpace' => $headerSpace, 'footerSpace' => $footerSpace];
+        };
+
+        // Page 1's band first, so its no-room error or warning comes before anything the layers might report.
+        $bandsFor($page->headerVariantOn(true, $runStart + 1), $page->footerVariantOn(true, $runStart + 1));
 
         $background = null;
         if ($page->backgroundNodes() !== []) {
             $background = $this->withoutBookmarks(fn (): ?Fragment => $this->engine->layout(Column::make(...$page->backgroundNodes()), $root, new Constraints($w, null, true, $h), pathName: 'background')->fragment);
         }
 
-        /** @var list<array{x: float, y: float, fragment: Fragment}> $before */
-        $before = [];
+        /** @var list<array{x: float, y: float, fragment: Fragment}> $layers */
+        $layers = [];
         $template = $page->templatePage();
         if ($template !== null) {
             $fragment = $this->engine->layout($template, $root, new Constraints($w, null, true, $h), pathName: 'template')->fragment;
             if ($fragment !== null) {
-                $before[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $fragment];
+                $layers[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $fragment];
             }
         }
         if ($background !== null) {
-            $before[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $background];
+            $layers[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $background];
         }
-        if ($header !== null) {
-            $before[] = ['x' => $left, 'y' => $top, 'fragment' => $header];
-        }
-        $after = $footer === null ? [] : [['x' => $left, 'y' => $h - $m->bottom->points - $footer->height, 'fragment' => $footer]];
-        $after = [...$after, ...$this->overlay($page, $root, $w, $h)];
-        $emit = function (Fragment $body) use (&$out, $w, $h, $before, $after, $left, $bodyY): void {
-            if (count($out) >= self::MAX_PAGES) {
-                throw new LayoutOverflow('document', sprintf('more than %d pages', self::MAX_PAGES));
-            }
-            $out[] = new PlacedPage($w, $h, [...$before, ['x' => $left, 'y' => $bodyY, 'fragment' => $body], ...$after]);
-        };
+        $overlay = $this->overlay($page, $root, $w, $h);
 
         $body = Column::make(...$page->bodyNodes());
         $token = null;
         while (true) {
+            $number = count($out) + 1;
+            $firstOfRun = count($out) === $runStart;
+            $band = $bandsFor($page->headerVariantOn($firstOfRun, $number), $page->footerVariantOn($firstOfRun, $number));
+            $left = $page->marginsOn($number)->left->points;
+            $bodyY = $top + $band['headerSpace'];
+            $bodyHeight = $contentHeight - $band['headerSpace'] - $band['footerSpace'];
+            $header = $band['header'];
+            $footer = $band['footer'];
+            $emit = function (Fragment $body) use (&$out, $w, $h, $layers, $overlay, $header, $footer, $left, $top, $bodyY, $m): void {
+                if (count($out) >= self::MAX_PAGES) {
+                    throw new LayoutOverflow('document', sprintf('more than %d pages', self::MAX_PAGES));
+                }
+                $before = $header === null ? $layers : [...$layers, ['x' => $left, 'y' => $top, 'fragment' => $header]];
+                $after = $footer === null ? [] : [['x' => $left, 'y' => $h - $m->bottom->points - $footer->height, 'fragment' => $footer]];
+                $out[] = new PlacedPage($w, $h, [...$before, ['x' => $left, 'y' => $bodyY, 'fragment' => $body], ...$after, ...$overlay]);
+            };
+
+            // Clip mode would clip a block in place on a short first page; try it unclipped first, so it moves to a taller page 2 as in Throw mode.
+            $trial = false;
+            if ($firstOfRun && $this->ctx->overflow === OverflowMode::Clip) {
+                $next = $bandsFor($page->headerVariantOn(false, $number + 1), $page->footerVariantOn(false, $number + 1));
+                $trial = $contentHeight - $next['headerSpace'] - $next['footerSpace'] > $bodyHeight;
+            }
             $this->ctx->setLastFailurePath(null);
-            $res = $this->engine->layout($body, $root, new Constraints($contentWidth, $bodyHeight, true), $token, pathName: 'body');
+            $this->ctx->clipInPlace = !$trial;
+            try {
+                $res = $this->engine->layout($body, $root, new Constraints($contentWidth, $bodyHeight, true), $token, pathName: 'body');
+            } finally {
+                $this->ctx->clipInPlace = true;
+            }
             if ($res->status === Status::Complete && $res->fragment !== null) {
                 $emit($res->fragment);
                 return;
@@ -122,6 +165,16 @@ final class Paginator
                 $emit($res->fragment);
                 $token = $res->token;
                 continue;
+            }
+
+            // The Clip-mode look-ahead above runs on every run's first page; it can also surface page 2's no-room error or warning one iteration early.
+            // A short first page (a tall first-page header) may be what is in the way: leave its body empty and retry on the next page.
+            if ($firstOfRun) {
+                $next = $bandsFor($page->headerVariantOn(false, $number + 1), $page->footerVariantOn(false, $number + 1));
+                if ($contentHeight - $next['headerSpace'] - $next['footerSpace'] > $bodyHeight) {
+                    $emit(new Fragment($contentWidth, 0.0));
+                    continue;
+                }
             }
 
             // DoesNotFit on a fresh page, or a Partial that made no progress.
@@ -140,6 +193,15 @@ final class Paginator
             $this->ctx->warn(sprintf('Content clipped: "%s" made no progress; the rest of this page template was clipped and any remaining content dropped.', $path), withPath: false);
             return;
         }
+    }
+
+    private static function slotName(string $band, PageVariant $v): string
+    {
+        return match ($v) {
+            PageVariant::Default => $band,
+            PageVariant::First => 'first-' . $band,
+            PageVariant::Even => 'even-' . $band,
+        };
     }
 
     private static function clipTo(Fragment $f, float $height): Fragment

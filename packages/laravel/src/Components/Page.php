@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Components;
 
+use Illuminate\Support\Str;
 use Papercut\Laravel\Tag;
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Laravel\Exception\InvalidStructure;
@@ -13,7 +14,7 @@ use Papercut\Value\{Edges, Length};
 
 final class Page extends PapercutComponent
 {
-    private const array SLOTS = ['header', 'footer', 'background', 'overlay'];
+    private const array SLOTS = ['header', 'footer', 'first-header', 'first-footer', 'even-header', 'even-footer', 'background', 'overlay'];
 
     /** Blade escapes bound attributes as text, which would corrupt the template's bytes; a constructor parameter reaches the tag as it is. */
     public function __construct(private readonly mixed $templateData = null)
@@ -22,7 +23,7 @@ final class Page extends PapercutComponent
 
     protected function ownAttributes(): array
     {
-        return ['size', 'orientation', 'margin', 'header-gap', 'footer-gap', 'template', 'template-data', 'template-page', 'template-password'];
+        return ['size', 'orientation', 'margin', 'header-gap', 'footer-gap', 'template', 'template-data', 'template-page', 'template-password', 'mirror'];
     }
 
     protected function build(array $data): object
@@ -36,7 +37,11 @@ final class Page extends PapercutComponent
             throw UnknownAttribute::for('style')->within($location);
         }
 
-        $slots = $this->namedSlots($data);
+        // Blade camel-cases a slot name: <x-slot:first-header> arrives as "firstHeader".
+        $slots = [];
+        foreach ($this->namedSlots($data) as $name => $content) {
+            $slots[Str::kebab($name)] = $content;
+        }
         foreach (array_keys($slots) as $name) {
             if (!in_array($name, self::SLOTS, true)) {
                 throw new InvalidStructure("Unknown slot \"$name\" on " . Tag::of('page') . "; allowed slots: " . implode(', ', self::SLOTS));
@@ -47,6 +52,9 @@ final class Page extends PapercutComponent
             $own['template-data'] = $this->templateData;
         }
         $page = self::configured($own);
+        if (isset($own['mirror'])) {
+            $page = $page->mirrorMargins($this->boolOwn($own['mirror'], 'mirror'));
+        }
         $registry = app(NodeRegistry::class);
         foreach (self::SLOTS as $name) {
             if (!isset($slots[$name])) {
@@ -64,7 +72,15 @@ final class Page extends PapercutComponent
             }
             $nodes = Segments::nodes($registry->segments($slots[$name]), 'page');
             /** @var list<\Papercut\Node> $nodes */
-            $page = $page->{$name}(...$nodes);
+            $page = match ($name) {
+                'header' => $page->header(...$nodes),
+                'footer' => $page->footer(...$nodes),
+                'first-header' => $page->firstHeader(...$nodes),
+                'first-footer' => $page->firstFooter(...$nodes),
+                'even-header' => $page->evenHeader(...$nodes),
+                'even-footer' => $page->evenFooter(...$nodes),
+                default => $page->background(...$nodes),
+            };
         }
 
         /** @var list<\Papercut\Node> $body */

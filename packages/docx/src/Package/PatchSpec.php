@@ -13,6 +13,8 @@ final readonly class PatchSpec
         public ?string $lang,
         /** Every ZIP entry's time, read as UTC. */
         public \DateTimeInterface $time,
+        /** Swap the left and right margins on even pages (`w:mirrorMargins`). */
+        public bool $mirrorMargins = false,
     ) {
     }
 }

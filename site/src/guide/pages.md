@@ -62,6 +62,151 @@ $document = Document::make(
 
 In the page number format, `{page}` is the current page and `{total}` is the total page count. The total is filled in once layout has finished, so it's always correct. To adjust the space between the body and the header or footer, set `header-gap` or `footer-gap` on the page.
 
+## First-page and even-page headers
+
+A page can have a different header and footer on its first page, and on its even pages. Set them next to the normal ones. Each takes the same content as `header()` and `footer()`.
+
+### A letterhead on page 1
+
+The first page shows the letterhead, and every page after it shows a short running title.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::page margin="20mm">
+  <x-slot:first-header>
+    <x-doc::text size="18pt" bold>Hartley &amp; Finch</x-doc::text>
+    <x-doc::text size="9pt" color="slate-500">12 Mill Lane, Bristol</x-doc::text>
+  </x-slot:first-header>
+
+  <x-slot:header>
+    <x-doc::text size="8pt" color="slate-500">Hartley &amp; Finch, continued</x-doc::text>
+  </x-slot:header>
+
+  …body…
+</x-doc::page>
+```
+@tab PHP
+```php
+use Papercut\{Column, Document, Page, Text};
+use function Papercut\{mm, pt};
+
+$body = [];
+for ($i = 1; $i <= 60; $i++) {
+    $body[] = Text::make("Paragraph $i. " . str_repeat('Lorem ipsum dolor sit amet. ', 6));
+}
+
+$document = Document::make(
+    Page::a4()->margin(mm(20))
+        ->firstHeader(
+            Text::make('Hartley & Finch')->size(pt(18))->bold(),
+            Text::make('12 Mill Lane, Bristol')->size(pt(9))->color('slate-500'),
+        )
+        ->header(Text::make('Hartley & Finch, continued')->size(pt(8))->color('slate-500'))
+        ->body(Column::make(...$body)->gap(pt(6))),
+);
+```
+:::
+
+### A cover page with no header or footer
+
+An empty slot means there is nothing on that page. In PHP, call the method with no arguments.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::page>
+  <x-slot:header>
+    <x-doc::text size="8pt">Annual report</x-doc::text>
+  </x-slot:header>
+  <x-slot:footer>
+    <x-doc::page-number align="right" size="8pt" />
+  </x-slot:footer>
+
+  <x-slot:first-header></x-slot:first-header>
+  <x-slot:first-footer></x-slot:first-footer>
+
+  …cover, then the report…
+</x-doc::page>
+```
+@tab PHP
+```php
+use Papercut\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Text};
+use function Papercut\{mm, pt};
+
+$document = Document::make(
+    Page::a4()->margin(mm(20))
+        ->header(Text::make('Annual report')->size(pt(8)))
+        ->footer(Row::make(Spacer::flex(), PageNumber::make()->size(pt(8))))
+        ->firstHeader()
+        ->firstFooter()
+        ->body(Column::make(
+            Text::h1('Annual report'),
+            PageBreak::make(),
+            Text::make('The report starts here.'),
+        )),
+);
+```
+:::
+
+### A booklet with mirrored margins
+
+With mirrored margins, the left margin is the inside of the page and the right margin is the outside. On even pages the two swap, so the inside margin always sits next to the binding. Put the page number on the outside edge by giving odd and even pages opposite alignments.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::page size="a5" margin="18mm 12mm 18mm 20mm" mirror>
+  <x-slot:footer>
+    <x-doc::page-number align="right" size="8pt" />
+  </x-slot:footer>
+  <x-slot:even-footer>
+    <x-doc::page-number align="left" size="8pt" />
+  </x-slot:even-footer>
+
+  …body…
+</x-doc::page>
+```
+@tab PHP
+```php
+use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Text};
+use function Papercut\{mm, pt};
+
+$body = [];
+for ($i = 1; $i <= 60; $i++) {
+    $body[] = Text::make("Paragraph $i. " . str_repeat('Lorem ipsum dolor sit amet. ', 6));
+}
+
+$document = Document::make(
+    Page::a5()->margin(mm(18), mm(12), mm(18), mm(20))
+        ->mirrorMargins()
+        ->footer(Row::make(Spacer::flex(), PageNumber::make()->size(pt(8))))
+        ->evenFooter(PageNumber::make()->size(pt(8)))
+        ->body(Column::make(...$body)->gap(pt(6))),
+);
+```
+:::
+
+`mirrorMargins(false)` turns it off again.
+
+### Which one a page uses
+
+Each page picks its header and its footer separately, in this order:
+
+1. The first page of the page run uses the first-page version, if there is one.
+2. Otherwise an even page uses the even-page version, if there is one.
+3. Otherwise the page uses the normal header or footer.
+
+Each page run (each `<x-doc::page>`) has its own set. Page numbers count across the whole document, so the first page of a second run can still be an even page, and `{page}` shows its place in the document.
+
+When a first page has a tall header, the body has less room on it. A block that can't split and doesn't fit the short first page moves to page 2.
+
+### In Word and HTML
+
+Word export ticks the matching boxes in the page setup: "Different First Page" for first-page versions, "Different Odd & Even Pages" for even-page versions, and "Mirror margins" for mirrored margins. Different First Page is set per page run. The other two apply to the whole document. Runs without even-page versions repeat their normal header and footer on even pages, so they look the same. But mixing a mirrored run with a run that isn't, when that run's left and right margins differ, is reported as approximated. In Word, a first-page header or footer you don't set shows the normal one, even when that page falls on an even page.
+
+HTML export shows the first-page header at the top of the page (or nothing, if you set it empty) and the normal footer at the bottom. Even-page versions aren't shown, and the export reports that as approximated. Mirrored margins apply only when the page is printed, and only from the first page run. The fragment output, the one you embed in another view, doesn't mirror.
+
 ## Filling in an existing PDF
 
 Sometimes the design already exists as a PDF, such as a certificate or a letterhead made in a design tool. A page template draws a page of that PDF behind your page, at the same size, and the overlay places your content at exact points on top of it.

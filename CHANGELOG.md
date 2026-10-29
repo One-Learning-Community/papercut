@@ -7,6 +7,9 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- First-page headers and footers: `Page::firstHeader()` and `firstFooter()` in PHP, `first-header` and `first-footer` slots in Blade. An empty one means nothing on the first page. Word export sets "Different First Page"; HTML shows the first-page header at the top.
+- Even-page headers and footers: `Page::evenHeader()` and `evenFooter()` in PHP, `even-header` and `even-footer` slots in Blade. Word export sets "Different Odd & Even Pages"; HTML export leaves them out and reports it as approximated.
+- Mirrored margins: `Page::mirrorMargins()` in PHP and `mirror` on `<x-doc::page>` in Blade swap the left and right margins on even pages. Word export sets "Mirror margins"; HTML applies it in print, from the first page run.
 - `rowspan` on table cells: `TableCell::rowspan()` in PHP and `rowspan` on `<x-doc::td>` and `<x-doc::th>` in Blade. Spanning cells lay out in PDF, HTML and Word export, and a group of spanned rows stays together across page breaks unless it is taller than a page.
 - Tables in `Markup::html()`: `table`, `caption`, `thead`, `tbody`, `tfoot`, `tr`, `td` and `th` convert to a table with repeating header rows, `colspan` and `rowspan`, and columns sized by their content. In `original` mode, `width` on cells and tables is honoured. The named styles `markup.table`, `markup.td` and `markup.th` can be restyled through `papercut.styles`.
 - `<hr>` in markup becomes a horizontal rule (named style `markup.hr`), in PDF, HTML and Word export.

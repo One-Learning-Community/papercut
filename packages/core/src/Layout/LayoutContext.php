@@ -32,6 +32,8 @@ final class LayoutContext
     public private(set) ?string $lastFailurePath = null;
     /** Off while laying out headers, footers and backgrounds, which repeat on every page. */
     public bool $bookmarks = true;
+    /** Off for a trial layout that must not clip a too-tall node in place (Clip mode), so the paginator can try the next page instead. */
+    public bool $clipInPlace = true;
     public readonly StyleResolver $styles;
 
     public function __construct(
