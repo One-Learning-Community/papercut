@@ -37,6 +37,12 @@ final class Flow
             if ($out !== [] && end($out) instanceof Table && $blocks[0] instanceof Table) {
                 $out[] = self::hairline();
             }
+            // Word draws consecutive paragraphs with identical borders as one box, so two boxes back to back (shaded code
+            // blocks) need an unbordered paragraph between them.
+            $prev = $out === [] ? null : end($out);
+            if ($prev instanceof Paragraph && $prev->style->borders !== null && $blocks[0] instanceof Paragraph && $blocks[0]->style->borders !== null) {
+                $out[] = self::hairline();
+            }
             foreach (self::spaceAfter($blocks, $after, $settled) as $b) {
                 $out[] = $b;
             }

@@ -42,6 +42,7 @@
     },
     "require-dev": {
         "bacon/bacon-qr-code": "^3.1",
+        "phiki/phiki": "^2.2",
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4"
     },

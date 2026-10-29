@@ -319,7 +319,8 @@ final class HtmlWriter implements TreeVisitor
     private function text(Text $t, ComputedStyle $s, ComputedStyle $parent, Visit $at): string
     {
         $override = self::overridesDecoration($s, $parent);
-        $pre = StyleName::leads($t->styleName(), 'pre');
+        // `code-block.code` is the code text of Decorator\CodeBlock; it exports as a pre like markup's own.
+        $pre = StyleName::leads($t->styleName(), 'pre') || StyleName::leads($t->styleName(), 'code-block.code');
         $tag = match (true) {
             $pre => 'pre',
             in_array($t->preset(), ['h1', 'h2', 'h3', 'h4'], true) => $t->preset(),
