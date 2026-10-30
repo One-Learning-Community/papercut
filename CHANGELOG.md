@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-29
+
 ### Added
 
 - Syntax-highlighted code blocks: `CodeBlock::make($code)->language('php')` in PHP and `<x-doc::pre language="php">` in Blade, coloured by a TextMate theme (default `papercut-light`; `theme`, or `CodeHighlighting(theme: ...)`). Highlighting uses the optional `phiki/phiki`; without it, or for an unknown language, the block is plain text, and an unknown theme is highlighted with the default one; each is reported as dropped highlighting (strict mode throws).
