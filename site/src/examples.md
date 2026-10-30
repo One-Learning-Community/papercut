@@ -57,8 +57,8 @@ Each card shows the PDF. Download the Word file too, and open it in Word, LibreO
     <figcaption><strong>Integration guide</strong> <a :href="$withBase('/examples/guide.pdf')">PDF</a> · <a :href="$withBase('/examples/guide.docx')" download>Word</a></figcaption>
   </figure>
   <figure class="example-card two-pages">
-    <div class="example-pages"><a :href="$withBase('/examples/certificate.pdf')"><img :src="$withBase('/examples/certificate-template.png')" alt="The blank certificate template" loading="lazy"><span class="example-label">Template</span></a><a :href="$withBase('/examples/certificate.pdf')"><img :src="$withBase('/examples/certificate-1.png')" alt="The certificate filled in" loading="lazy"><span class="example-label">Filled in</span></a></div>
-    <figcaption><strong>Certificate</strong> <a :href="$withBase('/examples/certificate.pdf')">PDF</a> · Word and HTML exports leave templates out, so there is no Word file</figcaption>
+    <div class="example-pages"><a :href="$withBase('/examples/certificate-template.pdf')"><img :src="$withBase('/examples/certificate-template.png')" alt="The blank certificate template" loading="lazy"><span class="example-label">Template</span></a><a :href="$withBase('/examples/certificate.pdf')"><img :src="$withBase('/examples/certificate-1.png')" alt="The certificate filled in" loading="lazy"><span class="example-label">Filled in</span></a></div>
+    <figcaption><strong>Certificate</strong> <a :href="$withBase('/examples/certificate-template.pdf')">Template PDF</a> · <a :href="$withBase('/examples/certificate.pdf')">Filled-in PDF</a> · Word and HTML exports leave templates out, so there is no Word file</figcaption>
   </figure>
   <figure class="example-card">
     <div class="example-pages"><a :href="$withBase('/examples/article.pdf')"><img :src="$withBase('/examples/article-1.png')" alt="Knowledge base article, page 1" loading="lazy"></a></div>
