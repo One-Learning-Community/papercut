@@ -268,12 +268,12 @@ The anchor says which point of the content sits at that spot:
 | `anchor` | The point placed at `x`, `y` |
 |---|---|
 | `top-left` (the default) | The top-left corner |
-| `top`, `bottom` | The middle of the top or bottom edge |
+| `top`, `bottom` | The middle of the top or bottom edge. `top-center` and `bottom-center` work too |
 | `top-right`, `bottom-left`, `bottom-right` | That corner |
-| `left`, `right` | The middle of the left or right edge |
+| `left`, `right` | The middle of the left or right edge. `center-left` and `center-right` work too |
 | `center` | The centre |
 
-In PHP, `anchor()` takes the `Anchor` case or its string, such as `->anchor('top')`.
+In PHP, `anchor()` takes the `Anchor` case or its string, such as `->anchor('top')`. `Anchor::TopCenter`, `Anchor::BottomCenter`, `Anchor::CenterLeft` and `Anchor::CenterRight` are the same cases under their other names.
 
 With `anchor="top"`, `x` is the middle of the content, so a short name and a long one both stay centred on the same point.
 
