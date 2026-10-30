@@ -26,6 +26,8 @@ $document = Document::make(Page::letter()->body(
 ```
 :::
 
+The [knowledge base article example](/examples.md#the-knowledge-base-article-example) converts a whole help article this way.
+
 In Blade, bind the value with `:html` rather than `html`, otherwise Blade escapes the HTML before Papercut sees it.
 
 `Markup::text()` turns each newline into a line break and each blank line into a new paragraph. Characters like `<` are treated as plain text.

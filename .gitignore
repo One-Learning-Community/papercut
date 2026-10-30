@@ -11,3 +11,4 @@
 /site/src/.vuepress/dist/
 /examples/docx/*.docx
 !site/src/.vuepress/public/**/*.pdf
+!examples/assets/*.pdf

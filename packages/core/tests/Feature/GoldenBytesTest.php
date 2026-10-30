@@ -21,7 +21,7 @@ final class GoldenBytesTest extends TestCase
     private const string GOLDEN = __DIR__ . '/golden/pdf-v0.1.json';
 
     /** @var list<string> */
-    private const array EXAMPLES = ['invoice', 'transcript', 'report'];
+    private const array EXAMPLES = ['invoice', 'transcript', 'report', 'certificate'];
 
     /** @var list<string> visual fixtures that use features v0.1 did not have, so they have no v0.1 bytes to match */
     private const array NEWER_FIXTURES = ['markup-slide', 'decorators', 'decorators-split', 'table-rowspan', 'markup-tables', 'markup-pre', 'code-blocks'];

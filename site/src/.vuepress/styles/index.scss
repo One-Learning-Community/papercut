@@ -69,6 +69,14 @@
   flex: 1.294;
 }
 
+.example-label {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--vp-c-text-mute);
+}
+
 .example-pages img {
   display: block;
   width: 100%;

@@ -108,6 +108,8 @@ Both are pure PHP and MIT licensed. If Papercut is useful to you, they deserve a
 | Transcript | [`examples/laravel/views/transcript.blade.php`](examples/laravel/views/transcript.blade.php) | [`examples/core/transcript.php`](examples/core/transcript.php) |
 | Report | [`examples/laravel/views/report.blade.php`](examples/laravel/views/report.blade.php) | [`examples/core/report.php`](examples/core/report.php) |
 | Integration guide (mixed orientation, code blocks) | [`examples/laravel/views/guide.blade.php`](examples/laravel/views/guide.blade.php) | [`examples/core/documents/guide.php`](examples/core/documents/guide.php) |
+| Certificate (fills in a PDF template; PDF only) | [`examples/laravel/views/certificate.blade.php`](examples/laravel/views/certificate.blade.php) | [`examples/core/documents/certificate.php`](examples/core/documents/certificate.php) |
+| Knowledge base article (HTML from a rich text editor) | [`examples/laravel/views/article.blade.php`](examples/laravel/views/article.blade.php) | [`examples/core/documents/article.php`](examples/core/documents/article.php) |
 | Form responses (decorators) | [`examples/laravel/views/responses.blade.php`](examples/laravel/views/responses.blade.php) | [`examples/core/documents/responses.php`](examples/core/documents/responses.php) |
 
 Render the Blade examples with `php examples/laravel/render.php` (after `cd packages/laravel && composer install`).

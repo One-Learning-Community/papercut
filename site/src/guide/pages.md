@@ -249,6 +249,8 @@ $document = Document::make(
 ```
 :::
 
+See the [certificate example](/examples.md#the-certificate-example) for a complete one, with a blank template, a name, a course, a date and a signature image.
+
 ### The template
 
 The page takes its size from the template page, so you can't set `size` or `orientation` alongside it. The template is drawn as it is, not as a picture of it, so its text and artwork stay sharp at any zoom. Anything else you put on the page, including the background, is drawn over it.

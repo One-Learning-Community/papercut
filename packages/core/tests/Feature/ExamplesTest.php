@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
+use Papercut\Document;
+use Papercut\Export\PdfOptions;
 use Papercut\Tests\Support\PdfInspector;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -13,7 +15,7 @@ final class ExamplesTest extends TestCase
     /** @return array<string, array{string, int, int}> name, min pages, max pages */
     public static function examples(): array
     {
-        return ['invoice' => ['invoice', 1, 1], 'transcript' => ['transcript', 2, \PHP_INT_MAX], 'report' => ['report', 2, \PHP_INT_MAX], 'responses' => ['responses', 1, 1], 'guide' => ['guide', 3, 3]];
+        return ['invoice' => ['invoice', 1, 1], 'transcript' => ['transcript', 2, \PHP_INT_MAX], 'report' => ['report', 2, \PHP_INT_MAX], 'responses' => ['responses', 1, 1], 'guide' => ['guide', 3, 3], 'certificate' => ['certificate', 1, 1], 'article' => ['article', 2, 2]];
     }
 
     #[DataProvider('examples')]
@@ -35,6 +37,27 @@ final class ExamplesTest extends TestCase
         $pages = (int) PdfInspector::info($pdf)['Pages'];
         self::assertGreaterThanOrEqual($minPages, $pages);
         self::assertLessThanOrEqual($maxPages, $pages);
+    }
+
+    public function test_article_converts_without_warnings_even_in_strict_mode(): void
+    {
+        $document = require dirname(__DIR__, 4) . '/examples/core/documents/article.php';
+        self::assertInstanceOf(Document::class, $document);
+        $warnings = [];
+        $document->toPdf(new PdfOptions(strict: true, onWarning: function (string $message) use (&$warnings): void {
+            $warnings[] = $message;
+        }));
+        self::assertSame([], $warnings);
+    }
+
+    public function test_certificate_text_sits_on_the_template(): void
+    {
+        $root = dirname(__DIR__, 4);
+        exec(sprintf('cd %s && %s -d xdebug.mode=off examples/core/certificate.php 2>&1', escapeshellarg($root), escapeshellarg(PHP_BINARY)));
+        $text = PdfInspector::text((string) file_get_contents($root . '/examples/core/certificate.pdf'));
+        foreach (['C E R T I F I C A T E', 'of Completion', 'This certifies that', 'Priya Raman', 'Introduction to Beekeeping', 'DATE', 'SIGNATURE'] as $expected) {
+            self::assertStringContainsStringIgnoringCase($expected, $text);
+        }
     }
 
     public function test_report_example_makes_no_unbacked_claims(): void

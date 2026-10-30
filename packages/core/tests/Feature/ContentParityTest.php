@@ -25,6 +25,10 @@ final class ContentParityTest extends TestCase
             $files = glob("$dir/*.php") ?: [];
             sort($files);
             foreach ($files as $file) {
+                // The certificate is text over a PDF template; the exports leave the template out and the parity check rebuilds pages without it.
+                if ($kind === 'examples' && basename($file, '.php') === 'certificate') {
+                    continue;
+                }
                 yield $kind . '-' . basename($file, '.php') => [$file];
             }
         }

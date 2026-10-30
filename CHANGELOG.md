@@ -10,6 +10,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - `Span::code($text)` and `Text::code($text)`: inline code in PHP, a literal span in the `code` style, the same as `<x-doc::code>` and `<code>` in markup.
 - PHP setters that take an option also take its string value, matched without regard to case or surrounding spaces: `direction`, `justify` and `align` on `View`, `Row` and `Column`; `alignSelf`, `textAlign` and the style argument of `border`; `TableCell::align`, `Image::fit`, `ListNode::marker`, `Place::anchor`, and `QrCode::make` (the level), `errorCorrection`, `shape`, `eyes` and `gradient` (the type). A case name also matches, so `'high'` is `ErrorCorrection::High`. `->align('center')` now works as in Blade; an unknown string throws `InvalidValue` with a suggestion.
 - A `guide` example (`examples/core/documents/guide.php` and `examples/laravel/views/guide.blade.php`): a three-page API integration guide on US Letter, portrait then landscape then portrait, with syntax-highlighted code blocks, badges in a table, a QR code and a go-live checklist.
+- A `certificate` example (`examples/core/documents/certificate.php` and `examples/laravel/views/certificate.blade.php`): a name, course, date and signature image placed on a blank US Letter landscape PDF template, built by `examples/core/certificate-template.php`. It is PDF only, because Word and HTML exports leave page templates out.
+- An `article` example (`examples/core/documents/article.php` and `examples/laravel/views/article.blade.php`): a two-page knowledge base article on A4, made from the HTML a rich text editor saves, with PDF, HTML and Word output.
 
 ### Changed
 
