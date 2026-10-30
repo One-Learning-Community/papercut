@@ -69,7 +69,7 @@ $document = Document::make(
         ->header(Row::make(
             Text::make('Official Transcript')->bold()->size(pt(16))->color('indigo-600'),
             Spacer::flex(),
-            Text::make('One Learning Community')->color('slate-500'),
+            Text::make('Papercut')->color('slate-500'),
         ))
         ->body(Column::make($card, Text::h2('Course history')->keepWithNext(), $table, Text::h3('Cumulative summary')->keepWithNext(), $summary)->gap(pt(10)))
         ->footer(PageNumber::make('Page {page} of {total}')->center()->size(pt(8))->color('slate-500')),

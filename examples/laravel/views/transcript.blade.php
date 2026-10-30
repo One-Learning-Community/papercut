@@ -1,10 +1,10 @@
-<x-doc::document title="Official Transcript" author="One Learning Community">
+<x-doc::document title="Official Transcript" author="Papercut">
     <x-doc::page size="a4" margin="20mm">
         <x-slot:header>
             <x-doc::row>
                 <x-doc::text size="16pt" bold color="indigo-600">Official Transcript</x-doc::text>
                 <x-doc::spacer />
-                <x-doc::text color="slate-500">One Learning Community</x-doc::text>
+                <x-doc::text color="slate-500">Papercut</x-doc::text>
             </x-doc::row>
         </x-slot:header>
 
