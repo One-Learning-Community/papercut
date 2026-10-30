@@ -47,7 +47,7 @@ $document = Document::make(Page::letter()->margin(in(0.75))->body($table));
 
 ## Column widths
 
-`columns` is a space-separated list with one entry per column. Each entry can be a length (`1in`), a percentage (`20%`), `auto`, or a fraction (`1fr`). Fractions share out whatever width is left after the other columns have taken theirs, just like in CSS grid.
+`columns` is a space-separated list with one entry per column. Each entry can be a length in any unit (`1in`, `2.5cm`, `40mm`, `120pt`), a percentage (`20%`), `auto`, or a fraction (`1fr`). Fractions share out whatever width is left after the other columns have taken theirs, just like in CSS grid. `'1in 1fr 2.5cm'` is a valid list.
 
 ### Filling the width
 

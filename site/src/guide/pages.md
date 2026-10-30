@@ -271,6 +271,8 @@ The anchor says which point of the content sits at that spot:
 | `left`, `right` | The middle of the left or right edge |
 | `center` | The centre |
 
+In PHP, `anchor()` takes the `Anchor` case or its string, such as `->anchor('top')`.
+
 With `anchor="top"`, `x` is the middle of the content, so a short name and a long one both stay centred on the same point.
 
 Without a `width`, a place is as wide as its content needs, up to the width of the page, and longer text wraps at the page edge. With a `width`, either a length or a percentage of the page width, the content is laid out in that width, and percentages inside the place are of the place's width. That's how the QR code above fills a box 12% of the page wide.

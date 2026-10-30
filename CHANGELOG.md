@@ -7,10 +7,14 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `Span::code($text)` and `Text::code($text)`: inline code in PHP, a literal span in the `code` style, the same as `<x-doc::code>` and `<code>` in markup.
+- PHP setters that take an option also take its string value, matched without regard to case or surrounding spaces: `direction`, `justify` and `align` on `View`, `Row` and `Column`; `alignSelf`, `textAlign` and the style argument of `border`; `TableCell::align`, `Image::fit`, `ListNode::marker`, `Place::anchor`, and `QrCode::make` (the level), `errorCorrection`, `shape`, `eyes` and `gradient` (the type). A case name also matches, so `'high'` is `ErrorCorrection::High`. `->align('center')` now works as in Blade; an unknown string throws `InvalidValue` with a suggestion.
 - A `guide` example (`examples/core/documents/guide.php` and `examples/laravel/views/guide.blade.php`): a three-page API integration guide on US Letter, portrait then landscape then portrait, with syntax-highlighted code blocks, badges in a table, a QR code and a go-live checklist.
 
 ### Changed
 
+- The guide example uses `Text::code()` for inline code and one string option (`->align('center')`).
+- The docs say that `columns()` accepts any length unit, and list the code block language aliases (`bash`, `sh`, `shell` and `zsh` for shell, `js`, `ts`, `py`, `yml`).
 - The invoice and transcript examples use US Letter and inches instead of A4 and millimetres, so the examples show both (the report and form responses stay on A4). The transcript now runs to three pages.
 
 ## [0.5.0] - 2026-10-29

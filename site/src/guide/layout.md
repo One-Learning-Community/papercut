@@ -24,7 +24,6 @@ Rows and columns are just views with the direction already set, so use whichever
 @tab PHP
 ```php
 use Papercut\{Document, Page, Row, Spacer, Text};
-use Papercut\Style\Align;
 use function Papercut\pt;
 
 $document = Document::make(Page::letter()->body(
@@ -32,7 +31,7 @@ $document = Document::make(Page::letter()->body(
         Text::make('Northwind Studio')->bold(),
         Spacer::flex(),
         Text::make('Invoice INV-2026-0142')->color('slate-500'),
-    )->gap(pt(12))->align(Align::Center),
+    )->gap(pt(12))->align('center'),
 ));
 ```
 :::

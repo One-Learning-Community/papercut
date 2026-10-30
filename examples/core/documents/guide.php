@@ -6,7 +6,6 @@ declare(strict_types=1);
 // examples/core/guide.php saves it as PDF and examples/html/render.php as HTML.
 use Papercut\Decorator\{Badge, Blockquote, Callout, Card, ChoiceList, CodeBlock, KeyValueList};
 use Papercut\{Column, Document, ListNode, Page, PageNumber, QrCode, Row, Spacer, Table, TableRow, Text};
-use Papercut\Style\Align;
 use Papercut\Value\Edges;
 
 use function Papercut\{in, percent, pt};
@@ -132,7 +131,7 @@ $table = Table::make()->columns('0.9in 2.8in 1fr 1in 1in')
 foreach ($endpoints as [$method, $path, $description, $auth, $limit]) {
     $table = $table->bodyRow(TableRow::make(
         Badge::make($method)->tone($methodTones[$method] ?? 'warning'),
-        Text::markup('<code>' . htmlspecialchars($path) . '</code>'),
+        Text::code($path),
         $description,
         Text::make($auth)->color('slate-600'),
         Text::make($limit)->color('slate-600')->right(),
@@ -149,7 +148,7 @@ $errorTable = Table::make()->columns('0.7in 1.6in 3.2in 1fr')
 foreach ($errors as [$status, $code, $meaning, $action]) {
     $errorTable = $errorTable->bodyRow(TableRow::make(
         Text::make($status)->bold(),
-        Text::markup('<code>' . htmlspecialchars($code) . '</code>'),
+        Text::code($code),
         $meaning,
         Text::make($action)->color('slate-600'),
     )->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0)))->borderColor('slate-200'));
@@ -186,7 +185,7 @@ $third = Column::make(
         Column::make(
             QrCode::make('https://docs.example.com/parcelpost/webhooks')->width(in(1.1)),
             Text::make('Webhook docs')->size(pt(8))->color('slate-500'),
-        )->gap(pt(4))->align(Align::Center),
+        )->gap(pt(4))->align('center'),
     )->gap(pt(16)),
     Column::make(Text::h3('Go-live checklist')->keepWithNext(), $list)->gap(pt(6)),
     Blockquote::make('Retries are on our side. Answer quickly and keep your handler boring.')->cite('Parcelpost support team'),

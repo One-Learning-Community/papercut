@@ -13,7 +13,6 @@ PNG and JPEG always work. WebP, GIF, BMP and AVIF need the `gd` extension.
 @tab PHP
 ```php
 use Papercut\{Column, Document, Image, Page};
-use Papercut\Style\ImageFit;
 use function Papercut\{in, pt};
 
 // A 1x1 PNG keeps the example self-contained. Use Image::file('logo.png') in practice.
@@ -21,7 +20,7 @@ $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42m
 
 $document = Document::make(Page::letter()->body(
     Column::make(
-        Image::bytes($png)->fit(ImageFit::Contain)->width(in(1.25))->height(in(1.25)),
+        Image::bytes($png)->fit('contain')->width(in(1.25))->height(in(1.25)),
     )->gap(pt(8)),
 ));
 ```

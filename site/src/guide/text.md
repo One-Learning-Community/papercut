@@ -63,6 +63,17 @@ In Blade, `<x-doc::pre>` makes a block in the `pre` style (monospace, `pre-wrap`
 </x-doc::pre>
 ```
 
+In PHP, `Span::code()` makes the same inline code span, and `Text::code()` is a text that is only that span. Neither reads markup, so there is nothing to escape:
+
+```php
+use Papercut\{Span, Text};
+
+Text::make('Call ')->append(Span::code('render()'), ' once.');
+Text::code('/v2/shipments');
+```
+
+The result is identical to `<x-doc::code>` and to `<code>` in markup, in the PDF, in HTML and in Word.
+
 ## Code blocks
 
 A code block is a `pre` block with a language: it is coloured by a TextMate theme and carries a small label with the language's name. Highlighting uses [Phiki](https://github.com/phikiphp/phiki), which is optional:
@@ -91,6 +102,8 @@ $document = Document::make(Page::letter()->body(
 :::
 
 Blade content is literal, as for any `pre`. `{{ $code }}` comes out exactly as the variable's value.
+
+The language name can be an alias: `bash`, `sh`, `shell` and `zsh` all highlight as shell, `js` as JavaScript, `ts` as TypeScript, `py` as Python and `yml` as YAML.
 
 Without Phiki, or for a language it doesn't know, the block is still drawn, as plain text. An unknown theme is replaced by the default theme and the code is still highlighted. In all three cases the export reports "dropped syntax highlighting" (for a missing package, the note says to install `phiki/phiki`), and [strict mode](/guide/rich-text.md#strict-mode) throws instead.
 
@@ -223,7 +236,7 @@ $document = Document::make(Page::letter()->body(
 ```
 :::
 
-`<mark>` gives its text a `yellow-200` background. `<code>` sets it in the monospace font with the `code` style.
+`<mark>` gives its text a `yellow-200` background. `<code>` sets it in the monospace font with the `code` style. In PHP, `Span::code($text)` does the same for literal text, without markup.
 
 In PHP you can also build the runs of text yourself:
 

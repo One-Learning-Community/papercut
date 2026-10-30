@@ -10,6 +10,15 @@ Every component has the same set of style methods in PHP, and the same attribute
 
 Text properties are inherited by everything inside a box, as in CSS. Box properties only apply to the box you set them on.
 
+A PHP setter that takes an option also accepts the option's string value, the same one a Blade attribute uses. The two lines below do the same thing, and the string is matched without regard to case or surrounding spaces:
+
+```php
+$row->align(Align::Center);
+$row->align('center');
+```
+
+This covers `direction`, `justify` and `align` on views, rows and columns, `alignSelf`, `textAlign` and the style argument of `border`, plus `align` on a table cell, `fit` on an image, `marker` on a list, `anchor` on a `Place` and the `level` argument of `QrCode::make()`, with `errorCorrection`, `shape`, `eyes` and the type of `gradient` on a QR code. Where the value is a letter, as for a QR level, the case name works too: `'H'` and `'high'` are the same. A string that isn't one of the values throws an `InvalidValue` error that suggests the closest match, such as `Did you mean "center"?`. The enum still works, and gives your editor the list of values.
+
 The [style attributes reference](/reference/style-attributes.md) lists every Blade attribute and the values it accepts.
 
 ## The theme
