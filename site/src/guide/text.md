@@ -27,7 +27,7 @@ Font, size, weight, colour and alignment are inherited, so you can set them on a
 use Papercut\{Column, Document, Page, Text};
 use function Papercut\pt;
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Column::make(
         Text::make('Both lines inherit the colour and size.'),
         Text::make('This one is bold and right-aligned.')->bold()->right(),
@@ -84,7 +84,7 @@ composer require phiki/phiki
 use Papercut\{Document, Page};
 use Papercut\Decorator\CodeBlock;
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     CodeBlock::make('$total = array_sum($prices);')->language('php'),
 ));
 ```
@@ -217,7 +217,7 @@ Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline 
 ```php
 use Papercut\{Document, Page, Text};
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Text::markup('Plain, <b>bold</b>, <i>italic</i>, <span color="indigo-600">coloured</span> and a <mark>highlighted</mark> word.'),
 ));
 ```
@@ -231,7 +231,7 @@ In PHP you can also build the runs of text yourself:
 use Papercut\{Document, Page, Span, Text};
 use Papercut\Style\Style;
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Text::spans(
         Span::text('Built from '),
         Span::text('spans', new Style(fontWeight: 700)),
@@ -266,7 +266,7 @@ This page is about text you write in your templates. For HTML from a rich text e
 use Papercut\{Document, ListItem, ListNode, Page};
 use Papercut\Style\ListMarker;
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     ListNode::ordered(
         ListItem::make('Plan', ListNode::unordered('Scope', 'Budget')),
         'Build',

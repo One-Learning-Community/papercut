@@ -28,7 +28,7 @@ A font family of `monospace` (any case) stands for the theme's mono family, whic
 use Papercut\{Column, Document, Page, Text};
 use Papercut\Export\PdfOptions;
 use Papercut\Text\{FontFace, FontRegistry, FontSet};
-use function Papercut\{mm, pt};
+use function Papercut\{in, pt};
 
 // The bundled Inter files, registered again under another name.
 $inter = dirname((new ReflectionClass(FontRegistry::class))->getFileName(), 3) . '/resources/fonts/Inter';
@@ -36,7 +36,7 @@ $fonts = (new FontSet())
     ->with(new FontFace('Brand', $inter . '/Inter-Regular.ttf', 400), new FontFace('Brand', $inter . '/Inter-Bold.ttf', 700))
     ->withFallbacks('Inter');
 
-$document = Document::make(Page::a4()->margin(mm(20))->body(
+$document = Document::make(Page::letter()->margin(in(0.75))->body(
     Column::make(
         Text::make('Set in Brand')->font('Brand')->size(pt(18)),
         Text::make('Brand bold')->font('Brand')->bold(),

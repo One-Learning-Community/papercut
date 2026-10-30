@@ -24,7 +24,7 @@ use Papercut\Value\Color;
 
 $theme = Theme::default()->with(fontSize: 11.0, lineHeight: 1.5, color: Color::parse('slate-800'));
 
-$document = Document::make(Page::a4()->body(Text::p('Set in 11pt.')));
+$document = Document::make(Page::letter()->body(Text::p('Set in 11pt.')));
 $options = new PdfOptions(theme: $theme);
 // $document->toPdf($options)->save('out.pdf');
 ```
@@ -65,7 +65,7 @@ $theme = Theme::default()->withStyle('panel', Style::make(
     radius: pt(8),
 ));
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Column::make(Text::make('Inside a panel'))->apply('panel'),
 ));
 $options = new PdfOptions(theme: $theme);

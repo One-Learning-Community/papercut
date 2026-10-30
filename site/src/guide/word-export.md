@@ -25,7 +25,7 @@ return $invoice->docx()->download('invoice.docx');  // Word
 use Papercut\{Document, Page, Text};
 use Papercut\Docx\DocxExporter;
 
-$document = Document::make(Page::a4()->body(Text::make('Hello')));
+$document = Document::make(Page::letter()->body(Text::make('Hello')));
 
 $document->export(new DocxExporter())->save('hello.docx');
 ```

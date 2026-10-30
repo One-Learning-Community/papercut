@@ -5,7 +5,7 @@ A table has a list of column widths, an optional header and the body rows. When 
 ::: code-tabs#style
 @tab Blade
 ```blade
-<x-doc::table columns="1fr 25mm 30mm">
+<x-doc::table columns="1fr 1in 1.25in">
   <x-doc::thead>
     <x-doc::tr background="slate-100">
       <x-doc::th>Name</x-doc::th>
@@ -25,7 +25,7 @@ A table has a list of column widths, an optional header and the body rows. When 
 @tab PHP
 ```php
 use Papercut\{Document, Page, Table, TableRow, Text};
-use function Papercut\mm;
+use function Papercut\in;
 
 $rows = [];
 for ($i = 1; $i <= 120; $i++) {
@@ -33,7 +33,7 @@ for ($i = 1; $i <= 120; $i++) {
 }
 
 $table = Table::make()
-    ->columns('1fr 25mm 30mm')
+    ->columns('1fr 1in 1.25in')
     ->headerRow(TableRow::make(
         Text::make('Name')->bold(),
         Text::make('Qty')->bold()->right(),
@@ -41,13 +41,13 @@ $table = Table::make()
     )->background('slate-100'))
     ->rows($rows, fn (array $r) => [$r[0], Text::make((string) $r[1])->right(), Text::make($r[2])->right()]);
 
-$document = Document::make(Page::a4()->margin(mm(20))->body($table));
+$document = Document::make(Page::letter()->margin(in(0.75))->body($table));
 ```
 :::
 
 ## Column widths
 
-`columns` is a space-separated list with one entry per column. Each entry can be a length (`25mm`), a percentage (`20%`), `auto`, or a fraction (`1fr`). Fractions share out whatever width is left after the other columns have taken theirs, just like in CSS grid.
+`columns` is a space-separated list with one entry per column. Each entry can be a length (`1in`), a percentage (`20%`), `auto`, or a fraction (`1fr`). Fractions share out whatever width is left after the other columns have taken theirs, just like in CSS grid.
 
 ### Filling the width
 
@@ -61,7 +61,7 @@ $table = Table::make()->columns('auto auto auto')->fillWidth()->row('Mon', 'Tue'
 
 When the columns don't fit even at their narrowest (the longest word in each, or the longest piece between hyphens and slashes), the widest `auto` and `fr` columns give way first. They're narrowed to a shared width so the table fits, and long words in them break across lines. Narrow columns keep their width. A column never gets narrower than its content can go: its cell padding plus its widest letter, or the full width of a fixed-width box or a nested table's own narrowest columns. Images, SVGs and PDF pages scale down. This is reported as an approximation through `onWarning`, with how much more room the table needed. Smaller text or less cell padding keeps words whole. Word export uses the same shrunk column widths.
 
-Length columns (`25mm`) keep the width you gave them. If they, or the narrowest widths left after shrinking, still don't fit, the table can't fit its box: Papercut throws a `LayoutOverflow` or, in clip mode, draws the table too wide and warns. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). Tables from `Markup::html()` shrink their length columns too.
+Length columns (`1in`) keep the width you gave them. If they, or the narrowest widths left after shrinking, still don't fit, the table can't fit its box: Papercut throws a `LayoutOverflow` or, in clip mode, draws the table too wide and warns. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). Tables from `Markup::html()` shrink their length columns too.
 
 ## Cells
 
@@ -76,7 +76,7 @@ In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single
 ::: code-tabs#style
 @tab Blade
 ```blade
-<x-doc::table columns="20mm 1fr 1fr">
+<x-doc::table columns="0.75in 1fr 1fr">
   <x-doc::thead>
     <x-doc::th>Time</x-doc::th>
     <x-doc::th>Mon</x-doc::th>
@@ -102,7 +102,7 @@ In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single
 use Papercut\{Table, TableCell};
 
 $table = Table::make()
-    ->columns('20mm 1fr 1fr')
+    ->columns('0.75in 1fr 1fr')
     ->head('Time', 'Mon', 'Tue')
     ->row('9:00', TableCell::make('Workshop')->rowspan(2)->background('amber-100'), 'Reading')
     ->row('10:00', 'Writing')

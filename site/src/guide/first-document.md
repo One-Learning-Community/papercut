@@ -7,7 +7,7 @@ Every document has the same basic shape: a document, one or more pages, and some
 ```blade
 {{-- resources/views/pdf/hello.blade.php --}}
 <x-doc::document title="Hello">
-  <x-doc::page size="a4" margin="20mm">
+  <x-doc::page size="letter" margin="0.75in">
     <x-doc::column gap="8pt">
       <x-doc::h1>Hello, {{ $name }}</x-doc::h1>
       <x-doc::p>A column of text. Inter is bundled, so this embeds a real font.</x-doc::p>
@@ -24,10 +24,10 @@ Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pd
 @tab PHP
 ```php
 use Papercut\{Column, Document, Page, Text};
-use function Papercut\{mm, pt};
+use function Papercut\{in, pt};
 
 $document = Document::make(
-    Page::a4()->margin(mm(20))->body(
+    Page::letter()->margin(in(0.75))->body(
         Column::make(
             Text::h1('Hello, Ada'),
             Text::p('A column of text. Inter is bundled, so this embeds a real font.'),

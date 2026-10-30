@@ -7,21 +7,21 @@ PNG and JPEG always work. WebP, GIF, BMP and AVIF need the `gd` extension.
 ::: code-tabs#style
 @tab Blade
 ```blade
-<x-doc::image src="img/logo.png" width="30mm" fit="contain" />
+<x-doc::image src="img/logo.png" width="1.25in" fit="contain" />
 <x-doc::image :data="$chartPng" width="100%" />
 ```
 @tab PHP
 ```php
 use Papercut\{Column, Document, Image, Page};
 use Papercut\Style\ImageFit;
-use function Papercut\{mm, pt};
+use function Papercut\{in, pt};
 
 // A 1x1 PNG keeps the example self-contained. Use Image::file('logo.png') in practice.
 $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Column::make(
-        Image::bytes($png)->fit(ImageFit::Contain)->width(mm(30))->height(mm(30)),
+        Image::bytes($png)->fit(ImageFit::Contain)->width(in(1.25))->height(in(1.25)),
     )->gap(pt(8)),
 ));
 ```
@@ -44,10 +44,10 @@ An SVG is drawn as vector paths, so logos, icons and charts stay sharp at any si
 ::: code-tabs#style
 @tab Blade
 ```blade
-<x-doc::svg src="img/logo.svg" width="40mm" />
+<x-doc::svg src="img/logo.svg" width="1.5in" />
 <x-doc::svg :data="$chartSvg" width="100%" />
 
-<x-doc::svg height="8mm">
+<x-doc::svg height="0.3in">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <circle cx="12" cy="12" r="10" fill="#4f46e5" />
   </svg>
@@ -56,15 +56,15 @@ An SVG is drawn as vector paths, so logos, icons and charts stay sharp at any si
 @tab PHP
 ```php
 use Papercut\{Document, Page, Svg};
-use function Papercut\mm;
+use function Papercut\in;
 
 // Svg::file('logo.svg') reads a file instead.
 $ring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
     . '<path fill="#4f46e5" fill-rule="evenodd" d="M50 10 A40 40 0 1 1 49.99 10 Z M50 30 A20 20 0 1 1 49.99 30 Z"/>'
     . '</svg>';
 
-$document = Document::make(Page::a4()->body(
-    Svg::fromString($ring)->width(mm(30)),
+$document = Document::make(Page::letter()->body(
+    Svg::fromString($ring)->width(in(1.25)),
 ));
 ```
 :::
@@ -114,7 +114,7 @@ A link makes everything inside it clickable.
 ```php
 use Papercut\{Document, Link, Page, Text};
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Link::to('https://example.com', Text::make('example.com')->underline()->color('indigo-600')),
 ));
 ```
@@ -129,20 +129,20 @@ A QR code is drawn as vector squares, so it stays sharp at any print size and do
 ::: code-tabs#style
 @tab Blade
 ```blade
-<x-doc::qr-code :value="route('invoices.pay', $invoice)" width="30mm" />
+<x-doc::qr-code :value="route('invoices.pay', $invoice)" width="1.25in" />
 ```
 @tab PHP
 ```php
 use Papercut\{Document, Page, QrCode};
-use function Papercut\mm;
+use function Papercut\in;
 
-$document = Document::make(Page::a4()->body(
-    QrCode::make('https://acme.test/pay/INV-142')->width(mm(30)),
+$document = Document::make(Page::letter()->body(
+    QrCode::make('https://acme.test/pay/INV-142')->width(in(1.25)),
 ));
 ```
 :::
 
-A QR code is always square. Set `width` (or `height`) to size it; without one it's 25mm across, which scans comfortably from a phone. The blank margin scanners need around the code, four modules wide, is included in that size.
+A QR code is always square. Set `width` (or `height`) to size it; without one it's about 1in across, which scans comfortably from a phone. The blank margin scanners need around the code, four modules wide, is included in that size.
 
 The squares use the text color, so `color="indigo-700"` works. Keep the contrast high, and set `background` if the code sits on something dark. Padding, borders and rounded corners work as they do on any box.
 
@@ -175,22 +175,22 @@ If it isn't installed, styling a code throws an error with that command in it. P
     eyes="dot"
     eye-color="rose-600"
     gradient="indigo-600 cyan-700"
-    width="35mm"
+    width="1.5in"
 />
 ```
 @tab PHP
 ```php
 use Papercut\{Document, Page, QrCode};
 use Papercut\Barcode\{QrEyes, QrShape};
-use function Papercut\mm;
+use function Papercut\in;
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     QrCode::make('https://acme.test/pay/INV-142')
         ->shape(QrShape::Dots)
         ->eyes(QrEyes::Dot)
         ->eyeColor('rose-600')
         ->gradient('indigo-600', 'cyan-700')
-        ->width(mm(35)),
+        ->width(in(1.5)),
 ));
 ```
 :::

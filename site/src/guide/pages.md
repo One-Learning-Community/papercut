@@ -5,22 +5,24 @@
 ::: code-tabs#style
 @tab Blade
 ```blade
-<x-doc::page size="letter" orientation="landscape" margin="18mm 20mm">
+<x-doc::page size="letter" orientation="landscape" margin="0.7in 0.8in">
   …
 </x-doc::page>
 ```
 @tab PHP
 ```php
 use Papercut\{Document, Page, Text};
-use function Papercut\mm;
+use function Papercut\in;
 
 $document = Document::make(
-    Page::letter()->landscape()->margin(mm(18), mm(20))->body(Text::make('…')),
+    Page::letter()->landscape()->margin(in(0.7), in(0.8))->body(Text::make('…')),
 );
 ```
 :::
 
-The named sizes are `a0` to `a6`, `b4`, `b5`, `letter`, `legal`, `tabloid` and `executive` (`Page::sizeNames()` returns the list). In PHP, the common ones have shortcuts (`Page::a4()`, `a3()`, `a5()`, `a6()`, `letter()` and `legal()`), `Page::named('tabloid')` covers the rest, and `Page::size($width, $height)` takes any custom size. In Blade, write a custom size as `size="210mm 297mm"`.
+The named sizes are `a0` to `a6`, `b4`, `b5`, `letter`, `legal`, `tabloid` and `executive` (`Page::sizeNames()` returns the list). In PHP, the common ones have shortcuts (`Page::a4()`, `a3()`, `a5()`, `a6()`, `letter()` and `legal()`), `Page::named('tabloid')` covers the rest, and `Page::size($width, $height)` takes any custom size. In Blade, write a custom size as `size="210mm 297mm"` (or `size="8.5in 14in"`).
+
+Both `letter` (8.5 × 11 in) and `a4` (210 × 297 mm) are named sizes, and you can use whichever suits your readers. Lengths can be written in any unit: `pt`, `mm`, `cm`, `in` or `px`, so `20mm` and `0.8in` are equally valid margins. The examples in this guide mix US Letter with inches and A4 with millimetres; swap one for the other wherever you like.
 
 Margins that meet or cross, leaving no room for content, throw `InvalidValue` when you export.
 
@@ -257,7 +259,7 @@ In Blade, a relative `template` path stays inside `papercut.image_path`, the sam
 
 ### Placing content
 
-Each place puts its content at a point given by `x` and `y`. These are measured from the top-left corner of the page, as lengths like `20mm` or as percentages of the page's width and height. Page margins don't apply to the overlay.
+Each place puts its content at a point given by `x` and `y`. These are measured from the top-left corner of the page, as lengths like `20mm` or `0.8in`, or as percentages of the page's width and height. Page margins don't apply to the overlay.
 
 The anchor says which point of the content sits at that spot:
 
@@ -303,10 +305,10 @@ Papercut splits content wherever it needs to by default. These options let you c
 
 ```php
 use Papercut\{Column, Document, Page, PageBreak, Text};
-use function Papercut\{mm, pt};
+use function Papercut\{in, pt};
 
 $document = Document::make(
-    Page::a4()->margin(mm(20))->body(
+    Page::letter()->margin(in(0.75))->body(
         Column::make(
             Text::h2('Section one'),
             Text::make(str_repeat('Body text. ', 200))->minLines(3),
@@ -337,7 +339,7 @@ To bookmark something that isn't a heading, or to change a heading's entry, set 
 use Papercut\{Column, Document, Page, Text};
 use Papercut\Decorator\Card;
 
-$document = Document::make(Page::a4()->body(Column::make(
+$document = Document::make(Page::letter()->body(Column::make(
     Text::h1('Annual report'),
     Text::h2('A long heading that reads badly in a sidebar')->bookmark('Summary'),
     Text::h2('Left out of the panel')->bookmark(false),

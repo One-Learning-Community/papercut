@@ -17,7 +17,7 @@ use function Papercut\pt;
 
 $slide = '<h2>Agenda</h2><p>Welcome to <b>Papercut</b>.</p><ol start="3"><li>Intro</li><li>Demo</li></ol>';
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Column::make(
         Markup::html($slide, new MarkupOptions(styles: StyleMode::Theme)),
         Markup::text("Line one\nLine two\n\nA new paragraph."),
@@ -79,7 +79,7 @@ use Papercut\Markup\{Markup, MarkupOptions};
 $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
 $markup = new MarkupOptions(images: fn (string $src): ?string => $src === 'logo.png' ? $png : null);
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Markup::html('<p><img src="logo.png" width="40"></p><p><img src="gone.png" alt="Missing logo"></p>', $markup),
 ));
 ```

@@ -27,7 +27,7 @@ use Papercut\{Document, Page, Row, Spacer, Text};
 use Papercut\Style\Align;
 use function Papercut\pt;
 
-$document = Document::make(Page::a4()->body(
+$document = Document::make(Page::letter()->body(
     Row::make(
         Text::make('Northwind Studio')->bold(),
         Spacer::flex(),
@@ -54,7 +54,7 @@ These work the same way as their flexbox namesakes:
 | `basis()` | `basis="40%"` | A child's starting size, before growing or shrinking. |
 | `wrap()` | `wrap` | Lets a row wrap onto more than one line. |
 
-`Spacer::flex()` grows to fill the available space, and `Spacer::size(mm(10))` adds a fixed gap. In Blade, both are `<x-doc::spacer>`: add a `size` for a fixed gap, or leave it off for a flexible one.
+`Spacer::flex()` grows to fill the available space, and `Spacer::size(in(0.4))` adds a fixed gap. In Blade, both are `<x-doc::spacer>`: add a `size` for a fixed gap, or leave it off for a flexible one.
 
 ## Sizing boxes
 
@@ -62,14 +62,14 @@ Every component accepts `width`, `height` and their `min-` and `max-` versions, 
 
 ```php
 use Papercut\{Column, Document, Page, Text};
-use function Papercut\{mm, percent, pt};
+use function Papercut\{in, percent, pt};
 
-$document = Document::make(Page::a4()->margin(mm(15))->body(
+$document = Document::make(Page::letter()->margin(in(0.6))->body(
     Column::make(
         Text::make('Half width')->width(percent(50))->padding(pt(4), pt(8)),
-        Text::make('Fixed 5 cm')->width(mm(50))->border(pt(1), 'slate-300'),
+        Text::make('Fixed 2 in')->width(in(2))->border(pt(1), 'slate-300'),
         Text::make('Tinted')->background('slate-50')->radius(pt(6))->padding(pt(10)),
-    )->gap(mm(4)),
+    )->gap(in(0.15)),
 ));
 ```
 
