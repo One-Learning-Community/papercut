@@ -13,7 +13,7 @@ php artisan vendor:publish --tag=papercut-config
 | `prefix` | `'doc'` | The Blade tag prefix. Lowercase letters, digits and dashes only. Read when the app boots. |
 | `paper` | `'a4'` | The page size when `<x-doc::page>` doesn't set one. A paper name, or a width and height like `'8.5in 11in'`. |
 | `margin` | `'20mm'` | The page margin when `<x-doc::page>` doesn't set one. |
-| `theme` | `[]` | Document defaults: `font_family`, `font_size` (in points), `color` and `line_height`. |
+| `theme` | `[]` | Document defaults: `font_family`, `font_size` (in points), `color`, `line_height` and `mono_family` (the font the `monospace` keyword and code use; default `Cousine`). |
 | `styles` | `[]` | [Named styles](/guide/styles.md#named-styles), using the same names as tag attributes. |
 | `fonts` | `[]` | Extra font families. See [Fonts](/guide/fonts.md). |
 | `fallback_fonts` | `[]` | Families to try, in order, for characters the main font doesn't have. |

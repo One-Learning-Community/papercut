@@ -8,7 +8,9 @@ Papercut measures text using the actual metrics of the embedded font, so line br
 |---|---|---|
 | `Text::make('…')` | `<x-doc::text>` | Plain text in whatever style it inherits. |
 | `Text::p('…')` | `<x-doc::p>` | A paragraph, using the theme's paragraph style. |
-| `Text::h1('…')` to `h4` | `<x-doc::h1>` to `<x-doc::h4>` | Headings. They stay on the same page as the block after them. |
+| `Text::h1('…')` to `h4` | `<x-doc::h1>` to `<x-doc::h4>` | Headings. They stay on the same page as the block after them (see below). |
+
+Headings keep with the next block by default, so a heading isn't left alone at the bottom of a page. Turn that off with `->keepWithNext(false)` in PHP, or `:keep-with-next="false"` in Blade. In Word the heading paragraph gets keep-with-next, and in HTML it gets `break-after: avoid`. If a heading and the block after it can't fit on one page together, the heading still ends up alone.
 
 Font, size, weight, colour and alignment are inherited, so you can set them on a box and the text inside will follow:
 
@@ -114,7 +116,7 @@ By default the label sits at the top right of the box, on a small line above the
 <x-doc::pre language="php" variant="strip">$a = 1;</x-doc::pre>
 ```
 
-In PHP use `->variant('strip')` or `->variant('caption')`; the two can't be combined. Set a default for every block with `papercut.code.variant` in Laravel, or `new CodeHighlighting(variant: 'caption')` in PHP.
+In PHP use `->variant('strip')` or `->variant('caption')`; the two can't be combined. Set a default for every block with `papercut.code.variant` in Laravel. In plain PHP there is no document-wide default: pass `new CodeHighlighting(variant: 'caption')` to each block with `->highlighting()`, or to Markup with `new MarkupOptions(code: new CodeHighlighting(variant: 'caption'))`.
 
 ### Keeping a block on one page
 
@@ -238,6 +240,8 @@ $document = Document::make(Page::a4()->body(
     ),
 ));
 ```
+
+A span can also carry a theme style name and a `base` style (what was set outside it). The span's own style wins over the named style, which wins over `base`. Markup sets these; you rarely need to.
 
 This page is about text you write in your templates. For HTML from a rich text editor, or plain text from a form, see [Rich text](./rich-text.md).
 

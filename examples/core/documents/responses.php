@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Builds the responses Document: a feedback-form record made from the eight decorators.
+// Builds the responses Document: a feedback-form record made from eight of the decorators.
 // examples/core/responses.php saves it as PDF and examples/html/render.php as HTML.
 use Papercut\{Column, Document, Page, PageNumber, Text};
 use Papercut\Decorator\{Badge, Blockquote, Callout, Card, ChoiceList, Field, KeyValueList, Section};

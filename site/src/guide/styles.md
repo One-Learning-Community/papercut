@@ -79,5 +79,5 @@ You can apply several names at once, like CSS classes: `style="panel panel.wide"
 If you use a name that doesn't exist, Papercut throws an error and suggests the closest match.
 
 ::: tip Reserved names
-The decorators use these style names: `card`, `callout`, `blockquote`, `section`, `field`, `choice`, `key-value`, `badge`, and anything starting with them. If you define a style with one of those names, it replaces the built-in one. That's how you [restyle a decorator](./decorators.md#restyling), but it also means you can restyle one by accident.
+The decorators use these style names: `card`, `callout`, `blockquote`, `section`, `field`, `choice`, `key-value`, `badge`, `pre`, `code`, `code-block`, `markup.table`, `markup.th`, `markup.td`, `markup.hr`, and anything starting with them. If you define a style with one of those names, it replaces the built-in one. That's how you [restyle a decorator](./decorators.md#restyling), but it also means you can restyle one by accident.
 :::

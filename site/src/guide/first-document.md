@@ -43,15 +43,19 @@ A Blade view needs exactly one `<x-doc::document>` at the root. If you put conte
 
 ## Getting the PDF out
 
-In plain PHP, `toPdf()` returns an `Output` with three methods:
+In plain PHP, `toPdf()` returns an `Output` with these methods:
 
 | Method | What it does |
 |---|---|
 | `save($path)` | Writes the PDF to a file. |
 | `bytes()` | Returns the PDF as a string. |
 | `stream()` | Writes the PDF to the output buffer and returns the number of bytes. |
+| `mime()` | Returns the MIME type, such as `application/pdf`. |
+| `extension()` | Returns the file extension, such as `pdf`. |
 
-In Laravel, `Papercut::view($view, $data)` returns a pending document, and calling `->pdf()` on it gives you a `PendingOutput`:
+The same document can also be written as Word or HTML. `export(new DocxExporter())` and `toHtml()` return the same kind of `Output`. See [Word export](./word-export.md) and [HTML export](./html-export.md).
+
+In Laravel, `Papercut::view($view, $data)` returns a pending document, and calling `->pdf()` on it gives you a `PendingOutput`. `->docx()` gives you one for a [Word](./word-export.md) file, and `->html()->page()` or `->html()->fragment()` one for [HTML](./html-export.md):
 
 | Method | What it does |
 |---|---|

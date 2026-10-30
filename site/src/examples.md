@@ -11,7 +11,7 @@ The repository includes four example documents, each written twice: once as a Bl
 | Invoice | a letterhead row, a tinted panel, line items, right-aligned totals, a footer | [invoice.blade.php][inv-b] | [invoice.php][inv-p] |
 | Transcript | a sixty-row table across pages with its header repeated, keep-together blocks | [transcript.blade.php][tr-b] | [transcript.php][tr-p] |
 | Report | justified prose, stat cards from an app component, an eighty-row table, a forced page break | [report.blade.php][rep-b] | [report.php][rep-p] |
-| Form responses | all eight [decorators](/guide/decorators.md): a card of details, a callout, numbered sections, fields, choice lists, rated statements with badges, a blockquote | [responses.blade.php][res-b] | [responses.php][res-p] |
+| Form responses | eight of the nine [decorators](/guide/decorators.md): a card of details, a callout, numbered sections, fields, choice lists, rated statements with badges, a blockquote | [responses.blade.php][res-b] | [responses.php][res-p] |
 
 [inv-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/invoice.blade.php
 [inv-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/invoice.php
@@ -36,6 +36,10 @@ php examples/core/responses.php
 
 # The same documents as HTML: writes examples/html/<name>.html
 php examples/html/render.php
+
+# The same documents as Word: writes examples/docx/<name>.docx
+(cd packages/docx && composer install)
+php examples/docx/render.php
 
 # Blade: writes examples/laravel/<name>.pdf and .html
 (cd packages/laravel && composer install)

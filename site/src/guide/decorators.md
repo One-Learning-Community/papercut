@@ -2,7 +2,7 @@
 
 Decorators are ready-made components for the things most documents end up needing: a bordered card, a highlighted note, a numbered section, an answer box. You could build all of these from plain boxes, but then every app reinvents them with its own colours. Decorators take their look from the theme, so they match across all your documents and you can restyle them in one place.
 
-There are eight of them:
+There are nine of them:
 
 | Decorator | PHP | Blade |
 |---|---|---|
@@ -14,6 +14,7 @@ There are eight of them:
 | [Choice list](#choice-list) | `ChoiceList` | `<x-doc::choices>` |
 | [Key-value list](#key-value-list) | `KeyValueList` | `<x-doc::key-value>` |
 | [Badge](#badge) | `Badge` | `<x-doc::badge>` |
+| [Code block](/guide/text.md#code-blocks) | `CodeBlock` | `<x-doc::pre language="…">` |
 
 The PHP classes are in the `Papercut\Decorator` namespace. Under the hood, each one is built from ordinary boxes, text and tables, so it breaks across pages like anything else and looks the same in PDF and HTML. Style methods and attributes apply to the outer box, so `Card::make(...)->padding(pt(12))` changes the padding for that one card only.
 
@@ -183,7 +184,7 @@ $document = Document::make(Page::a4()->body(
 
 `type` is `checkbox` (the default) or `radio`. In PHP, use `ChoiceList::checkbox()` or `ChoiceList::radio()`. `emphasize-selected` makes the selected labels bold.
 
-The checkboxes and radio buttons are drawn as shapes, so they don't depend on your font having ☐ or ● characters, and they look the same in PDF and HTML. They're sized to match the text and line up with the first line of each label. A long list can break across pages between options, but never in the middle of one.
+The checkboxes and radio buttons are drawn as shapes, so they don't depend on your font having ☐ or ● characters, and they look the same in PDF and HTML. In Word they are written as the characters ☐, ▣, ○ and ◉, so they take the font's look there. They're sized to match the text and line up with the first line of each label. A long list can break across pages between options, but never in the middle of one.
 
 ## Key-value list
 
@@ -295,7 +296,7 @@ A variant restyles every part of a decorator at once. `variant="large"` makes th
 ```php
 'styles' => [
     'section.title.large' => ['font-size' => '16pt'],
-    'section.large'       => ['margin-bottom' => '14pt'],
+    'section.large'       => ['margin' => '0 0 14pt 0'],
 ],
 ```
 
@@ -309,10 +310,49 @@ use Papercut\Decorator\Section;
 Section::make('...')->title('Results')->variant('large');
 ```
 
-Several variants can be given, separated by spaces (`variant="large compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens, and it cannot be a word that appears in one of the decorator's own part names (`selected` or `radio` on choices, `title` on a card), because the name it produces would be an existing part's. Papercut rejects such a word with an error naming the collision. Variants come after the tone (`callout.title.warning`, then `callout.title.large`) and before your own `style=""` and style modifiers, which still win on the outer box.
+Several variants can be given, separated by spaces (`variant="large compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens, and it cannot be a word that appears in one of the decorator's own part names (`selected` or `radio` on choices, `title` on a card), because the name it produces would be an existing part's. Papercut rejects such a word with an error naming the collision. `callout` and `badge` also reject their own tone words (`note`, `tip`, `warning`, `danger`, and `neutral` on a badge) as variants. Use `tone()` for those. Variants come after the tone (`callout.title.warning`, then `callout.title.large`) and before your own `style=""` and style modifiers, which still win on the outer box.
 
-In Blade, a variant for which the theme has no style on any part of that decorator throws an error listing the names it looked for. In PHP, a variant nothing styles does nothing, because the decorator has no theme to check against. No variant styles ship by default.
+In Blade, a variant for which the theme has no style on any part of that decorator throws an error listing the names it looked for. In PHP, a variant nothing styles does nothing, because the decorator has no theme to check against. No variant styles ship by default, except for the [code block](/guide/text.md#code-blocks), whose `strip` and `caption` variants are built in.
+
+### Your own decorator
+
+A decorator is a class that implements `Papercut\Decorator\Decorator`. The interface needs `render()`, the style methods, `variant()`, `variants()` and `partNames()`. `use HasStyle` covers the style methods, and `use HasVariants` covers `variant()` and `variants()`. You write `partNames()` (every built-in style name the decorator applies, without tones) and `render()`. Build each name with the `part()` helper, so variants work, and apply the user's own style last:
+
+```php
+use Papercut\{Node, Text, View};
+use Papercut\Concerns\{HasStyle, HasVariants};
+use Papercut\Decorator\Decorator;
+
+final class Stamp implements Decorator
+{
+    use HasStyle;
+    use HasVariants;
+
+    private function __construct(private string $label)
+    {
+    }
+
+    public static function make(string $label): self
+    {
+        return new self($label);
+    }
+
+    public function partNames(): array
+    {
+        return ['stamp'];
+    }
+
+    public function render(): Node
+    {
+        return View::make(Text::make($this->label))
+            ->apply(trim($this->part('stamp') . ' ' . ($this->styleName() ?? '')))
+            ->apply($this->style());
+    }
+}
+```
+
+The theme has no `stamp` style, so the export throws until you add one to your theme's styles. The built-in decorators are final, immutable builders. Follow the same pattern: return clones from your setters.
 
 ## A full example
 
-The `responses` example uses all eight decorators to lay out a completed feedback form. It's available in [Blade](https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php) and in [PHP](https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php).
+The `responses` example uses eight of the decorators to lay out a completed feedback form. It's available in [Blade](https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php) and in [PHP](https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php).

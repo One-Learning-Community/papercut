@@ -20,7 +20,9 @@ $document = Document::make(
 ```
 :::
 
-The named sizes are `a0` to `a6`, `b4`, `b5`, `letter`, `legal`, `tabloid` and `executive`. In PHP, the common ones have shortcuts (`Page::a4()`, `a3()`, `a5()`, `a6()`, `letter()` and `legal()`), `Page::named('tabloid')` covers the rest, and `Page::size($width, $height)` takes any custom size. In Blade, write a custom size as `size="210mm 297mm"`.
+The named sizes are `a0` to `a6`, `b4`, `b5`, `letter`, `legal`, `tabloid` and `executive` (`Page::sizeNames()` returns the list). In PHP, the common ones have shortcuts (`Page::a4()`, `a3()`, `a5()`, `a6()`, `letter()` and `legal()`), `Page::named('tabloid')` covers the rest, and `Page::size($width, $height)` takes any custom size. In Blade, write a custom size as `size="210mm 297mm"`.
+
+Margins that meet or cross, leaving no room for content, throw `InvalidValue` when you export.
 
 ## Headers, footers and backgrounds
 
@@ -205,7 +207,7 @@ When a first page has a tall header, the body has less room on it. A block that 
 
 Word export ticks the matching boxes in the page setup: "Different First Page" for first-page versions, "Different Odd & Even Pages" for even-page versions, and "Mirror margins" for mirrored margins. Different First Page is set per page run. The other two apply to the whole document. Runs without even-page versions repeat their normal header and footer on even pages, so they look the same. But mixing a mirrored run with a run that isn't, when that run's left and right margins differ, is reported as approximated. In Word, a first-page header or footer you don't set shows the normal one, even when that page falls on an even page.
 
-HTML export shows the first-page header at the top of the page (or nothing, if you set it empty) and the normal footer at the bottom. Even-page versions aren't shown, and the export reports that as approximated. Mirrored margins apply only when the page is printed, and only from the first page run. The fragment output, the one you embed in another view, doesn't mirror.
+HTML export shows the first-page header at the top of the page (or nothing, if you set it empty) and the normal footer at the bottom. If the page has a first-page footer but no normal footer, the first-page footer is shown. If it has both, the normal one is shown and the export reports the first-page footer as approximated. Even-page versions aren't shown, and the export reports that as approximated. Mirrored margins apply only when the page is printed, and only from the first page run. The fragment output, the one you embed in another view, doesn't mirror.
 
 ## Filling in an existing PDF
 
@@ -281,9 +283,11 @@ Blade needs a space or a line break after a closing slot tag. If you write `</x-
 
 You can also draw a page of a PDF anywhere in your content, the way you'd draw an image, with `<x-doc::pdf-page src="form.pdf" width="60mm" />` or `PdfPage::file('form.pdf')->width(mm(60))`. It's sized like an image too: from the page's own size, and setting one side keeps its proportions.
 
-### In HTML exports
+### In HTML and Word exports
 
 A browser can't draw a page of a PDF inline, so HTML exports leave templates and PDF pages out and report each one as dropped. Places are positioned over the page with CSS, which is close to the PDF but not exact.
+
+Word export leaves templates and PDF pages out too. In an overlay place, only a lone image, QR code or SVG survives, as a floating picture; everything else is reported as dropped.
 
 ## Controlling page breaks
 
@@ -292,7 +296,7 @@ Papercut splits content wherever it needs to by default. These options let you c
 | PHP | Blade | What it does |
 |---|---|---|
 | `keepTogether()` | `keep-together` | Moves the whole block to the next page instead of splitting it. A block taller than a page will still split. |
-| `keepWithNext()` | `keep-with-next` | Keeps the block on the same page as the one after it. Headings do this by default. |
+| `keepWithNext()` | `keep-with-next` | Keeps the block on the same page as the one after it. Headings do this by default; turn it off with `keepWithNext(false)` or `:keep-with-next="false"`. |
 | `minLines(3)` | `min-lines="3"` | Leaves at least this many lines of a paragraph on each side of a break. |
 | `breakBefore()`, `breakAfter()` | `break-before`, `break-after` | Starts a new page before or after the block. |
 | `PageBreak::make()` | `<x-doc::page-break />` | Starts a new page at this point. |

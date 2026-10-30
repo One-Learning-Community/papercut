@@ -39,6 +39,7 @@ Every tag marked **Style** in the [tag reference](./blade-tags.md) accepts these
 | `line-height` | `line-height="1.4"` | a multiple of the font size, above 0 |
 | `letter-spacing` | `letter-spacing="0.6pt"` | a length |
 | `text-align` | `text-align="right"` | `left`, `right`, `center`, `justify` |
+| `white-space` | `white-space="pre-wrap"` | `normal` (the default) or `pre-wrap`, which keeps spaces, tabs and line breaks. Inherited by the children. |
 
 ## Pagination
 

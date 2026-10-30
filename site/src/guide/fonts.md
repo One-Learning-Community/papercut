@@ -103,7 +103,7 @@ Kerning and ligatures are applied within each run of text. Complex shaping (Harf
 
 ## The font cache
 
-Papercut keeps each font it has read in a cache file, so the next request doesn't have to read the font again. This matters most under PHP-FPM, where every request starts from scratch. Each font gets its own file of a few hundred KB, stored in `sys_get_temp_dir()/papercut-cache-<uid>`. Updating a font or the library creates a fresh entry, and entries that haven't been used for 30 days are deleted. If the cache directory isn't writable, Papercut reads the font from scratch instead. The PDF is identical either way, only slightly slower to produce.
+Papercut keeps each font it has read in a cache file, so the next request doesn't have to read the font again. This matters most under PHP-FPM, where every request starts from scratch. Each font gets its own file of a few hundred KB, stored in `sys_get_temp_dir()/papercut-cache-<uid>` by default. In Laravel, `'cache_dir' => null` (the default) uses `storage/framework/cache/papercut` instead. Updating a font or the library creates a fresh entry, and entries that haven't been used for 30 days are deleted. If the cache directory isn't writable, Papercut reads the font from scratch instead. The PDF is identical either way, only slightly slower to produce.
 
 ```php
 use Papercut\Export\PdfOptions;
@@ -113,3 +113,17 @@ $options = new PdfOptions(cacheDir: false);                       // no disk cac
 ```
 
 In Laravel, set `cache_dir` in the config.
+
+The cache files are normally read into each request that needs the font. If you render PDFs all day and run opcache, you can store them as PHP files so that opcache holds the fonts in shared memory for every worker. That is the fastest way to restore a font. Pass the format to the backend. A backend you build yourself takes its own `cacheDir`, and `PdfOptions(cacheDir:)` is ignored:
+
+```php
+use Papercut\Backend\PhpPdf\{FontStateCache, PhpPdfBackend};
+use Papercut\Export\PdfOptions;
+
+$options = new PdfOptions(backend: new PhpPdfBackend(
+    cacheDir: '/var/cache/myapp/papercut',
+    fontCacheFormat: FontStateCache::PHP,
+));
+```
+
+Without opcache, PHP files are compiled on every read, so leave the default. Laravel has no setting for it.

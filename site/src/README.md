@@ -18,19 +18,25 @@ features:
   - title: Layout you already know
     details: Rows, columns, gaps and grow factors. If you've used flexbox, you can lay out a page.
   - title: Pagination built in
-    details: Long tables repeat their header and never split a row. Headings stay with the paragraph after them. "Page 3 of 12" is one tag.
+    details: Long tables repeat their header and never split a row. Headings stay with what follows them. "Page 3 of 12" is one tag.
   - title: Blade or PHP
     details: Write documents as Blade views, or build them with a fluent PHP API. Both produce exactly the same thing.
-  - title: Components included
-    details: Cards, callouts, form fields, checkboxes and badges, all styled from one theme so your documents match.
+  - title: Word export (experimental)
+    details: Export the same document as a Word file people can edit. Headings, lists, tables, headers and page numbers are real Word features, not a picture of the PDF.
   - title: PDF and HTML
     details: Render the same document as a PDF to download, or as HTML to show in the browser.
+  - title: Fill in existing PDFs
+    details: Put names, dates and signatures at exact points on a PDF you already have, such as a certificate or a letterhead.
+  - title: HTML from your editor
+    details: Turn HTML from a rich text editor, tables and images included, into document content. Anything it can't convert is reported.
+  - title: Components included
+    details: Cards, callouts, form fields, checkboxes, badges and code blocks, all styled from one theme so your documents match.
   - title: No headless browser
     details: Pure PHP from start to finish. There's no Chrome or wkhtmltopdf to install on your servers.
-footer: MIT licensed. PDFs are written by php-pdf and Word files by php-docx, both by Denis Skripchenko. Inter is bundled under the SIL Open Font License.
+footer: MIT licensed. PDFs are written by php-pdf and Word files by php-docx, both by Denis Skripchenko. Inter and Cousine are bundled under the SIL Open Font License.
 ---
 
-Papercut builds PDFs from Blade or plain PHP, with page breaks that just work. Here's a transcript as a Blade view:
+Papercut builds PDFs, Word files and HTML from Blade or plain PHP, with page breaks that just work. Here's a transcript as a Blade view:
 
 ```blade
 <x-doc::document title="Transcript">
@@ -55,10 +61,13 @@ Papercut builds PDFs from Blade or plain PHP, with page breaks that just work. H
 </x-doc::document>
 ```
 
-And a route that sends it to the browser:
+And a route that sends it to the browser, as a PDF or as a Word file:
 
 ```php
-return Papercut::view('pdf.transcript', compact('student', 'courses'))->pdf()->download('transcript.pdf');
+$transcript = Papercut::view('pdf.transcript', compact('student', 'courses'));
+
+return $transcript->pdf()->download('transcript.pdf');
+// or, with papercut/docx installed: $transcript->docx()->download('transcript.docx');
 ```
 
 If the course list runs to ten pages, the header row repeats at the top of each one and no row gets cut in half at a page break.

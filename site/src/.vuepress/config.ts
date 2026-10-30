@@ -12,7 +12,7 @@ const base = (process.env.DOCS_BASE ?? '/papercut/') as `/${string}/`
 export default defineUserConfig({
   lang: 'en-US',
   title: 'Papercut',
-  description: 'Paperwork without the sting. Page-aware PDF layout for PHP and Laravel, written in Blade or plain PHP.',
+  description: 'Paperwork without the sting. Page-aware PDF, Word and HTML layout for PHP and Laravel, written in Blade or plain PHP.',
   base,
 
   head: [

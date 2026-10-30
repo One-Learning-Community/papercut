@@ -66,11 +66,11 @@ In PHP, `Markup::flatten()` does the same thing and merges the converted content
 ## Style modes
 
 - **`theme`** (the default): the HTML provides the structure, and your theme decides how it looks. Inline `style="…"` attributes are ignored.
-- **`original`**: inline styles are applied on top of the theme. Colour, font size, weight, italic and text decoration work everywhere. Background, alignment, margin, padding and sizes work on block elements. Anything else is dropped and reported.
+- **`original`**: inline styles are applied on top of the theme. Colour, font size, weight, italic and text decoration work everywhere. `background-color` works on spans too. Alignment, margin, padding and sizes work on block elements only. Anything else is dropped and reported.
 
 ## Images
 
-Papercut never downloads an `<img src>` by itself. Instead, you give it a resolver: a function that receives the `src` exactly as written and returns the image data, or `null` if the image can't be found.
+Papercut never downloads an `<img src>` by itself. Instead, you give it a resolver: a function that receives the trimmed `src` and returns the image data, or `null` if the image can't be found.
 
 ```php
 use Papercut\{Document, Page};
@@ -84,7 +84,7 @@ $document = Document::make(Page::a4()->body(
 ));
 ```
 
-When an image is missing, its `alt` text is shown in italics. In Laravel, set `papercut.markup.images` to a resolver class. The [Laravel configuration page](/laravel/configuration.md#markup-images) has a full example.
+Papercut calls the resolver once per distinct `src` in a conversion and reuses the answer, `null` included. When an image is missing, its `alt` text is shown in italics. In Laravel, set `papercut.markup.images` to a resolver class. The [Laravel configuration page](/laravel/configuration.md#markup-images) has a full example.
 
 ::: danger Treat src as user input
 Your resolver decides which files can be read. Don't pass `src` straight to the filesystem or a storage disk. Check it against the paths you expect, and reject anything containing `..`.
@@ -96,6 +96,18 @@ Everything Markup couldn't convert exactly is recorded, and those notes are pass
 
 - **Approximated:** the content is there, but looks different from the original. For example, an iframe shown as a link, a missing image shown as its alt text, or an unknown tag removed with its content kept.
 - **Dropped:** the content is gone. For example, a missing image with no alt text, a link with an unsupported URL, or an unsupported CSS property.
+
+`onWarning` gets the message. If the callback takes a second parameter, it also gets a `FidelityReport` with `level` (`FidelityLevel::Approximated` or `Dropped`), `format`, `feature` and `path`.
+
+```php
+use Papercut\Export\{FidelityReport, PdfOptions};
+
+$options = new PdfOptions(onWarning: function (string $message, ?FidelityReport $report = null): void {
+    if ($report !== null) {
+        error_log("{$report->level->name} {$report->feature} at {$report->path}");
+    }
+});
+```
 
 ## Strict mode
 

@@ -31,7 +31,14 @@ In Laravel, `->html()->page()` and `->html()->fragment()` both return a `Pending
 
 ## What's different in HTML
 
-Browsers don't have pages, so a few things are approximated: fraction column widths, the page itself, and headers and footers, which appear once per page. Each approximation is reported as a warning. Nothing is ever dropped, so [strict mode](./rich-text.md#strict-mode) won't fail an HTML export.
+Browsers don't have pages, so a few things are approximated: fraction column widths, the page itself, and headers and footers, which appear once per page. Each approximation is reported as a warning.
+
+- Even-page headers and footers aren't shown. HTML has one header and one footer for the whole run.
+- A first-page footer is shown only when the page has no normal footer. If it has both, the normal footer is shown.
+
+A few things are dropped, and [strict mode](./rich-text.md#strict-mode) fails an HTML export on them: PDF page templates and embedded PDF pages. Code highlighting that can't be done is dropped in every format, as [Code blocks](./text.md#code-blocks) explains. Without strict mode these are reported as warnings.
+
+To pick the HTML element a view exports as, call `htmlTag()` (`div`, `section`, `aside`, `blockquote`, `header`, `footer` or `figure`). PDF ignores it.
 
 The HTML uses meaningful tags where it can: sections become `<section>`, callouts `<aside>`, blockquotes `<blockquote>`, lists `<ol>` or `<ul>`, and tables `<table>`.
 

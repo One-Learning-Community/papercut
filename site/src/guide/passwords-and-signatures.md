@@ -49,7 +49,7 @@ Leaving out the user password makes a document anyone can open but nobody can, s
 
 Permissions are honoured by well-behaved PDF readers, not enforced by the encryption itself, so treat them as a deterrent. The password needed to open the document is real protection. Whatever the permissions, screen readers can always read the text.
 
-Only PDFs are encrypted. Calling `encrypt()` doesn't affect `->html()`.
+Only PDFs are encrypted. Calling `encrypt()` doesn't affect `->html()` or `->docx()`.
 
 ## Digital signatures
 
