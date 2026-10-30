@@ -45,14 +45,32 @@ final class ExamplesTest extends TestCase
         }
     }
 
-    public function test_transcript_heading_is_a_sibling_of_the_summary_and_courses_are_distinct(): void
+    public function test_transcript_heading_sits_in_the_summary_box_like_the_blade_view_and_courses_are_distinct(): void
     {
         $source = (string) file_get_contents(dirname(__DIR__, 4) . '/examples/core/documents/transcript.php');
-        self::assertDoesNotMatchRegularExpression('/\$summary = Column::make\(\s*Text::h3/', $source);
-        self::assertStringContainsString("Text::h3('Cumulative summary')->keepWithNext(), \$summary", $source);
+        self::assertMatchesRegularExpression('/\$summary = Column::make\(\s*Text::h3\(\'Cumulative summary\'\),/', $source);
+        self::assertStringNotContainsString('keepWithNext', $source);
         $root = dirname(__DIR__, 4);
         exec(sprintf('cd %s && %s -d xdebug.mode=off examples/core/transcript.php 2>&1', escapeshellarg($root), escapeshellarg(PHP_BINARY)));
         $text = PdfInspector::text((string) file_get_contents($root . '/examples/core/transcript.pdf'));
         self::assertDoesNotMatchRegularExpression('/\b(Calculus|Physics|Logic) [2-9]\b/', $text);
+    }
+
+    /** The home page shows trimmed excerpts of the transcript; each must still be a run of lines in the real file. */
+    public function test_home_page_excerpts_match_the_transcript_sources(): void
+    {
+        $root = dirname(__DIR__, 4);
+        $home = (string) file_get_contents($root . '/site/src/README.md');
+        $files = ['blade' => '/examples/laravel/views/transcript.blade.php', 'php' => '/examples/core/documents/transcript.php'];
+        foreach ($files as $lang => $file) {
+            self::assertSame(1, preg_match('/^```' . $lang . '\n(.*?)^```$/ms', $home, $m), "no {$lang} excerpt on the home page");
+            $excerpt = array_map('trim', explode("\n", rtrim($m[1])));
+            $source = array_map('trim', explode("\n", (string) file_get_contents($root . $file)));
+            $found = false;
+            for ($i = 0; $i + count($excerpt) <= count($source) && !$found; $i++) {
+                $found = array_slice($source, $i, count($excerpt)) === $excerpt;
+            }
+            self::assertTrue($found, "the home page's {$lang} excerpt no longer matches {$file}");
+        }
     }
 }

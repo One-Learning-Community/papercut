@@ -59,10 +59,13 @@ foreach ($courses as $c) {
     )->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0)))->borderColor('slate-200'));
 }
 
-$summary = Row::make(
-    Text::make(sprintf('%d credits attempted, %.1f quality points.', $credits, $points))->grow(1),
-    Text::make('GPA ' . number_format($gpa, 2))->bold()->size(pt(14)),
-)->padding(pt(12))->background('slate-50')->radius(pt(8))->keepTogether();
+$summary = Column::make(
+    Text::h3('Cumulative summary'),
+    Row::make(
+        Text::make(sprintf('%d credits attempted, %.1f quality points.', $credits, $points))->grow(1),
+        Text::make('GPA ' . number_format($gpa, 2))->bold()->size(pt(14)),
+    ),
+)->gap(pt(4))->padding(pt(12))->background('slate-50')->radius(pt(8))->keepTogether();
 
 $document = Document::make(
     Page::letter()->margin(in(0.75))
@@ -71,7 +74,7 @@ $document = Document::make(
             Spacer::flex(),
             Text::make('Papercut')->color('slate-500'),
         ))
-        ->body(Column::make($card, Text::h2('Course history')->keepWithNext(), $table, Text::h3('Cumulative summary')->keepWithNext(), $summary)->gap(pt(10)))
+        ->body(Column::make($card, Text::h2('Course history'), $table, $summary)->gap(pt(10)))
         ->footer(PageNumber::make('Page {page} of {total}')->center()->size(pt(8))->color('slate-500')),
 )->title('Official Transcript')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
 

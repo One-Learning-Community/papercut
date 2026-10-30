@@ -40,10 +40,74 @@ Papercut builds PDFs, Word files and HTML from Blade or plain PHP, with page bre
 
 ## This code makes this PDF
 
+This is the course table from a three-page transcript. `$courses` comes from your own data, and the full source is below.
+
 <div class="showcase">
 <div class="showcase-code">
 
 ::: tabs#lang
+
+@tab Blade
+
+```blade
+<x-doc::table columns="0.9in 1fr 1in 0.75in 0.75in">
+    <x-doc::thead>
+        <x-doc::tr background="slate-100">
+            <x-doc::th>Code</x-doc::th>
+            <x-doc::th>Course</x-doc::th>
+            <x-doc::th>Term</x-doc::th>
+            <x-doc::th align="right">Credits</x-doc::th>
+            <x-doc::th align="right">Grade</x-doc::th>
+        </x-doc::tr>
+    </x-doc::thead>
+    @foreach ($courses as [$code, $title, $term, $cr, $grade])
+        <x-doc::tr border-width="0 0 0.5pt 0" border-color="slate-200">
+            <x-doc::td><x-doc::text color="slate-500">{{ $code }}</x-doc::text></x-doc::td>
+            <x-doc::td>{{ $title }}</x-doc::td>
+            <x-doc::td><x-doc::text color="slate-600">{{ $term }}</x-doc::text></x-doc::td>
+            <x-doc::td align="right">{{ $cr }}</x-doc::td>
+            <x-doc::td align="right"><x-doc::text bold>{{ $grade }}</x-doc::text></x-doc::td>
+        </x-doc::tr>
+    @endforeach
+</x-doc::table>
+```
+
+@tab PHP
+
+```php
+$table = Table::make()->columns('0.9in 1fr 1in 0.75in 0.75in')
+    ->headerRow(TableRow::make(
+        Text::make('Code')->bold(),
+        Text::make('Course')->bold(),
+        Text::make('Term')->bold(),
+        Text::make('Credits')->bold()->right(),
+        Text::make('Grade')->bold()->right(),
+    )->background('slate-100'));
+foreach ($courses as $c) {
+    $table = $table->bodyRow(TableRow::make(
+        Text::make($c[0])->color('slate-500'),
+        $c[1],
+        Text::make($c[2])->color('slate-600'),
+        Text::make((string) $c[3])->right(),
+        Text::make($c[4])->right()->bold(),
+    )->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0)))->borderColor('slate-200'));
+}
+```
+
+:::
+
+</div>
+<figure class="showcase-result">
+  <a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-2.png')" alt="Page 2 of the transcript PDF, with the table's header row repeated at the top"></a>
+  <figcaption>Page 2 of 3 · <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
+</figure>
+</div>
+
+The 60 courses run over three pages. The header row repeats at the top of each one, and no row is cut in half at a page break.
+
+::::: details Show the full source
+
+:::: tabs#lang
 
 @tab Blade
 
@@ -53,18 +117,11 @@ Papercut builds PDFs, Word files and HTML from Blade or plain PHP, with page bre
 
 `$courses`, `$credits`, `$points` and `$gpa` come from your own data.
 
-@[code{32-76} php](../../examples/core/documents/transcript.php)
+@[code{32-79} php](../../examples/core/documents/transcript.php)
 
-:::
+::::
 
-</div>
-<figure class="showcase-result">
-  <a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-1.png')" alt="Page 1 of the transcript PDF"></a>
-  <figcaption>Page 1 of 3 · <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
-</figure>
-</div>
-
-The 60 courses run over three pages. The header row repeats at the top of each one, and no row is cut in half at a page break.
+:::::
 
 A Laravel route sends it to the browser as a PDF or as a Word file:
 
