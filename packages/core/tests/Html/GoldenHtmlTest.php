@@ -22,7 +22,7 @@ final class GoldenHtmlTest extends TestCase
             $files = glob(__DIR__ . "/../$dir/*.php") ?: [];
             sort($files);
             foreach ($files as $file) {
-                // The certificate fills in a PDF template, which HTML leaves out, so there is nothing to pin.
+                // The certificate fills in a PDF template, and the template, the point of the example, is dropped from HTML.
                 if ($kind === 'examples' && basename($file, '.php') === 'certificate') {
                     continue;
                 }

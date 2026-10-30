@@ -43,19 +43,17 @@ final class ExamplesTest extends TestCase
     {
         $document = require dirname(__DIR__, 4) . '/examples/core/documents/article.php';
         self::assertInstanceOf(Document::class, $document);
-        $warnings = [];
-        $document->toPdf(new PdfOptions(strict: true, onWarning: function (string $message) use (&$warnings): void {
-            $warnings[] = $message;
-        }));
-        self::assertSame([], $warnings);
+        // Strict mode throws on anything it can't convert, so reaching the assertion means there were no warnings.
+        $bytes = $document->toPdf(new PdfOptions(strict: true))->bytes();
+        self::assertStringStartsWith('%PDF', $bytes);
     }
 
-    public function test_certificate_text_sits_on_the_template(): void
+    public function test_certificate_has_the_template_and_overlay_text(): void
     {
-        $root = dirname(__DIR__, 4);
-        exec(sprintf('cd %s && %s -d xdebug.mode=off examples/core/certificate.php 2>&1', escapeshellarg($root), escapeshellarg(PHP_BINARY)));
-        $text = PdfInspector::text((string) file_get_contents($root . '/examples/core/certificate.pdf'));
-        foreach (['C E R T I F I C A T E', 'of Completion', 'This certifies that', 'Priya Raman', 'Introduction to Beekeeping', 'DATE', 'SIGNATURE'] as $expected) {
+        $document = require dirname(__DIR__, 4) . '/examples/core/documents/certificate.php';
+        self::assertInstanceOf(Document::class, $document);
+        $text = PdfInspector::text($document->toPdf()->bytes());
+        foreach (['C E R T I F I C A T E', 'of Completion', 'This certifies that', 'Priya Raman', 'Introduction to Beekeeping', '12 March 2026', 'DATE', 'SIGNATURE'] as $expected) {
             self::assertStringContainsStringIgnoringCase($expected, $text);
         }
     }
@@ -79,6 +77,19 @@ final class ExamplesTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/\b(Calculus|Physics|Logic) [2-9]\b/', $text);
     }
 
+    /** Whether the trimmed lines of $excerpt appear as one contiguous run in the file at $path. */
+    private static function isRunOf(string $excerpt, string $path): bool
+    {
+        $lines = array_map('trim', explode("\n", rtrim($excerpt)));
+        $source = array_map('trim', explode("\n", (string) file_get_contents($path)));
+        for ($i = 0; $i + count($lines) <= count($source); $i++) {
+            if (array_slice($source, $i, count($lines)) === $lines) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The home page shows trimmed excerpts of the transcript; each must still be a run of lines in the real file. */
     public function test_home_page_excerpts_match_the_transcript_sources(): void
     {
@@ -87,13 +98,23 @@ final class ExamplesTest extends TestCase
         $files = ['blade' => '/examples/laravel/views/transcript.blade.php', 'php' => '/examples/core/documents/transcript.php'];
         foreach ($files as $lang => $file) {
             self::assertSame(1, preg_match('/^```' . $lang . '\n(.*?)^```$/ms', $home, $m), "no {$lang} excerpt on the home page");
-            $excerpt = array_map('trim', explode("\n", rtrim($m[1])));
-            $source = array_map('trim', explode("\n", (string) file_get_contents($root . $file)));
-            $found = false;
-            for ($i = 0; $i + count($excerpt) <= count($source) && !$found; $i++) {
-                $found = array_slice($source, $i, count($excerpt)) === $excerpt;
-            }
-            self::assertTrue($found, "the home page's {$lang} excerpt no longer matches {$file}");
+            self::assertTrue(self::isRunOf($m[1] ?? '', $root . $file), "the home page's {$lang} excerpt no longer matches {$file}");
+        }
+    }
+
+    /** The certificate section of the examples page shows both tabs; each must still be a run of lines in the real file. */
+    public function test_certificate_snippets_match_their_sources(): void
+    {
+        $root = dirname(__DIR__, 4);
+        $page = (string) file_get_contents($root . '/site/src/examples.md');
+        $start = strpos($page, '## The certificate example');
+        self::assertNotFalse($start, 'no certificate section on the examples page');
+        $end = strpos($page, "\n## ", $start + 1);
+        $section = substr($page, $start, $end === false ? null : $end - $start);
+        $files = ['blade' => '/examples/laravel/views/certificate.blade.php', 'php' => '/examples/core/documents/certificate.php'];
+        foreach ($files as $lang => $file) {
+            self::assertSame(1, preg_match('/^```' . $lang . '\n(.*?)^```$/ms', $section, $m), "no {$lang} snippet in the certificate section");
+            self::assertTrue(self::isRunOf($m[1] ?? '', $root . $file), "the certificate {$lang} snippet no longer matches {$file}");
         }
     }
 }

@@ -11,7 +11,7 @@ use Papercut\Value\Edges;
 
 use function Papercut\{mm, pt};
 
-// In an app this string comes from the database: whatever the editor (TipTap, CKEditor, Trix) saved.
+// In an app this string comes from the database: what CKEditor 5 saved (its output shape: tables in a figure, quotes with a paragraph, code with a language class).
 $html = <<<'HTML'
 <h2>Before you start</h2>
 <p>Two-factor sign-in asks for a six-digit code from your phone <em>after</em> your password. Even if someone learns your password, they can't open your account without that code. You need:</p>
@@ -44,7 +44,7 @@ plotline auth 2fa status</code></pre>
 
 <h2>Recovery codes</h2>
 <p>Each account gets ten single-use recovery codes. A recovery code works in place of the six-digit code, so keep them where you'd keep a spare key.</p>
-<blockquote>Treat recovery codes like passwords. Anyone who has one can sign in as you.</blockquote>
+<blockquote><p>Treat recovery codes like passwords. Anyone who has one can sign in as you.</p></blockquote>
 
 <h2>Require it for your workspace</h2>
 <p>Owners and Admins can make two-factor sign-in mandatory. Members who haven't set it up are asked to do so the next time they sign in, and they can't open any project until they have.</p>
@@ -53,17 +53,19 @@ plotline auth 2fa status</code></pre>
 
 <h2>If something goes wrong</h2>
 <p>Find what you see in the first column. If nothing here matches, write to <a href="mailto:help@example.com">help@example.com</a> and tell us which step failed.</p>
-<table>
-  <thead>
-    <tr><th>What you see</th><th>Likely cause</th><th>What to do</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>"That code didn't work"</td><td>The phone's clock is off, or the code expired</td><td>Turn on automatic time, then enter the next code</td></tr>
-    <tr><td>No QR code appears</td><td>The page was blocked from loading images</td><td>Use the setup key instead</td></tr>
-    <tr><td>You lost your phone</td><td>The authenticator app is gone</td><td>Sign in with a recovery code, then set up a new device</td></tr>
-    <tr><td>No codes left</td><td>All ten were used</td><td>Ask a workspace Owner to reset your two-factor sign-in</td></tr>
-  </tbody>
-</table>
+<figure class="table">
+  <table>
+    <thead>
+      <tr><th>What you see</th><th>Likely cause</th><th>What to do</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>"That code didn't work"</td><td>The phone's clock is off, or the code expired</td><td>Turn on automatic time, then enter the next code</td></tr>
+      <tr><td>No QR code appears</td><td>The page was blocked from loading images</td><td>Use the setup key instead</td></tr>
+      <tr><td>You lost your phone</td><td>The authenticator app is gone</td><td>Sign in with a recovery code, then set up a new device</td></tr>
+      <tr><td>No codes left</td><td>All ten were used</td><td>Ask a workspace Owner to reset your two-factor sign-in</td></tr>
+    </tbody>
+  </table>
+</figure>
 HTML;
 
 $header = Row::make(

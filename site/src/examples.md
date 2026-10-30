@@ -134,17 +134,17 @@ The guide turns one page sideways for a wide endpoint table. A document can hold
 @tab Blade
 
 ```blade
-<x-doc::document title="Parcelpost API integration guide">
+<x-doc::document title="Parcelpost API integration guide" author="Parcelpost">
     <x-doc::page size="letter" margin="0.75in">
-        {{-- Getting started --}}
+        {{-- header, getting started, footer --}}
     </x-doc::page>
 
     <x-doc::page size="letter" orientation="landscape" margin="0.75in">
-        {{-- The endpoint reference --}}
+        {{-- header, endpoint reference, footer --}}
     </x-doc::page>
 
     <x-doc::page size="letter" margin="0.75in">
-        {{-- Webhooks --}}
+        {{-- header, webhooks, footer --}}
     </x-doc::page>
 </x-doc::document>
 ```
@@ -156,7 +156,7 @@ return Document::make(
     Page::letter()->margin(in(0.75))->header($header('Integration guide'))->body($first)->footer($footer),
     Page::letter()->landscape()->margin(in(0.75))->header($header('Integration guide | Reference'))->body($second)->footer($footer),
     Page::letter()->margin(in(0.75))->header($header('Integration guide | Webhooks'))->body($third)->footer($footer),
-);
+)->title('Parcelpost API integration guide')->author('Parcelpost')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));
 ```
 
 :::
@@ -180,6 +180,9 @@ The design for a certificate usually comes from a designer, as a PDF. This examp
         <x-doc::place x="5.5in" y="6.03in" anchor="bottom">
             <x-doc::text size="22pt" bold color="indigo-600">{{ $course }}</x-doc::text>
         </x-doc::place>
+        <x-doc::place x="3.3in" y="6.91in" anchor="bottom">
+            <x-doc::text size="13pt" color="slate-900">{{ $date }}</x-doc::text>
+        </x-doc::place>
         <x-doc::place x="7.4in" y="7.02in" anchor="bottom">
             <x-doc::svg src="signature.svg" width="2.2in" />
         </x-doc::place>
@@ -191,15 +194,16 @@ The design for a certificate usually comes from a designer, as a PDF. This examp
 
 ```php
 Page::template(PdfPage::file($assets . '/certificate-template.pdf'))->overlay(
-    Place::at(in(5.5), in(4.15), Text::make($name)->size(pt(34))->bold())->anchor(Anchor::Bottom),
-    Place::at(in(5.5), in(6.03), Text::make($course)->size(pt(22))->bold())->anchor(Anchor::Bottom),
+    Place::at(in(5.5), in(4.15), Text::make($name)->size(pt(34))->bold()->color('slate-900'))->anchor(Anchor::Bottom),
+    Place::at(in(5.5), in(6.03), Text::make($course)->size(pt(22))->bold()->color('indigo-600'))->anchor(Anchor::Bottom),
+    Place::at(in(3.3), in(6.91), Text::make($date)->size(pt(13))->color('slate-900'))->anchor(Anchor::Bottom),
     Place::at(in(7.4), in(7.02), Svg::file($assets . '/signature.svg')->width(in(2.2)))->anchor(Anchor::Bottom),
-)
+),
 ```
 
 :::
 
-The template is drawn as vector content, not as a picture of the page. Its text and borders stay sharp at any zoom, and the name stays selectable text. Each place sits on the bottom edge of its content (`anchor="bottom"`), so the name rests on its line whatever its length. The name and course are centred on the page because `x` is the middle of the content when the anchor is `bottom`.
+The template is drawn as vector content, not as a picture of the page. Its text and borders stay sharp at any zoom, and the name stays selectable text. With `anchor="bottom"` (`Anchor::Bottom` in PHP), the bottom edge of each piece of content sits at its point, so the name rests on its line whatever its length. The name and course are centred on the page because `x` is the middle of the content when the anchor is `bottom`.
 
 Overlay positions ignore the page margins. They are measured from the top-left corner of the sheet, so the numbers match what you'd read off the design. In Blade, a relative `template` or `src` is resolved inside `papercut.image_path`; the example points that at `examples/assets`, where the template and `signature.svg` live. `examples/core/certificate-template.php` draws the blank template with Papercut so that it can be rebuilt, but any PDF from a design tool works the same way.
 
@@ -207,7 +211,7 @@ Word and HTML exports leave page templates out, so this example is PDF only. See
 
 ## The knowledge base article example
 
-Help articles are usually written in a rich text editor such as TipTap, CKEditor or Trix, and saved as HTML. The article is that HTML in one string. Papercut converts it with no browser involved, and the page around it adds a header and a page-number footer:
+Help articles are usually written in a rich text editor such as CKEditor 5, and saved as HTML. The article is that HTML in one string. Papercut converts it with no browser involved, and the page around it adds a header and a page-number footer:
 
 ::: tabs#lang
 

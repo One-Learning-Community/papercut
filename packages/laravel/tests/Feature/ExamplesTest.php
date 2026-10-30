@@ -135,11 +135,9 @@ final class ExamplesTest extends TestCase
 
     public function testArticleConvertsWithoutWarnings(): void
     {
-        $warnings = [];
-        Papercut::view('article', self::data('article'))->document()->toPdf(new PdfOptions(strict: true, onWarning: function (string $message) use (&$warnings): void {
-            $warnings[] = $message;
-        }));
-        self::assertSame([], $warnings);
+        // Strict mode throws on anything it can't convert, so reaching the assertion means there were no warnings.
+        $bytes = Papercut::view('article', self::data('article'))->document()->toPdf(new PdfOptions(strict: true))->bytes();
+        self::assertStringStartsWith('%PDF', $bytes);
     }
 
     public function testReport(): void

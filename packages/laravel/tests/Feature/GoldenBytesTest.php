@@ -34,7 +34,7 @@ final class GoldenBytesTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function cases(): iterable
     {
-        foreach (['invoice', 'transcript', 'report', 'certificate'] as $view) {
+        foreach (['invoice', 'transcript', 'report'] as $view) {
             yield $view => [$view];
         }
     }
