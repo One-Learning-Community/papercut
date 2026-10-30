@@ -22,6 +22,29 @@ The repository includes four example documents, each written twice: once as a Bl
 [res-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php
 [res-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php
 
+## What they look like
+
+Each card shows the PDF. Download the Word file too, and open it in Word, LibreOffice or Google Docs to see the same document as editable text.
+
+<div class="example-gallery">
+  <figure class="example-card">
+    <div class="example-pages"><a :href="$withBase('/examples/invoice.pdf')"><img :src="$withBase('/examples/invoice-1.png')" alt="Invoice, page 1" loading="lazy"></a></div>
+    <figcaption><strong>Invoice</strong> <a :href="$withBase('/examples/invoice.pdf')">PDF</a> · <a :href="$withBase('/examples/invoice.docx')" download>Word</a></figcaption>
+  </figure>
+  <figure class="example-card two-pages">
+    <div class="example-pages"><a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-1.png')" alt="Transcript, page 1" loading="lazy"></a><a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-2.png')" alt="Transcript, page 2" loading="lazy"></a></div>
+    <figcaption><strong>Transcript</strong> <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
+  </figure>
+  <figure class="example-card two-pages">
+    <div class="example-pages"><a :href="$withBase('/examples/report.pdf')"><img :src="$withBase('/examples/report-1.png')" alt="Report, page 1" loading="lazy"></a><a :href="$withBase('/examples/report.pdf')"><img :src="$withBase('/examples/report-2.png')" alt="Report, page 2" loading="lazy"></a></div>
+    <figcaption><strong>Report</strong> <a :href="$withBase('/examples/report.pdf')">PDF</a> · <a :href="$withBase('/examples/report.docx')" download>Word</a></figcaption>
+  </figure>
+  <figure class="example-card">
+    <div class="example-pages"><a :href="$withBase('/examples/responses.pdf')"><img :src="$withBase('/examples/responses-1.png')" alt="Form responses, page 1" loading="lazy"></a></div>
+    <figcaption><strong>Form responses</strong> <a :href="$withBase('/examples/responses.pdf')">PDF</a> · <a :href="$withBase('/examples/responses.docx')" download>Word</a></figcaption>
+  </figure>
+</div>
+
 ## Running them
 
 From a checkout, install the dependencies for the package you want to try, then run the scripts from the repository root.

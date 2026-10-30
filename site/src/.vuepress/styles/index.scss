@@ -21,3 +21,58 @@
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
+
+// Examples page: a thumbnail card per example document.
+.example-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+// Every page thumbnail gets one column, so a two-page example spans two.
+.example-card.two-pages {
+  grid-column: span 2;
+}
+
+@media (max-width: 719px) {
+  .example-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .example-card.two-pages {
+    grid-column: auto;
+  }
+}
+
+.example-card {
+  margin: 0;
+}
+
+.example-pages {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.example-pages a {
+  flex: 1;
+  min-width: 0;
+}
+
+.example-pages img {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+
+.example-card figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.example-card figcaption strong {
+  margin-right: 0.5rem;
+}
