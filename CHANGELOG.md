@@ -5,6 +5,14 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- A `guide` example (`examples/core/documents/guide.php` and `examples/laravel/views/guide.blade.php`): a three-page API integration guide on US Letter, portrait then landscape then portrait, with syntax-highlighted code blocks, badges in a table, a QR code and a go-live checklist.
+
+### Changed
+
+- The invoice and transcript examples use US Letter and inches instead of A4 and millimetres, so the examples show both (the report and form responses stay on A4). The transcript now runs to three pages.
+
 ## [0.5.0] - 2026-10-29
 
 ### Added

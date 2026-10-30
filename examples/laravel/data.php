@@ -67,6 +67,67 @@ $responseItems = [
     ['type' => 'quote', 'text' => 'I came for the PDFs and stayed for the pagination.', 'cite' => 'Jane Smith, closing round'],
 ];
 
+// --- guide -----------------------------------------------------------------
+$guideEndpoints = [
+    ['GET', '/v2/shipments', 'List shipments, newest first. Filter by status or date.', 'Key', '600 / min'],
+    ['POST', '/v2/shipments', 'Create a shipment and buy its label.', 'Key', '120 / min'],
+    ['GET', '/v2/shipments/{id}', 'Fetch one shipment with its current status.', 'Key', '600 / min'],
+    ['DELETE', '/v2/shipments/{id}', 'Cancel a shipment that has not been collected.', 'Key', '60 / min'],
+    ['GET', '/v2/shipments/{id}/label', 'Download the label as a PDF or PNG.', 'Key', '300 / min'],
+    ['POST', '/v2/pickups', 'Book a courier collection for a date and time window.', 'Key', '30 / min'],
+    ['GET', '/v2/tracking/{code}', 'Read the tracking events for a parcel.', 'Public', '60 / min'],
+    ['POST', '/v2/webhooks', 'Register an endpoint to receive shipment events.', 'Admin key', '10 / min'],
+];
+
+$guideMethodTones = ['GET' => 'tip', 'POST' => 'note', 'DELETE' => 'danger'];
+
+$guideErrors = [
+    ['400', 'invalid_request', 'A field is missing or malformed.', 'Read the field list in the response and resend.'],
+    ['401', 'invalid_key', 'The key is wrong or revoked.', 'Check that a test key is not used in live mode.'],
+    ['404', 'not_found', 'The shipment or pickup does not exist.', 'Check the id; cancelled shipments stay readable.'],
+    ['429', 'rate_limited', 'Too many requests in the current minute.', 'Wait for the Retry-After header, then retry.'],
+];
+
+$guideSteps = [
+    'Create an account and open the Developers page.',
+    'Copy your test key. It starts with pk_test_ and works only in the sandbox.',
+    'Send the request below with your key in the Authorization header.',
+    'Store the returned id and poll the tracking endpoint, or register a webhook.',
+];
+
+$guideHeaders = [
+    ['Parcelpost-Event', 'shipment.delivered'],
+    ['Parcelpost-Delivery', 'dlv_8f2c91'],
+    ['Parcelpost-Timestamp', '1772452800'],
+    ['Parcelpost-Signature', 'sha256=9b1c...e04f'],
+    ['Content-Type', 'application/json'],
+];
+
+$guideChecklist = [
+    ['Switch from the test key to a live key', true],
+    ['Store the key in server-side configuration, not in code', true],
+    ['Verify the signature on every webhook', true],
+    ['Return a 2xx within five seconds and do the work afterwards', false],
+    ['Handle 429 responses by waiting for Retry-After', false],
+    ['Send a test shipment and cancel it', false],
+];
+
+$guideVerify = <<<'CODE'
+<?php
+
+$secret    = getenv('PARCELPOST_WEBHOOK_SECRET');
+$timestamp = $_SERVER['HTTP_PARCELPOST_TIMESTAMP'] ?? '';
+$signature = $_SERVER['HTTP_PARCELPOST_SIGNATURE'] ?? '';
+$payload   = file_get_contents('php://input');
+
+$expected = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $payload, $secret);
+
+if (!hash_equals($expected, $signature) || abs(time() - (int) $timestamp) > 300) {
+    http_response_code(400);
+    exit;
+}
+CODE;
+
 return [
     'invoice' => [
         'items' => $items,
@@ -95,5 +156,14 @@ return [
         'submitted' => '2026-03-02 14:30',
         'course' => 'Papercut workshop, spring cohort',
         'items' => $responseItems,
+    ],
+    'guide' => [
+        'endpoints' => $guideEndpoints,
+        'methodTones' => $guideMethodTones,
+        'errors' => $guideErrors,
+        'steps' => $guideSteps,
+        'headers' => $guideHeaders,
+        'checklist' => $guideChecklist,
+        'verify' => $guideVerify,
     ],
 ];

@@ -60,11 +60,11 @@ Papercut builds PDFs, Word files and HTML from Blade or plain PHP, with page bre
 </div>
 <figure class="showcase-result">
   <a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-1.png')" alt="Page 1 of the transcript PDF"></a>
-  <figcaption>Page 1 of 2 · <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
+  <figcaption>Page 1 of 3 · <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
 </figure>
 </div>
 
-The 60 courses run onto a second page. The header row repeats at the top of it, no row is cut in half, and the summary box moves over whole with its heading.
+The 60 courses run over three pages. The header row repeats at the top of each one, and no row is cut in half at a page break.
 
 A Laravel route sends it to the browser as a PDF or as a Word file:
 

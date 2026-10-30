@@ -4,7 +4,7 @@ sidebar: false
 
 # Examples
 
-The repository includes four example documents, each written twice: once as a Blade view and once in plain PHP. Comparing the two versions is a good way to see how Blade tags map to the PHP API.
+The repository includes five example documents, each written twice: once as a Blade view and once in plain PHP. Comparing the two versions is a good way to see how Blade tags map to the PHP API. The invoice, transcript and integration guide use US Letter and inches; the report and form responses use A4 and millimetres.
 
 | Document | What it shows | Blade | PHP |
 |---|---|---|---|
@@ -12,6 +12,7 @@ The repository includes four example documents, each written twice: once as a Bl
 | Transcript | a sixty-row table across pages with its header repeated, keep-together blocks | [transcript.blade.php][tr-b] | [transcript.php][tr-p] |
 | Report | justified prose, stat cards from an app component, an eighty-row table, a forced page break | [report.blade.php][rep-b] | [report.php][rep-p] |
 | Form responses | eight of the nine [decorators](/guide/decorators.md): a card of details, a callout, numbered sections, fields, choice lists, rated statements with badges, a blockquote | [responses.blade.php][res-b] | [responses.php][res-p] |
+| Integration guide | portrait, landscape and portrait pages in one document, highlighted code blocks, method badges, a QR code, a checklist | [guide.blade.php][gd-b] | [guide.php][gd-p] |
 
 [inv-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/invoice.blade.php
 [inv-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/invoice.php
@@ -19,6 +20,8 @@ The repository includes four example documents, each written twice: once as a Bl
 [tr-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/transcript.php
 [rep-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/report.blade.php
 [rep-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/report.php
+[gd-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/guide.blade.php
+[gd-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/guide.php
 [res-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php
 [res-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php
 
@@ -33,7 +36,7 @@ Each card shows the PDF. Download the Word file too, and open it in Word, LibreO
   </figure>
   <figure class="example-card two-pages">
     <div class="example-pages"><a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-1.png')" alt="Transcript, page 1" loading="lazy"></a><a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-2.png')" alt="Transcript, page 2" loading="lazy"></a></div>
-    <figcaption><strong>Transcript</strong> <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
+    <figcaption><strong>Transcript</strong> (pages 1–2 of 3) <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
   </figure>
   <figure class="example-card two-pages">
     <div class="example-pages"><a :href="$withBase('/examples/report.pdf')"><img :src="$withBase('/examples/report-1.png')" alt="Report, page 1" loading="lazy"></a><a :href="$withBase('/examples/report.pdf')"><img :src="$withBase('/examples/report-2.png')" alt="Report, page 2" loading="lazy"></a></div>
@@ -42,6 +45,10 @@ Each card shows the PDF. Download the Word file too, and open it in Word, LibreO
   <figure class="example-card">
     <div class="example-pages"><a :href="$withBase('/examples/responses.pdf')"><img :src="$withBase('/examples/responses-1.png')" alt="Form responses, page 1" loading="lazy"></a></div>
     <figcaption><strong>Form responses</strong> <a :href="$withBase('/examples/responses.pdf')">PDF</a> · <a :href="$withBase('/examples/responses.docx')" download>Word</a></figcaption>
+  </figure>
+  <figure class="example-card three-pages">
+    <div class="example-pages"><a :href="$withBase('/examples/guide.pdf')"><img :src="$withBase('/examples/guide-1.png')" alt="Integration guide, page 1" loading="lazy"></a><a class="landscape" :href="$withBase('/examples/guide.pdf')"><img :src="$withBase('/examples/guide-2.png')" alt="Integration guide, page 2, landscape" loading="lazy"></a><a :href="$withBase('/examples/guide.pdf')"><img :src="$withBase('/examples/guide-3.png')" alt="Integration guide, page 3" loading="lazy"></a></div>
+    <figcaption><strong>Integration guide</strong> <a :href="$withBase('/examples/guide.pdf')">PDF</a> · <a :href="$withBase('/examples/guide.docx')" download>Word</a></figcaption>
   </figure>
 </div>
 
@@ -56,6 +63,7 @@ php examples/core/invoice.php
 php examples/core/transcript.php
 php examples/core/report.php
 php examples/core/responses.php
+php examples/core/guide.php
 
 # The same documents as HTML: writes examples/html/<name>.html
 php examples/html/render.php

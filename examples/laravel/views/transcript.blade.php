@@ -1,5 +1,5 @@
 <x-doc::document title="Official Transcript" author="Papercut">
-    <x-doc::page size="a4" margin="20mm">
+    <x-doc::page size="letter" margin="0.75in">
         <x-slot:header>
             <x-doc::row>
                 <x-doc::text size="16pt" bold color="indigo-600">Official Transcript</x-doc::text>
@@ -24,7 +24,7 @@
 
             <x-doc::h2>Course history</x-doc::h2>
 
-            <x-doc::table columns="22mm 1fr 24mm 18mm 18mm">
+            <x-doc::table columns="0.9in 1fr 1in 0.75in 0.75in">
                 <x-doc::thead>
                     <x-doc::tr background="slate-100">
                         <x-doc::th>Code</x-doc::th>

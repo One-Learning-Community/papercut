@@ -6,7 +6,7 @@ declare(strict_types=1);
 use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, Text};
 use Papercut\Value\Edges;
 
-use function Papercut\{mm, pt};
+use function Papercut\{in, pt};
 
 $subjects = ['Calculus', 'Linear Algebra', 'Data Structures', 'Algorithms', 'Physics', 'Statistics', 'Databases', 'Compilers', 'Networks', 'Ethics', 'Logic', 'Numerical Methods'];
 $levels = ['Introduction to', 'Applied', 'Topics in', 'Advanced', 'Seminar in'];
@@ -41,7 +41,7 @@ $card = Column::make(
         ->gap(pt(8))->margin(Edges::of(pt(8), pt(0), pt(0), pt(0))),
 )->gap(pt(3))->padding(pt(12))->background('slate-50')->radius(pt(8))->keepTogether();
 
-$table = Table::make()->columns('22mm 1fr 24mm 18mm 18mm')
+$table = Table::make()->columns('0.9in 1fr 1in 0.75in 0.75in')
     ->headerRow(TableRow::make(
         Text::make('Code')->bold(),
         Text::make('Course')->bold(),
@@ -65,7 +65,7 @@ $summary = Row::make(
 )->padding(pt(12))->background('slate-50')->radius(pt(8))->keepTogether();
 
 $document = Document::make(
-    Page::a4()->margin(mm(20))
+    Page::letter()->margin(in(0.75))
         ->header(Row::make(
             Text::make('Official Transcript')->bold()->size(pt(16))->color('indigo-600'),
             Spacer::flex(),

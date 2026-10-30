@@ -35,12 +35,17 @@
   grid-column: span 2;
 }
 
+.example-card.three-pages {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 719px) {
   .example-gallery {
     grid-template-columns: 1fr;
   }
 
-  .example-card.two-pages {
+  .example-card.two-pages,
+  .example-card.three-pages {
     grid-column: auto;
   }
 }
@@ -57,6 +62,11 @@
 .example-pages a {
   flex: 1;
   min-width: 0;
+}
+
+// A landscape page is 11/8.5 as wide as a portrait one beside it, at the same height.
+.example-pages a.landscape {
+  flex: 1.294;
 }
 
 .example-pages img {

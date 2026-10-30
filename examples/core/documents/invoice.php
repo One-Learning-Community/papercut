@@ -7,7 +7,7 @@ use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, 
 use Papercut\Style\Justify;
 use Papercut\Value\Edges;
 
-use function Papercut\{mm, pt};
+use function Papercut\{in, pt};
 
 $items = [
     ['Layout engine consulting', 'Flexbox-style design review and API workshop', 12, 140.00],
@@ -58,7 +58,7 @@ $billTo = Row::make(
 )->gap(pt(16))->padding(pt(12))->background('slate-50')->radius(pt(6));
 
 $table = Table::make()
-    ->columns('1fr 20mm 25mm 25mm')
+    ->columns('1fr 0.8in 1in 1in')
     ->headerRow(TableRow::make(
         Text::make('Description')->bold()->size(pt(9)),
         Text::make('Hours')->bold()->size(pt(9))->right(),
@@ -88,11 +88,11 @@ $totals = Row::make(
         $totalRow('Total due', $money($total), true)->margin(Edges::of(pt(4), pt(0), pt(0), pt(0)))
             ->padding(Edges::of(pt(6), pt(0), pt(0), pt(0)))
             ->borderWidth(Edges::of(pt(1), pt(0), pt(0), pt(0)))->borderColor('slate-900'),
-    )->gap(pt(4))->width(mm(70)),
+    )->gap(pt(4))->width(in(2.75)),
 );
 
 $document = Document::make(
-    Page::a4()->margin(mm(20))
+    Page::letter()->margin(in(0.75))
         ->body(Column::make($letterhead, $billTo, $table, $totals)->gap(pt(20)))
         ->footer(
             Column::make(

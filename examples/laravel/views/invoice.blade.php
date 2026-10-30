@@ -1,5 +1,5 @@
 <x-doc::document title="Invoice INV-2026-0142" author="Northwind Studio">
-    <x-doc::page size="a4" margin="20mm">
+    <x-doc::page size="letter" margin="0.75in">
         <x-doc::column gap="20pt">
             {{-- Letterhead --}}
             <x-doc::row padding="0 0 14pt 0" border-width="0 0 1.5pt 0" border-color="indigo-600">
@@ -35,7 +35,7 @@
             </x-doc::row>
 
             {{-- Line items --}}
-            <x-doc::table columns="1fr 20mm 25mm 25mm">
+            <x-doc::table columns="1fr 0.8in 1in 1in">
                 <x-doc::thead>
                     <x-doc::tr background="slate-100">
                         <x-doc::th font-size="9pt">Description</x-doc::th>
@@ -52,7 +52,7 @@
             {{-- Totals --}}
             <x-doc::row>
                 <x-doc::spacer />
-                <x-doc::column gap="4pt" width="70mm">
+                <x-doc::column gap="4pt" width="2.75in">
                     <x-doc::row>
                         <x-doc::text color="slate-600">Subtotal</x-doc::text>
                         <x-doc::spacer />

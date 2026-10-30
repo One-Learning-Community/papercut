@@ -107,6 +107,7 @@ Both are pure PHP and MIT licensed. If Papercut is useful to you, they deserve a
 | Invoice | [`examples/laravel/views/invoice.blade.php`](examples/laravel/views/invoice.blade.php) | [`examples/core/invoice.php`](examples/core/invoice.php) |
 | Transcript | [`examples/laravel/views/transcript.blade.php`](examples/laravel/views/transcript.blade.php) | [`examples/core/transcript.php`](examples/core/transcript.php) |
 | Report | [`examples/laravel/views/report.blade.php`](examples/laravel/views/report.blade.php) | [`examples/core/report.php`](examples/core/report.php) |
+| Integration guide (mixed orientation, code blocks) | [`examples/laravel/views/guide.blade.php`](examples/laravel/views/guide.blade.php) | [`examples/core/documents/guide.php`](examples/core/documents/guide.php) |
 | Form responses (decorators) | [`examples/laravel/views/responses.blade.php`](examples/laravel/views/responses.blade.php) | [`examples/core/documents/responses.php`](examples/core/documents/responses.php) |
 
 Render the Blade examples with `php examples/laravel/render.php` (after `cd packages/laravel && composer install`).

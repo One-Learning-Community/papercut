@@ -14,7 +14,7 @@ $load = static function (string $name): Document {
     return require __DIR__ . '/../core/documents/' . $name . '.php';
 };
 
-foreach (['invoice', 'transcript', 'report', 'responses'] as $name) {
+foreach (['invoice', 'transcript', 'report', 'responses', 'guide'] as $name) {
     $load($name)->export(new DocxExporter())->save(__DIR__ . '/' . $name . '.docx');
     echo 'Wrote examples/docx/' . $name . ".docx\n";
 }
