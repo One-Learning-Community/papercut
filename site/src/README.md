@@ -36,41 +36,46 @@ features:
 footer: MIT licensed. PDFs are written by php-pdf and Word files by php-docx, both by Denis Skripchenko. Inter and Cousine are bundled under the SIL Open Font License.
 ---
 
-Papercut builds PDFs, Word files and HTML from Blade or plain PHP, with page breaks that just work. Here's a transcript as a Blade view:
+Papercut builds PDFs, Word files and HTML from Blade or plain PHP, with page breaks that just work.
 
-```blade
-<x-doc::document title="Transcript">
-  <x-doc::page size="a4" margin="20mm">
-    <x-doc::h1>{{ $student }}</x-doc::h1>
-    <x-doc::table columns="3fr 25mm 20mm">
-      <x-doc::thead>
-        <x-doc::th>Course</x-doc::th><x-doc::th>Credits</x-doc::th><x-doc::th>Grade</x-doc::th>
-      </x-doc::thead>
-      @foreach ($courses as $c)
-        <x-doc::tr>
-          <x-doc::td>{{ $c->title }}</x-doc::td>
-          <x-doc::td>{{ $c->credits }}</x-doc::td>
-          <x-doc::td align="right">{{ $c->grade }}</x-doc::td>
-        </x-doc::tr>
-      @endforeach
-    </x-doc::table>
-    <x-slot:footer>
-      <x-doc::page-number format="Page {page} of {total}" align="center" />
-    </x-slot:footer>
-  </x-doc::page>
-</x-doc::document>
-```
+## This code makes this PDF
 
-And a route that sends it to the browser, as a PDF or as a Word file:
+<div class="showcase">
+<div class="showcase-code">
+
+::: tabs#lang
+
+@tab Blade
+
+@[code blade](../../examples/laravel/views/transcript.blade.php)
+
+@tab PHP
+
+`$courses`, `$credits`, `$points` and `$gpa` come from your own data.
+
+@[code{32-76} php](../../examples/core/documents/transcript.php)
+
+:::
+
+</div>
+<figure class="showcase-result">
+  <a :href="$withBase('/examples/transcript.pdf')"><img :src="$withBase('/examples/transcript-1.png')" alt="Page 1 of the transcript PDF"></a>
+  <figcaption>Page 1 of 2 · <a :href="$withBase('/examples/transcript.pdf')">PDF</a> · <a :href="$withBase('/examples/transcript.docx')" download>Word</a></figcaption>
+</figure>
+</div>
+
+The 60 courses run onto a second page. The header row repeats at the top of it, no row is cut in half, and the summary box moves over whole with its heading.
+
+A Laravel route sends it to the browser as a PDF or as a Word file:
 
 ```php
-$transcript = Papercut::view('pdf.transcript', compact('student', 'courses'));
+$transcript = Papercut::view('transcript', compact('student', 'courses', 'credits', 'points', 'gpa'));
 
 return $transcript->pdf()->download('transcript.pdf');
 // or, with papercut/docx installed: $transcript->docx()->download('transcript.docx');
 ```
 
-If the course list runs to ten pages, the header row repeats at the top of each one and no row gets cut in half at a page break.
+Without Laravel, `$document->toPdf()->save('transcript.pdf')` writes the PHP version to a file, and `->stream()` sends it to the browser. See [more examples](/examples.md).
 
 ## Built on php-pdf and php-docx
 
