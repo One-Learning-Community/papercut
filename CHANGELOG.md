@@ -7,6 +7,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A Gallery page in the docs: a render of every built-in component, with its layout variants and a link to its docs. `php site/gallery/render.php` rebuilds the images.
 - Three decorators. `Stat` / `<x-doc::stat>`: a label, a large value and an optional note on a tinted panel. `Totals` / `<x-doc::totals>`: label and amount rows with the amounts right-aligned and `total()` / `<x-doc::kv total>` rows emphasised, 45% wide at the right by default, and it doesn't shrink beside a growing paragraph. `Signature` / `<x-doc::signature>`: a line to sign on, holding an image, a typed name or nothing, with an optional name, role and date under it. Styled by the new `stat.*`, `totals.*` and `signature.*` named styles.
 - Built-in variants: `field` `line` (a form line), `badge` `outline` (a border in the tone's colour), `card` `flat` (a tinted panel with no border) and `section` `large` (a bigger heading). Each `badge.<tone>` style gains a `-300` border colour, which shows only when a border is drawn.
 - `KeyValuePair` takes a third argument, `total`; `KeyValueList` rejects total rows, and in Blade `<x-doc::kv total>` is only allowed inside `<x-doc::totals>`.

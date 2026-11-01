@@ -81,6 +81,8 @@ php examples/laravel/render.php      # needs `composer install` in packages/lara
 
 They write PDFs next to the scripts (git-ignored). `tests/Feature/ExamplesTest.php` runs the core examples.
 
+The docs gallery's images come from the small documents in `site/gallery/sources/`, listed in `site/gallery/gallery.json`. After changing how a component looks, rebuild them with `php site/gallery/render.php` (or `php site/gallery/render.php card.flat` for one) and look at every changed PNG before committing. `tests/Feature/GalleryTest.php` checks that every source renders and that the manifest, sources and images match.
+
 ## Style
 
 - `declare(strict_types=1)` everywhere; types on every signature; components are immutable (methods return copies).
