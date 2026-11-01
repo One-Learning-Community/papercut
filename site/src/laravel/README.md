@@ -32,6 +32,47 @@ Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pd
 | `->document()` | the core `Document` the view built |
 | `Papercut::make($document)` | a `PendingDocument` for a document built in PHP |
 
+## Attaching to mail
+
+A `PendingOutput` can go straight into a mailable or notification. The document renders when it is attached, once, and the attachment is named `document.pdf`, `document.docx` or `document.html` with the right MIME type. In a mailable, build it in `attachments()` from data the mailable can serialize:
+
+```php
+public function attachments(): array
+{
+    return [Papercut::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()];
+}
+```
+
+In a notification, attach it in `toMail()`:
+
+```php
+return (new MailMessage)
+    ->subject('Your invoice')
+    ->attach(Papercut::view('pdf.invoice', ['invoice' => $invoice])->pdf());
+```
+
+Build the document inside `attachments()` or `toMail()`, and don't store a `PendingOutput` on a queued mailable: it holds a closure, which can't be serialized.
+
+`attachment()` takes a name of your own, cleaned the way `download()` cleans it, and returns an `Illuminate\Mail\Attachment` you can chain on. Naming it does not render the document.
+
+```php
+return [Papercut::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()->attachment('invoice-142.pdf')];
+```
+
+`->html()` attaches the full page.
+
+## Macros
+
+`PapercutManager`, `PendingDocument`, `PendingOutput` and `PendingHtml` use Laravel's `Macroable`, so you can add shortcuts of your own. Inside the closure, `$this` is the object:
+
+```php
+use Papercut\Laravel\PendingOutput;
+
+PendingOutput::macro('toArchive', fn (string $path) => $this->store($path, 'archive'));
+
+Papercut::view('pdf.invoice', $data)->pdf()->toArchive('invoices/142.pdf');
+```
+
 ## Your own components
 
 Your own Blade components can wrap `<x-doc::*>` tags. They're a good place to keep pieces you use in lots of documents, like a branded header or a stat card.

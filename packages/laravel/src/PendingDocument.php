@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel;
 
+use Illuminate\Support\Traits\Macroable;
 use Papercut\Document;
 use Papercut\Export\Encryption;
 
 /** A resolved document waiting to be exported; each format method returns a {@see PendingOutput}. */
 final class PendingDocument
 {
+    use Macroable;
+
     private ?PendingOutput $pdf = null;
     private ?PendingHtml $html = null;
     private ?PendingOutput $docx = null;
@@ -39,6 +42,9 @@ final class PendingDocument
     {
         return $this->pdf ??= new PendingOutput(
             fn (): \Papercut\Export\Output => $this->document->toPdf($this->manager->pdfOptions()->withEncryption($this->encryption)),
+            'document',
+            'pdf',
+            'application/pdf',
         );
     }
 
@@ -47,6 +53,9 @@ final class PendingDocument
     {
         return $this->docx ??= new PendingOutput(
             fn (): \Papercut\Export\Output => $this->document->export($this->manager->docxExporter(), $this->manager->exportOptions()),
+            'document',
+            'docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         );
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel;
 
+use Illuminate\Support\Traits\Macroable;
 use Papercut\Code\{CodeHighlighting, CodeTheme, PhikiHighlighter};
 use Papercut\Document;
 use Papercut\Exception\{InvalidValue, MissingExporter, UnknownAttribute};
@@ -21,6 +22,8 @@ use Papercut\Value\Color;
 /** Not final only so tests can stand in a missing exporter; see docxExporterClass(). */
 class PapercutManager
 {
+    use Macroable;
+
     private ?ExportOptions $export = null;
     private ?PdfOptions $pdf = null;
     private ?HtmlOptions $html = null;
