@@ -5,6 +5,7 @@ declare(strict_types=1);
 // Renders the docs gallery images. Run from the repository root:
 //   php site/gallery/render.php            every image
 //   php site/gallery/render.php card.flat  one image
+// Options, before the id: --manifest=<gallery.json> and --out=<directory> (default: the site's public gallery folder).
 // Needs pdftoppm (poppler) and the GD extension, and `composer install` in packages/core.
 
 require __DIR__ . '/../../packages/core/vendor/autoload.php';
@@ -20,6 +21,12 @@ $options = getopt('', ['manifest:', 'out:'], $rest);
 $manifest = is_string($options['manifest'] ?? null) ? $options['manifest'] : __DIR__ . '/gallery.json';
 $out = is_string($options['out'] ?? null) ? $options['out'] : null;
 $only = $argv[$rest] ?? null;
+foreach (array_slice($argv, $rest + 1) as $extra) {
+    // getopt() stops at the first plain argument, so an option after the id would be dropped and the image
+    // written to the site instead of where it was asked to go.
+    fwrite(STDERR, "gallery: unexpected argument $extra; options go before the image id\n");
+    exit(1);
+}
 
 $entries = Gallery::load($manifest)->entries($out);
 if ($only !== null) {

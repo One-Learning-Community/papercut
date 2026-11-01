@@ -217,6 +217,12 @@
   text-decoration: none;
 }
 
+// Drawn inside the thumb: the tile clips anything outside it.
+.gallery-thumb:focus-visible {
+  outline: 2px solid var(--vp-c-accent-bg);
+  outline-offset: -3px;
+}
+
 .gallery-badge {
   position: absolute;
   top: 0.5rem;
@@ -257,6 +263,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  overflow: auto;
   background: rgba(9, 9, 11, 0.88);
 }
 
@@ -281,7 +288,8 @@
   display: block;
   min-width: 0;
   max-width: min(92vw - 6rem, 1100px);
-  max-height: 80vh;
+  // Room for the close button and caption above and below, so they stay on screen.
+  max-height: calc(100vh - 9rem);
   margin: 0 auto;
   background: #fff;
   border-radius: 4px;
@@ -350,12 +358,19 @@
   background: #fafafa;
 }
 
+// On a phone the step buttons shrink but stay: a screen reader can't swipe through the slides.
 @media (max-width: 599px) {
+  .gallery-stage {
+    gap: 0.35rem;
+  }
+
   .gallery-step {
-    display: none;
+    width: 1.9rem;
+    height: 1.9rem;
+    font-size: 1.2rem;
   }
 
   .gallery-stage img {
-    max-width: calc(100vw - 2rem);
+    max-width: calc(100vw - 6rem);
   }
 }

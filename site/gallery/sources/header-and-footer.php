@@ -18,11 +18,18 @@ return Document::make(
         )->justify(Justify::SpaceBetween)->padding(Edges::of(pt(0), pt(0), pt(4), pt(0)))->borderWidth(Edges::of(pt(0), pt(0), pt(0.75), pt(0)))->borderColor('slate-200'))
         ->footer(Row::make(
             Text::make('northwind.example')->size(pt(8))->color('slate-500'),
-            PageNumber::make('{page}')->size(pt(8))->color('slate-500'),
+            PageNumber::make('{page}')->size(pt(8))->color('slate-500')->right(),
         )->justify(Justify::SpaceBetween))
         ->body(
-            Column::make(Text::h2('Spring operations'), Text::p($para), Text::p($para))->gap(pt(4)),
+            Column::make(
+                Text::h2('Spring operations'),
+                Text::p($para),
+                Text::p('Staffing stayed level through the move. Two new team leads started in April, and the night shift now covers packing as well as loading.'),
+            )->gap(pt(4)),
             PageBreak::make(),
-            Column::make(Text::h2('Looking ahead'), Text::p($para))->gap(pt(4)),
+            Column::make(
+                Text::h2('Looking ahead'),
+                Text::p('Next quarter we add weekend collections and a second loading bay. Customers will be able to book a pickup slot online, and drivers get live routes on their phones.'),
+            )->gap(pt(4)),
         ),
 )->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));

@@ -84,7 +84,7 @@ onBeforeUnmount(() => {
           <button v-if="many" type="button" class="gallery-step" aria-label="Next variant" @click="go(1)">›</button>
         </div>
         <div class="gallery-caption">
-          <div>
+          <div aria-live="polite">
             <strong>{{ tile.title }}</strong>
             <code v-if="slide.label">{{ slide.label }}</code>
             <span v-if="many" class="gallery-count">{{ index + 1 }} of {{ slides.length }}</span>

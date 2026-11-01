@@ -64,6 +64,20 @@ final class GalleryTest extends TestCase
         }
     }
 
+    /** getopt() stops at the first plain argument, so "card.flat --out=/tmp" would quietly overwrite the committed image. */
+    public function test_render_script_rejects_options_after_the_id(): void
+    {
+        $out = sys_get_temp_dir() . '/papercut-gallery-out-' . bin2hex(random_bytes(4));
+        $image = self::root() . '/site/src/.vuepress/public/gallery/card.png';
+        $before = (string) file_get_contents($image);
+        $cmd = sprintf('cd %s && %s site/gallery/render.php card --out=%s 2>&1 1>/dev/null', escapeshellarg(self::root()), escapeshellarg(PHP_BINARY), escapeshellarg($out));
+        exec($cmd, $stderr, $code);
+        self::assertSame(1, $code, implode("\n", $stderr));
+        self::assertStringContainsString('options go before the image id', implode("\n", $stderr));
+        self::assertSame($before, (string) file_get_contents($image));
+        self::assertDirectoryDoesNotExist($out);
+    }
+
     public function test_render_script_reports_a_failing_source(): void
     {
         $dir = sys_get_temp_dir() . '/papercut-gallery-' . bin2hex(random_bytes(4));
