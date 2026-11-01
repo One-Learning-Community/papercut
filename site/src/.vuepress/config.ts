@@ -48,6 +48,7 @@ export default defineUserConfig({
       { text: 'Laravel', link: '/laravel/' },
       { text: 'Reference', link: '/reference/blade-tags.html' },
       { text: 'Examples', link: '/examples.html' },
+      { text: 'Gallery', link: '/gallery.html' },
       { text: 'Changelog', link: `https://github.com/${repo}/blob/main/CHANGELOG.md` },
     ],
 
