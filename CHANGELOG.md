@@ -32,7 +32,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - `InvalidStructure` moved to core as `Papercut\Exception\InvalidStructure`. `Papercut\Laravel\Exception\InvalidStructure` now extends it, so existing `catch` blocks keep working.
 - The guide example uses `Text::code()` for inline code and one string option (`->align('center')`).
 - The docs say that `columns()` accepts any length unit, and list the code block language aliases (`bash`, `sh`, `shell` and `zsh` for shell, `js`, `ts`, `py`, `yml`).
-- The README, the package descriptions and the social preview image name all three formats (PDF, Word, and HTML). The guide's limitations say "fillable form fields (AcroForms)" instead of "form filling", since filling in an existing PDF works, and the HTML export page says backgrounds and overlays are approximate.
+- The README, the Laravel package description and the social preview image name all three formats (PDF, Word, and HTML); core's description names PDF and HTML. The guide's limitations say "fillable form fields (AcroForms)" instead of "form filling", since filling in an existing PDF works, and the HTML export page says backgrounds and overlays are approximate.
 - The invoice and transcript examples use US Letter and inches instead of A4 and millimetres, so the examples show both (the report and form responses stay on A4). The transcript now runs to three pages.
 
 ### Fixed

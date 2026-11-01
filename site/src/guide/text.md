@@ -42,6 +42,8 @@ On text tags, `align` and `size` are shorthand for `text-align` and `font-size`.
 
 By default runs of whitespace collapse to one space and a newline is just a space. The `white-space` style attribute (`Style::make(whiteSpace: WhiteSpace::PreWrap)` in PHP) changes that. It takes `normal` (the default) or `pre-wrap`, and it is inherited, so it can be set on a box or on a single span.
 
+Invisible formatting characters, common in text pasted from Word or a CMS (soft hyphens, zero-width joiners and spaces, direction marks, word joiners, byte order marks), are not drawn. The line and paragraph separators U+2028 and U+2029 are treated as newlines.
+
 Under `pre-wrap`:
 
 - spaces are kept, one for each space in the text, including a line's leading spaces;

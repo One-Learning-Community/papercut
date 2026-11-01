@@ -115,8 +115,8 @@ Never commit to the split repos directly; they are overwritten on every split.
 ### Each release
 
 1. Make sure `main` is green.
-2. In `CHANGELOG.md` change `## [X.Y.Z] - unreleased` to the release date (`release.yml` refuses an unreleased
-   or missing section) and add a fresh `## [Unreleased]` section.
+2. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (`release.yml` refuses a missing or
+   still-unreleased section), and add a fresh `## [Unreleased]` above it.
 3. If the minor version changed, bump core's `extra.branch-alias`, the `versions` pin in the Laravel and DOCX
    path repos, and their `papercut/core` and `papercut/docx` requirements (`^X.Y`).
 4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Papercut X.Y.Z" && git push origin main vX.Y.Z`.
