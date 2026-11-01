@@ -33,11 +33,13 @@ Papercut does the layout; [php-pdf](https://github.com/dskripchenko/php-pdf), by
 
 ## Current limitations
 
-Papercut is at 0.5, and a few things aren't supported yet:
+Papercut is at 0.6, before 1.0, and a few things aren't supported yet:
 
 - complex text shaping (HarfBuzz), right-to-left and bidirectional text, and hyphenation
 - multi-column text flow
-- form filling and PDF/A
+- fillable form fields (AcroForms) and PDF/A
+
+Filling in an existing PDF works: [PDF templates](./pages.md#filling-in-an-existing-pdf) place your content on a page of another PDF.
 
 Kerning and ligatures do work. Signing and merging aren't built in, but php-pdf can do both to a Papercut PDF; see [Passwords, signatures and merging](./passwords-and-signatures.md).
 

@@ -1,6 +1,6 @@
 {
     "name": "papercut/laravel",
-    "description": "Blade components that compile to Papercut's PDF layout engine.",
+    "description": "Blade views to page-aware PDF, Word, and HTML documents, with Papercut's layout engine.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://github.com/One-Learning-Community/papercut",

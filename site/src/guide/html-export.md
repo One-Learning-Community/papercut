@@ -35,6 +35,7 @@ Browsers don't have pages, so a few things are approximated: fraction column wid
 
 - Even-page headers and footers aren't shown. HTML has one header and one footer for the whole run.
 - A first-page footer is shown only when the page has no normal footer. If it has both, the normal footer is shown.
+- Backgrounds and overlays cover the whole page section, which is at least one page tall and grows to fit its content. They're drawn once, not on every printed page, and overlay content is placed against that taller box, so it lands about where it does in the PDF. Both are reported as approximated.
 
 A few things are dropped, and [strict mode](./rich-text.md#strict-mode) fails an HTML export on them: PDF page templates and embedded PDF pages. Code highlighting that can't be done is dropped in every format, as [Code blocks](./text.md#code-blocks) explains. Without strict mode these are reported as warnings.
 

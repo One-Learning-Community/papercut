@@ -5,11 +5,11 @@
 
 # papercut/laravel
 
-Blade components for [Papercut](../../README.md): `<x-doc::*>` tags compile into Papercut's layout engine and out to a PDF. Not HTML-to-PDF.
+Blade components for [Papercut](../../README.md): `<x-doc::*>` tags compile into Papercut's layout engine and out to PDF, HTML or Word. Not HTML-to-PDF.
 
 **Documentation:** [one-learning-community.github.io/papercut/laravel](https://one-learning-community.github.io/papercut/laravel/)
 
-> **Status: 0.3, early release.** Before 1.0 a minor version (0.4) may change the API; patch versions won't.
+> **Status: 0.6, before 1.0.** Until 1.0 a minor version may change the API; patch versions won't.
 
 ## Install
 

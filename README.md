@@ -8,16 +8,15 @@
 [![core](https://github.com/One-Learning-Community/papercut/actions/workflows/core.yml/badge.svg)](https://github.com/One-Learning-Community/papercut/actions/workflows/core.yml)
 [![laravel](https://github.com/One-Learning-Community/papercut/actions/workflows/laravel.yml/badge.svg)](https://github.com/One-Learning-Community/papercut/actions/workflows/laravel.yml)
 
-Blade components that compile to a real layout engine, not HTML.
+**Page-aware PDF, Word, and HTML for modern PHP.**
 
-Papercut is a PDF library for modern PHP. You write `<x-doc::*>` tags in Blade; they become a tree of
-typed, immutable components with flexbox layout and page-aware pagination, and a pure-PHP engine turns
-that tree into a PDF, written by Denis Skripchenko's [php-pdf](https://github.com/dskripchenko/php-pdf) (see [Built on](#built-on)). There is no browser and no CSS cascade: templates are not parsed as HTML. The tag vocabulary
-is small, strict and ours, and a typo in an attribute is an error that names the tag, not a silently wrong page.
+Write documents as Blade views, or build them with a fluent PHP API. Papercut lays them out page by page: table headers repeat, rows aren't cut in half, headings stay with what follows them, and `Page {page} of {total}` is one tag. It's pure PHP, with PDFs written by Denis Skripchenko's [php-pdf](https://github.com/dskripchenko/php-pdf) (see [Built on](#built-on)), so there's no headless Chrome, wkhtmltopdf or Node on your server. The same template also exports to HTML, and to Word (experimental).
 
-**[Documentation](https://one-learning-community.github.io/papercut/)** · [Guide](https://one-learning-community.github.io/papercut/guide/) · [Laravel](https://one-learning-community.github.io/papercut/laravel/) · [Reference](https://one-learning-community.github.io/papercut/reference/blade-tags.html) · [Examples](https://one-learning-community.github.io/papercut/examples.html)
+Templates use a small set of `<x-doc::*>` tags instead of HTML and CSS. That's what keeps pagination predictable, and it makes mistakes loud: a typo in an attribute is an error that names the tag, not a silently wrong page. HTML you already have, such as rich text from an editor, comes in through `<x-doc::markup>`.
 
-> **Status: 0.3, early release.** Before 1.0 a minor version (0.4) may change the API; patch versions won't. See [Status](#status) below.
+**[Documentation](https://one-learning-community.github.io/papercut/)** · [Guide](https://one-learning-community.github.io/papercut/guide/) · [Laravel](https://one-learning-community.github.io/papercut/laravel/) · [Recipes](https://one-learning-community.github.io/papercut/laravel/recipes.html) · [Reference](https://one-learning-community.github.io/papercut/reference/blade-tags.html) · [Examples](https://one-learning-community.github.io/papercut/examples.html)
+
+> **Status: 0.6, before 1.0.** Until 1.0 a minor version may change the API; patch versions won't. See [Status](#status) below.
 
 ## A Blade document
 
@@ -53,19 +52,37 @@ return $invoice->html();                           // full HTML page
 return $invoice->docx()->download('invoice.docx'); // Word (experimental), with papercut/docx installed
 ```
 
+## In a Laravel app
+
+```php
+// Attach to a mailable or notification; it renders when attached.
+public function attachments(): array
+{
+    return [Papercut::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()->attachment('invoice.pdf')];
+}
+
+// Store on any disk, for example from a queued job.
+Papercut::view('pdf.report', ['report' => $report])->pdf()->store("reports/{$report->id}.pdf", 's3');
+
+// Download from a Livewire or Filament action.
+return Papercut::view('pdf.invoice', ['invoice' => $invoice])->pdf()->streamDownload('invoice.pdf');
+```
+
+Preview routes render each document with sample data at a fixed URL while you work on it. The [recipes](https://one-learning-community.github.io/papercut/laravel/recipes.html) cover queues, S3, mail, Livewire, Filament and SVG charts.
+
 ## Features
 
 - Flexbox-style layout: rows, columns, `gap`, `grow`, `justify`, `align`, spacers.
-- Page-aware tables: rows split across pages, never through a row unless a row is taller than a page.
-- Repeated table headers on every page a table crosses.
-- Keep-together and keep-with-next, so a heading is not stranded at the bottom of a page.
-- Page numbers with a page count: `Page {page} of {total}`.
-- Real fonts: every document embeds fonts (Inter is bundled; register your own families), with subsetting and fallback families. The 14 standard PDF fonts are not used.
+- Page-aware tables: rows split across pages, never through a row unless a row is taller than a page; headers repeat on every page a table crosses; cells can span rows and columns.
+- Keep-together and keep-with-next, so a heading isn't stranded at the bottom of a page.
+- Page numbers with a page count (`Page {page} of {total}`), bookmarks built from headings, and a table of contents with page numbers, dot leaders and links.
+- Real fonts: every document embeds its fonts (Inter is bundled; register your own families; in Laravel, one command installs a Google Fonts family), with subsetting and fallback families. The 14 standard PDF fonts are not used.
 - Lists, links, images (PNG and JPEG; WebP, GIF, BMP and AVIF with `ext-gd`), SVG drawn as vectors, and QR codes, plain or styled.
-- Rich text from your data: `<x-doc::markup>` turns an HTML fragment or plain text (say, from a rich-text editor) into Papercut nodes.
+- Code blocks, with syntax highlighting through the optional `phiki/phiki` package.
+- Rich text from your data: `<x-doc::markup>` turns an HTML fragment or plain text (say, from a rich text editor) into Papercut nodes, and reports anything it couldn't convert.
 - PDF templates and placed content: draw a page of an existing PDF behind yours and place text at a point on it, for certificates and letterheads.
-- Bookmarks built from headings, and AES-256 encryption with permissions.
-- HTML export from the same template, and Word export (experimental) with `papercut/docx`.
+- AES-256 encryption with permissions.
+- HTML export from the same template, and Word export (experimental) with `papercut/docx`, which writes real Word headings, lists, tables and a table of contents field.
 - Decorators: ready-made card, callout, blockquote, section, field, choice list, key-value list and badge, restyled from the theme (`<x-doc::callout type="warning">`).
 - Composition: your own Blade components can contain `<x-doc::*>` tags (see `examples/laravel/views/components`).
 - Strict, readable errors for unknown attributes, bad values and invalid structure.
@@ -81,6 +98,9 @@ return $invoice->docx()->download('invoice.docx'); // Word (experimental), with 
    text fragmentation) into a backend-neutral display list.
 4. A thin backend adapter turns the display list into PDF objects via
    [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf).
+
+HTML and Word exports walk the same node tree instead of the page layout, so they keep the document's
+structure (headings, lists, tables) for a browser or for Word to flow.
 
 ## Built on
 
@@ -120,13 +140,14 @@ The guide lives at [one-learning-community.github.io/papercut](https://one-learn
 
 ## Status
 
-0.3, the first release on Packagist. Before 1.0 a minor version may change the API; patch versions won't. No performance or compatibility benchmarks have been
-published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (CI tests against both).
+0.6, before 1.0. Until 1.0 a minor version may change the API; patch versions won't. Word export is experimental. No performance or compatibility benchmarks have been
+published; don't assume any. Requires PHP 8.4+, and Laravel 12 or 13 for `papercut/laravel` (CI tests against both).
 
 Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning
 and ligatures within runs), right-to-left and bidirectional paragraph layout, hyphenation, Knuth-Plass line breaking,
-multi-column text flow, form filling (AcroForms) and PDF/A. Signing and merging aren't built in, but
-php-pdf can do both to a Papercut PDF; see [Passwords, signatures and merging](https://one-learning-community.github.io/papercut/guide/passwords-and-signatures.html).
+multi-column text flow, fillable form fields (AcroForms) and PDF/A. Filling in an existing PDF works through page templates.
+Signing and merging aren't built in, but php-pdf can do both to a Papercut PDF; see
+[Passwords, signatures and merging](https://one-learning-community.github.io/papercut/guide/passwords-and-signatures.html).
 
 ## Licenses
 
