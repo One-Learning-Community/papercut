@@ -60,6 +60,7 @@ In Laravel, `Papercut::view($view, $data)` returns a pending document, and calli
 | Method | What it does |
 |---|---|
 | `download($filename)` | Returns a response that downloads the file. |
+| `streamDownload($filename)` | The same download as a streamed response, which renders the document as it's sent. Use it in Livewire and Filament actions, which ignore ordinary responses. |
 | `inline($filename)` | Returns a response that opens the PDF in the browser. |
 | `save($path)` | Writes the PDF to a local file. |
 | `store($path, $disk)` | Writes the PDF to a [storage disk](https://laravel.com/docs/filesystem). Leave out `$disk` to use the default one. |

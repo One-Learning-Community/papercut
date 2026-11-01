@@ -25,7 +25,7 @@ Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pd
 | Call | What you get back |
 |---|---|
 | `Papercut::view($view, $data)` | a `PendingDocument` |
-| `->pdf()` | a `PendingOutput`: `download()`, `inline()`, `save()`, `store()`, `toString()`, `output()` |
+| `->pdf()` | a `PendingOutput`: `download()`, `streamDownload()`, `inline()`, `save()`, `store()`, `toString()`, `output()` |
 | `->html()` | a `PendingHtml`; see [HTML export](/guide/html-export.md) |
 | `->docx()` | a `PendingOutput` for a Word file. Needs `papercut/docx`, or it throws `MissingExporter`; see [Word export](/guide/word-export.md) |
 | `->encrypt($password)` | a copy whose PDF needs a password; see [Passwords](/guide/passwords-and-signatures.md) |

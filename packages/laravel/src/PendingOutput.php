@@ -13,6 +13,7 @@ use Illuminate\Support\Traits\Macroable;
 use Papercut\Export\Output;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class PendingOutput implements Attachable, Responsable
 {
@@ -74,6 +75,24 @@ final class PendingOutput implements Attachable, Responsable
     public function inline(?string $filename = null): Response
     {
         return $this->respond(HeaderUtils::DISPOSITION_INLINE, $filename);
+    }
+
+    /**
+     * A download sent as a streamed response, named like {@see download()}. The document renders when the
+     * response is sent, not before. Livewire actions (and so Filament actions) send a file only from a
+     * streamed or file response, so use this there.
+     */
+    public function streamDownload(?string $filename = null): StreamedResponse
+    {
+        $default = $this->defaultName();
+        $filename = self::cleanFilename($filename ?? $default);
+
+        return new StreamedResponse(function (): void {
+            echo $this->output()->bytes();
+        }, 200, [
+            'Content-Type' => $this->mime ?? $this->output()->mime(),
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $filename, self::asciiFallback($filename, $default)),
+        ]);
     }
 
     /**

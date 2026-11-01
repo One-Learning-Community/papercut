@@ -76,7 +76,7 @@ export default defineUserConfig({
       '/laravel/': [
         {
           text: 'Laravel',
-          children: ['/laravel/', '/laravel/configuration.md', '/laravel/preview.md'],
+          children: ['/laravel/', '/laravel/configuration.md', '/laravel/preview.md', '/laravel/recipes.md'],
         },
       ],
       '/reference/': [
