@@ -118,6 +118,43 @@
           "variants": []
         }
       ]
+    },
+    {
+      "title": "Pages",
+      "tiles": [
+        {
+          "id": "header-and-footer",
+          "title": "Header and footer",
+          "api": "/guide/pages.html#headers-footers-and-backgrounds",
+          "alt": "Two small pages, each with the same header and a footer with the page number",
+          "pages": 2,
+          "variants": []
+        },
+        {
+          "id": "page-numbers",
+          "title": "Page numbers",
+          "api": "/guide/pages.html#headers-footers-and-backgrounds",
+          "alt": "Two pages numbered Page 1 of 2 and Page 2 of 2",
+          "pages": 2,
+          "variants": []
+        },
+        {
+          "id": "table-of-contents",
+          "title": "Table of contents",
+          "api": "/guide/pages.html#tables-of-contents",
+          "alt": "A contents page with dot leaders beside the page its entries point to",
+          "pages": 2,
+          "variants": []
+        },
+        {
+          "id": "pdf-template",
+          "title": "Filling in a PDF template",
+          "api": "/guide/pages.html#filling-in-an-existing-pdf",
+          "alt": "A certificate: a name, course, date and signature placed on a blank PDF",
+          "pages": 1,
+          "variants": []
+        }
+      ]
     }
   ]
 }
