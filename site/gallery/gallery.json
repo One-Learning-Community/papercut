@@ -1,0 +1,17 @@
+{
+  "groups": [
+    {
+      "title": "Layout",
+      "tiles": [
+        {
+          "id": "rows-and-columns",
+          "title": "Rows and columns",
+          "api": "/guide/layout.html#rows-columns-and-views",
+          "alt": "Boxes arranged in a row and a column, with gaps, alignment and a growing box",
+          "pages": 1,
+          "variants": []
+        }
+      ]
+    }
+  ]
+}
