@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-01
+
 ### Added
 
 - A Gallery page in the docs: a render of every built-in component, with its layout variants and a link to its docs. `php site/gallery/render.php` rebuilds the images.
