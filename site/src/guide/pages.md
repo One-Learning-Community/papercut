@@ -416,9 +416,9 @@ In [Word](./word-export.md#table-of-contents) it is a real table of contents fie
 
 ## Content that doesn't fit
 
-Occasionally something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.
+Occasionally something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). The same goes for a box with a `height` or `max-height` whose content needs more room, such as a long address in a label of fixed size. By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.
 
-If you'd rather get the rest of the document, you can have Papercut clip the oversized content and log a warning instead:
+If you'd rather get the rest of the document, you can have Papercut clip the oversized content and log a warning instead. A box with a height keeps its size and hides what doesn't fit, so nothing draws over the content below it:
 
 ```php
 use Papercut\OverflowMode;

@@ -113,6 +113,6 @@ $options = new PdfOptions(onWarning: function (string $message, ?FidelityReport 
 
 ## Strict mode
 
-If you'd rather fail than silently lose content, turn on strict mode with `strict: true` in the export options, or `'strict' => true` in the Laravel config. An export that would drop content then throws `UnsupportedFeature` instead. Approximations are still allowed.
+If you'd rather fail than silently lose content, turn on strict mode with `strict: true` in the export options, or `'strict' => true` in the Laravel config. An export that would drop content then throws `UnsupportedFeature` instead. That includes a PDF with characters no font has, which would print as empty boxes (see [Fallback fonts](./fonts.md#fallback-fonts)). Approximations are still allowed.
 
 Strict mode works well in tests: a template that starts losing content fails the build instead of shipping.

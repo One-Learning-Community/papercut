@@ -6,6 +6,7 @@ namespace Papercut\Layout;
 
 use Papercut\{Image, Node, OverflowMode, PdfPage};
 use Papercut\Backend\{Backend, ImageHandle, PdfPageHandle, PdfPageLoader};
+use Papercut\Exception\UnsupportedFeature;
 use Papercut\Export\{FidelityLevel, FidelityReport};
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Text\{FontRegistry, Itemizer, SvgFonts};
@@ -42,6 +43,8 @@ final class LayoutContext
     public TocIndex $toc;
     /** Off for a trial layout that must not clip a too-tall node in place (Clip mode), so the paginator can try the next page instead. */
     public bool $clipInPlace = true;
+    /** Strict export: content the PDF would drop, such as characters no font has, throws `UnsupportedFeature`. */
+    public bool $strict = false;
     /** On inside quietly(). */
     public private(set) bool $quiet = false;
     private bool $heldBack = false;
@@ -70,9 +73,23 @@ final class LayoutContext
 
     public function itemizer(): Itemizer
     {
+        // Strict mode checks text on the painted pages (PdfExporter), so a header laid out only to measure it never throws.
         return $this->itemizer ??= new Itemizer($this->fonts, function (string $msg): void {
             $this->warn($msg);
         }, $this->fallbackFamilies, $this->theme);
+    }
+
+    /** SVG text with characters no font has prints empty boxes: content the PDF drops, so strict mode throws. */
+    private function missingGlyphs(string $msg): void
+    {
+        if ($this->strict) {
+            throw UnsupportedFeature::from(new FidelityReport(
+                FidelityLevel::Dropped,
+                $this->format,
+                lcfirst($msg) . ' (register a fallback font that has them)',
+                $this->path(),
+            ));
+        }
     }
 
     /**
@@ -206,6 +223,7 @@ final class LayoutContext
     public function svgFonts(ComputedStyle $style): SvgFonts
     {
         return $this->svgFonts[strtolower($style->fontFamily)] ??= new SvgFonts($this->fonts, $style->fontFamily, $this->fallbackFamilies, function (string $msg): void {
+            $this->missingGlyphs($msg);
             $this->warn($msg, withPath: false);
         });
     }

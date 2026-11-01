@@ -546,14 +546,15 @@ final class TableLayouterTest extends TestCase
 
     public function test_text_spilling_from_a_fixed_height_spanning_cell_keeps_the_header(): void
     {
-        // The spanning cell is 10pt tall and its six lines spill out of it, as CSS overflow: visible does; no line is forced.
+        // The spanning cell is 10pt tall and its six lines don't fit it: Clip mode clips them to the cell, and no line is forced.
         $t = Table::make()->columns('1fr 1fr')->head('H', 'I')
             ->row(TableCell::make('s1', 's2', 's3', 's4', 's5', 's6')->rowspan(2)->height(pt(10)), 'x')
             ->row('y')->row('w', 'z');
-        $h = new LayoutHarness();
+        $h = new LayoutHarness(overflow: OverflowMode::Clip);
         $first = $h->layout($t, 100, 60);
         self::assertSame(['H', 'I', 'x'], array_slice(array_column(LayoutHarness::runs($first->fragment), 'text'), 0, 3));
-        self::assertSame([], $h->warnings);
+        self::assertCount(1, $h->warnings);
+        self::assertStringStartsWith('Content clipped: "table > tr[1] > td[0]"', $h->warnings[0]);
     }
 
     /** The lowest bottom edge of any box in $f, its own included. */

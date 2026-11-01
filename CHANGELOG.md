@@ -31,6 +31,9 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Invisible formatting characters (soft hyphens, zero-width joiners and spaces, direction marks, word joiners, byte order marks), common in text pasted from Word or a CMS, are no longer drawn as empty boxes in PDF. The line and paragraph separators (U+2028, U+2029) count as newlines.
+- Strict mode throws `UnsupportedFeature` when a printed page of a PDF has characters no font has, in text or SVG text, naming the page and the characters. They print as empty boxes, and before only a warning said so, which plain PHP drops unless you pass `onWarning`. The fonts guide has a new section on fallback fonts for names in other scripts, and says that a short right-to-left run, such as an Arabic or Hebrew name, already lays out correctly.
+- Content taller than its box's `height` or `max-height` no longer draws over what follows without a word. It follows the overflow mode, as content too tall for a page does: Throw mode throws `LayoutOverflow` naming the box, and Clip mode clips it to the box and warns. Documents whose boxes overflowed now throw in Throw mode (Laravel's default in `local` and `testing`) or come out clipped.
 - `papercut/laravel` and `papercut/docx` require `papercut/core` `^0.6` (and Laravel's dev requirement on `papercut/docx` is `^0.6`); they still asked for `^0.5`, which no 0.6 core satisfies.
 - A release candidate tag (`v1.0.0-rc.1`, any version with a `-`) is published as a GitHub pre-release.
 - A table row too tall for one page, split just below the header, no longer paints its first line past the bottom of the page when that line doesn't fit below the header. This includes rows with spanning cells and tables inside table cells. A repeated header is left out on that page instead; on the first page the header stands alone and the rows start on the next page, with a warning.

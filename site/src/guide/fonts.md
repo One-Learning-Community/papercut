@@ -95,11 +95,42 @@ The family match is case-insensitive, and the last name set for a family wins. A
 
 ## Fallback fonts
 
-When the main font doesn't have a character, Papercut tries each fallback family in order. If none of them have it, Papercut logs a warning. In Laravel, `php artisan papercut:fonts` shows every registered font file and whether it's `ok`, `missing` or `invalid`.
+When the main font doesn't have a character, Papercut tries each fallback family in order. If none of them have it, the character prints as an empty box and Papercut warns. In [strict mode](./rich-text.md#strict-mode), the export throws instead. In Laravel, `php artisan papercut:fonts` shows every registered font file and whether it's `ok`, `missing` or `invalid`.
+
+### Names in other scripts
+
+Inter covers Latin with accents, Cyrillic, Greek and Vietnamese. It has no Chinese, Japanese, Korean, Arabic, Hebrew, Thai or Devanagari. If your documents print names or addresses your users typed, add fallback families for the scripts they use. The Noto fonts cover them, and only the characters you use are embedded:
+
+::: code-tabs#style
+@tab Laravel
+```bash
+php artisan papercut:fonts:install "Noto Sans SC" --weights=400,700
+php artisan papercut:fonts:install "Noto Sans Arabic" --weights=400,700
+```
+
+```php
+// config/papercut.php
+'fallback_fonts' => ['Noto Sans SC', 'Noto Sans Arabic'],
+```
+@tab PHP
+```php
+use Papercut\Export\PdfOptions;
+use Papercut\Text\{FontFace, FontSet};
+
+$fonts = (new FontSet())
+    ->with(new FontFace('Noto Sans SC', __DIR__ . '/fonts/NotoSansSC-Regular.ttf', 400))
+    ->with(new FontFace('Noto Sans Arabic', __DIR__ . '/fonts/NotoSansArabic-Regular.ttf', 400))
+    ->withFallbacks('Noto Sans SC', 'Noto Sans Arabic');
+
+$options = new PdfOptions(fonts: $fonts);
+```
+:::
+
+A short right-to-left run, such as an Arabic or Hebrew name in an English document, is shaped and ordered correctly. Whole right-to-left paragraphs aren't supported yet: they lay out left to right.
 
 ## Kerning and ligatures
 
-Kerning and ligatures are applied within each run of text. Complex shaping (HarfBuzz) and right-to-left text aren't supported yet.
+Kerning and ligatures are applied within each run of text. Complex shaping (HarfBuzz) and right-to-left paragraphs aren't supported yet.
 
 ## The font cache
 
