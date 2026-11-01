@@ -5,6 +5,14 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Laravel: `<x-doc::markup>` takes plain HTML in its slot, converted like `:html`: `<x-doc::markup><h3>Results</h3><table>…</table></x-doc::markup>`. Blade loops, echoes and components that render HTML work inside; Papercut tags inside throw `InvalidStructure`.
+
+### Changed
+
+- Laravel: `<x-doc::markup>` with both `:html` (or `:text`) and slot content now throws `InvalidStructure`; the slot used to be dropped. The error for a markup tag with no source now reads "requires one of html, text or HTML in its slot", and for one with two "takes only one of html, text or HTML in its slot".
+
 ## [0.6.0] - 2026-10-31
 
 ### Added

@@ -32,6 +32,27 @@ In Blade, bind the value with `:html` rather than `html`, otherwise Blade escape
 
 `Markup::text()` turns each newline into a line break and each blank line into a new paragraph. Characters like `<` are treated as plain text.
 
+## Writing HTML in the template
+
+For a simple table, or a heading and a few paragraphs, you can write plain HTML between the tags instead of learning the Papercut tags for it. It's converted the same way as `:html`, and takes the same `styles`, `blank-paragraphs` and `images` attributes:
+
+```blade
+<x-doc::card title="Summary">
+    <x-doc::markup>
+        <h3>Results</h3>
+        <p>Totals for {{ $period }}.</p>
+        <table>
+            <tr><th>Item</th><th>Amount</th></tr>
+            @foreach ($lines as $line)
+                <tr><td>{{ $line->name }}</td><td>{{ $line->amount }}</td></tr>
+            @endforeach
+        </table>
+    </x-doc::markup>
+</x-doc::card>
+```
+
+Blade runs first, so loops, conditions and `{{ }}` echoes work as usual, and an echoed value stays text: `{{ '<b>' }}` shows `<b>`, it doesn't make anything bold. Your own Blade components can go inside too, as long as they render HTML. Papercut tags can't, because they aren't HTML; put them next to the markup tag instead. The tag takes HTML in its slot, `:html` or `:text`, only one of them.
+
 ## Inside a line of text
 
 Put markup inside a text tag and it joins that line, picking up the surrounding style:
