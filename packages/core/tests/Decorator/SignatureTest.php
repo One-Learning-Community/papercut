@@ -78,6 +78,16 @@ final class SignatureTest extends TestCase
         self::assertStringStartsWith('%PDF', $pdf);
     }
 
+    public function test_beside_a_long_paragraph_it_shrinks_no_further_than_its_captions(): void
+    {
+        $text = \Papercut\View::make(Text::make(str_repeat('I confirm the details above are correct. ', 10)))->grow(1);
+        $row = \Papercut\Row::make($text, Signature::make()->name('Jane Smith')->role('Director'));
+        $f = (new \Papercut\Tests\Support\LayoutHarness())->layout($row, 300)->fragment;
+        self::assertNotNull($f);
+        // FakeFont: 5pt a letter at the base size; the widest word is "Director" at 0.85em, 8 × 4.25 = 34pt
+        self::assertEqualsWithDelta(34.0, $f->children()[1]['fragment']->width, 1e-6);
+    }
+
     private static function node(\Papercut\View $parent, int $i): \Papercut\Text|\Papercut\View
     {
         $child = $parent->children()[$i] ?? null;

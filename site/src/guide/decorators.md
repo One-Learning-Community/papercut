@@ -300,7 +300,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The rows are the same `<x-doc::kv>` tags as a key-value list, and `total` marks the ones to emphasise. Any row can be a total, so a total followed by "Amount paid" and a second total for the balance works too. The block is 45% of the width and sits at the right; change that with `width`, for example `width="2.75in"` or `width="100%"`.
+The rows are the same `<x-doc::kv>` tags as a key-value list, and `total` marks the ones to emphasise. Any row can be a total, so a total followed by "Amount paid" and a second total for the balance works too. The block is 45% of the width and sits at the right; change that with `width`, for example `width="2.75in"` or `width="100%"`. Next to a paragraph with `grow="1"` in a row, such as payment notes, the totals keep their width and the paragraph takes the rest.
 
 ## Signature
 

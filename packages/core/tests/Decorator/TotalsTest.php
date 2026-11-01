@@ -101,4 +101,15 @@ final class TotalsTest extends TestCase
         $pair = KeyValuePair::of('A', Text::make('1'));
         self::assertFalse($pair->total);
     }
+
+    public function test_beside_a_growing_paragraph_it_keeps_its_width(): void
+    {
+        $notes = \Papercut\View::make(Text::make(str_repeat('Payment is due within thirty days of the invoice date. ', 8)))->grow(1);
+        $row = \Papercut\Row::make($notes, Totals::make()->row('Subtotal', '$1,000.00')->total('Total due', '$1,082.50'))->gap(\Papercut\pt(16));
+        $f = (new \Papercut\Tests\Support\LayoutHarness())->layout($row, 400)->fragment;
+        self::assertNotNull($f);
+        $widths = array_map(fn (array $c): float => $c['fragment']->width, $f->children());
+        self::assertEqualsWithDelta(180.0, $widths[1], 1e-6); // 45% of 400
+        self::assertEqualsWithDelta(400.0 - 16.0 - 180.0, $widths[0], 1e-6);
+    }
 }

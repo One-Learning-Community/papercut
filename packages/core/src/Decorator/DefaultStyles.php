@@ -171,7 +171,8 @@ final class DefaultStyles
         $s['stat.value'] = Style::make(fontSize: Length::em(1.8), fontWeight: 700, color: self::c('slate-900'), lineHeight: 1.15);
         $s['stat.note'] = Style::make(fontSize: Length::em(0.8), color: self::c('slate-600'));
 
-        $s['totals'] = Style::make(width: Percent::of(45), alignSelf: Align::End);
+        // Beside a growing paragraph in a row, the totals keep their width and the paragraph gives way.
+        $s['totals'] = Style::make(width: Percent::of(45), alignSelf: Align::End, shrink: 0.0);
         $s['totals.label'] = Style::make(padding: self::sides(2, 12, 2, 0), color: self::c('slate-600'));
         $s['totals.value'] = Style::make(padding: Edges::of(pt(2), $zero), textAlign: TextAlign::Right);
         $s['totals.total-label'] = Style::make(
