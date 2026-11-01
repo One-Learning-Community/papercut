@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 // Builds the invoice Document; examples/core/invoice.php saves it as PDF and examples/html/render.php as HTML.
 use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, Text};
+use Papercut\Decorator\Totals;
 use Papercut\Style\Justify;
 use Papercut\Value\Edges;
 
@@ -74,22 +75,11 @@ foreach ($items as [$name, $desc, $hours, $rate]) {
     )->borderWidth(Edges::of(pt(0), pt(0), pt(0.5), pt(0)))->borderColor('slate-200'));
 }
 
-$totalRow = fn (string $l, string $v, bool $strong = false) => Row::make(
-    Text::make($l)->color($strong ? 'slate-900' : 'slate-600')->bold($strong)->size(pt($strong ? 12 : 10)),
-    Spacer::flex(),
-    Text::make($v)->bold($strong)->size(pt($strong ? 12 : 10))->right(),
-);
-
-$totals = Row::make(
-    Spacer::flex(),
-    Column::make(
-        $totalRow('Subtotal', $money($subtotal)),
-        $totalRow('Tax (8.25%)', $money($tax)),
-        $totalRow('Total due', $money($total), true)->margin(Edges::of(pt(4), pt(0), pt(0), pt(0)))
-            ->padding(Edges::of(pt(6), pt(0), pt(0), pt(0)))
-            ->borderWidth(Edges::of(pt(1), pt(0), pt(0), pt(0)))->borderColor('slate-900'),
-    )->gap(pt(4))->width(in(2.75)),
-);
+$totals = Totals::make()
+    ->row('Subtotal', $money($subtotal))
+    ->row('Tax (8.25%)', $money($tax))
+    ->total('Total due', $money($total))
+    ->width(in(2.75));
 
 $document = Document::make(
     Page::letter()->margin(in(0.75))

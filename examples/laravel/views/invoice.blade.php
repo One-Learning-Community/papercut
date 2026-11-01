@@ -49,27 +49,11 @@
                 @endforeach
             </x-doc::table>
 
-            {{-- Totals --}}
-            <x-doc::row>
-                <x-doc::spacer />
-                <x-doc::column gap="4pt" width="2.75in">
-                    <x-doc::row>
-                        <x-doc::text color="slate-600">Subtotal</x-doc::text>
-                        <x-doc::spacer />
-                        <x-doc::text align="right">${{ number_format($subtotal, 2) }}</x-doc::text>
-                    </x-doc::row>
-                    <x-doc::row>
-                        <x-doc::text color="slate-600">Tax (8.25%)</x-doc::text>
-                        <x-doc::spacer />
-                        <x-doc::text align="right">${{ number_format($tax, 2) }}</x-doc::text>
-                    </x-doc::row>
-                    <x-doc::row margin="4pt 0 0 0" padding="6pt 0 0 0" border-width="1pt 0 0 0" border-color="slate-900">
-                        <x-doc::text size="12pt" bold color="slate-900">Total due</x-doc::text>
-                        <x-doc::spacer />
-                        <x-doc::text size="12pt" bold align="right">${{ number_format($total, 2) }}</x-doc::text>
-                    </x-doc::row>
-                </x-doc::column>
-            </x-doc::row>
+            <x-doc::totals width="2.75in">
+                <x-doc::kv label="Subtotal">${{ number_format($subtotal, 2) }}</x-doc::kv>
+                <x-doc::kv label="Tax (8.25%)">${{ number_format($tax, 2) }}</x-doc::kv>
+                <x-doc::kv label="Total due" total>${{ number_format($total, 2) }}</x-doc::kv>
+            </x-doc::totals>
         </x-doc::column>
 
         <x-slot:footer>

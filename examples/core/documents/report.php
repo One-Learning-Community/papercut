@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 // Builds the report Document; examples/core/report.php saves it as PDF and examples/html/render.php as HTML.
 use Papercut\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Table, TableRow, Text, Toc};
+use Papercut\Decorator\Stat;
 use Papercut\Value\Edges;
 
 use function Papercut\{mm, pt};
@@ -72,11 +73,7 @@ $words = str_word_count(implode(' ', $prose));
 // Every figure on these cards is counted from this document's own content.
 $cards = Row::make(
     ...array_map(
-        fn (array $s) => Column::make(
-            Text::make($s[0])->size(pt(8))->bold()->color('slate-500'),
-            Text::make($s[1])->size(pt(22))->bold()->color($s[3]),
-            Text::make($s[2])->size(pt(9))->color('slate-600'),
-        )->gap(pt(3))->padding(pt(14))->background('slate-50')->radius(pt(8))->grow(1),
+        fn (array $s) => Stat::make(Text::make($s[1])->color($s[3]))->label($s[0])->note($s[2])->grow(1),
         [
             ['SECTIONS', (string) count($sections), 'plus a glossary appendix', 'indigo-600'],
             ['WORDS OF PROSE', number_format($words), sprintf('across %d justified paragraphs', count($prose)), 'emerald-600'],

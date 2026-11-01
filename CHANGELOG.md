@@ -7,7 +7,19 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Three decorators. `Stat` / `<x-doc::stat>`: a label, a large value and an optional note on a tinted panel. `Totals` / `<x-doc::totals>`: label and amount rows with the amounts right-aligned and `total()` / `<x-doc::kv total>` rows emphasised, 45% wide at the right by default. `Signature` / `<x-doc::signature>`: a line to sign on, holding an image, a typed name or nothing, with an optional name, role and date under it. Styled by the new `stat.*`, `totals.*` and `signature.*` named styles.
+- Built-in variants: `field` `line` (a form line), `badge` `outline` (a border in the tone's colour), `card` `flat` (a tinted panel with no border) and `section` `large` (a bigger heading). Each `badge.<tone>` style gains a `-300` border colour, which shows only when a border is drawn.
+- `KeyValuePair` takes a third argument, `total`; `KeyValueList` rejects total rows, and in Blade `<x-doc::kv total>` is only allowed inside `<x-doc::totals>`.
+- The invoice example uses `Totals` and the report example's stat cards use `Stat` (outputs regenerated).
 - Laravel: `<x-doc::markup>` takes plain HTML in its slot, converted like `:html`: `<x-doc::markup><h3>Results</h3><table>…</table></x-doc::markup>`. Blade loops, echoes and components that render HTML work inside; Papercut tags inside throw `InvalidStructure`.
+
+### Fixed
+
+- A box or table with a percentage width that isn't stretched across its column (`align-self` or the column's `align` set to `start`, `center` or `end`) was sized as a share of its own content, not of the column. It is now a share of the column, as in CSS.
+- Word export: a table aligned to the centre or end of its column keeps that alignment.
+- Word export: a badge with a border (such as the `outline` variant) stays in its line as bordered text, as a filled badge does with shading, instead of turning the whole row into a table.
+- Word export: a box with a background whose children are stacked boxes (a card with a tinted panel, a `strip` code block) shades every row that has no fill of its own; the body or code area used to come out white.
+- Word export: a box packed to its end or centre (`justify`) places its content at the bottom or middle of its cell, so a signature rests on its line.
 
 ### Changed
 

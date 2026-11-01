@@ -2,7 +2,7 @@
 
 Decorators are ready-made components for the things most documents end up needing: a bordered card, a highlighted note, a numbered section, an answer box. You could build all of these from plain boxes, but then every app reinvents them with its own colours. Decorators take their look from the theme, so they match across all your documents and you can restyle them in one place.
 
-There are nine of them:
+There are twelve of them:
 
 | Decorator | PHP | Blade |
 |---|---|---|
@@ -14,6 +14,9 @@ There are nine of them:
 | [Choice list](#choice-list) | `ChoiceList` | `<x-doc::choices>` |
 | [Key-value list](#key-value-list) | `KeyValueList` | `<x-doc::key-value>` |
 | [Badge](#badge) | `Badge` | `<x-doc::badge>` |
+| [Stat](#stat) | `Stat` | `<x-doc::stat>` |
+| [Totals](#totals) | `Totals` | `<x-doc::totals>` |
+| [Signature](#signature) | `Signature` | `<x-doc::signature>` |
 | [Code block](/guide/text.md#code-blocks) | `CodeBlock` | `<x-doc::pre language="…">` |
 
 The PHP classes are in the `Papercut\Decorator` namespace. Under the hood, each one is built from ordinary boxes, text and tables, so it breaks across pages like anything else and looks the same in PDF and HTML. Style methods and attributes apply to the outer box, so `Card::make(...)->padding(pt(12))` changes the padding for that one card only.
@@ -130,7 +133,7 @@ The number is a string, so `3`, `3.2` and `C` all work. Papercut doesn't count s
 
 ## Field
 
-A bordered box showing an answer or value, with a placeholder when it's empty.
+A bordered box showing an answer or value, with a placeholder when it's empty. For a paper-form look, `variant="line"` keeps only a rule along the bottom.
 
 ::: code-tabs#style
 @tab Blade
@@ -237,7 +240,98 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The tones are `neutral` (the default), `note`, `tip`, `warning` and `danger`, matching the callout colours. A badge is a block that's only as wide as its text. It can't be placed in the middle of a line of text.
+The tones are `neutral` (the default), `note`, `tip`, `warning` and `danger`, matching the callout colours. A badge is a block that's only as wide as its text. It can't be placed in the middle of a line of text. For a lighter look, `variant="outline"` draws a border in the tone's colour instead of filling the badge.
+
+## Stat
+
+A figure on a tinted panel: a small label, the value in large type, and an optional note under it. Put several in a row for a summary strip.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::row gap="12pt">
+  <x-doc::stat label="Revenue" note="Up 12% on Q2" grow="1">$48,200</x-doc::stat>
+  <x-doc::stat label="Orders" note="38 refunded" grow="1">1,204</x-doc::stat>
+  <x-doc::stat label="Rating" grow="1">4.7</x-doc::stat>
+</x-doc::row>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page, Row};
+use Papercut\Decorator\Stat;
+use function Papercut\pt;
+
+$document = Document::make(Page::a4()->body(
+    Row::make(
+        Stat::make('$48,200')->label('Revenue')->note('Up 12% on Q2')->grow(1),
+        Stat::make('1,204')->label('Orders')->note('38 refunded')->grow(1),
+        Stat::make('4.7')->label('Rating')->grow(1),
+    )->gap(pt(12)),
+));
+```
+:::
+
+The value is the tag's content, and it takes inline tags, so `<span color="emerald-600">+4.2%</span>` colours it. `label` and `note` also work as slots. On its own a stat spans the width like any box. In a row each one is as wide as its content, so give each `grow="1"` to share the width evenly.
+
+## Totals
+
+The rows under an invoice or quote: labels on the left, amounts right-aligned, and the total in bold above a rule.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::totals>
+  <x-doc::kv label="Subtotal">$1,000.00</x-doc::kv>
+  <x-doc::kv label="Tax (8.25%)">$82.50</x-doc::kv>
+  <x-doc::kv label="Total due" total>$1,082.50</x-doc::kv>
+</x-doc::totals>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page};
+use Papercut\Decorator\Totals;
+
+$document = Document::make(Page::a4()->body(
+    Totals::make()
+        ->row('Subtotal', '$1,000.00')
+        ->row('Tax (8.25%)', '$82.50')
+        ->total('Total due', '$1,082.50'),
+));
+```
+:::
+
+The rows are the same `<x-doc::kv>` tags as a key-value list, and `total` marks the ones to emphasise. Any row can be a total, so a total followed by "Amount paid" and a second total for the balance works too. The block is 45% of the width and sits at the right; change that with `width`, for example `width="2.75in"` or `width="100%"`.
+
+## Signature
+
+A line to sign on, with the signer's name, role and date under it.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::row gap="36pt">
+  <x-doc::signature name="Jane Smith" role="Director" date="12 March 2026">
+    <x-doc::svg src="signature.svg" height="28pt" />
+  </x-doc::signature>
+  <x-doc::signature name="Witness" role="Name and date" />
+</x-doc::row>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page, Row};
+use Papercut\Decorator\Signature;
+use function Papercut\pt;
+
+$document = Document::make(Page::a4()->body(
+    Row::make(
+        Signature::make()->name('Jane Smith')->role('Director')->date('12 March 2026'),
+        Signature::make()->name('Witness')->role('Name and date'),
+    )->gap(pt(36)),
+));
+```
+:::
+
+Whatever the tag holds sits on the line: a signature image, a typed name, or nothing, which leaves room to sign by hand. `name`, `role` and `date` are each optional and also work as slots. Papercut doesn't format the date, so pass it the way the document needs it. A signature is 3 inches wide and never splits across pages.
 
 ## Restyling
 
@@ -291,28 +385,39 @@ You're not limited to the built-in tones. Define the styles for a new one and us
 
 ### Variants
 
-A variant restyles every part of a decorator at once. `variant="large"` makes the decorator also apply `<name>.large` after each of its built-in names, whenever your theme defines that name. Define only the parts the variant changes:
+A variant restyles every part of a decorator at once. `variant="compact"` makes the decorator also apply `<name>.compact` after each of its built-in names, whenever your theme defines that name. Define only the parts the variant changes:
 
 ```php
 'styles' => [
-    'section.title.large' => ['font-size' => '16pt'],
-    'section.large'       => ['margin' => '0 0 14pt 0'],
+    'callout.compact'       => ['padding' => '4pt 8pt', 'gap' => '2pt'],
+    'callout.title.compact' => ['font-size' => '0.9em'],
 ],
 ```
 
 ```blade
-<x-doc::section title="Results" variant="large">...</x-doc::section>
+<x-doc::callout type="tip" title="Shortcut" variant="compact">...</x-doc::callout>
 ```
 
 ```php
-use Papercut\Decorator\Section;
+use Papercut\Decorator\Callout;
 
-Section::make('...')->title('Results')->variant('large');
+Callout::make('...')->tone('tip')->title('Shortcut')->variant('compact');
 ```
 
-Several variants can be given, separated by spaces (`variant="large compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens, and it cannot be a word that appears in one of the decorator's own part names (`selected` or `radio` on choices, `title` on a card), because the name it produces would be an existing part's. Papercut rejects such a word with an error naming the collision. `callout` and `badge` also reject their own tone words (`note`, `tip`, `warning`, `danger`, and `neutral` on a badge) as variants. Use `tone()` for those. Variants come after the tone (`callout.title.warning`, then `callout.title.large`) and before your own `style=""` and style modifiers, which still win on the outer box.
+Several variants can be given, separated by spaces (`variant="flat compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens, and it cannot be a word that appears in one of the decorator's own part names (`selected` or `radio` on choices, `title` on a card), because the name it produces would be an existing part's. Papercut rejects such a word with an error naming the collision. `callout` and `badge` also reject their own tone words (`note`, `tip`, `warning`, `danger`, and `neutral` on a badge) as variants. Use `tone()` for those. Variants come after the tone (`callout.title.warning`, then `callout.title.compact`) and before your own `style=""` and style modifiers, which still win on the outer box.
 
-In Blade, a variant for which the theme has no style on any part of that decorator throws an error listing the names it looked for. In PHP, a variant nothing styles does nothing, because the decorator has no theme to check against. No variant styles ship by default, except for the [code block](/guide/text.md#code-blocks), whose `strip` and `caption` variants are built in.
+In Blade, a variant for which the theme has no style on any part of that decorator throws an error listing the names it looked for. In PHP, a variant nothing styles does nothing, because the decorator has no theme to check against.
+
+A few variants are built in, and your theme can restyle them like any other name:
+
+| Variant | Look |
+|---|---|
+| `<x-doc::field variant="line">` | A form line: only a rule along the bottom, no box. |
+| `<x-doc::badge variant="outline">` | A border in the tone's colour, with no fill. |
+| `<x-doc::card variant="flat">` | A tinted panel with no border. |
+| `<x-doc::section variant="large">` | A bigger number and title, with more room around them. |
+
+The [code block](/guide/text.md#code-blocks) also has `strip` and `caption` built in.
 
 ### Your own decorator
 

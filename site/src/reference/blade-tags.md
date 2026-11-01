@@ -79,7 +79,10 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 | `<x-doc::choices>` | `type`, `emphasize-selected`, `variant` | Style. `type`: `checkbox` or `radio`. Holds only `<x-doc::choice>`. |
 | `<x-doc::choice>` | `selected` | Valid only inside `<x-doc::choices>`. No style. |
 | `<x-doc::key-value>` | `label-width`, `variant` | Style. A length or percentage. Holds only `<x-doc::kv>`. |
-| `<x-doc::kv>` | `label` | A label is required, as an attribute or a slot. No style. |
+| `<x-doc::kv>` | `label`, `total` | A label is required, as an attribute or a slot. `total` (a boolean) marks an emphasised row and is only allowed inside `<x-doc::totals>`. No style. |
+| `<x-doc::totals>` | `variant` | Style. Holds only `<x-doc::kv>` rows: labels on the left, amounts right-aligned. 45% wide at the right by default. |
+| `<x-doc::stat>` | `label`, `note`, `variant` | Style. The content is the value, with inline tags. `label` and `note` also work as slots. |
+| `<x-doc::signature>` | `name`, `role`, `date`, `variant` | Style. The content sits on the line (an image, a typed name, or nothing). `name`, `role` and `date` also work as slots. |
 | `<x-doc::badge>` | `type`, `variant` | Style. `type`: `neutral`, `note`, `tip`, `warning`, `danger`, or a tone you define. |
 
 `variant` makes a decorator also apply `<name>.<variant>` for each part it styles; see [Decorators](/guide/decorators.md).
