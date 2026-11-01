@@ -247,3 +247,115 @@
   white-space: nowrap;
   color: var(--vp-c-text-mute);
 }
+
+// Gallery lightbox: the render large, with the variants to step through.
+.gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(9, 9, 11, 0.88);
+}
+
+.gallery-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 92vw;
+  color: #fafafa;
+}
+
+.gallery-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.gallery-stage img {
+  display: block;
+  min-width: 0;
+  max-width: min(92vw - 6rem, 1100px);
+  max-height: 80vh;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.gallery-step,
+.gallery-close {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fafafa;
+  cursor: pointer;
+  font-size: 1.6rem;
+  line-height: 1;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.gallery-step:hover,
+.gallery-close:hover,
+.gallery-step:focus-visible,
+.gallery-close:focus-visible {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.gallery-close {
+  align-self: flex-end;
+  font-size: 1.4rem;
+}
+
+.gallery-caption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.gallery-caption code {
+  margin-left: 0.5rem;
+  background: #27272a;
+  color: #e4e4e7;
+}
+
+.gallery-count {
+  margin-left: 0.5rem;
+  opacity: 0.65;
+}
+
+.gallery-caption a {
+  color: #d4d4d8;
+}
+
+.gallery-dots span {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: 0 0.2rem;
+  border-radius: 50%;
+  background: #52525b;
+}
+
+.gallery-dots span.on {
+  background: #fafafa;
+}
+
+@media (max-width: 599px) {
+  .gallery-step {
+    display: none;
+  }
+
+  .gallery-stage img {
+    max-width: calc(100vw - 2rem);
+  }
+}
