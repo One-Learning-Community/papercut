@@ -10,7 +10,7 @@
 
 **Page-aware PDF, Word, and HTML for modern PHP.**
 
-Write documents as Blade views, or build them with a fluent PHP API. Papercut lays them out page by page: table headers repeat, rows aren't cut in half, headings stay with what follows them, and `Page {page} of {total}` is one tag. It's pure PHP, with PDFs written by Denis Skripchenko's [php-pdf](https://github.com/dskripchenko/php-pdf) (see [Built on](#built-on)), so there's no headless Chrome, wkhtmltopdf or Node on your server. The same template also exports to HTML, and to Word (experimental).
+Write documents as Blade views, or build them with a fluent PHP API. Papercut lays them out page by page: table headers repeat, rows aren't cut in half, headings stay with what follows them, and `Page {page} of {total}` is one tag. It's pure PHP, with PDFs written by Denis Skripchenko's [php-pdf](https://github.com/dskripchenko/php-pdf) (see [Built on](#built-on)), so there's no headless Chrome, wkhtmltopdf or Node on your server. The same template also exports to HTML, and to Word.
 
 Templates use a small set of `<x-doc::*>` tags instead of HTML and CSS. That's what keeps pagination predictable, and it makes mistakes loud: a typo in an attribute is an error that names the tag, not a silently wrong page. HTML you already have, such as rich text from an editor, comes in through `<x-doc::markup>`.
 
@@ -49,7 +49,7 @@ $invoice = Papercut::view('pdf.invoice', compact('invoice'));
 return $invoice->pdf()->download('invoice.pdf');   // PDF
 return $invoice->html();                           // full HTML page
 // {!! $invoice->html() !!}                        // fragment inside another Blade view
-return $invoice->docx()->download('invoice.docx'); // Word (experimental), with papercut/docx installed
+return $invoice->docx()->download('invoice.docx'); // Word, with papercut/docx installed
 ```
 
 ## In a Laravel app
@@ -82,7 +82,7 @@ Preview routes render each document with sample data at a fixed URL while you wo
 - Rich text from your data: `<x-doc::markup>` turns an HTML fragment or plain text (say, from a rich text editor) into Papercut nodes, and reports anything it couldn't convert.
 - PDF templates and placed content: draw a page of an existing PDF behind yours and place text at a point on it, for certificates and letterheads.
 - AES-256 encryption with permissions.
-- HTML export from the same template, and Word export (experimental) with `papercut/docx`, which writes real Word headings, lists, tables and a table of contents field.
+- HTML export from the same template, and Word export with `papercut/docx`, which writes real Word headings, lists, tables and a table of contents field.
 - Decorators: ready-made card, callout, blockquote, section, field, choice list, key-value list and badge, restyled from the theme (`<x-doc::callout type="warning">`).
 - Composition: your own Blade components can contain `<x-doc::*>` tags (see `examples/laravel/views/components`).
 - Strict, readable errors for unknown attributes, bad values and invalid structure.
@@ -140,7 +140,7 @@ The guide lives at [one-learning-community.github.io/papercut](https://one-learn
 
 ## Status
 
-0.6, before 1.0. Until 1.0 a minor version may change the API; patch versions won't. Word export is experimental. No performance or compatibility benchmarks have been
+0.6, before 1.0. Until 1.0 a minor version may change the API; patch versions won't. Word, LibreOffice and Google Docs lay out a Word file themselves, so its page breaks can differ from the PDF's. No performance or compatibility benchmarks have been
 published; don't assume any. Requires PHP 8.4+, and Laravel 12 or 13 for `papercut/laravel` (CI tests against both).
 
 Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning

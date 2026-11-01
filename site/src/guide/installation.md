@@ -17,7 +17,7 @@ Install with Composer:
 ```bash
 composer require papercut/laravel   # Blade tags; pulls in papercut/core
 composer require papercut/core      # the engine alone
-composer require papercut/docx      # Word export (experimental); see Word export
+composer require papercut/docx      # Word export; see Word export
 ```
 
 Laravel discovers the service provider and the `Papercut` facade automatically, so there's nothing to register.

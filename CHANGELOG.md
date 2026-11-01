@@ -21,6 +21,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Word export (`papercut/docx`) is no longer labelled experimental. It is versioned with core and Laravel, and follows the same compatibility rules. Word, LibreOffice and Google Docs still lay out the file themselves, so page breaks can differ from the PDF.
 - **Breaking:** `Spacer::size($length)` is now `Spacer::fixed($length)`. The static factory hid the `size()` modifier every other node has, so `$spacer->size(pt(9))` quietly made a new spacer and dropped its grow and background. On a spacer, `->size()` now sets the gap and keeps the rest of its style. Blade's `<x-doc::spacer size="...">` is unchanged.
 - Custom `Backend` implementations must handle the new `Papercut\Paint\Anchor` op. It draws nothing and marks a named destination for a table of contents entry; it only appears in documents that have a table of contents.
 - `InvalidStructure` moved to core as `Papercut\Exception\InvalidStructure`. `Papercut\Laravel\Exception\InvalidStructure` now extends it, so existing `catch` blocks keep working.

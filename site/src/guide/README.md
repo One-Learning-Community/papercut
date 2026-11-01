@@ -1,12 +1,12 @@
 # Introduction
 
-Papercut is a document library for PHP 8.4. You describe a document as a tree of components (pages, rows, columns, text, tables). Papercut lays it out, splits it into pages and writes it as a PDF, a Word file (experimental) or HTML.
+Papercut is a document library for PHP 8.4. You describe a document as a tree of components (pages, rows, columns, text, tables). Papercut lays it out, splits it into pages and writes it as a PDF, a Word file or HTML.
 
 It comes as three packages:
 
 - **`papercut/core`** is the layout engine and a fluent PHP API. It doesn't need a framework.
 - **`papercut/laravel`** adds Blade components on top. Every `<x-doc::*>` tag builds a core component, so a Blade view and the PHP API describe exactly the same document.
-- **`papercut/docx`** writes Word (`.docx`) files. It's experimental and needs `ext-zip`. See [Word export](./word-export.md).
+- **`papercut/docx`** writes Word (`.docx`) files. It needs `ext-zip`. See [Word export](./word-export.md).
 
 ## Why another PDF library?
 

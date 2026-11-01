@@ -21,7 +21,7 @@ features:
     details: Long tables repeat their header and never split a row. Headings stay with what follows them. "Page 3 of 12" is one tag.
   - title: Blade or PHP
     details: Write documents as Blade views, or build them with a fluent PHP API. Both produce exactly the same thing.
-  - title: Word export (experimental)
+  - title: Word export
     details: Export the same document as a Word file people can edit. Headings, lists, tables, headers and page numbers are real Word features, not a picture of the PDF.
   - title: PDF and HTML
     details: Render the same document as a PDF to download, or as HTML to show in the browser.

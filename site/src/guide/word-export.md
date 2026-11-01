@@ -1,7 +1,7 @@
-# Word export <Badge type="warning" text="experimental" />
+# Word export
 
-::: warning Experimental
-Word export is new. Word, LibreOffice and Google Docs lay out the file themselves, so spacing and page breaks can differ slightly from the PDF, and the output may change between minor versions while it settles. Check exported files in the readers your users have, and [report what looks wrong](https://github.com/One-Learning-Community/papercut/issues).
+::: tip Word lays out its own pages
+Word, LibreOffice and Google Docs lay out the file themselves, so spacing and page breaks can differ slightly from the PDF. Check exported files in the readers your users have, and [report what looks wrong](https://github.com/One-Learning-Community/papercut/issues).
 :::
 
 Any document can also be exported as a Word file (`.docx`) that people can open and edit in Word, LibreOffice or Google Docs. It uses the same theme, fonts and named styles as the PDF.
