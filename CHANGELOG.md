@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-31
+
 ### Added
 
 - Laravel: a `PendingOutput` or `PendingHtml` can be attached to a mailable or notification with `->attach(...)`. The document renders when it is attached, and the attachment is named `document.pdf`, `document.docx` or `document.html`. `PendingOutput::attachment('name.pdf')` sets the name (cleaned like `download()`) without rendering; `PendingHtml` attaches the full page. `PapercutManager`, `PendingDocument`, `PendingOutput` and `PendingHtml` are `Macroable`.
