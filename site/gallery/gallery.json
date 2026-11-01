@@ -12,6 +12,112 @@
           "variants": []
         }
       ]
+    },
+    {
+      "title": "Text",
+      "tiles": [
+        {
+          "id": "paragraphs-and-headings",
+          "title": "Paragraphs and headings",
+          "api": "/guide/text.html#paragraphs-and-headings",
+          "alt": "Three levels of heading with paragraphs under them",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "inline-formatting",
+          "title": "Inline formatting",
+          "api": "/guide/text.html#inline-formatting",
+          "alt": "Bold, italic, underlined, highlighted, coloured and linked text in paragraphs",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "lists",
+          "title": "Lists",
+          "api": "/guide/text.html#lists",
+          "alt": "A numbered list and a bulleted list, each with a nested list",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "code-blocks",
+          "title": "Code blocks",
+          "api": "/guide/text.html#code-blocks",
+          "alt": "A syntax-highlighted PHP code block with a file name label",
+          "pages": 1,
+          "variants": [
+            {
+              "id": "strip",
+              "label": "variant=\"strip\"",
+              "alt": "The code block with its label in a header bar"
+            },
+            {
+              "id": "caption",
+              "label": "variant=\"caption\"",
+              "alt": "The code block with its label above and a rule down the left"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Tables",
+      "tiles": [
+        {
+          "id": "table",
+          "title": "Table",
+          "api": "/guide/tables.html",
+          "alt": "A table of line items with a header row and right-aligned numbers",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "spanning-rows",
+          "title": "Spanning rows",
+          "api": "/guide/tables.html#spanning-rows",
+          "alt": "A schedule table where each day's cell spans several rows",
+          "pages": 1,
+          "variants": []
+        }
+      ]
+    },
+    {
+      "title": "Media",
+      "tiles": [
+        {
+          "id": "image",
+          "title": "Image",
+          "api": "/guide/images-and-links.html#images",
+          "alt": "The same picture filling a box and fitted inside it",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "svg",
+          "title": "SVG",
+          "api": "/guide/images-and-links.html#svg",
+          "alt": "A bar chart of monthly sign-ups drawn as SVG",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "qr-code",
+          "title": "QR code",
+          "api": "/guide/images-and-links.html#qr-codes",
+          "alt": "A QR code beside instructions to track a parcel",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "styled-qr-code",
+          "title": "Styled QR code",
+          "api": "/guide/images-and-links.html#styled-qr-codes",
+          "alt": "Three QR codes: rounded modules, dots, and a colour gradient",
+          "pages": 1,
+          "variants": []
+        }
+      ]
     }
   ]
 }
