@@ -115,3 +115,5 @@ The rows a cell spans stay together on a page. A group of rows is only split acr
 ## Showing the header only once
 
 If you only want the header on the first page, use `repeat-header="false"` in Blade or `->repeatHeader(false)` in PHP.
+
+A header so tall that the next row can't fit even its first line below it gives way: a repeated header is left out on that page, and on the first page the header stands alone and the rows start on the next one. Both are reported as warnings.

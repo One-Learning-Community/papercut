@@ -25,6 +25,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - The docs say that `columns()` accepts any length unit, and list the code block language aliases (`bash`, `sh`, `shell` and `zsh` for shell, `js`, `ts`, `py`, `yml`).
 - The invoice and transcript examples use US Letter and inches instead of A4 and millimetres, so the examples show both (the report and form responses stay on A4). The transcript now runs to three pages.
 
+### Fixed
+
+- A table row too tall for one page, split just below the header, no longer paints its first line past the bottom of the page when that line doesn't fit below the header. This includes rows with spanning cells and tables inside table cells. A repeated header is left out on that page instead; on the first page the header stands alone and the rows start on the next page, with a warning.
+
 ## [0.5.0] - 2026-10-29
 
 ### Added
