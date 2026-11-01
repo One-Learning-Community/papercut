@@ -22,8 +22,14 @@ final class TextMapper
         private readonly LineMetrics $metrics,
         private readonly Fidelity $fidelity,
         private readonly WordFonts $fonts,
-        private readonly ?Theme $theme = null,
+        private ?Theme $theme = null,
     ) {
+    }
+
+    /** Maps spans with the page's theme from here on. */
+    public function usePage(Theme $theme): void
+    {
+        $this->theme = $theme;
     }
 
     /** @param ?string $blockHref the enclosing block link, applied to runs without a link of their own */

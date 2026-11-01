@@ -65,8 +65,11 @@ final class TableLayouter implements Layouter
     private \WeakMap $headerWarned;
     /** @var \WeakMap<Table, true> tables already warned about clamped spans */
     private \WeakMap $clampWarned;
-    /** @var \WeakMap<TableCell, TableCell> cells with the theme's defaults applied; stable identities keep style memos hot */
+    /** @var \WeakMap<Theme, \WeakMap<TableCell, TableCell>> per theme, cells with its defaults applied; stable identities keep style memos hot */
     private \WeakMap $prepared;
+    /** @var \WeakMap<Theme, int> */
+    private \WeakMap $themeTokens;
+    private int $themeCounter = 0;
     /** @var \WeakMap<TableCell, View> the block container each cell is laid out as */
     private \WeakMap $columns;
     /** @var \WeakMap<TableCell, true> prepared cells, which belong to a table */
@@ -81,6 +84,7 @@ final class TableLayouter implements Layouter
         $this->headerWarned = new \WeakMap();
         $this->clampWarned = new \WeakMap();
         $this->prepared = new \WeakMap();
+        $this->themeTokens = new \WeakMap();
         $this->columns = new \WeakMap();
         $this->inTable = new \WeakMap();
         $this->strayWarned = new \WeakMap();
@@ -346,7 +350,7 @@ final class TableLayouter implements Layouter
      */
     private function grid(Table $table, ComputedStyle $style, float $width, LayoutEngine $engine): array
     {
-        $key = self::styleKey($style) . '|' . $width;
+        $key = $this->themeKey($engine) . '|' . self::styleKey($style) . '|' . $width;
         $cached = $this->grids[$table] ?? [];
         if (isset($cached[$key])) {
             return $cached[$key];
@@ -606,6 +610,13 @@ final class TableLayouter implements Layouter
         return $out;
     }
 
+    /** Identifies the current theme in cache keys: cell padding and named styles come from it, not from the table's style. */
+    private function themeKey(LayoutEngine $engine): int
+    {
+        $theme = $engine->context()->theme;
+        return $this->themeTokens[$theme] ??= ++$this->themeCounter; // monotonic: a count() over the WeakMap would reuse tokens of freed themes
+    }
+
     /** Largest left + right padding and border over all rows. */
     private function rowEdge(Table $table, ComputedStyle $style, LayoutEngine $engine): float
     {
@@ -628,7 +639,7 @@ final class TableLayouter implements Layouter
      */
     private function columnContent(Table $table, ComputedStyle $style, LayoutEngine $engine, bool $measureFixed = false): array
     {
-        $key = self::styleKey($style) . ($measureFixed ? '|fixed' : '') . ($engine->breaksAnywhere() ? '|anywhere' : '');
+        $key = $this->themeKey($engine) . '|' . self::styleKey($style) . ($measureFixed ? '|fixed' : '') . ($engine->breaksAnywhere() ? '|anywhere' : '');
         $cached = $this->content[$table] ?? [];
         if (isset($cached[$key])) {
             return $cached[$key];
@@ -1342,12 +1353,18 @@ final class TableLayouter implements Layouter
      */
     private function prepare(TableCell $cell, Theme $theme): TableCell
     {
-        if (!isset($this->prepared[$cell])) {
+        if (!isset($this->prepared[$theme])) {
+            /** @var \WeakMap<TableCell, TableCell> $fresh */
+            $fresh = new \WeakMap();
+            $this->prepared[$theme] = $fresh;
+        }
+        $cells = $this->prepared[$theme];
+        if (!isset($cells[$cell])) {
             $prepared = self::withThemeDefaults($cell, $theme);
-            $this->prepared[$cell] = $prepared;
+            $cells[$cell] = $prepared;
             $this->inTable[$prepared] = true; // the engine lays this one out; it is not a stray cell
         }
-        return $this->prepared[$cell];
+        return $cells[$cell];
     }
 
     // StyleResolver applies the same defaults as its lowest layer; applying them twice changes nothing.

@@ -23,7 +23,9 @@ final class HtmlWriter implements TreeVisitor
 {
     private string $out = '';
     private readonly int $pageCount;
-    private readonly \Papercut\Style\Theme $theme;
+    /** The theme of the page being written. */
+    private \Papercut\Style\Theme $theme;
+    private readonly \Papercut\Style\PageThemes $themes;
     private ?Page $page = null;
     /** Output held back while a hidden region is walked; null outside one. */
     private ?string $held = null;
@@ -65,7 +67,9 @@ final class HtmlWriter implements TreeVisitor
         private readonly HtmlOptions $options,
         private readonly Backend $backend,
         ?TocIndex $toc = null,
+        ?\Papercut\Style\PageThemes $themes = null,
     ) {
+        $this->themes = $themes ?? \Papercut\Style\PageThemes::for($options->theme(), $doc);
         $this->toc = $toc ?? TocIndex::empty();
         $taken = [];
         foreach ($this->toc->entries(1, 4) as $entry) {
@@ -73,7 +77,7 @@ final class HtmlWriter implements TreeVisitor
         }
         $this->strays = new \WeakMap();
         $this->pageCount = count($doc->pages());
-        $this->theme = $options->theme();
+        $this->theme = $this->themes->document();
     }
 
     public static function esc(string $s): string
@@ -122,6 +126,7 @@ final class HtmlWriter implements TreeVisitor
     public function enterPage(Page $page, int $index): void
     {
         $this->page = $page;
+        $this->theme = $this->themes->theme($page);
         $path = $this->pageCount > 1 ? sprintf('page[%d]', $index) : 'page';
         $page->checkMargins($path);
         $this->fidelity->approximated('page box', $path);
@@ -149,7 +154,26 @@ final class HtmlWriter implements TreeVisitor
             'min-height' => Css::pt($page->height()),
             'padding' => Css::pt($m->top->points) . ' ' . Css::pt($m->right->points) . ' ' . Css::pt($m->bottom->points) . ' ' . Css::pt($m->left->points),
             ...($page->overlayPlaces() === [] ? [] : ['position' => 'relative']),
+            ...$this->pageTextCss($page),
         ]) . '">';
+    }
+
+    /**
+     * The text declarations a page's root style adds to the document root, which the .papercut div carries;
+     * everything inside the page is written relative to the page root, so the cascade stays right.
+     *
+     * @return array<string,string>
+     */
+    private function pageTextCss(Page $page): array
+    {
+        $root = $this->themes->styles($page)->root();
+        $document = $this->themes->documentStyles()->root();
+        if ($root === $document) {
+            return [];
+        }
+        $fonts = $this->options->fonts();
+
+        return Css::text($root, $document, $fonts->fallbacks, $fonts);
     }
 
     public function leavePage(Page $page, int $index): void

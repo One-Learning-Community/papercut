@@ -26,10 +26,16 @@ final class TocMapper
     public function __construct(
         private readonly TocIndex $index,
         private readonly array $pages,
-        private readonly StyleResolver $styles,
+        private StyleResolver $styles,
         private readonly TextMapper $text,
         private readonly WordFonts $fonts,
     ) {
+    }
+
+    /** Resolves the title and entry styles with the page's theme from here on. */
+    public function usePage(StyleResolver $styles): void
+    {
+        $this->styles = $styles;
     }
 
     /** The bookmark a heading at this walk path carries, or null when no table of contents lists it. */

@@ -57,7 +57,7 @@ This publishes `config/papercut.php`:
 | `fonts` | `[]` | Extra font families, see [Fonts](#fonts) |
 | `fallback_fonts` | `[]` | Family names tried, in order, for glyphs the primary font lacks |
 | `font_word_names` | `[]` | The name Word uses for a family, as `'Family' => 'Word name'`. The family must be bundled or in `fonts`, and the match ignores case. Cousine is `Courier New` unless set here |
-| `theme` | `[]` | Defaults: `font_family`, `font_size` (points, number), `color`, `line_height` (number), `mono_family` (the family the `monospace` font keyword and the `pre` and `code` styles use; bundled or in `fonts`; default `Cousine`) |
+| `theme` | `[]` | Defaults: `font_family`, `font_size` (points, number), `color`, `line_height` (number), `mono_family` (the family the `monospace` font keyword and the `pre` and `code` styles use; bundled or in `fonts`; default `Cousine`). The default code theme is `code.theme`. A document or page can override these, see [Theme per document or page](#theme-per-document-or-page) |
 | `styles` | `[]` | [Named styles](#named-styles) |
 | `overflow` | `null` | `'throw'`, `'clip'`, or `null` = throw in `local`/`testing`, clip elsewhere |
 | `strict` | `false` | `true` makes an export throw `UnsupportedFeature` for content a format cannot render, instead of dropping it with a warning. Consider `true` in tests |
@@ -245,6 +245,22 @@ These attributes are accepted by every tag marked "style" above. Lengths are `pt
 | `toc` | `toc="false"` | boolean; `false` leaves a heading out of every `<x-doc::toc>` (it keeps its bookmark) |
 
 Boolean values: bare attribute or `true`/`1`/`false`/`0`. Any attribute not listed here (or in the tag's own attributes) throws `UnknownAttribute`, with the tag named and a suggestion when one is close.
+
+## Theme per document or page
+
+`<x-doc::document :theme="[...]">` and `<x-doc::page :theme="[...]">` override the theme for one document or one page, and `Papercut::view(...)->theme([...])` does it from a controller:
+
+```blade
+<x-doc::document :theme="['font_size' => 11]">
+    <x-doc::page :theme="['font_family' => 'Merriweather']">…</x-doc::page>
+</x-doc::document>
+```
+
+```php
+Papercut::view('pdf.invoice', $data)->theme(['color' => $customer->brand_color])->pdf();
+```
+
+Keys are `font_family`, `mono_family`, `font_size`, `color`, `line_height`, `code_theme` and `styles` (in the `papercut.styles` shape); the first five work as in `papercut.theme`. `Merriweather` must be bundled or registered in `fonts`. Order: config, the view's document, the controller's `->theme()`, then the page. Named styles merge onto the existing style (`papercut.styles` still replaces). `->theme()` can change values and restyle existing names, but a new style name the view uses must be defined in config or in a `:theme` in the view. Headings take their look from `h1` to `h4` styles when defined.
 
 ## Named styles
 

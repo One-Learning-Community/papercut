@@ -46,6 +46,28 @@ final class TreeWalkerTest extends TestCase
         ], $this->walk($doc));
     }
 
+    public function test_a_plain_resolver_expands_themed_components_with_its_theme(): void
+    {
+        $comp = new class implements \Papercut\ThemedComponent {
+            public function render(): Node|Component
+            {
+                return Text::make('none');
+            }
+
+            public function renderFor(Theme $theme): Node|Component
+            {
+                return Text::make('code:' . $theme->codeTheme);
+            }
+        };
+        $theme = Theme::default()->withOverride(new \Papercut\Style\ThemeOverride(codeTheme: 'dark'));
+        $visitor = $this->recorder();
+        (new TreeWalker(styles: new StyleResolver($theme)))->walk(Document::make(Page::a4()->body($comp)), $visitor);
+
+        $node = $visitor->nodes[0] ?? null;
+        self::assertInstanceOf(Text::class, $node);
+        self::assertSame('code:dark', $node->spanList()[0]->text);
+    }
+
     public function test_expands_components_in_header_and_table_cells(): void
     {
         $comp = new class implements Component {

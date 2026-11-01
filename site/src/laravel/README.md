@@ -109,6 +109,24 @@ Inside a text tag, a `Text` node becomes part of the line. One limitation: an in
 <x-doc::text><b>x </b><x-doc::node :node="$t" /><b> y</b></x-doc::text>
 ```
 
+## Theme per document or page
+
+Change the theme for one document with `:theme` on `<x-doc::document>`, for one page with `:theme` on `<x-doc::page>`, or from a controller with `->theme()`:
+
+```blade
+<x-doc::document :theme="['font_size' => 11]">
+    <x-doc::page :theme="['font_family' => 'Merriweather']">…</x-doc::page>
+</x-doc::document>
+```
+
+```php
+Papercut::view('pdf.invoice', $data)->theme(['color' => $customer->brand_color])->pdf();
+```
+
+The keys are `font_family`, `mono_family`, `font_size`, `color`, `line_height`, `code_theme` and `styles` (in the shape of `papercut.styles`); the first five work as in `papercut.theme`. A font family must be bundled or registered in `fonts` (see [Fonts](/guide/fonts.md)); `Merriweather` above is an example. The order is config, the view's document, the controller's `->theme()`, then the page. A theme override on a page also reaches content passed through a layout or wrapper component's slot.
+
+Named styles in an override merge onto the existing style. Blade checks style names while it renders the view, before the controller's `->theme()` runs. So `->theme()` can change values and restyle existing names, but a new style name the view uses must be defined in `papercut.styles` or in a `:theme` in the view. See [Changing the theme for one document or page](/guide/styles.md#changing-the-theme-for-one-document-or-page).
+
 ## Caching
 
 Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. Papercut stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data the fragment is built from, and render the fragment each time.

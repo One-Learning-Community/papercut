@@ -8,7 +8,8 @@ use Papercut\{Image, Node, OverflowMode, PdfPage};
 use Papercut\Backend\{Backend, ImageHandle, PdfPageHandle, PdfPageLoader};
 use Papercut\Exception\UnsupportedFeature;
 use Papercut\Export\{FidelityLevel, FidelityReport};
-use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
+use Papercut\Page;
+use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver, Theme};
 use Papercut\Text\{FontRegistry, Itemizer, SvgFonts};
 use Papercut\Toc\TocIndex;
 
@@ -20,7 +21,8 @@ final class LayoutContext
 {
     /** @var list<string> */
     private array $path = [];
-    private ?Itemizer $itemizer = null;
+    /** @var \WeakMap<Theme, Itemizer> one per theme, which the itemizer reads span styles from */
+    private \WeakMap $itemizers;
     /** Open lists by kind, for depth-dependent markers. */
     private int $orderedLists = 0;
     private int $unorderedLists = 0;
@@ -48,11 +50,13 @@ final class LayoutContext
     /** On inside quietly(). */
     public private(set) bool $quiet = false;
     private bool $heldBack = false;
-    public readonly StyleResolver $styles;
+    public private(set) StyleResolver $styles;
+    /** The theme of each page; when set, usePage() switches to the page's theme. */
+    public ?PageThemes $themes = null;
 
     public function __construct(
         public readonly FontRegistry $fonts,
-        public readonly Theme $theme,
+        public private(set) Theme $theme,
         public readonly Backend $backend,
         public readonly OverflowMode $overflow,
         private readonly ?\Closure $onWarning,
@@ -62,6 +66,7 @@ final class LayoutContext
         public readonly string $format = 'pdf',
     ) {
         $this->styles = new StyleResolver($theme);
+        $this->itemizers = new \WeakMap();
         $this->toc = TocIndex::empty();
     }
 
@@ -71,10 +76,20 @@ final class LayoutContext
         return $this->styles->root();
     }
 
+    /** Lays out with the page's theme from here on; the same Theme object as before keeps its resolver and itemizer. No-op without page themes. */
+    public function usePage(Page $page): void
+    {
+        if ($this->themes === null) {
+            return;
+        }
+        $this->theme = $this->themes->theme($page);
+        $this->styles = $this->themes->styles($page);
+    }
+
     public function itemizer(): Itemizer
     {
         // Strict mode checks text on the painted pages (PdfExporter), so a header laid out only to measure it never throws.
-        return $this->itemizer ??= new Itemizer($this->fonts, function (string $msg): void {
+        return $this->itemizers[$this->theme] ??= new Itemizer($this->fonts, function (string $msg): void {
             $this->warn($msg);
         }, $this->fallbackFamilies, $this->theme);
     }

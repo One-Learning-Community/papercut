@@ -6,7 +6,6 @@ namespace Papercut\Layout;
 
 use Papercut\{Node, PageBreak, Spacer, View};
 use Papercut\Style\{Align, ComputedStyle};
-use Papercut\Tree\Expander;
 use Papercut\Value\{Auto, Length};
 
 /**
@@ -154,7 +153,7 @@ final class FlexLayouter implements Layouter
         $max = 0.0;
         $n = 0;
         foreach (self::children($node) as $i => $child) {
-            $child = Expander::expand($child);
+            $child = $engine->expand($child);
             if ($child instanceof PageBreak) {
                 continue;
             }
@@ -194,7 +193,7 @@ final class FlexLayouter implements Layouter
     {
         $items = [];
         foreach (self::children($node) as $i => $child) {
-            $child = Expander::expand($child);
+            $child = $engine->expand($child);
             if ($child instanceof PageBreak) {
                 if ($warn) {
                     $engine->context()->warnOnce('PageBreak inside a row is ignored');

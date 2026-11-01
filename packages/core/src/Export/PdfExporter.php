@@ -8,7 +8,7 @@ use Papercut\Document;
 use Papercut\Exception\UnsupportedFeature;
 use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
 use Papercut\Paint\{Clip, Op, Opacity, PageDisplayList, Painter, TextRun};
-use Papercut\Style\StyleResolver;
+use Papercut\Style\PageThemes;
 use Papercut\Text\FontRegistry;
 use Papercut\Toc\TocIndex;
 
@@ -23,18 +23,20 @@ final class PdfExporter implements Exporter
         $options = PdfOptions::from($options);
         $backend = $options->backend();
         $fonts = $options->fonts();
-        NoteReporter::report($doc, new StyleResolver($options->theme()), new Fidelity('pdf', $options));
+        $themes = PageThemes::for($options->theme(), $doc);
+        NoteReporter::report($doc, $themes, new Fidelity('pdf', $options));
         $ctx = new LayoutContext(
             FontRegistry::fromSet($fonts, $backend),
-            $options->theme(),
+            $themes->document(),
             $backend,
             $options->overflow(),
             $options->onWarning(),
             $fonts->fallbacks,
         );
+        $ctx->themes = $themes;
         $ctx->bookmarks = $options->bookmarks();
         $ctx->strict = $options->strict();
-        $ctx->toc = TocIndex::collect($doc, new StyleResolver($options->theme()));
+        $ctx->toc = TocIndex::collect($doc, $themes);
         $placed = (new Paginator(new LayoutEngine($ctx), $ctx))->paginate($doc);
         $pages = Painter::paint($placed);
         if ($options->strict()) {

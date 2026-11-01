@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Toc;
 
 use Papercut\{Document, Node, Page, Text, Toc as TocNode};
-use Papercut\Style\{ComputedStyle, StyleResolver};
+use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver};
 use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
 
 /**
@@ -34,7 +34,7 @@ final class TocIndex implements TreeVisitor
         return new self();
     }
 
-    public static function collect(Document $doc, StyleResolver $styles): self
+    public static function collect(Document $doc, StyleResolver|PageThemes $styles): self
     {
         $index = new self();
         (new TreeWalker($styles))->walk($doc, $index);

@@ -18,7 +18,7 @@ use Papercut\Value\Length;
  */
 final class TextLayouter implements Layouter
 {
-    /** @var \WeakMap<Node, array<string, array{style: ComputedStyle, lines: list<Line>, boxes: list<array{baseline: float, height: float}>}>> */
+    /** @var \WeakMap<Node, array<string, array{style: ComputedStyle, theme: \Papercut\Style\Theme, lines: list<Line>, boxes: list<array{baseline: float, height: float}>}>> */
     private \WeakMap $lineCache;
 
     public function __construct()
@@ -153,13 +153,13 @@ final class TextLayouter implements Layouter
         $key = "w$width";
         $entries = $this->lineCache[$node] ?? [];
         $hit = $entries[$key] ?? null;
-        if ($hit !== null && $hit['style'] == $style) {
+        if ($hit !== null && $hit['theme'] === $engine->context()->theme && $hit['style'] == $style) {
             return ['lines' => $hit['lines'], 'boxes' => $hit['boxes']];
         }
         $items = $engine->context()->itemizer()->itemize($node->spanList(), $style);
         $lines = $items === [] ? [] : LineBreaker::break($items, $width);
         $boxes = array_map(fn (Line $line): array => $this->lineBox($line, $style, $engine), $lines);
-        $entries[$key] = ['style' => $style, 'lines' => $lines, 'boxes' => $boxes];
+        $entries[$key] = ['style' => $style, 'theme' => $engine->context()->theme, 'lines' => $lines, 'boxes' => $boxes];
         $this->lineCache[$node] = $entries;
         return ['lines' => $lines, 'boxes' => $boxes];
     }

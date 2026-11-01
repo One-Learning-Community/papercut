@@ -164,6 +164,8 @@ CodeBlock::make('$a = 1;')->language('php')->highlighting(new CodeHighlighting(t
 
 Phiki bundles many themes and languages, among them `github-light`, `github-dark`, `dracula`, `nord`, `one-dark-pro` and `solarized-light`. The full lists are in [Phiki's documentation](https://phiki.dev). An unknown theme falls back to the default, with a "dropped syntax highlighting" note.
 
+A document or page can set the default for blocks that don't name a theme: `codeTheme` in a `ThemeOverride`, or `code_theme` in a Laravel `:theme`. See [Changing the theme for one document or page](./styles.md#changing-the-theme-for-one-document-or-page).
+
 The muted label and border colours are worked out from the brightness of the theme's background, so a dark theme gets a light label. Geometry (padding, radius, the label's size) comes from the `code-block` [named styles](/reference/decorator-styles.md), and the block's own style, such as `->background()` or `background="…"`, overrides the theme's colours. To recolour every block, pick or write a theme.
 
 ### Your own grammars and themes

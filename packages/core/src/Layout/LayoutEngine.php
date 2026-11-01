@@ -78,6 +78,12 @@ final class LayoutEngine
         return $this->table;
     }
 
+    /** Renders components down to a node, with the current page's theme for those that depend on it. */
+    public function expand(Node|Component $node): Node
+    {
+        return Expander::expand($node, $this->ctx->theme);
+    }
+
     public function context(): LayoutContext
     {
         return $this->ctx;
@@ -90,7 +96,7 @@ final class LayoutEngine
      */
     public function layout(Node|Component $node, ComputedStyle $parent, Constraints $c, ?BreakToken $token = null, ?int $index = null, ?string $pathName = null): LayoutResult
     {
-        $node = Expander::expand($node);
+        $node = $this->expand($node);
         $this->ctx->pushPath($pathName ?? NodePath::segment($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index, $pathName);
@@ -192,7 +198,7 @@ final class LayoutEngine
     /** @return array{min: float, max: float} */
     public function intrinsic(Node|Component $node, ComputedStyle $parent, ?int $index = null): array
     {
-        $node = Expander::expand($node);
+        $node = $this->expand($node);
         $cache = $this->anywhere ? $this->anywhereIntrinsics : $this->intrinsics;
         $byParent = $cache[$node] ?? null;
         if ($byParent !== null && isset($byParent[$parent])) {

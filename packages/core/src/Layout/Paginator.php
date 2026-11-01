@@ -44,6 +44,7 @@ final class Paginator
     private function paginatePage(Page $page, string $name, array &$out): void
     {
         $page->checkMargins($name);
+        $this->ctx->usePage($page);
         $root = $this->ctx->rootStyle();
         $w = $page->width();
         $h = $page->height();

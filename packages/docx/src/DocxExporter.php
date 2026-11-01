@@ -22,7 +22,7 @@ use Papercut\Paint\Painter;
 use Papercut\Text\FontRegistry;
 use Papercut\Toc\TocIndex;
 use Papercut\Layout\WidthResolver;
-use Papercut\Style\StyleResolver;
+use Papercut\Style\PageThemes;
 use Papercut\Tree\TreeWalker;
 
 /**
@@ -39,9 +39,10 @@ final class DocxExporter implements Exporter
     public function export(Document $doc, ExportOptions $options): Output
     {
         $options = DocxOptions::from($options);
-        $styles = new StyleResolver($options->theme());
+        $themes = PageThemes::for($options->theme(), $doc);
+        $styles = $themes->documentStyles();
         $fidelity = new Fidelity('docx', $options);
-        NoteReporter::report($doc, $styles, $fidelity);
+        NoteReporter::report($doc, $themes, $fidelity);
 
         $pages = $doc->pages();
         foreach ($pages as $i => $page) {
@@ -77,10 +78,10 @@ final class DocxExporter implements Exporter
         $root = $styles->root();
         $fonts = new WordFonts($options->fonts());
         $fonts->name($root->fontFamily);
-        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts, $options->theme());
-        $index = TocIndex::collect($doc, $styles);
-        $widths = WidthResolver::for($options, 'docx', $index);
-        $toc = $index->hasToc() ? new TocMapper($index, self::anchorPages($doc, $options, $index), $styles, $text, $fonts) : null;
+        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts, $themes->document());
+        $index = TocIndex::collect($doc, $themes);
+        $widths = WidthResolver::for($options, 'docx', $index, $themes);
+        $toc = $index->hasToc() ? new TocMapper($index, self::anchorPages($doc, $options, $index, $themes), $styles, $text, $fonts) : null;
         $visitor = new DocxVisitor(
             $fidelity,
             $widths,
@@ -92,8 +93,9 @@ final class DocxExporter implements Exporter
             new ListMapper($numbering, $fidelity),
             new ImageMapper($fidelity, DefaultBackend::make(false), Raster::detect()),
             $toc,
+            $themes,
         );
-        (new TreeWalker($styles))->walk($doc, $visitor);
+        (new TreeWalker($themes))->walk($doc, $visitor);
         $sections = $this->sections($visitor);
         $first = $visitor->pages()[0]['page'];
 
@@ -131,7 +133,7 @@ final class DocxExporter implements Exporter
      *
      * @return array<string, int>
      */
-    private static function anchorPages(Document $doc, DocxOptions $options, TocIndex $index): array
+    private static function anchorPages(Document $doc, DocxOptions $options, TocIndex $index, PageThemes $themes): array
     {
         self::$layoutPasses++;
         try {
@@ -139,13 +141,14 @@ final class DocxExporter implements Exporter
             $backend = $pdf->backend();
             $ctx = new LayoutContext(
                 FontRegistry::fromSet($pdf->fonts(), $backend),
-                $pdf->theme(),
+                $themes->document(),
                 $backend,
                 OverflowMode::Clip,
                 static function (string $message, ?FidelityReport $report = null): void {
                 },
                 $pdf->fonts()->fallbacks,
             );
+            $ctx->themes = $themes;
             $ctx->toc = $index;
 
             return Painter::anchorPages((new Paginator(new LayoutEngine($ctx), $ctx))->paginate($doc));

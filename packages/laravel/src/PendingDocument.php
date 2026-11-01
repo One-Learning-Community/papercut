@@ -33,6 +33,20 @@ final class PendingDocument
         return new self($this->document, $this->manager, is_string($password) ? Encryption::password($password) : $password);
     }
 
+    /**
+     * A copy whose document has these theme values merged on top of the view's own (see {@see ThemeConfig::KEYS}).
+     * It runs after the view rendered: it can change values and restyle existing style names, but a new style
+     * name a view uses must come from config or the view's `:theme`.
+     *
+     * @param array<mixed> $values
+     */
+    public function theme(array $values): self
+    {
+        $override = ThemeConfig::override($values, 'in ->theme()', $this->manager->fontFamilies());
+
+        return new self($this->document->theme($override), $this->manager, $this->encryption);
+    }
+
     public function document(): Document
     {
         return $this->document;

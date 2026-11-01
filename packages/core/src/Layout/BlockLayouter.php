@@ -6,7 +6,6 @@ namespace Papercut\Layout;
 
 use Papercut\{Link, Node, PageBreak, Spacer, View};
 use Papercut\Style\{Align, ComputedStyle, Direction};
-use Papercut\Tree\Expander;
 use Papercut\Value\Length;
 
 /**
@@ -66,7 +65,7 @@ final class BlockLayouter implements Layouter
         $breakAt = null;
 
         for ($i = $start; $i < $count; $i++) {
-            $child = Expander::expand($children[$i]);
+            $child = $engine->expand($children[$i]);
             $resuming = $resumeToken !== null && $i === $start;
 
             if ($child instanceof PageBreak) {
@@ -249,7 +248,7 @@ final class BlockLayouter implements Layouter
         $min = 0.0;
         $max = 0.0;
         foreach (self::children($node) as $i => $child) {
-            $child = Expander::expand($child);
+            $child = $engine->expand($child);
             if ($child instanceof Spacer || $child instanceof PageBreak) {
                 continue;
             }
@@ -288,7 +287,7 @@ final class BlockLayouter implements Layouter
             return false;
         }
         $i = count($children) - 1;
-        $last = Expander::expand($children[$i]);
+        $last = $engine->expand($children[$i]);
         if ($last instanceof PageBreak) {
             return true;
         }
@@ -309,7 +308,7 @@ final class BlockLayouter implements Layouter
             return false;
         }
         $i = count($children) - 1;
-        $last = Expander::expand($children[$i]);
+        $last = $engine->expand($children[$i]);
         if ($last instanceof PageBreak) {
             return false;
         }
@@ -356,7 +355,7 @@ final class BlockLayouter implements Layouter
         $m = count($frags);
         $j = $n - 1;
         while ($j >= 0 && $n - $j <= $m) {
-            $cs = $engine->styleOf(Expander::expand($children[$j]), $style, $j);
+            $cs = $engine->styleOf($engine->expand($children[$j]), $style, $j);
             if (!$cs->keepWithNext) {
                 break;
             }
@@ -370,7 +369,7 @@ final class BlockLayouter implements Layouter
         if ($m === 0) {
             return null;
         }
-        $last = Expander::expand($children[$n - 1]);
+        $last = $engine->expand($children[$n - 1]);
         $inner = self::trailingKeepOffset($last, $engine->styleOf($last, $style, $n - 1), $frags[$m - 1]['fragment'], $engine);
         if ($inner === null) {
             // the last child is all chain: cut before it, unless it is all that was placed
