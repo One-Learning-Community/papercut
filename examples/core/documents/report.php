@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // Builds the report Document; examples/core/report.php saves it as PDF and examples/html/render.php as HTML.
-use Papercut\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Table, TableRow, Text};
+use Papercut\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Table, TableRow, Text, Toc};
 use Papercut\Value\Edges;
 
 use function Papercut\{mm, pt};
@@ -90,6 +90,7 @@ $body = [
     Text::make('Designing Papercut')->bold()->size(pt(32))->color('slate-900'),
     Text::make('A short report on layout, pagination, and deterministic output')->size(pt(13))->color('slate-500'),
     $cards->margin(Edges::of(pt(10), pt(0), pt(10), pt(0))),
+    Toc::make()->title('Contents')->levels(1, 2),
     Text::h1($sections[0]),
 ];
 foreach ($prose as $i => $p) {

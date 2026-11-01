@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Style;
 
-use Papercut\{Link, ListItem, ListNode, Node, Place, Styled, TableCell, Text, View};
+use Papercut\{Link, ListItem, ListNode, Node, Place, Styled, TableCell, Text, Toc as TocNode, View};
 use Papercut\Value\Edges;
 
 use function Papercut\pt;
@@ -93,6 +93,9 @@ final class StyleResolver
         if ($node instanceof Text && $node->preset() !== null) {
             $preset = $node->preset();
             $style = $style->merge($preset === 'p' ? $this->theme->paragraph() : $this->theme->heading((int) substr($preset, 1)));
+        }
+        if ($node instanceof TocNode) {
+            $style = $style->merge($this->theme->named('toc'));
         }
         if ($node instanceof Styled) {
             $name = $node->styleName();

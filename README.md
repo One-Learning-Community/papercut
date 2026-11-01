@@ -125,7 +125,7 @@ published; do not assume any. Requires PHP 8.4+ and Laravel 12 or 13 (CI tests a
 
 Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning
 and ligatures within runs), right-to-left and bidirectional paragraph layout, hyphenation, Knuth-Plass line breaking,
-multi-column text flow, form filling (AcroForms), PDF/A and tables of contents. Signing and merging aren't built in, but
+multi-column text flow, form filling (AcroForms) and PDF/A. Signing and merging aren't built in, but
 php-pdf can do both to a Papercut PDF; see [Passwords, signatures and merging](https://one-learning-community.github.io/papercut/guide/passwords-and-signatures.html).
 
 ## Licenses

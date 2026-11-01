@@ -9,6 +9,7 @@ use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
 use Papercut\Paint\Painter;
 use Papercut\Style\StyleResolver;
 use Papercut\Text\FontRegistry;
+use Papercut\Toc\TocIndex;
 
 final class PdfExporter implements Exporter
 {
@@ -31,6 +32,7 @@ final class PdfExporter implements Exporter
             $fonts->fallbacks,
         );
         $ctx->bookmarks = $options->bookmarks();
+        $ctx->toc = TocIndex::collect($doc, new StyleResolver($options->theme()));
         $placed = (new Paginator(new LayoutEngine($ctx), $ctx))->paginate($doc);
 
         $meta = $doc->meta()->withEncryption($options->encryption());

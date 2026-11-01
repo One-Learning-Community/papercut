@@ -8,6 +8,7 @@ use Papercut\Backend\DefaultBackend;
 use Papercut\Document;
 use Papercut\Html\{Css, FontFaces, FontRequests, FontStack, HtmlWriter, Stylesheet};
 use Papercut\Style\StyleResolver;
+use Papercut\Toc\TocIndex;
 use Papercut\Tree\TreeWalker;
 
 final class HtmlExporter implements Exporter
@@ -24,7 +25,7 @@ final class HtmlExporter implements Exporter
         $styles = new StyleResolver($options->theme());
         $fidelity = new Fidelity('html', $options);
         NoteReporter::report($doc, $styles, $fidelity);
-        $writer = new HtmlWriter($doc, $fidelity, $options, DefaultBackend::make(false));
+        $writer = new HtmlWriter($doc, $fidelity, $options, DefaultBackend::make(false), TocIndex::collect($doc, $styles));
         (new TreeWalker($styles))->walk($doc, $writer);
 
         $meta = $doc->meta();

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Tree;
 
-use Papercut\{Component, Document, Node, Page, PageNumber, Row, Table, TableCell, TableRow, Text};
+use Papercut\{Component, Document, Node, Page, PageNumber, Row, Table, TableCell, TableRow, Text, Toc};
+use Papercut\Exception\InvalidStructure;
 use Papercut\Export\PdfOptions;
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Value\Color;
@@ -190,6 +191,19 @@ final class TreeWalkerTest extends TestCase
     {
         $doc = Document::make(Page::a4()->body('b')->firstHeader(Text::make('x')->apply('nope')));
         self::assertStringContainsString('page > first-header > text[0]', self::messageOf(fn () => $this->walk($doc)));
+    }
+
+    public function test_toc_outside_the_body_throws(): void
+    {
+        foreach (['header', 'footer', 'background'] as $region) {
+            try {
+                $this->walk(Document::make(Page::a4()->$region(Toc::make())));
+                self::fail("a toc in the $region should throw");
+            } catch (InvalidStructure $e) {
+                self::assertStringContainsString('table of contents', $e->getMessage());
+                self::assertStringContainsString("page > $region > toc[0]", $e->getMessage());
+            }
+        }
     }
 
     /** @return list<string> */

@@ -206,6 +206,7 @@ Style attributes (next section) work on every tag marked "style" below. Values a
 | `<x-doc::node>` | `node` | Embeds a PHP-built `Node` or `Component` (anything else throws `InvalidValue`). As a block among blocks. Inside a text tag a `Text` joins the line; a `View` is flattened into it like `Markup::flatten()` (block content approximated, images and other nodes dropped, each reported). |
 | `<x-doc::spacer>` | `size` | `size="10mm"` is a fixed gap; with no `size` it is flexible (`grow`, default 1). Only `grow` is accepted besides `size`/`style`. |
 | `<x-doc::page-number>` | `format`, `align`, `size` | Style. `format` uses `{page}` and `{total}`; no content allowed. |
+| `<x-doc::toc>` | `levels`, `title`, `leaders` | Table of contents. `levels="2"` or `"1-3"` (1 to 4); `title` is a line above the list; `leaders` (default on) draws dot leaders; no content allowed. Leave a heading out with `toc="false"`. |
 | `<x-doc::page-break>` | none | Forces a new page. |
 
 On `row`, `column` and `view`, `align` is a shorthand for `align-items`. On text tags, `align` is `text-align` and `size` is `font-size`. Every style-capable tag also accepts `style="name"` (a [named style](#named-styles)).
@@ -241,6 +242,7 @@ These attributes are accepted by every tag marked "style" above. Lengths are `pt
 | `min-lines` | `min-lines="2"` | integer 1 or more (widow/orphan control) |
 | `bookmark` | `bookmark="Summary"` | title for the PDF's bookmarks panel; headings get one automatically, `:bookmark="false"` removes it |
 | `bookmark-level` | `bookmark-level="2"` | integer 1 or more; nesting depth of the bookmark |
+| `toc` | `toc="false"` | boolean; `false` leaves a heading out of every `<x-doc::toc>` (it keeps its bookmark) |
 
 Boolean values: bare attribute or `true`/`1`/`false`/`0`. Any attribute not listed here (or in the tag's own attributes) throws `UnknownAttribute`, with the tag named and a suggestion when one is close.
 

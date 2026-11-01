@@ -56,3 +56,4 @@ Every tag marked **Style** in the [tag reference](./blade-tags.md) accepts these
 |---|---|---|
 | `bookmark` | `bookmark="Summary"` | a title for the PDF's bookmarks panel. Headings get one automatically; `:bookmark="false"` removes it. |
 | `bookmark-level` | `bookmark-level="2"` | an integer, 1 or more. How deeply the bookmark is nested. |
+| `toc` | `toc="false"` | a boolean. `false` leaves a heading out of every [table of contents](/guide/pages.md#tables-of-contents). It keeps its bookmark. |

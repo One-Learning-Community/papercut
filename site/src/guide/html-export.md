@@ -38,6 +38,8 @@ Browsers don't have pages, so a few things are approximated: fraction column wid
 
 A few things are dropped, and [strict mode](./rich-text.md#strict-mode) fails an HTML export on them: PDF page templates and embedded PDF pages. Code highlighting that can't be done is dropped in every format, as [Code blocks](./text.md#code-blocks) explains. Without strict mode these are reported as warnings.
 
+A [table of contents](./pages.md#tables-of-contents) becomes a `<nav class="papercut-toc">` with nested ordered lists of links to the headings. Headings that are entries get an `id` (a slug of their text, with `-2` added on a clash). It has no page numbers or leaders, and each table of contents is reported once as approximated.
+
 To pick the HTML element a view exports as, call `htmlTag()` (`div`, `section`, `aside`, `blockquote`, `header`, `footer` or `figure`). PDF ignores it.
 
 The HTML uses meaningful tags where it can: sections become `<section>`, callouts `<aside>`, blockquotes `<blockquote>`, lists `<ol>` or `<ul>`, and tables `<table>`.

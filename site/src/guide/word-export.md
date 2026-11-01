@@ -62,6 +62,14 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | SVG text | ≈ in the system's fonts |
 | Pictures without the PHP extension they need (below) | ✗ left out |
 
+### Table of contents
+
+A [table of contents](./pages.md#tables-of-contents) becomes a real Word table of contents field. Papercut fills it in with the entries and the page numbers from the PDF layout, so readers see them as soon as the file opens. Word paginates a little differently from the PDF, so a number can be a page off. Right-click the table and choose Update Field for exact numbers.
+
+An updated field rebuilds itself from Word's Heading 1 to Heading 4 styles, so two things aren't honoured after an update: `toc(false)` (the heading comes back), and a level set with `bookmark($title, $level)` (the heading's own level is used).
+
+To get those page numbers, Word export runs the PDF layout for a document that has a table of contents, and only for those. If the page layout can't run, for instance because a font isn't registered, the export still succeeds and the field is written without page numbers. Right-click the table and choose Update Field in Word to fill them in.
+
 ### Fonts in Word
 
 Word has no way to embed Papercut's fonts, so a reader sees the font by name. Papercut writes each font's PANOSE number, family class and pitch in the document's font table, which lets Word pick a close stand-in when the font is not installed: a sans-serif for Inter, a monospace for Cousine.

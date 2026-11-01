@@ -17,6 +17,8 @@
                 <x-stat-card label="TABLE ROWS" value="{{ count($scenarios) }}" note="split across pages, header repeated" color="emerald-600" />
             </x-doc::row>
 
+            <x-doc::toc title="Contents" levels="1-2" />
+
             <x-doc::h1>1. Overview</x-doc::h1>
             @foreach ($prose as $i => $paragraph)
                 @if ($i === 3)

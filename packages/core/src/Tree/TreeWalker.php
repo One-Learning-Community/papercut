@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Tree;
 
-use Papercut\{Component, Document, Link, ListItem, ListNode, Node, Page, Place, Table, TableCell, TableRow, View};
-use Papercut\Exception\{InvalidValue, UnknownAttribute};
+use Papercut\{Component, Document, Link, ListItem, ListNode, Node, Page, Place, Table, TableCell, TableRow, Toc, View};
+use Papercut\Exception\{InvalidStructure, InvalidValue, UnknownAttribute};
 use Papercut\Style\{ComputedStyle, StyleResolver};
 
 /**
@@ -70,6 +70,9 @@ final class TreeWalker
         $path = $parentPath . ' > ' . NodePath::segment($node, $style, $index);
         if ($node instanceof Place && ($region !== Region::Overlay || $parentNode !== null)) {
             throw new \LogicException(sprintf('A place only works in a page overlay; add it with Page::overlay(), not inside other content (at %s).', $path));
+        }
+        if ($node instanceof Toc && $region !== Region::Body) {
+            throw new InvalidStructure(sprintf('A table of contents only works in a page body (at %s).', $path));
         }
 
         $at = new Visit($path, $index, $parentNode, $inHeader, $region);

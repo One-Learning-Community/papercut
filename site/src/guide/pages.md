@@ -356,6 +356,64 @@ Bookmarks you add are top-level unless you give them a level, with `bookmark-lev
 
 To leave the panel empty, pass `bookmarks: false` to `PdfOptions`, or set `'bookmarks' => false` in the Laravel config. HTML exports don't have a bookmarks panel, so this only affects PDFs.
 
+## Tables of contents
+
+A table of contents lists your headings with the page each one lands on. Put it anywhere in a page body, before or after the headings it lists:
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::h1 toc="false">Handbook</x-doc::h1>
+<x-doc::toc title="Contents" levels="1-3" />
+<x-doc::page-break />
+
+<x-doc::h1>Getting started</x-doc::h1>
+<x-doc::h2>Installing</x-doc::h2>
+<x-doc::h2 toc="false">Not listed</x-doc::h2>
+```
+@tab PHP
+```php
+use Papercut\{Column, Document, Page, PageBreak, Text, Toc};
+
+$document = Document::make(Page::letter()->body(Column::make(
+    Text::h1('Handbook')->toc(false),
+    Toc::make()->title('Contents')->levels(1, 3),
+    PageBreak::make(),
+    Text::h1('Getting started'),
+    Text::h2('Installing'),
+    Text::h2('Not listed')->toc(false),
+)));
+```
+:::
+
+Each entry is a heading's text, dot leaders, and its page number, right-aligned. A long title wraps, and the number sits on its last line. In the PDF every entry is a link to its heading. Page numbers are physical pages, the same as `{page}`, so a cover page is page 1.
+
+The options:
+
+- `levels` picks which heading levels to list, from 1 to 4. The default is 1 to 2. In Blade, `levels="2"` is just level 2 and `levels="1-3"` is a range. In PHP, it's `->levels(1, 3)`.
+- `title` adds a line above the list. There is no default title. It isn't a heading, so it gets no bookmark and no entry.
+- `leaders` turns the dot leaders off with `:leaders="false"` (or `leaders="false"`) in Blade and `->leaders(false)` in PHP.
+
+The entries are the `h1` to `h4` headings in page bodies, in document order, including headings from [rich text](./rich-text.md). A document can have more than one table of contents, and each one is independent. Headings in headers, footers, backgrounds and overlays are never listed, and a table of contents there throws `InvalidStructure`. If no heading matches, the table of contents draws only its title and reports a warning.
+
+To leave a heading out, use `toc="false"` in Blade or `->toc(false)` in PHP. It keeps its bookmark. Setting `bookmark="Short title"` also sets the entry's text. `bookmark(false)` turns off the bookmark only, so the entry still shows the heading's own text. A level from `bookmark($title, $level)` is the entry's level too.
+
+The table of contents is an ordinary block. Entries never split across pages, and it doesn't start a new page by itself. Add a page break after it, as above, to start your content on a fresh page. The `PdfOptions` setting that turns bookmarks off doesn't affect it.
+
+Its look comes from named styles you can change like any other (see [Styles and themes](./styles.md)):
+
+| Style | Default |
+|---|---|
+| `toc` | The whole block, with a 12pt bottom margin. |
+| `toc.title` | 14pt, bold, 8pt bottom margin. |
+| `toc.entry` | Every entry, 3pt bottom margin. |
+| `toc.level-1` | Bold, 6pt above. |
+| `toc.level-2`, `toc.level-3`, `toc.level-4` | Indented 12pt, 24pt and 36pt. |
+
+The table of contents also takes the normal style attributes, such as `margin` or `color`. It takes no content inside the tag.
+
+In [Word](./word-export.md#table-of-contents) it is a real table of contents field, and in [HTML](./html-export.md#what-s-different-in-html) it is a list of links.
+
 ## Content that doesn't fit
 
 Occasionally something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.

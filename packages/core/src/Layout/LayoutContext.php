@@ -9,6 +9,7 @@ use Papercut\Backend\{Backend, ImageHandle, PdfPageHandle, PdfPageLoader};
 use Papercut\Export\{FidelityLevel, FidelityReport};
 use Papercut\Style\{ComputedStyle, StyleResolver, Theme};
 use Papercut\Text\{FontRegistry, Itemizer, SvgFonts};
+use Papercut\Toc\TocIndex;
 
 /**
  * Shared state for one layout run: fonts, theme, images, warnings, the
@@ -35,6 +36,10 @@ final class LayoutContext
     public private(set) ?string $lastFailurePath = null;
     /** Off while laying out headers, footers and backgrounds, which repeat on every page. */
     public bool $bookmarks = true;
+    /** Off while laying out repeating bands, like $bookmarks. */
+    public bool $anchors = true;
+    /** The headings the document's tables of contents list; empty when there is none. */
+    public TocIndex $toc;
     /** Off for a trial layout that must not clip a too-tall node in place (Clip mode), so the paginator can try the next page instead. */
     public bool $clipInPlace = true;
     /** On inside quietly(). */
@@ -54,6 +59,7 @@ final class LayoutContext
         public readonly string $format = 'pdf',
     ) {
         $this->styles = new StyleResolver($theme);
+        $this->toc = TocIndex::empty();
     }
 
     /** The theme's root style, computed once per layout run so memoized child styles are shared across pages. */
