@@ -53,7 +53,7 @@ These work the same way as their flexbox namesakes:
 | `basis()` | `basis="40%"` | A child's starting size, before growing or shrinking. |
 | `wrap()` | `wrap` | Lets a row wrap onto more than one line. |
 
-`Spacer::flex()` grows to fill the available space, and `Spacer::size(in(0.4))` adds a fixed gap. In Blade, both are `<x-doc::spacer>`: add a `size` for a fixed gap, or leave it off for a flexible one.
+`Spacer::flex()` grows to fill the available space, and `Spacer::fixed(in(0.4))` adds a fixed gap. In Blade, both are `<x-doc::spacer>`: add a `size` for a fixed gap, or leave it off for a flexible one.
 
 ## Sizing boxes
 
