@@ -155,6 +155,123 @@
           "variants": []
         }
       ]
+    },
+    {
+      "title": "Decorators",
+      "tiles": [
+        {
+          "id": "card",
+          "title": "Card",
+          "api": "/guide/decorators.html#card",
+          "alt": "A bordered card with a title strip, a name, a description and two details",
+          "pages": 1,
+          "variants": [
+            {
+              "id": "flat",
+              "label": "variant=\"flat\"",
+              "alt": "The same card as a tinted panel with no border"
+            }
+          ]
+        },
+        {
+          "id": "callout",
+          "title": "Callout",
+          "api": "/guide/decorators.html#callout",
+          "alt": "Four callouts: note, tip, warning and danger, each with a title",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "blockquote",
+          "title": "Blockquote",
+          "api": "/guide/decorators.html#blockquote",
+          "alt": "A quotation with a rule down the left and an attribution under it",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "section",
+          "title": "Section",
+          "api": "/guide/decorators.html#section",
+          "alt": "A numbered section with a rule under its heading, a question and an answer box",
+          "pages": 1,
+          "variants": [
+            {
+              "id": "large",
+              "label": "variant=\"large\"",
+              "alt": "The same section with a bigger number and title"
+            }
+          ]
+        },
+        {
+          "id": "field",
+          "title": "Field",
+          "api": "/guide/decorators.html#field",
+          "alt": "Two answer boxes with labels: one filled in, one showing a placeholder",
+          "pages": 1,
+          "variants": [
+            {
+              "id": "line",
+              "label": "variant=\"line\"",
+              "alt": "The same fields as form lines with only a bottom rule"
+            }
+          ]
+        },
+        {
+          "id": "choice-list",
+          "title": "Choice list",
+          "api": "/guide/decorators.html#choice-list",
+          "alt": "A checkbox list with two choices ticked beside a radio list with one chosen",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "key-value-list",
+          "title": "Key-value list",
+          "api": "/guide/decorators.html#key-value-list",
+          "alt": "Aligned label and value rows, the last with a badge",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "badge",
+          "title": "Badge",
+          "api": "/guide/decorators.html#badge",
+          "alt": "Five badges: neutral, note, tip, warning and danger",
+          "pages": 1,
+          "variants": [
+            {
+              "id": "outline",
+              "label": "variant=\"outline\"",
+              "alt": "The same badges outlined in their colour, with no fill"
+            }
+          ]
+        },
+        {
+          "id": "stat",
+          "title": "Stat",
+          "api": "/guide/decorators.html#stat",
+          "alt": "Three figures on tinted panels: revenue, orders and rating, each with a note",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "totals",
+          "title": "Totals",
+          "api": "/guide/decorators.html#totals",
+          "alt": "Subtotal, tax and a bold total due, amounts right-aligned",
+          "pages": 1,
+          "variants": []
+        },
+        {
+          "id": "signature",
+          "title": "Signature",
+          "api": "/guide/decorators.html#signature",
+          "alt": "A signed line with name, role and date beside a blank line for a witness",
+          "pages": 1,
+          "variants": []
+        }
+      ]
     }
   ]
 }

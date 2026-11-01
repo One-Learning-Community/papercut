@@ -64,6 +64,18 @@ final class Raster
         return $out;
     }
 
+    /** Centres the image horizontally on a white canvas at least $width wide, so images from same-width pages share one scale. */
+    public static function centerOn(\GdImage $img, int $width): \GdImage
+    {
+        if (imagesx($img) >= $width) {
+            return $img;
+        }
+        $out = self::white($width, imagesy($img));
+        imagecopy($out, $img, intdiv($width - imagesx($img), 2), 0, 0, 0, imagesx($img), imagesy($img));
+
+        return $out;
+    }
+
     private static function white(int $w, int $h): \GdImage
     {
         $img = imagecreatetruecolor(max(1, $w), max(1, $h));
