@@ -27,9 +27,9 @@ composer --working-dir=packages/core install
 composer --working-dir=packages/laravel install
 ```
 
-The Laravel and DOCX packages' path repositories pin core (and DOCX) to `0.3.x-dev` (`options.versions` in its `composer.json`), so it
-resolves on any branch or detached checkout. Bump that pin together with core's `branch-alias` when the minor
-version changes.
+The Laravel and DOCX packages' path repositories pin core (and DOCX) to the current minor's `x-dev` version (`options.versions` in its `composer.json`), so it
+resolves on any branch or detached checkout. Bump that pin together with core's `branch-alias` and the `papercut/*`
+requirements when the minor version changes.
 
 ## Running the tests
 
@@ -117,8 +117,8 @@ Never commit to the split repos directly; they are overwritten on every split.
 1. Make sure `main` is green.
 2. In `CHANGELOG.md` change `## [X.Y.Z] - unreleased` to the release date (`release.yml` refuses an unreleased
    or missing section) and add a fresh `## [Unreleased]` section.
-3. If the minor version changed, bump core's `extra.branch-alias` and the `versions` pin in the Laravel and DOCX
-   path repos.
+3. If the minor version changed, bump core's `extra.branch-alias`, the `versions` pin in the Laravel and DOCX
+   path repos, and their `papercut/core` and `papercut/docx` requirements (`^X.Y`).
 4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Papercut X.Y.Z" && git push origin main vX.Y.Z`.
 5. Verify in a scratch project: `composer require papercut/core papercut/laravel papercut/docx`, then render one
    document with each.

@@ -30,6 +30,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `papercut/laravel` and `papercut/docx` require `papercut/core` `^0.6` (and Laravel's dev requirement on `papercut/docx` is `^0.6`); they still asked for `^0.5`, which no 0.6 core satisfies.
+- A release candidate tag (`v1.0.0-rc.1`, any version with a `-`) is published as a GitHub pre-release.
 - A table row too tall for one page, split just below the header, no longer paints its first line past the bottom of the page when that line doesn't fit below the header. This includes rows with spanning cells and tables inside table cells. A repeated header is left out on that page instead; on the first page the header stands alone and the rows start on the next page, with a warning.
 
 ## [0.5.0] - 2026-10-29

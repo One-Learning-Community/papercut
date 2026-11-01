@@ -71,4 +71,4 @@ jobs:
         with:
           name: Papercut ${{ needs.notes.outputs.version }}
           body_path: release-notes.md
-          prerelease: ${{ startsWith(needs.notes.outputs.version, '0.') }}
+          prerelease: ${{ startsWith(needs.notes.outputs.version, '0.') || contains(needs.notes.outputs.version, '-') }}
