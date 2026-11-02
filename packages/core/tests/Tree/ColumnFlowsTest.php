@@ -241,15 +241,26 @@ final class ColumnFlowsTest extends TestCase
         self::assertSame(['column:column', 'row:row'], $visitor->seen['page > body > column[0] > row[0] > text[0]']);
     }
 
-    /** @return array<string, array{Region, list<string>}> where the probe was laid out, by region it was put in */
+    /** @return array<string, array{Region, list<string>, list<string>}> where the probe was laid out, by region it was put in */
     private function probed(Page $page): array
     {
         $seen = new \ArrayObject();
+        [$ctx, $engine] = $this->engineWithProbe($seen);
+        (new Paginator($engine, $ctx))->paginate(Document::make($page));
+        return $seen->getArrayCopy();
+    }
+
+    /**
+     * @param \ArrayObject<string, array{Region, list<string>, list<string>}> $seen
+     * @return array{LayoutContext, LayoutEngine}
+     */
+    private function engineWithProbe(\ArrayObject $seen): array
+    {
         $b = new FakeBackend();
         $ctx = new LayoutContext(FontRegistry::withDefaults($b), Theme::default(), $b, OverflowMode::Throw, null);
         $engine = new LayoutEngine($ctx);
         $engine->register(RegionProbe::class, new class ($ctx, $seen) implements Layouter {
-            /** @param \ArrayObject<string, array{Region, list<string>}> $seen */
+            /** @param \ArrayObject<string, array{Region, list<string>, list<string>}> $seen */
             public function __construct(private readonly LayoutContext $ctx, private readonly \ArrayObject $seen)
             {
             }
@@ -260,6 +271,7 @@ final class ColumnFlowsTest extends TestCase
                 $this->seen[$node->label] = [
                     $this->ctx->region,
                     array_map(fn (array $a): string => $a['node']->debugName(), $this->ctx->ancestors()),
+                    array_map(fn (array $a): string => $a['node']->debugName(), $this->ctx->lineage()),
                 ];
                 return LayoutResult::complete(new Fragment($c->width, 1.0));
             }
@@ -269,8 +281,7 @@ final class ColumnFlowsTest extends TestCase
                 return ['min' => 0.0, 'max' => 0.0];
             }
         });
-        (new Paginator($engine, $ctx))->paginate(Document::make($page));
-        return $seen->getArrayCopy();
+        return [$ctx, $engine];
     }
 
     public function test_layout_reports_the_region_and_ancestors_without_the_region_root(): void
@@ -283,12 +294,30 @@ final class ColumnFlowsTest extends TestCase
                 ->body(new RegionProbe('top'), Column::make(Row::make(new RegionProbe('deep'))))
                 ->overlay(\Papercut\Place::at('10pt', '10pt', new RegionProbe('overlay'))),
         );
-        self::assertSame([Region::Body, []], $seen['top']);
-        self::assertSame([Region::Body, ['column', 'row']], $seen['deep']);
-        self::assertSame([Region::Header, []], $seen['header']);
-        self::assertSame([Region::Footer, ['column']], $seen['footer']);
-        self::assertSame([Region::Background, []], $seen['background']);
+        self::assertSame([Region::Body, [], ['probe']], $seen['top']);
+        self::assertSame([Region::Body, ['column', 'row'], ['column', 'row', 'probe']], $seen['deep']);
+        self::assertSame([Region::Header, [], ['probe']], $seen['header']);
+        self::assertSame([Region::Footer, ['column'], ['column', 'probe']], $seen['footer']);
+        self::assertSame([Region::Background, [], ['probe']], $seen['background']);
         self::assertSame(Region::Overlay, $seen['overlay'][0]);
+    }
+
+    public function test_lineage_ends_with_the_node_being_laid_out_and_ancestors_leaves_it_out(): void
+    {
+        $seen = $this->probed(Page::a4()->body(ColumnFlow::make(new RegionProbe('inflow'))));
+        self::assertSame(['column-flow'], $seen['inflow'][1]);
+        self::assertSame(['column-flow', 'probe'], $seen['inflow'][2]);
+    }
+
+    public function test_a_direct_engine_call_drops_nothing(): void
+    {
+        $seen = new \ArrayObject();
+        [$ctx, $engine] = $this->engineWithProbe($seen);
+        $padded = View::make(new RegionProbe('direct'))->padding(Length::points(4));
+        $engine->layout($padded, ComputedStyle::root(Theme::default()), new Constraints(200.0, null, true));
+        self::assertSame([Region::Body, ['view'], ['view', 'probe']], $seen['direct']);
+        $ancestors = $ctx->ancestors();
+        self::assertSame([], $ancestors);
     }
 }
 

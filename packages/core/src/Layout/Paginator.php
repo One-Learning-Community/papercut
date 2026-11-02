@@ -332,21 +332,13 @@ final class Paginator
     }
 
     /**
-     * Runs $layout with the context's region set, for the placement rules of ColumnFlow.
-     *
      * @template T
      * @param \Closure(): T $layout
      * @return T
      */
     private function inRegion(Region $region, \Closure $layout): mixed
     {
-        $was = $this->ctx->region;
-        $this->ctx->region = $region;
-        try {
-            return $layout();
-        } finally {
-            $this->ctx->region = $was;
-        }
+        return $this->ctx->inRegion($region, $layout);
     }
 
     /**

@@ -42,6 +42,8 @@ final class LayoutContext
     public Region $region = Region::Body;
     /** @var list<array{node: Node, style: ComputedStyle}> every node being laid out, outermost first, the current one last */
     private array $stack = [];
+    /** Stack index of the region root while inRegion() runs, or null outside it. */
+    private ?int $rootIndex = null;
     /** Off while laying out headers, footers and backgrounds, which repeat on every page. */
     public bool $bookmarks = true;
     /** Off while laying out repeating bands, like $bookmarks. */
@@ -201,15 +203,45 @@ final class LayoutContext
     }
 
     /**
-     * The nodes around the one being laid out, from just below the region root to its parent. The root
-     * (the call the paginator makes for a region: the body, a header or footer column, the background)
-     * is left out, so a body's own wrapper never counts as an ancestor.
+     * Runs $fn with the region set; the first node laid out inside is the region's root (the body View,
+     * a header or footer column, the background), which ancestors() and lineage() leave out.
+     *
+     * @template T
+     * @param \Closure(): T $fn
+     * @return T
+     */
+    public function inRegion(Region $region, \Closure $fn): mixed
+    {
+        $was = [$this->region, $this->rootIndex];
+        $this->region = $region;
+        $this->rootIndex = count($this->stack);
+        try {
+            return $fn();
+        } finally {
+            [$this->region, $this->rootIndex] = $was;
+        }
+    }
+
+    /**
+     * The nodes around the one being laid out, from just below the region root to its parent: what a
+     * layouter needs to judge itself. Outside inRegion() (a direct engine call) nothing is dropped.
      *
      * @return list<array{node: Node, style: ComputedStyle}>
      */
     public function ancestors(): array
     {
-        return array_slice($this->stack, 1, -1);
+        return array_slice($this->lineage(), 0, -1);
+    }
+
+    /**
+     * Like ancestors() but ending with the node being laid out: what a layouter needs to judge its own
+     * children, which are not pushed until they are laid out.
+     *
+     * @return list<array{node: Node, style: ComputedStyle}>
+     */
+    public function lineage(): array
+    {
+        return array_slice($this->stack, $this->rootIndex === null ? 0 : $this->rootIndex + 1);
     }
 
     public function path(): string
