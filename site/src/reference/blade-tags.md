@@ -21,6 +21,8 @@ Tags marked **Style** accept every [style attribute](./style-attributes.md), plu
 | `<x-doc::row>` | `align` | Style. Children side by side. |
 | `<x-doc::column>` | `align` | Style. Children top to bottom. |
 | `<x-doc::spacer>` | `size` | A fixed gap with `size`, a flexible one without. Accepts `grow` and nothing else. |
+| `<x-doc::column-flow>` | `columns`, `widths`, `column-gap`, `rule` | Style. Text set in [columns](/guide/layout.md#column-flow), like Word's. `columns` is 1 to 45 (default 2); `widths="2 1"` sets unequal columns as ratios; `column-gap` is one length, or one per gap (default 36pt); `rule` draws a line in each gap, bare or `rule="1pt slate-400"`. `gap` spaces the children, as on any box. No border, background, padding or size: wrap it in a `view` for those. Not inside a table cell, a row, another flow, or a header, footer, background or overlay. |
+| `<x-doc::column-break>` | none | Sends what follows to the next column; in the last column, to the next page. Only inside a `column-flow`. |
 
 On boxes, `align` is short for `align-items`.
 

@@ -16,7 +16,7 @@ Templates use a small set of `<x-doc::*>` tags instead of HTML and CSS. That's w
 
 **[Documentation](https://one-learning-community.github.io/papercut/)** · [Guide](https://one-learning-community.github.io/papercut/guide/) · [Laravel](https://one-learning-community.github.io/papercut/laravel/) · [Recipes](https://one-learning-community.github.io/papercut/laravel/recipes.html) · [Reference](https://one-learning-community.github.io/papercut/reference/blade-tags.html) · [Examples](https://one-learning-community.github.io/papercut/examples.html)
 
-> **Status: 0.6, before 1.0.** Until 1.0 a minor version may change the API; patch versions won't. See [Status](#status) below.
+> **Status: 0.7, before 1.0.** Until 1.0 a minor version may change the API; patch versions won't. See [Status](#status) below.
 
 ## A Blade document
 
@@ -74,6 +74,7 @@ Preview routes render each document with sample data at a fixed URL while you wo
 
 - Flexbox-style layout: rows, columns, `gap`, `grow`, `justify`, `align`, spacers.
 - Page-aware tables: rows split across pages, never through a row unless a row is taller than a page; headers repeat on every page a table crosses; cells can span rows and columns.
+- Text in columns, like Word's: content fills each column and then the next page, the last page ends level, and Word export keeps real, editable section columns.
 - Keep-together and keep-with-next, so a heading isn't stranded at the bottom of a page.
 - Page numbers with a page count (`Page {page} of {total}`), bookmarks built from headings, and a table of contents with page numbers, dot leaders and links.
 - Real fonts: every document embeds its fonts (Inter is bundled; register your own families; in Laravel, one command installs a Google Fonts family), with subsetting and fallback families. The 14 standard PDF fonts are not used.
@@ -141,7 +142,7 @@ The guide lives at [one-learning-community.github.io/papercut](https://one-learn
 
 ## Status
 
-0.6, before 1.0. Until 1.0 a minor version may change the API; patch versions won't. Word, LibreOffice and Google Docs lay out a Word file themselves, so its page breaks can differ from the PDF's. No performance or compatibility benchmarks have been
+0.7, before 1.0. Until 1.0 a minor version may change the API; patch versions won't. Word, LibreOffice and Google Docs lay out a Word file themselves, so its page breaks can differ from the PDF's. No performance or compatibility benchmarks have been
 published; don't assume any. Requires PHP 8.4+, and Laravel 12 or 13 for `papercut/laravel` (CI tests against both).
 
 Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning
