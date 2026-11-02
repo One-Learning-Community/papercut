@@ -193,7 +193,7 @@ $paperAuthors = [
     ['Reiko Havel', 'Meadowbank Field Station'],
 ];
 
-$paperAbstract = 'We tracked 48 honey bee colonies through two winters to ask whether the spacing between hives changes how many survive. '
+$paperAbstract = 'We tracked 96 honey bee colonies through two winters to ask whether the spacing between hives changes how many survive. '
     . 'Colonies kept 30 cm or more from their neighbours lost fewer bees to drift and robbing, and nearly all of them reached spring. '
     . 'Closer spacing cost colonies little in mild weather but a great deal after a cold snap. The effect held across both sites.';
 
@@ -206,24 +206,24 @@ $paperSections = [
         'The paper is organised as follows. Section 2 describes the colonies, the sites and the models. Section 3 gives the results, and Section 4 discusses what they do and do not show. Section 5 closes with a recommendation for beekeepers and a note on the trials that would settle the open questions.',
     ]],
     ['2. Methods', [
-        'We placed 48 colonies of similar size at two sites, 24 at each, in rows of four. Hives in a row stood 10, 20, 30 or 40 cm apart, and every spacing appeared six times at each site. Spacing was assigned by lot, and the same colonies kept their positions for both winters.',
+        'We placed 96 colonies of similar size at two sites, 48 at each, in rows of twelve. Hives in a row stood 10, 20, 30 or 40 cm apart, and every spacing had one row at each site. Rows were assigned a spacing by lot, and the same colonies kept their positions for both winters.',
         'Each colony began autumn with a young, marked queen and at least eight frames of bees. We weighed the hives in October and again in March, counted frames of bees on a mild day in April, and recorded every colony that had died by then. Treatment against mites followed one schedule at both sites.',
         'We compared survival with a logistic model that included site and year, and the weight lost with a linear model. Throughout, we report differences with their intervals and give p-values only where they help the reader.',
     ]],
     ['3. Results', [
-        'Survival rose with spacing, as Table 1 shows. Of the colonies kept 10 cm apart, 76 percent reached spring; at 40 cm, every one did. The gain came mostly from the second winter, which brought a week of hard frost in January.',
+        'Survival rose with spacing, as Table 1 shows. Of the colonies kept 10 cm apart, 75 percent reached spring; at 40 cm, every one did. The gain came mostly from the second winter, which brought a week of hard frost in January.',
         'The weight lost over winter fell with spacing too, by about 0.4 kg for each further 10 cm. Colonies at wide spacing also began spring with more frames of bees. Figure 1 plots survival against spacing for both years together.',
     ]],
     ['4. Discussion', [
         'Our results favour wide spacing, but not by a wide margin in mild years. In the first winter all four spacings did about equally well, and the differences appeared only after the cold snap. A beekeeper who loses one hive in ten may reasonably choose to save the ground.',
         'Two limits apply. We counted deaths but not their causes, so we cannot say whether drift, robbing or shelter explains the gain. And our rows ran across the prevailing wind; rows along it may behave differently.',
-        'Cost matters as well. Moving from 10 to 30 cm adds about a third to the length of a row of four hives, and the extra ground is the price of the gain we measured.',
+        'Cost matters as well. Moving from 10 to 30 cm adds about a third to the length of a row of twelve hives, and the extra ground is the price of the gain we measured.',
     ]],
     ['5. Conclusion', [
         'Moving hives from 10 to 30 cm apart improved winter survival in two winters at two sites. We recommend at least 30 cm where ground allows, and we encourage trials that separate the causes.',
     ]],
 ];
-$paperSurvival = [['10 cm', '12', '76%'], ['20 cm', '12', '90%'], ['30 cm', '12', '97%'], ['40 cm', '12', '100%']];
+$paperSurvival = [['10 cm', '24', '75%'], ['20 cm', '24', '88%'], ['30 cm', '24', '96%'], ['40 cm', '24', '100%']];
 
 return [
     'invoice' => [
