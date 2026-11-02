@@ -17,12 +17,18 @@ use function Papercut\pt;
 
 final class ColumnFlowBalanceTest extends TestCase
 {
+    /** @var list<string> */
+    private array $warnings = [];
+    private ?LayoutContext $lastCtx = null;
+
     /** @return list<PageDisplayList> */
-    private function paginate(Document $doc): array
+    private function paginate(Document $doc, \Papercut\OverflowMode $mode = \Papercut\OverflowMode::Throw): array
     {
         $b = new FakeBackend();
-        $ctx = new LayoutContext(FontRegistry::withDefaults($b), Theme::default(), $b, \Papercut\OverflowMode::Throw, function (string $w): void {
+        $ctx = new LayoutContext(FontRegistry::withDefaults($b), Theme::default(), $b, $mode, function (string $w): void {
+            $this->warnings[] = $w;
         });
+        $this->lastCtx = $ctx;
         return Painter::paint((new Paginator(new LayoutEngine($ctx), $ctx))->paginate($doc));
     }
 
@@ -187,8 +193,36 @@ final class ColumnFlowBalanceTest extends TestCase
         self::assertCount(1, $rules);
         self::assertEqualsWithDelta(28.0, $rules[0]->y2 - $rules[0]->y1, 1e-9);
 
-        $flow = ColumnFlow::make(ColumnBreak::make(), Text::make('L1'))->columns(3)->columnGap(pt(20))->columnRule(pt(1), Color::black());
+        // three columns, content in the first only: no gap has content on both sides
+        $flow = ColumnFlow::make(Text::make('L1'))->columns(3)->columnGap(pt(20))->columnRule(pt(1), Color::black());
         $pages = $this->paginate(Document::make($this->page()->body($flow)));
         self::assertSame([], $this->rules($pages[0]));
+    }
+
+    public function test_clip_mode_trials_do_not_clip_a_tall_first_child(): void
+    {
+        $flow = $this->flow(\Papercut\Image::bytes('x')->width(pt(50))->height(pt(60))->fit(\Papercut\Style\ImageFit::Fill), ...self::lines(1, 3));
+        $pages = $this->paginate(Document::make($this->page()->body($flow)), \Papercut\OverflowMode::Clip);
+        self::assertCount(1, $pages);
+        self::assertSame(['L1', 'L2', 'L3'], $this->column($pages[0], 120.0));
+        self::assertSame([], array_values(array_filter($this->warnings, fn (string $w) => str_contains($w, 'clipped'))));
+        $images = array_values(array_filter($pages[0]->ops, fn ($o) => $o instanceof \Papercut\Paint\DrawImage));
+        self::assertCount(1, $images);
+        self::assertEqualsWithDelta(60.0, $images[0]->height, 1e-9);
+    }
+
+    public function test_kept_block_first_in_the_flow_stays_whole(): void
+    {
+        $flow = $this->flow(View::make(...self::lines(1, 4))->keepTogether(), ...self::lines(5, 6));
+        $pages = $this->paginate(Document::make($this->page()->body($flow)));
+        self::assertSame(['L1', 'L2', 'L3', 'L4'], $this->column($pages[0], 10.0));
+        self::assertSame(['L5', 'L6'], $this->column($pages[0], 120.0));
+    }
+
+    public function test_trials_leave_no_warning_and_no_failure_path(): void
+    {
+        $this->paginate(Document::make($this->page()->body($this->flow(...self::lines(1, 7)))));
+        self::assertSame([], $this->warnings);
+        self::assertNull($this->lastCtx?->lastFailurePath);
     }
 }

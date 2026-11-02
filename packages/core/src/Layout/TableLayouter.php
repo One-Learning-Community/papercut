@@ -262,7 +262,7 @@ final class TableLayouter implements Layouter
 
     private function warnDroppedHeader(Table $table, LayoutEngine $engine): void
     {
-        if (!isset($this->headerWarned[$table])) {
+        if (!$engine->context()->muted && !isset($this->headerWarned[$table])) {
             $this->headerWarned[$table] = true;
             $engine->context()->warn('Table header leaves no room for a row; not repeated on that page');
         }

@@ -63,8 +63,7 @@ final class ColumnFlowLayouter implements Layouter
      */
     private function page(Node $node, ComputedStyle $style, ColumnSpec $spec, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
-        $trial = fn (?float $height): array => $this->columnsAt($node, $style, $spec, $c, $height, $token, $engine);
-        $first = $trial($c->height);
+        $first = $this->columnsAt($node, $style, $spec, $c, $c->height, $c->fresh, $token, $engine);
         if ($first['status'] === Status::DoesNotFit) {
             return LayoutResult::doesNotFit();
         }
@@ -72,22 +71,33 @@ final class ColumnFlowLayouter implements Layouter
             return LayoutResult::partial(self::assemble($spec, $c->width, $first['columns']), $first['token'] ?? new BreakToken());
         }
 
-        // Search for the shortest column height at which the content still completes.
-        $best = $first['columns'];
-        $hi = self::tallest($best);
+        // Search for the shortest column height at which the content still completes. Trials are muted
+        // and never fresh, so they neither report nor clip or split what a real layout would keep whole.
+        $ctx = $engine->context();
+        $hi = self::tallest($first['columns']);
         $lo = $hi / $spec->count;
+        $found = false;
         for ($n = 0; $n < self::BALANCE_ITERATIONS && $hi - $lo > self::BALANCE_TOLERANCE; $n++) {
             $mid = ($lo + $hi) / 2;
-            $t = $trial($mid);
+            $t = $ctx->trial(fn (): array => $this->columnsAt($node, $style, $spec, $c, $mid, false, $token, $engine));
             if ($t['status'] === Status::Complete) {
-                $best = $t['columns'];
-                $hi = min($mid, self::tallest($best));
+                $found = true;
+                $hi = min($mid, self::tallest($t['columns']));
             } else {
                 $lo = $mid;
             }
         }
+        if (!$found) {
+            return LayoutResult::complete(self::assemble($spec, $c->width, $first['columns']));
+        }
 
-        return LayoutResult::complete(self::assemble($spec, $c->width, $best));
+        // One real layout at the chosen height reports what it should, once.
+        $final = $this->columnsAt($node, $style, $spec, $c, $hi, $c->fresh, $token, $engine);
+        if ($final['status'] !== Status::Complete) {
+            return LayoutResult::complete(self::assemble($spec, $c->width, $first['columns']));
+        }
+
+        return LayoutResult::complete(self::assemble($spec, $c->width, $final['columns']));
     }
 
     /**
@@ -95,7 +105,7 @@ final class ColumnFlowLayouter implements Layouter
      *
      * @return array{status: Status, columns: list<array{x: float, fragment: Fragment}>, token: ?BreakToken}
      */
-    private function columnsAt(Node $node, ComputedStyle $style, ColumnSpec $spec, Constraints $c, ?float $height, ?BreakToken $token, LayoutEngine $engine): array
+    private function columnsAt(Node $node, ComputedStyle $style, ColumnSpec $spec, Constraints $c, ?float $height, bool $fresh, ?BreakToken $token, LayoutEngine $engine): array
     {
         $boxes = $spec->columns($c->width);
         $last = count($boxes) - 1;
@@ -103,7 +113,7 @@ final class ColumnFlowLayouter implements Layouter
         $next = $token;
 
         foreach ($boxes as $i => $box) {
-            $res = $engine->blockLayouter()->layout($node, $style, new Constraints($box['width'], $height, $c->fresh), $next, $engine);
+            $res = $engine->blockLayouter()->layout($node, $style, new Constraints($box['width'], $height, $fresh), $next, $engine);
             if ($res->status === Status::DoesNotFit || $res->fragment === null) {
                 return $i === 0
                     ? ['status' => Status::DoesNotFit, 'columns' => [], 'token' => null]
