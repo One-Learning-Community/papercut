@@ -142,7 +142,7 @@ final class DocxVisitor implements TreeVisitor
         $cols = $spec === null ? null : $this->flowColumns($spec, $style, $at);
         if ($spec !== null && $cols !== null) {
             // Word flows content through every column, so tables and boxes are sized to the narrowest one.
-            $content = min(array_column($spec->columns($this->stack[0]->width), 'width'));
+            $content = min([$content, ...array_column($spec->columns($this->stack[0]->width), 'width')]);
         }
         $frame = new Frame($node, $style, $width, $content, $isRow);
         $frame->cols = $cols;
