@@ -190,7 +190,8 @@ final class ColumnFlowLayouter implements Layouter
             || $s->minWidth !== null || $s->maxWidth !== null || $s->minHeight !== null || $s->maxHeight !== null;
     }
 
-    private static function where(ColumnFlowPlacement $p): string
+    /** @internal */
+    public static function where(ColumnFlowPlacement $p): string
     {
         return match ($p) {
             ColumnFlowPlacement::InCell => 'in a table cell',

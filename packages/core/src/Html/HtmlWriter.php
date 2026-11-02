@@ -6,7 +6,7 @@ namespace Papercut\Html;
 
 use Papercut\Backend\Backend;
 use Papercut\Export\LoadedImage;
-use Papercut\{Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, Toc, View};
+use Papercut\{ColumnBreak, Document, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, Toc, View};
 use Papercut\Barcode\Bacon\BaconQrSvg;
 use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
@@ -16,7 +16,8 @@ use Papercut\Style\{ComputedStyle, Justify, ListMarker, StyleName};
 use Papercut\Text\FontStyle;
 use Papercut\Value\{Auto, Fr, Length, Percent};
 use Papercut\Toc\TocIndex;
-use Papercut\Tree\{Region, TreeVisitor, Visit};
+use Papercut\Layout\ColumnFlowLayouter;
+use Papercut\Tree\{ColumnFlows, Region, TreeVisitor, Visit};
 
 /** Turns a tree walk into HTML. One method per node type, so new node types slot in without touching the walk. */
 final class HtmlWriter implements TreeVisitor
@@ -255,6 +256,7 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof Link => $this->link($node, $style, $parent, $at),
             $node instanceof Spacer => $this->spacer($node, $style),
             $node instanceof PageBreak => $this->pageBreak(),
+            $node instanceof ColumnBreak => $this->columnBreak($at),
             $node instanceof PageNumber => '',
             $node instanceof Image => $this->image($node, $style, $at),
             $node instanceof QrCode => $this->qrCode($node, $style, $at),
@@ -308,7 +310,8 @@ final class HtmlWriter implements TreeVisitor
     {
         $this->checkDecoration($s, $parent, $at->path());
         $tag = $n->htmlElement();
-        $decls = [...($tag === 'div' ? [] : ['margin' => '0']), ...Css::box($s), ...Css::flexContainer($s)];
+        $columns = $this->flowColumns($n, $at);
+        $decls = [...($tag === 'div' ? [] : ['margin' => '0']), ...Css::box($s), ...($columns ?? Css::flexContainer($s))];
         if ($this->parentIsFlex($at)) {
             $decls += Css::flexItem($s);
         }
@@ -316,6 +319,45 @@ final class HtmlWriter implements TreeVisitor
         $this->out .= '<' . $tag . self::styleAttr($decls) . '>';
 
         return '</' . $tag . '>';
+    }
+
+    /**
+     * Column CSS for a flow; null for any other view, or a markup flow that can't have columns here.
+     *
+     * @return ?array<string,string>
+     */
+    private function flowColumns(View $n, Visit $at): ?array
+    {
+        $spec = $n->columnSpec();
+        if ($spec === null) {
+            return null;
+        }
+        $placement = ColumnFlows::placement($at->ancestors(), $at->region());
+        if ($placement->isBlocked()) {
+            if (!$spec->fromMarkup) {
+                throw ColumnFlows::misplaced($placement, $at->path());
+            }
+            $this->fidelity->approximated('columns ' . ColumnFlowLayouter::where($placement), $at->path());
+            return null;
+        }
+        if ($spec->shares !== null && count(array_unique($spec->shares)) > 1) {
+            $this->fidelity->approximated('unequal column widths', $at->path());
+        }
+        if (count(array_unique($spec->gaps)) > 1) {
+            $this->fidelity->approximated('unequal column gaps', $at->path());
+        }
+
+        return Css::columns($spec);
+    }
+
+    private function columnBreak(Visit $at): string
+    {
+        if (!ColumnFlows::columnBreakAllowed($at->ancestors())) {
+            throw ColumnFlows::strayBreak($at->path());
+        }
+        $this->out .= '<div class="pc-column-break"></div>';
+
+        return '';
     }
 
     private function list(ListNode $n, ComputedStyle $s, ComputedStyle $parent, Visit $at): string
