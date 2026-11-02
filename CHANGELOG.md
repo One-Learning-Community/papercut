@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-02
+
 ### Added
 
 - `ColumnFlow` / `<x-doc::column-flow>`: text set in columns, like Word's. `columns()`, `columnWidths()`, `columnGap()` and `columnRule()` (Blade `columns`, `widths`, `column-gap`, `rule`) set the count (1 to 45), unequal widths, the column gap (36pt by default) and a rule. Content fills each column, then the next page, and the last page ends level. It can sit on the page or inside any box, but not in a table cell, a row, another flow or a header, footer, background or overlay. `ColumnBreak` / `<x-doc::column-break />` sends what follows to the next column.
