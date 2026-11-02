@@ -14,6 +14,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - A gallery tile for the column flow, with `rule` and `widths` variants.
 - A `paper` example (`examples/core/documents/paper.php` and `examples/laravel/views/paper.blade.php`): a two-page academic paper on A4 with a full-width title and abstract, a two-column body with a table and a figure that ends level, and a full-width closing note, with PDF, HTML and Word output.
 
+### Fixed
+
+- On PHP 8.4 and 8.5, exports could crash with `zend_mm_heap corrupted` or a segfault. A PHP garbage-collector bug (php/php-src#20001) corrupts memory when an object is a key in several WeakMaps; Papercut's per-export caches are now plain object storage instead, so the pattern no longer occurs.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added
