@@ -347,14 +347,15 @@ final class HtmlConverter
         foreach ($css['dropped'] as $declaration) {
             $each(FidelityLevel::Dropped, 'markup CSS "' . $declaration . '"');
         }
-        foreach ($css['notes'] as [$level, $feature]) {
-            $each($level, $feature);
-        }
         if ($css['columns'] !== null && ($css['columns']['count'] === null || !self::flowable($el->localName))) {
             foreach ($css['columnDeclarations'] as $declaration) {
                 $each(FidelityLevel::Dropped, 'markup CSS "' . $declaration . '"');
             }
             $css['columns'] = null;
+            $css['notes'] = [];
+        }
+        foreach ($css['notes'] as [$level, $feature]) {
+            $each($level, $feature);
         }
         return $css;
     }

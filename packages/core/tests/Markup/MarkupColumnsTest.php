@@ -122,7 +122,7 @@ final class MarkupColumnsTest extends TestCase
         self::assertSame([], self::notes($v));
     }
 
-    public function test_border_on_a_columns_div_goes_on_a_view_around_the_flow(): void
+    public function test_box_styles_on_a_columns_div_go_on_a_view_around_the_flow(): void
     {
         $v = self::original('<div style="column-count: 2; background-color: #eeeeee; padding: 8pt; width: 300pt"><p>x</p></div>');
         $flow = self::flow($v);
@@ -135,6 +135,31 @@ final class MarkupColumnsTest extends TestCase
         self::assertNull($flow->style()->width);
         self::assertSame('#eeeeee', (string) $outer->style()->background);
         self::assertNull($outer->columnSpec());
+    }
+
+    public function test_huge_column_counts_are_clamped_with_a_note(): void
+    {
+        foreach (['99999999999999999999', '2000000000', '46'] as $n) {
+            $v = self::original('<div style="column-count: ' . $n . '"><p>x</p></div>');
+            self::assertSame(45, self::spec($v)->count, $n);
+            self::assertSame([[FidelityLevel::Approximated, 'markup CSS "column-count: ' . $n . '" (column count limited to 45)']], self::notes($v));
+        }
+        self::assertSame(45, self::spec(self::original('<div style="column-count: 45"><p>x</p></div>'))->count);
+    }
+
+    public function test_partial_notes_are_not_made_when_the_column_css_is_dropped(): void
+    {
+        $v = self::original('<p style="columns: 2 200px">x</p><p style="column-rule: 1pt dashed red">y</p>');
+        self::assertSame([
+            [FidelityLevel::Dropped, 'markup CSS "columns: 2 200px"'],
+            [FidelityLevel::Dropped, 'markup CSS "column-rule: 1pt dashed red"'],
+        ], self::notes($v));
+    }
+
+    public function test_builder_rejects_more_than_the_maximum_columns(): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
+        View::make()->columns(46);
     }
 
     public function test_column_count_on_a_paragraph_is_dropped(): void

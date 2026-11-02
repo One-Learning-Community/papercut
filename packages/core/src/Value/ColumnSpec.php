@@ -11,6 +11,9 @@ final readonly class ColumnSpec
 {
     public const DEFAULT_GAP = 36.0;
 
+    /** Word's limit on columns in a section. */
+    public const MAX_COLUMNS = 45;
+
     /**
      * @param ?list<float> $shares relative column widths, or null for equal columns
      * @param list<float> $gaps count - 1 gaps in points
@@ -22,9 +25,7 @@ final readonly class ColumnSpec
         public ?ColumnRule $rule = null,
         public bool $fromMarkup = false,
     ) {
-        if ($count < 1) {
-            throw InvalidValue::for('column count', (string) $count);
-        }
+        self::checkCount($count);
         if ($shares !== null && count($shares) !== $count) {
             throw InvalidValue::for('column widths', implode(', ', array_map(InvalidValue::number(...), $shares)))
                 ->because(sprintf('expected %d widths', $count));
@@ -35,8 +36,17 @@ final readonly class ColumnSpec
         }
     }
 
+    /** @throws InvalidValue outside 1..MAX_COLUMNS */
+    public static function checkCount(int $count): void
+    {
+        if ($count < 1 || $count > self::MAX_COLUMNS) {
+            throw InvalidValue::for('column count', (string) $count)->because(sprintf('use 1 to %d columns', self::MAX_COLUMNS));
+        }
+    }
+
     public static function equal(int $count): self
     {
+        self::checkCount($count);
         return new self($count, null, array_fill(0, max(0, $count - 1), self::DEFAULT_GAP));
     }
 

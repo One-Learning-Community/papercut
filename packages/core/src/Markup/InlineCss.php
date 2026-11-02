@@ -10,6 +10,7 @@ use Papercut\Style\ListMarker;
 use Papercut\Style\Style;
 use Papercut\Style\TextAlign;
 use Papercut\Value\Color;
+use Papercut\Value\ColumnSpec;
 use Papercut\Value\Edges;
 use Papercut\Value\Length;
 use Papercut\Value\Percent;
@@ -120,7 +121,7 @@ final class InlineCss
         $keyword = strtolower($value);
         switch ($property) {
             case 'column-count':
-                return ['count' => self::count($keyword)];
+                return ['count' => self::count($keyword, $declaration, $notes)];
             case 'columns':
                 $count = null;
                 foreach (preg_split('/\s+/', $keyword) ?: [] as $part) {
@@ -128,7 +129,7 @@ final class InlineCss
                         continue;
                     }
                     if (preg_match('/^\d+$/', $part) === 1) {
-                        $count = $count === null ? self::count($part) : throw InvalidValue::for('columns', $value);
+                        $count = $count === null ? self::count($part, $declaration, $notes) : throw InvalidValue::for('columns', $value);
                         continue;
                     }
                     Length::parse(self::units($part))->absolute('column width');
@@ -151,12 +152,25 @@ final class InlineCss
         return ['rule' => self::rule($keyword, $value, $declaration, $notes)];
     }
 
-    private static function count(string $value): int
+    /**
+     * @param list<array{FidelityLevel, string}> $notes
+     * @throws InvalidValue
+     */
+    private static function count(string $value, string $declaration, array &$notes): int
     {
-        if (preg_match('/^\d+$/', $value) !== 1 || (int) $value < 1) {
+        if (preg_match('/^\d+$/', $value) !== 1) {
             throw InvalidValue::for('column count', $value);
         }
-        return (int) $value;
+        $digits = ltrim($value, '0');
+        if ($digits === '') {
+            throw InvalidValue::for('column count', $value);
+        }
+        // compare as text first, so a value too big for an int never gets cast
+        if (strlen($digits) > 3 || (int) $digits > ColumnSpec::MAX_COLUMNS) {
+            $notes[] = [FidelityLevel::Approximated, 'markup CSS "' . $declaration . '" (column count limited to ' . ColumnSpec::MAX_COLUMNS . ')'];
+            return ColumnSpec::MAX_COLUMNS;
+        }
+        return (int) $digits;
     }
 
     /**

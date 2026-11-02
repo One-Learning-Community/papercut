@@ -115,9 +115,7 @@ final class View implements Styled, Annotated
     /** Makes this view a column flow with $count equal columns. */
     public function columns(int $count): self
     {
-        if ($count < 1) {
-            throw InvalidValue::for('column count', (string) $count);
-        }
+        ColumnSpec::checkCount($count);
         $spec = $this->columns ?? ColumnSpec::equal($count);
         $gaps = $spec->gaps;
         if ($this->pendingGaps !== null) {
@@ -164,6 +162,7 @@ final class View implements Styled, Annotated
                 throw InvalidValue::for('column width', InvalidValue::number($share))->because('must be greater than zero');
             }
         }
+        ColumnSpec::checkCount(count($shares));
         $flow = $this->columns(count($shares));
         $spec = $flow->columns ?? throw new \LogicException('columns() always sets a spec.');
         return $flow->withColumnSpec(new ColumnSpec(
