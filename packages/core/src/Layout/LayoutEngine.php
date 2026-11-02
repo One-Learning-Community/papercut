@@ -100,8 +100,11 @@ final class LayoutEngine
     {
         $node = $this->expand($node);
         $this->ctx->pushPath($pathName ?? NodePath::segment($node, null, $index));
+        $pushed = false;
         try {
             $style = $this->enter($node, $parent, $index, $pathName);
+            $this->ctx->pushNode($node, $style);
+            $pushed = true;
             $layouter = $this->layouterFor($node, $style);
             $result = $layouter->layout($node, $style, $c, $token, $this);
             if ($token === null && $this->ctx->bookmarks && $result->fragment !== null) {
@@ -127,6 +130,9 @@ final class LayoutEngine
             }
             return $result;
         } finally {
+            if ($pushed) {
+                $this->ctx->popNode();
+            }
             $this->ctx->popPath();
         }
     }

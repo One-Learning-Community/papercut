@@ -12,6 +12,7 @@ use Papercut\Page;
 use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver, Theme};
 use Papercut\Text\{FontRegistry, Itemizer, SvgFonts};
 use Papercut\Toc\TocIndex;
+use Papercut\Tree\Region;
 
 /**
  * Shared state for one layout run: fonts, theme, images, warnings, the
@@ -37,6 +38,10 @@ final class LayoutContext
     private array $svgFonts = [];
     /** Path of the deepest node that returned DoesNotFit under fresh constraints; the paginator resets it. */
     public private(set) ?string $lastFailurePath = null;
+    /** The region being laid out; the paginator sets it around each call. Body unless it says otherwise. */
+    public Region $region = Region::Body;
+    /** @var list<array{node: Node, style: ComputedStyle}> every node being laid out, outermost first, the current one last */
+    private array $stack = [];
     /** Off while laying out headers, footers and backgrounds, which repeat on every page. */
     public bool $bookmarks = true;
     /** Off while laying out repeating bands, like $bookmarks. */
@@ -181,6 +186,30 @@ final class LayoutContext
     public function popPath(): void
     {
         array_pop($this->path);
+    }
+
+    /** @internal LayoutEngine only: the node being laid out, after its style is resolved. */
+    public function pushNode(Node $node, ComputedStyle $style): void
+    {
+        $this->stack[] = ['node' => $node, 'style' => $style];
+    }
+
+    /** @internal */
+    public function popNode(): void
+    {
+        array_pop($this->stack);
+    }
+
+    /**
+     * The nodes around the one being laid out, from just below the region root to its parent. The root
+     * (the call the paginator makes for a region: the body, a header or footer column, the background)
+     * is left out, so a body's own wrapper never counts as an ancestor.
+     *
+     * @return list<array{node: Node, style: ComputedStyle}>
+     */
+    public function ancestors(): array
+    {
+        return array_slice($this->stack, 1, -1);
     }
 
     public function path(): string
