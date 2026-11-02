@@ -107,4 +107,25 @@ final class ColumnFlowTest extends TestCase
         self::assertNull($plain->columnSpec());
         self::assertSame([12.0], self::spec($flow)->gaps);
     }
+
+    #[Test]
+    public function gaps_given_before_the_count_are_checked_once_it_is_known(): void
+    {
+        self::assertSame([10.0, 20.0], self::spec(View::make('a')->columnGap(pt(10), pt(20))->columns(3))->gaps);
+        self::assertSame([10.0, 20.0], self::spec(ColumnFlow::make('a')->columnGap(pt(10), pt(20))->columns(3))->gaps);
+        self::assertSame([10.0, 20.0], self::spec(ColumnFlow::make('a')->columnGap(pt(10), pt(20))->columnWidths(1, 2, 3))->gaps);
+        $this->expectException(InvalidValue::class);
+        ColumnFlow::make('a')->columnGap(pt(10), pt(20), pt(30))->columnWidths(1, 2, 3, 4)->columns(3);
+    }
+
+    #[Test]
+    public function gap_error_never_says_one_gaps(): void
+    {
+        try {
+            ColumnFlow::make('a')->columns(2)->columnGap(pt(1), pt(2));
+            self::fail('Expected InvalidValue.');
+        } catch (InvalidValue $e) {
+            self::assertStringContainsString('expected 1 gap.', $e->getMessage());
+        }
+    }
 }

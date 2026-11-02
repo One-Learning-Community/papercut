@@ -20,6 +20,9 @@ final class View implements Styled, Annotated
     private bool $explicitDirection = false;
     private string $htmlTag = 'div';
     private ?ColumnSpec $columns = null;
+    private bool $columnCountExplicit = false;
+    /** @var ?list<float> gaps given before the column count was chosen */
+    private ?array $pendingGaps = null;
 
     private const HTML_TAGS = ['div', 'section', 'aside', 'blockquote', 'header', 'footer', 'figure'];
 
@@ -117,12 +120,37 @@ final class View implements Styled, Annotated
         }
         $spec = $this->columns ?? ColumnSpec::equal($count);
         $gaps = $spec->gaps;
-        if (count($gaps) !== $count - 1) {
+        if ($this->pendingGaps !== null) {
+            $gaps = self::gapsFor($this->pendingGaps, $count);
+        } elseif (count($gaps) !== $count - 1) {
             $gap = $gaps[0] ?? ColumnSpec::DEFAULT_GAP;
             $gaps = $count > 1 && count(array_unique($gaps)) > 1 ? $gaps : array_fill(0, $count - 1, $gap);
         }
         $shares = $spec->shares !== null && count($spec->shares) === $count ? $spec->shares : null;
-        return $this->withColumnSpec(new ColumnSpec($count, $shares, $gaps, $spec->rule, $spec->fromMarkup));
+        $clone = $this->withColumnSpec(new ColumnSpec($count, $shares, $gaps, $spec->rule, $spec->fromMarkup));
+        $clone->columnCountExplicit = true;
+        $clone->pendingGaps = null;
+        return $clone;
+    }
+
+    /**
+     * One gap for every space, or exactly $count - 1 gaps.
+     *
+     * @param list<float> $points
+     * @return list<float>
+     */
+    private static function gapsFor(array $points, int $count): array
+    {
+        $spaces = $count - 1;
+        if (count($points) === 1) {
+            return array_fill(0, $spaces, $points[0]);
+        }
+        if (count($points) !== $spaces) {
+            throw InvalidValue::for('column gaps', (string) count($points))->because(
+                $spaces === 1 ? 'expected 1 gap' : sprintf('expected 1 gap or %d gaps', $spaces),
+            );
+        }
+        return $points;
     }
 
     /** Relative column widths; the number of shares sets the column count. */
@@ -152,13 +180,15 @@ final class View implements Styled, Annotated
     {
         $spec = $this->columns ?? ColumnSpec::equal(2);
         $points = array_values(array_map(static fn(Length $g): float => $g->absolute('column gap')->points, $gaps));
-        $spaces = $spec->count - 1;
-        if (count($points) === 1) {
-            $points = array_fill(0, $spaces, $points[0]);
-        } elseif (count($points) !== $spaces) {
-            throw InvalidValue::for('column gaps', (string) count($points))
-                ->because(sprintf('expected one gap or %d gaps', $spaces));
+        if (!$this->columnCountExplicit) {
+            $clone = $this->withColumnSpec($spec);
+            $clone->pendingGaps = $points;
+            if (count($points) === 1 || count($points) === $spec->count - 1) {
+                $clone->columns = new ColumnSpec($spec->count, $spec->shares, self::gapsFor($points, $spec->count), $spec->rule, $spec->fromMarkup);
+            }
+            return $clone;
         }
+        $points = self::gapsFor($points, $spec->count);
         return $this->withColumnSpec(new ColumnSpec($spec->count, $spec->shares, $points, $spec->rule, $spec->fromMarkup));
     }
 
