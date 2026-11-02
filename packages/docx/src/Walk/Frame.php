@@ -41,6 +41,8 @@ final class Frame
     public bool $header = false;
     /** Whether this node's decorated box is a Word table: lists inside it start again at level 0. */
     public bool $boxCell = false;
+    /** The `w:cols` XML when this node is a column flow that becomes a Word column section; null otherwise. */
+    public ?string $cols = null;
     /** What a faded child lies on: the nearest fill, else white. */
     public Color $backdrop;
 

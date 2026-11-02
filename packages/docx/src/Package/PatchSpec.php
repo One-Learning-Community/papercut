@@ -24,6 +24,8 @@ final readonly class PatchSpec
         public array $fonts = [],
         /** @var list<TocField> the tables of contents, in the order of their marker paragraphs */
         public array $tocs = [],
+        /** @var array<int, string> `w:cols` XML by section index, in document order; DocxPatcher writes it after the section's `w:pgMar` */
+        public array $columns = [],
     ) {
     }
 }

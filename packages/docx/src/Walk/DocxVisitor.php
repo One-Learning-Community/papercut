@@ -6,13 +6,15 @@ namespace Papercut\Docx\Walk;
 
 use Dskripchenko\PhpDocx\Element\{BlockElement, Image as DocxImage, PageBreak as DocxPageBreak, Paragraph};
 use Dskripchenko\PhpDocx\Style\{Alignment, HorizontalAnchor, ImagePosition, ParagraphStyle, VerticalAnchor};
-use Papercut\{Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, Toc, View};
-use Papercut\Docx\Map\{BoxMapper, Fade, Flow, ImageMapper, InlineRow, ListMapper, RowMapper, TableMapper, TextMapper, TocMapper, Units};
+use Papercut\{ColumnBreak, Image, Link, ListItem, ListNode, Node, Page, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, TableRow, Text, Toc, View};
+use Papercut\Docx\Map\{BoxMapper, ColumnsMark, Fade, Flow, ImageMapper, InlineRow, ListMapper, RowMapper, TableMapper, TextMapper, TocMapper, Units};
+use Papercut\Docx\Package\DocxPatcher;
 use Papercut\Export\Fidelity;
+use Papercut\Layout\ColumnFlowLayouter;
 use Papercut\Layout\{TableGrid, WidthResolver};
 use Papercut\Style\{PageThemes, Align, ComputedStyle, Direction, Justify, StyleName, TextAlign};
-use Papercut\Tree\{Region, TreeVisitor, Visit};
-use Papercut\Value\{Auto, Edges, Length, Percent};
+use Papercut\Tree\{ColumnFlowPlacement, ColumnFlows, Region, TreeVisitor, Visit};
+use Papercut\Value\{Auto, ColumnSpec, Edges, Length, Percent};
 
 use function Papercut\pt;
 
@@ -159,6 +161,9 @@ final class DocxVisitor implements TreeVisitor
             $this->links[] = TextMapper::href($node->uri());
             $this->fidelity->approximated('block link', $at->path());
         }
+        if ($node instanceof View && $node->columnSpec() !== null) {
+            $frame->cols = $this->flowColumns($node->columnSpec(), $style, $at);
+        }
         $this->stack[] = $frame;
         if (TextMapper::glyph($node, $style) !== null) {
             return false;
@@ -166,7 +171,8 @@ final class DocxVisitor implements TreeVisitor
 
         // Leaves produce their blocks in leave(); containers wait for their children.
         return !($node instanceof Text || $node instanceof Spacer || $node instanceof PageBreak || $node instanceof PageNumber
-            || $node instanceof Image || $node instanceof QrCode || $node instanceof Svg || $node instanceof PdfPage || $node instanceof Place);
+            || $node instanceof Image || $node instanceof QrCode || $node instanceof Svg || $node instanceof PdfPage || $node instanceof Place
+            || $node instanceof ColumnBreak);
     }
 
     public function leave(Node $node, ComputedStyle $style, Visit $at): void
@@ -209,6 +215,8 @@ final class DocxVisitor implements TreeVisitor
             $node instanceof ListNode => $this->leaveList($frame),
             $node instanceof ListItem => $this->lists->item(Flow::blocks($frame, $this->lists->settled()), $at->path()),
             $node instanceof Link => $this->leaveLink($frame),
+            $node instanceof ColumnBreak => $this->columnBreak($at),
+            $frame->cols !== null => [new ColumnsMark($frame->cols), ...Flow::blocks($frame, $this->lists->settled()), new ColumnsMark(null)],
             $node instanceof Table => [$this->tables->table($style, $frame, $parent->isRow ? null : match ($style->alignSelf ?? $parent->style->alignItems ?? Align::Stretch) {
                 Align::Center => Alignment::Center,
                 Align::End => Alignment::End,
@@ -259,6 +267,51 @@ final class DocxVisitor implements TreeVisitor
             $boxed = true;
         }
         $parent->items[] = ['blocks' => $blocks, 'style' => $style, 'index' => $at->index(), 'boxed' => $boxed];
+    }
+
+    /**
+     * The `w:cols` XML when a flow on the page becomes a Word column section; null where it comes out as one column.
+     * A misplaced flow throws from the builder and is noted from markup, as in the PDF and HTML.
+     */
+    private function flowColumns(ColumnSpec $spec, ComputedStyle $style, Visit $at): ?string
+    {
+        $placement = ColumnFlows::placement($at->ancestors(), $at->region());
+        if ($placement->isBlocked()) {
+            if (!$spec->fromMarkup) {
+                throw ColumnFlows::misplaced($placement, $at->path());
+            }
+            $this->fidelity->approximated('columns ' . ColumnFlowLayouter::where($placement), $at->path());
+
+            return null;
+        }
+        // A flow that carries a box of its own is wrapped in a table, which can't hold a section.
+        if ($placement === ColumnFlowPlacement::InBox || BoxMapper::decorated($style)) {
+            $this->fidelity->approximated('columns inside a box', $at->path());
+
+            return null;
+        }
+
+        // The section's columns span the page's content width, which is all an on-page flow has.
+        return DocxPatcher::colsXml($spec, $this->stack[0]->width);
+    }
+
+    /** @return list<BlockElement> */
+    private function columnBreak(Visit $at): array
+    {
+        if (!ColumnFlows::columnBreakAllowed($at->ancestors())) {
+            throw ColumnFlows::strayBreak($at->path());
+        }
+        foreach (array_reverse($this->stack) as $frame) {
+            if ($frame->node instanceof View && $frame->node->columnSpec() !== null) {
+                if ($frame->cols !== null) {
+                    return [Flow::columnBreak()];
+                }
+                break;
+            }
+        }
+        $this->fidelity->approximated('column break outside a Word column section', $at->path());
+
+        return [];
     }
 
     private function top(): Frame
