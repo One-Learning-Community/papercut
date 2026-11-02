@@ -14,6 +14,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - A gallery tile for the column flow, with `rule` and `widths` variants.
 - A `paper` example (`examples/core/documents/paper.php` and `examples/laravel/views/paper.blade.php`): a two-page academic paper on A4 with a full-width title and abstract, a two-column body with a table and a figure that ends level, and a full-width closing note, with PDF, HTML and Word output.
 
+### Fixed
+
+- A box with a percentage `min-width` or `max-width` that isn't stretched across its column (`align-self` or the column's `align` set to `start`, `center` or `end`) resolved it against its own content, not the column. It's now a share of the column, as `width` became in 0.7.0.
+
 ## [0.7.1] - 2026-11-02
 
 ### Fixed

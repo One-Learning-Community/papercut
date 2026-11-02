@@ -112,6 +112,14 @@ final class BlockLayouter implements Layouter
                 // Shrink to the content. A percentage width is a share of this box instead, so that child
                 // keeps the whole slot to resolve it against; alignment then uses the width it ends up with.
                 $width = min($engine->intrinsic($child, $style, $i)['max'], $slot);
+                if ($cs->minWidth instanceof Percent || $cs->maxWidth instanceof Percent) {
+                    // Percentage limits are shares of this box too: clamp against the slot, then pin the child to
+                    // that width so it doesn't resolve them again against its shrunk width.
+                    $max = BoxGeometry::resolve($cs->maxWidth, $slot);
+                    $min = BoxGeometry::resolve($cs->minWidth, $slot);
+                    $width = max($min ?? 0.0, min($width, $max ?? \INF));
+                    $child = ExactWidth::pin($child, $width, $cs);
+                }
             }
             // Inside a monolithic box every child is laid out as if on a fresh page, so leading forced breaks are ignored.
             $fresh = $monolithic || ($c->fresh && $placed === []);
