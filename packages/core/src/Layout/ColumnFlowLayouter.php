@@ -54,27 +54,64 @@ final class ColumnFlowLayouter implements Layouter
         return ['min' => $spec->count * $one['min'] + $gaps, 'max' => $spec->count * $one['max'] + $gaps];
     }
 
-    /** One page of the flow: the columns in order, from $token. */
+    private const BALANCE_TOLERANCE = 0.5;
+    private const BALANCE_ITERATIONS = 24;
+
+    /**
+     * One page of the flow: the columns in order, from $token. A page that completes the content
+     * is balanced; a page that ends Partial (full, or cut short by a break) is left as it fell.
+     */
     private function page(Node $node, ComputedStyle $style, ColumnSpec $spec, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
+    {
+        $trial = fn (?float $height): array => $this->columnsAt($node, $style, $spec, $c, $height, $token, $engine);
+        $first = $trial($c->height);
+        if ($first['status'] === Status::DoesNotFit) {
+            return LayoutResult::doesNotFit();
+        }
+        if ($first['status'] === Status::Partial) {
+            return LayoutResult::partial(self::assemble($spec, $c->width, $first['columns']), $first['token'] ?? new BreakToken());
+        }
+
+        // Search for the shortest column height at which the content still completes.
+        $best = $first['columns'];
+        $hi = self::tallest($best);
+        $lo = $hi / $spec->count;
+        for ($n = 0; $n < self::BALANCE_ITERATIONS && $hi - $lo > self::BALANCE_TOLERANCE; $n++) {
+            $mid = ($lo + $hi) / 2;
+            $t = $trial($mid);
+            if ($t['status'] === Status::Complete) {
+                $best = $t['columns'];
+                $hi = min($mid, self::tallest($best));
+            } else {
+                $lo = $mid;
+            }
+        }
+
+        return LayoutResult::complete(self::assemble($spec, $c->width, $best));
+    }
+
+    /**
+     * The columns laid out at $height (null = unbounded), from $token.
+     *
+     * @return array{status: Status, columns: list<array{x: float, fragment: Fragment}>, token: ?BreakToken}
+     */
+    private function columnsAt(Node $node, ComputedStyle $style, ColumnSpec $spec, Constraints $c, ?float $height, ?BreakToken $token, LayoutEngine $engine): array
     {
         $boxes = $spec->columns($c->width);
         $last = count($boxes) - 1;
         $placed = [];
-        $height = 0.0;
         $next = $token;
 
         foreach ($boxes as $i => $box) {
-            $res = $engine->blockLayouter()->layout($node, $style, new Constraints($box['width'], $c->height, $c->fresh), $next, $engine);
+            $res = $engine->blockLayouter()->layout($node, $style, new Constraints($box['width'], $height, $c->fresh), $next, $engine);
             if ($res->status === Status::DoesNotFit || $res->fragment === null) {
-                if ($i === 0) {
-                    return LayoutResult::doesNotFit();
-                }
-                return LayoutResult::partial(self::assemble($spec, $c->width, $placed, $height), $next ?? new BreakToken());
+                return $i === 0
+                    ? ['status' => Status::DoesNotFit, 'columns' => [], 'token' => null]
+                    : ['status' => Status::Partial, 'columns' => $placed, 'token' => $next ?? new BreakToken()];
             }
             $placed[] = ['x' => $box['x'], 'fragment' => $res->fragment];
-            $height = max($height, $res->fragment->height);
             if ($res->status === Status::Complete || $res->token === null) {
-                return LayoutResult::complete(self::assemble($spec, $c->width, $placed, $height));
+                return ['status' => Status::Complete, 'columns' => $placed, 'token' => null];
             }
             $next = $res->token;
             if ($next->forced === ForcedBreak::Page || $i === $last) {
@@ -82,7 +119,7 @@ final class ColumnFlowLayouter implements Layouter
                 if ($next->forced === ForcedBreak::Column) {
                     $next = new BreakToken($next->index, $next->child, $next->parallel, $next->headerPending, ForcedBreak::Page);
                 }
-                return LayoutResult::partial(self::assemble($spec, $c->width, $placed, $height), $next);
+                return ['status' => Status::Partial, 'columns' => $placed, 'token' => $next];
             }
         }
 
@@ -90,8 +127,24 @@ final class ColumnFlowLayouter implements Layouter
     }
 
     /** @param list<array{x: float, fragment: Fragment}> $placed */
-    private static function assemble(ColumnSpec $spec, float $width, array $placed, float $height): Fragment
+    private static function tallest(array $placed): float
     {
+        $h = 0.0;
+        foreach ($placed as $p) {
+            $h = max($h, $p['fragment']->height);
+        }
+
+        return $h;
+    }
+
+    /**
+     * The rule is drawn only between two columns that both have content on this page.
+     *
+     * @param list<array{x: float, fragment: Fragment}> $placed
+     */
+    private static function assemble(ColumnSpec $spec, float $width, array $placed): Fragment
+    {
+        $height = self::tallest($placed);
         $f = new Fragment($width, $height);
         foreach ($placed as ['x' => $x, 'fragment' => $column]) {
             $f->addChild($x, 0.0, $column);
@@ -99,6 +152,9 @@ final class ColumnFlowLayouter implements Layouter
         if ($spec->rule !== null) {
             $boxes = $spec->columns($width);
             foreach ($spec->gaps as $i => $gap) {
+                if (!isset($placed[$i + 1]) || $placed[$i]['fragment']->height <= 0.0 || $placed[$i + 1]['fragment']->height <= 0.0) {
+                    continue;
+                }
                 $centre = $boxes[$i]['x'] + $boxes[$i]['width'] + $gap / 2;
                 $f->addOp(new Line($centre, 0.0, $centre, $height, $spec->rule->color, $spec->rule->width));
             }

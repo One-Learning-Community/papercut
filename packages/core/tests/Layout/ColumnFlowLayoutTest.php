@@ -69,7 +69,7 @@ final class ColumnFlowLayoutTest extends TestCase
     {
         $pages = $this->paginate(Document::make($this->page()->body($this->flow(...self::lines(1, 8)))));
         self::assertCount(1, $pages);
-        self::assertSame([...self::at('L', 1, 5, 10.0), ...self::at('L', 6, 8, 120.0)], $this->runs($pages[0]));
+        self::assertSame([...self::at('L', 1, 4, 10.0), ...self::at('L', 5, 8, 120.0)], $this->runs($pages[0]));
     }
 
     public function test_content_continues_on_the_next_page_in_column_one(): void
@@ -77,7 +77,7 @@ final class ColumnFlowLayoutTest extends TestCase
         $pages = $this->paginate(Document::make($this->page()->body($this->flow(...self::lines(1, 14)))));
         self::assertCount(2, $pages);
         self::assertSame([...self::at('L', 1, 5, 10.0), ...self::at('L', 6, 10, 120.0)], $this->runs($pages[0]));
-        self::assertSame([...self::at('L', 11, 14, 10.0)], $this->runs($pages[1]));
+        self::assertSame([...self::at('L', 11, 12, 10.0), ...self::at('L', 13, 14, 120.0)], $this->runs($pages[1]));
     }
 
     public function test_column_break_moves_to_the_next_column(): void
@@ -116,7 +116,7 @@ final class ColumnFlowLayoutTest extends TestCase
             ...[Text::make('Head')->keepWithNext(), Text::make('Para')],
         ))));
         self::assertCount(1, $pages);
-        self::assertSame([...self::at('L', 1, 4, 10.0), ['Head', 120.0], ['Para', 120.0]], $this->runs($pages[0]));
+        self::assertSame([...self::at('L', 1, 3, 10.0), ['L4', 120.0], ['Head', 120.0], ['Para', 120.0]], $this->runs($pages[0]));
     }
 
     public function test_full_width_text_after_a_flow_starts_below_its_tallest_column(): void
@@ -139,8 +139,8 @@ final class ColumnFlowLayoutTest extends TestCase
         ));
         $pages = $this->paginate($doc);
         self::assertCount(1, $pages);
-        // 180pt body, so the first flow's columns hold 12 lines each: all seven lines stay in column one.
-        self::assertSame([...self::at('L', 1, 7, 10.0), ['Mid', 10.0], ...self::at('L', 8, 9, 10.0)], $this->runs($pages[0]));
+        // 180pt body, so the columns hold 12 lines each, but the last page of each flow is balanced: 4 and 3, then 1 and 1.
+        self::assertSame([...self::at('L', 1, 4, 10.0), ...self::at('L', 5, 7, 120.0), ['Mid', 10.0], ['L8', 10.0], ['L9', 120.0]], $this->runs($pages[0]));
     }
 
     public function test_rule_draws_one_line_per_gap_at_the_gap_centre(): void
@@ -152,7 +152,7 @@ final class ColumnFlowLayoutTest extends TestCase
         self::assertEqualsWithDelta(110.0, $lines[0]->x1, 1e-9);
         self::assertEqualsWithDelta(110.0, $lines[0]->x2, 1e-9);
         self::assertEqualsWithDelta(10.0, $lines[0]->y1, 1e-9);
-        self::assertEqualsWithDelta(80.0, $lines[0]->y2, 1e-9);
+        self::assertEqualsWithDelta(66.0, $lines[0]->y2, 1e-9);
         self::assertEqualsWithDelta(1.0, $lines[0]->width, 1e-9);
     }
 
@@ -170,8 +170,8 @@ final class ColumnFlowLayoutTest extends TestCase
     {
         $box = View::make($this->flow(...self::lines(1, 8)))->padding(pt(20));
         $pages = $this->paginate(Document::make(Page::size(pt(300), pt(200))->margin(pt(10))->headerGap(pt(0))->footerGap(pt(0))->body($box)));
-        // content 260 - 40 padding = 220 wide: columns of 100 at x 30 and 150; 160pt of height holds 11 lines, so one column
-        self::assertSame(self::at('L', 1, 8, 30.0), $this->runs($pages[0]));
+        // content 260 - 40 padding = 220 wide: columns of 100 at x 30 and 150; 160pt of height holds 11 lines, but the last page is balanced to 4 and 4
+        self::assertSame([...self::at('L', 1, 4, 30.0), ...self::at('L', 5, 8, 160.0)], $this->runs($pages[0]));
 
         $narrow = View::make($this->flow(...self::lines(1, 14)))->padding(pt(20));
         $pages = $this->paginate(Document::make($this->page()->body($narrow)));
