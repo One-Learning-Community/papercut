@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Papercut\Value;
+
+use Papercut\Exception\InvalidValue;
+
+/** Column count, widths, gaps and rule of a ColumnFlow. Lengths are in points. */
+final readonly class ColumnSpec
+{
+    public const DEFAULT_GAP = 36.0;
+
+    /**
+     * @param ?list<float> $shares relative column widths, or null for equal columns
+     * @param list<float> $gaps count - 1 gaps in points
+     */
+    public function __construct(
+        public int $count,
+        public ?array $shares,
+        public array $gaps,
+        public ?ColumnRule $rule = null,
+        public bool $fromMarkup = false,
+    ) {
+        if ($count < 1) {
+            throw InvalidValue::for('column count', (string) $count);
+        }
+        if ($shares !== null && count($shares) !== $count) {
+            throw InvalidValue::for('column widths', implode(', ', array_map(InvalidValue::number(...), $shares)))
+                ->because(sprintf('expected %d widths', $count));
+        }
+        if (count($gaps) !== $count - 1) {
+            throw InvalidValue::for('column gaps', (string) count($gaps))
+                ->because(sprintf('expected %d gaps', $count - 1));
+        }
+    }
+
+    public static function equal(int $count): self
+    {
+        return new self($count, null, array_fill(0, max(0, $count - 1), self::DEFAULT_GAP));
+    }
+
+    public function withFromMarkup(): self
+    {
+        return new self($this->count, $this->shares, $this->gaps, $this->rule, true);
+    }
+
+    /**
+     * Column boxes across a flow $width wide.
+     *
+     * @return list<array{x: float, width: float}>
+     */
+    public function columns(float $width): array
+    {
+        $space = max(0.0, $width - array_sum($this->gaps));
+        $total = $this->shares === null ? (float) $this->count : array_sum($this->shares);
+        $out = [];
+        $x = 0.0;
+        for ($i = 0; $i < $this->count; $i++) {
+            $w = $space * ($this->shares[$i] ?? 1.0) / $total;
+            $out[] = ['x' => $x, 'width' => $w];
+            $x += $w + ($this->gaps[$i] ?? 0.0);
+        }
+        return $out;
+    }
+}
