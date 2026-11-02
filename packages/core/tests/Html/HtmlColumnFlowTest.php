@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Html;
 
-use Papercut\{ColumnBreak, ColumnFlow, Document, Page, Table, TableCell, Text, View};
+use Papercut\{ColumnBreak, ColumnFlow, Document, Page, Spacer, Table, TableCell, Text, View};
 use Papercut\Exception\InvalidStructure;
 use Papercut\Export\HtmlOptions;
 use Papercut\Value\{Color, ColumnSpec};
@@ -79,5 +79,35 @@ final class HtmlColumnFlowTest extends TestCase
         $this->expectException(InvalidStructure::class);
         $this->expectExceptionMessageMatches('/ColumnBreak only works inside a ColumnFlow/');
         $this->html(View::make(ColumnBreak::make()));
+    }
+
+    public function test_flow_gap_and_fixed_spacer_become_block_spacing(): void
+    {
+        $html = $this->html(ColumnFlow::make(Text::make('a'), Spacer::fixed(pt(20)), Text::make('b'))->gap(pt(8)));
+        self::assertStringContainsString('<div style="height:20pt;margin-top:8pt"></div>', $html);
+        self::assertStringContainsString('<p style="margin-top:8pt', $html);
+        self::assertStringNotContainsString('flex:0 0 20pt', $html);
+    }
+
+    public function test_sibling_margins_add_instead_of_collapsing(): void
+    {
+        $html = $this->html(ColumnFlow::make(
+            View::make(Text::make('a'))->margin(pt(0), pt(0), pt(10), pt(0)),
+            View::make(Text::make('b'))->margin(pt(10), pt(0), pt(0), pt(0)),
+        ));
+        self::assertStringContainsString('margin-top:20pt', $html);
+    }
+
+    public function test_flow_children_are_not_flex_items(): void
+    {
+        $html = $this->html(ColumnFlow::make(View::make(Text::make('a'))->grow(1)));
+        self::assertStringNotContainsString('flex:1', $html);
+    }
+
+    public function test_growing_spacer_in_a_flow_is_approximated(): void
+    {
+        $messages = [];
+        $this->html(ColumnFlow::make(Text::make('a'), Spacer::flex()), $messages);
+        self::assertCount(1, array_filter($messages, static fn (string $m): bool => str_contains($m, 'approximated spacer growth in columns')));
     }
 }

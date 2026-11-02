@@ -35,6 +35,10 @@ final class HtmlWriter implements TreeVisitor
     private array $styles = [];
     /** @var list<string> closing markup, one per open node */
     private array $closers = [];
+    /** @var list<?array{gap: float, count: int, prev: float}> one per open node: the spacing state of a column flow, null for anything else */
+    private array $flowFrames = [];
+    /** Set by flowColumns() when the view it just wrote is a flow that got columns. */
+    private bool $openedFlow = false;
     /** @var list<?string> the open thead/tbody of each open table */
     private array $sections = [];
 
@@ -250,11 +254,13 @@ final class HtmlWriter implements TreeVisitor
         }
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);
+        $inFlow = $this->parentIsColumnFlow($at);
+        $start = strlen($this->out);
         $closer = match (true) {
             $node instanceof View => $this->view($node, $style, $parent, $at),
             $node instanceof Text => $this->text($node, $style, $parent, $at),
             $node instanceof Link => $this->link($node, $style, $parent, $at),
-            $node instanceof Spacer => $this->spacer($node, $style),
+            $node instanceof Spacer => $this->spacer($node, $style, $inFlow, $at),
             $node instanceof PageBreak => $this->pageBreak(),
             $node instanceof ColumnBreak => $this->columnBreak($at),
             $node instanceof PageNumber => '',
@@ -271,6 +277,11 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof Toc => $this->tocNav($node, $style, $parent, $at),
             default => throw new \LogicException('HTML export of ' . $node->debugName() . ' is not supported'),
         };
+        if ($inFlow) {
+            $this->spaceInFlow($style, $start);
+        }
+        $this->flowFrames[] = $node instanceof View && $this->openedFlow ? ['gap' => $style->gap, 'count' => 0, 'prev' => 0.0] : null;
+        $this->openedFlow = false;
         $this->styles[] = $style;
         $this->edges[] = Css::horizontalEdges($style);
         $this->closers[] = $closer;
@@ -285,6 +296,7 @@ final class HtmlWriter implements TreeVisitor
         }
         array_pop($this->styles);
         array_pop($this->edges);
+        array_pop($this->flowFrames);
         if ($node instanceof Link) {
             $this->linkDepth--;
         }
@@ -347,7 +359,42 @@ final class HtmlWriter implements TreeVisitor
             $this->fidelity->approximated('unequal column gaps', $at->path());
         }
 
+        $this->openedFlow = true;
+
         return Css::columns($spec);
+    }
+
+    /**
+     * A flow's children are block children in CSS, so the spacing PDF layout puts between them is
+     * written onto each child: the flow's gap plus the previous child's bottom margin go into its
+     * margin-top. Adding the previous bottom margin stops sibling margins collapsing (they would
+     * otherwise give max(bottom, top), not bottom + top) without padding or wrappers that would
+     * break column fragmentation: the collapsed result is exactly gap + bottom + top.
+     */
+    private function spaceInFlow(ComputedStyle $style, int $start): void
+    {
+        $frame = end($this->flowFrames);
+        if (!is_array($frame)) {
+            return;
+        }
+        $extra = $frame['count'] === 0 ? 0.0 : $frame['gap'] + $frame['prev'];
+        array_pop($this->flowFrames);
+        $this->flowFrames[] = ['gap' => $frame['gap'], 'count' => $frame['count'] + 1, 'prev' => $style->margin->bottom->points];
+        $tagEnd = strpos($this->out, '>', $start);
+        if ($extra === 0.0 || $tagEnd === false || ($this->out[$start] ?? '') !== '<') {
+            return;
+        }
+        $decl = 'margin-top:' . Css::pt($style->margin->top->points + $extra);
+        $tag = substr($this->out, $start, $tagEnd - $start);
+        $at = strpos($tag, ' style="');
+        if ($at === false) {
+            $tag .= ' style="' . $decl . '"';
+        } else {
+            $close = strpos($tag, '"', $at + 8);
+            $close = $close === false ? strlen($tag) : $close;
+            $tag = substr($tag, 0, $close) . ';' . $decl . substr($tag, $close);
+        }
+        $this->out = substr($this->out, 0, $start) . $tag . substr($this->out, $tagEnd);
     }
 
     private function columnBreak(Visit $at): string
@@ -559,9 +606,18 @@ final class HtmlWriter implements TreeVisitor
         return '</a>';
     }
 
-    private function spacer(Spacer $sp, ComputedStyle $s): string
+    private function spacer(Spacer $sp, ComputedStyle $s, bool $inFlow, Visit $at): string
     {
         $fixed = $sp->fixedSize();
+        if ($inFlow) {
+            // A block child in a column flow: a fixed spacer is a height, a growing one has nothing to grow into.
+            if ($fixed === null) {
+                $this->fidelity->approximated('spacer growth in columns', $at->path());
+            }
+            $this->out .= '<div' . self::styleAttr($fixed === null ? [] : ['height' => Css::pt($fixed->points)]) . '></div>';
+
+            return '';
+        }
         $flex = $fixed !== null ? '0 0 ' . Css::pt($fixed->points) : Css::num($s->grow) . ' 0 0';
         $this->out .= '<div' . self::styleAttr(['flex' => $flex]) . '></div>';
 
@@ -815,10 +871,21 @@ final class HtmlWriter implements TreeVisitor
         return '</div>';
     }
 
+    /** True when the parent is a flow written with columns (not a markup flow that fell back to one column). */
+    private function parentIsColumnFlow(Visit $at): bool
+    {
+        $p = $at->parent();
+
+        return $p instanceof View && ColumnFlows::isFlow($p) && $this->flowFrames !== [] && end($this->flowFrames) !== null;
+    }
+
     /** Flex items only make sense inside flex containers: Views, Links and region roots. */
     private function parentIsFlex(Visit $at): bool
     {
         $p = $at->parent();
+        if ($this->parentIsColumnFlow($at)) {
+            return false;
+        }
 
         return $p === null || $p instanceof View || $p instanceof Link || $p instanceof TableCell;
     }
