@@ -103,7 +103,7 @@ A column flow sets its content in newspaper columns, the way Word's columns work
 @tab Blade
 ```blade
 <x-doc::h2>Notes from the field</x-doc::h2>
-<x-doc::column-flow columns="3" gap="18pt" rule>
+<x-doc::column-flow columns="3" column-gap="18pt" rule>
   <x-doc::text>The first survey went out in March…</x-doc::text>
   <x-doc::text>Readers asked for shorter sections…</x-doc::text>
   <x-doc::column-break />
@@ -133,10 +133,10 @@ $document = Document::make(Page::letter()->body(
 |---|---|---|
 | `columns(3)` | `columns="3"` | The number of equal columns, from 1 to 45. |
 | `columnWidths(2, 1)` | `widths="2 1"` | Unequal columns, as ratios of the space left after the gaps. The number of widths is the number of columns, so with `columns` too the two must agree. |
-| `columnGap(pt(24))` | `gap="24pt"` | The space between columns. Give one length for every gap, or one per space (`columnGap(pt(24), pt(12))`) when the gaps differ. |
+| `columnGap(pt(24))` | `column-gap="24pt"` | The space between columns. Give one length for every gap, or one per space (`columnGap(pt(24), pt(12))`) when the gaps differ. |
 | `columnRule()` | `rule` | A thin line in each gap. `columnRule(pt(1), Color::parse('slate-400'))` and `rule="1pt slate-400"` set the width (default 0.5pt) and the colour (default black). |
 
-In Blade, `gap` on a flow is the column gap, not the space between children. In PHP a flow is a `View`, so `gap()` there still spaces the children and `columnGap()` sets the column gap. The flow itself can't have its own border, background, padding or size. To draw a box around columns, wrap the flow in a `View`:
+`gap` is the ordinary style gap, as on any box: it spaces the flow's children, and `columnGap()` / `column-gap` is the space between columns. The flow itself can't have its own border, background, padding or size. To draw a box around columns, wrap the flow in a `View`:
 
 ```php
 View::make(

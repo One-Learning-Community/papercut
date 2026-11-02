@@ -430,9 +430,11 @@ export function translate(source, { unit = 'pt' } = {}) {
       const own = new Set(el.attrs.map(([k]) => k.replace(/^:/, '')))
       for (const k of Object.keys(props)) if (own.has(k)) delete props[k]
       if (name === 'column-flow') {
-        const g = [gaps.x, gaps['space-x'], gaps.all].find(Boolean)
-        if (g && !own.has('gap')) props.gap = g.v
-        for (const x of Object.values(gaps)) if (x !== g) skipped.push(x.raw)
+        const g = gaps.x
+        if (g && !own.has('column-gap')) extraAttrs.push(`column-gap="${esc(g.v)}"`)
+        const all = [gaps.y, gaps.all, gaps['space-x'], gaps['space-y']].find(Boolean)
+        if (all && !own.has('gap')) props.gap = all.v
+        for (const x of Object.values(gaps)) if (x !== g && x !== all) skipped.push(x.raw)
         if (props.$rule && !own.has('rule')) extraAttrs.push('rule')
         if (props.$columns && !own.has('columns')) extraAttrs.unshift(`columns="${props.$columns}"`)
       } else if (!own.has('gap')) applyGap(props, gaps, name === 'row' ? 'x' : 'y', skipped)
@@ -542,11 +544,13 @@ export function translate(source, { unit = 'pt' } = {}) {
     const { $columns, $rule, $flex, ...rest } = props
     const flowProps = {}
     for (const k of Object.keys(rest)) if (TEXT_PROPS.has(k)) (flowProps[k] = rest[k]), delete rest[k]
-    const own = [gaps.x, gaps['space-x'], gaps.all].find(Boolean)
-    for (const g of Object.values(gaps)) if (g !== own) skipped.push(g.raw)
+    const own = gaps.x
+    const between = [gaps.y, gaps.all, gaps['space-y']].find(Boolean)
+    if (between) flowProps.gap = between.v
+    for (const g of Object.values(gaps)) if (g !== own && g !== between) skipped.push(g.raw)
     skipped.push(...unused(r, { gap: true, hidden: true }))
     const flow = [`columns="${$columns}"`]
-    if (own) flow.push(`gap="${esc(own.v)}"`)
+    if (own) flow.push(`column-gap="${esc(own.v)}"`)
     if ($rule) flow.push('rule')
     note(d, skipped)
     const boxed = Object.keys(rest).length > 0

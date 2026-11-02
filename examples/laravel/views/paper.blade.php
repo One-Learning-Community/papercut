@@ -25,7 +25,7 @@
             </x-doc::column>
         </x-doc::column>
 
-        <x-doc::column-flow columns="2" gap="6mm" rule>
+        <x-doc::column-flow columns="2" column-gap="6mm" rule>
             @foreach ($sections as $i => [$title, $paragraphs])
                 <x-doc::h3 margin="{{ $i === 0 ? '0' : '8pt 0 0 0' }}">{{ $title }}</x-doc::h3>
                 @foreach ($paragraphs as $paragraph)

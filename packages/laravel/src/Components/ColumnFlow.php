@@ -8,12 +8,12 @@ use Papercut\Exception\InvalidValue;
 use Papercut\Laravel\Tag;
 use Papercut\Value\{Color, Length};
 
-/** Text flowing through several columns; `gap` is the column gap here, not the flex gap. */
+/** Text flowing through several columns; `column-gap` is the gap between columns, `gap` the ordinary style gap between children. */
 final class ColumnFlow extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
-        return ['columns', 'widths', 'gap', 'rule'];
+        return ['columns', 'widths', 'column-gap', 'rule'];
     }
 
     protected function build(array $data): object
@@ -23,10 +23,10 @@ final class ColumnFlow extends PapercutComponent
         $where = 'on ' . Tag::of('column-flow');
 
         try {
-            if (isset($own['gap'])) {
+            if (isset($own['column-gap'])) {
                 $flow = $flow->columnGap(...array_map(
                     static fn (string $g): Length => Length::parse($g),
-                    $this->words($own['gap'], 'gap'),
+                    $this->words($own['column-gap'], 'column-gap'),
                 ));
             }
             $count = null;

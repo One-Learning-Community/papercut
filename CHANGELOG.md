@@ -7,8 +7,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- `ColumnFlow` / `<x-doc::column-flow>`: text set in columns, like Word's. `columns()`, `columnWidths()`, `columnGap()` and `columnRule()` (Blade `columns`, `widths`, `gap`, `rule`) set the count (1 to 45), unequal widths, the gap (36pt by default) and a rule. Content fills each column, then the next page, and the last page ends level. It can sit on the page or inside any box, but not in a table cell, a row, another flow or a header, footer, background or overlay. `ColumnBreak` / `<x-doc::column-break />` sends what follows to the next column.
-- Markup: in `original` style mode a `div` with `column-count`, `columns`, `column-gap` or `column-rule` becomes a column flow; other column CSS is dropped with a note.
+- `ColumnFlow` / `<x-doc::column-flow>`: text set in columns, like Word's. `columns()`, `columnWidths()`, `columnGap()` and `columnRule()` (Blade `columns`, `widths`, `column-gap`, `rule`) set the count (1 to 45), unequal widths, the column gap (36pt by default) and a rule. Content fills each column, then the next page, and the last page ends level. It can sit on the page or inside any box, but not in a table cell, a row, another flow or a header, footer, background or overlay. `ColumnBreak` / `<x-doc::column-break />` sends what follows to the next column.
+- Markup: in `original` style mode a `div` with `column-count` or `columns` (a count) becomes a column flow, with `column-gap` and `column-rule` setting its gap and rule; those two are dropped with a note when there's no count, and other column CSS is dropped with a note.
 - HTML export uses CSS columns. Word export writes real section columns for a flow on the page (a flow inside a box comes out as one column, with a note).
 - The Tailwind translator on the docs site maps `columns-N`, `gap-x-*` and `divide-x` to a column flow.
 - A gallery tile for the column flow, with `rule` and `widths` variants.

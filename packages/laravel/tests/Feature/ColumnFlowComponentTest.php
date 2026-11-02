@@ -21,7 +21,7 @@ final class ColumnFlowComponentTest extends TestCase
 
     public function test_column_flow_tag_builds_a_flow(): void
     {
-        $spec = $this->flow('<x-doc::column-flow columns="3" gap="12pt" rule><x-doc::text>A</x-doc::text></x-doc::column-flow>')->columnSpec();
+        $spec = $this->flow('<x-doc::column-flow columns="3" column-gap="12pt" rule><x-doc::text>A</x-doc::text></x-doc::column-flow>')->columnSpec();
 
         self::assertNotNull($spec);
         self::assertSame(3, $spec->count);
@@ -58,17 +58,20 @@ final class ColumnFlowComponentTest extends TestCase
 
     public function test_several_gaps_one_per_space(): void
     {
-        $spec = $this->flow('<x-doc::column-flow columns="3" gap="6pt 18pt"><x-doc::text>A</x-doc::text></x-doc::column-flow>')->columnSpec();
+        $spec = $this->flow('<x-doc::column-flow columns="3" column-gap="6pt 18pt"><x-doc::text>A</x-doc::text></x-doc::column-flow>')->columnSpec();
 
         self::assertNotNull($spec);
         self::assertSame([6.0, 18.0], $spec->gaps);
     }
 
-    public function test_gap_does_not_reach_the_style(): void
+    public function test_gap_reaches_the_style_and_column_gap_sets_the_column_gap(): void
     {
-        $view = $this->flow('<x-doc::column-flow gap="12pt"><x-doc::text>A</x-doc::text></x-doc::column-flow>');
+        $view = $this->flow('<x-doc::column-flow gap="12pt" column-gap="20pt" columns="2"><x-doc::text>A</x-doc::text></x-doc::column-flow>');
 
-        self::assertNull($view->style()->gap);
+        self::assertNotNull($view->style()->gap);
+        self::assertSame(12.0, $view->style()->gap->absolute('gap')->points);
+        self::assertNotNull($view->columnSpec());
+        self::assertSame([20.0], $view->columnSpec()->gaps);
     }
 
     public function test_rule_with_length_and_colour(): void
