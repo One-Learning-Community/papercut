@@ -16,6 +16,8 @@ use Papercut\View;
  * A ColumnFlow: its children fill column one, then the next, and carry on in column one of the
  * next page. The flow itself has no box; its children are laid out by BlockLayouter in each
  * column, so a break token is the content's own token and every page restarts at column one.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class ColumnFlowLayouter implements Layouter
 {

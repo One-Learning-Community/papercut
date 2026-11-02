@@ -9,6 +9,8 @@ use Papercut\Style\ComputedStyle;
 
 /**
  * Where a node sits in the walk. Built by TreeWalker; visitors only read it.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final readonly class Visit
 {

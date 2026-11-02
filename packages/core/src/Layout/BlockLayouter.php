@@ -17,6 +17,8 @@ use Papercut\Value\{Length, Percent};
  * space goes to grow children, then to justify. An Auto-height box laid out
  * with a definiteHeight (flex stretch) stays splittable; when it completes in
  * a single slice it fills at least that height the same way.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class BlockLayouter implements Layouter
 {

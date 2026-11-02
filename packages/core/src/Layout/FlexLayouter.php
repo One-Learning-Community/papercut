@@ -17,6 +17,8 @@ use Papercut\Value\{Auto, Length};
  * when it is first on a fresh page and still too tall, its items split in
  * parallel. The token then holds one entry per item (null = finished); on
  * resume finished items keep their slot but draw nothing.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class FlexLayouter implements Layouter
 {

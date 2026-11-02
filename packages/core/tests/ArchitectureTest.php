@@ -8,14 +8,20 @@ use PHPUnit\Framework\TestCase;
 
 final class ArchitectureTest extends TestCase
 {
-    /** Backend and Paint are internal: no custom backends. These two stay public so a backend can be configured. */
-    public function test_backend_and_paint_types_are_internal(): void
+    /** The backend, display list, layout engine, tree walk and HTML writer are internal; the public list says why each exception stays public. */
+    public function test_engine_types_are_internal(): void
     {
         $src = realpath(__DIR__ . '/../src');
         self::assertIsString($src);
-        $public = ['Backend/PhpPdf/PhpPdfBackend.php', 'Backend/PhpPdf/FontStateCache.php'];
+        $public = [
+            // configured through PdfOptions(backend:)
+            'Backend/PhpPdf/PhpPdfBackend.php', 'Backend/PhpPdf/FontStateCache.php',
+            // the web-font extension point (guide: HTML export, web fonts)
+            'Html/FontSource.php', 'Html/FontRequest.php', 'Html/FontAnswer.php', 'Html/FontFaceSrc.php',
+            'Html/FontVariant.php', 'Html/GoogleFonts.php', 'Html/LocalFonts.php',
+        ];
         $missing = [];
-        foreach (['Backend', 'Paint'] as $dir) {
+        foreach (['Backend', 'Paint', 'Layout', 'Tree', 'Html'] as $dir) {
             $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($src . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
             foreach ($it as $file) {
                 $rel = substr($file->getPathname(), strlen($src) + 1);

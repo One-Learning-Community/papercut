@@ -13,6 +13,8 @@ use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver, Theme};
  * regions (background, header, body, footer, overlay), then nodes, with computed styles
  * and paths. Paths match layout's in every region, so errors read the same
  * as from toPdf().
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class TreeWalker
 {

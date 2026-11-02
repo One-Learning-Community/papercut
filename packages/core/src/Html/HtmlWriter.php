@@ -19,7 +19,11 @@ use Papercut\Toc\TocIndex;
 use Papercut\Layout\ColumnFlowLayouter;
 use Papercut\Tree\{ColumnFlows, Region, TreeVisitor, Visit};
 
-/** Turns a tree walk into HTML. One method per node type, so new node types slot in without touching the walk. */
+/**
+ * Turns a tree walk into HTML. One method per node type, so new node types slot in without touching the walk.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
+ */
 final class HtmlWriter implements TreeVisitor
 {
     private string $out = '';

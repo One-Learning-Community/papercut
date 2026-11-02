@@ -496,11 +496,11 @@ the primary font lacks.
 ```php
 use Papercut\{Column, Document, Page, Text};
 use Papercut\Export\PdfOptions;
-use Papercut\Text\{FontFace, FontRegistry, FontSet};
+use Papercut\Text\{FontFace, FontSet};
 use function Papercut\{mm, pt};
 
 // Add your own family (paths to TTFs), here reusing the bundled files under another name:
-$inter = dirname((new ReflectionClass(FontRegistry::class))->getFileName(), 3) . '/resources/fonts/Inter';
+$inter = dirname((new ReflectionClass(FontSet::class))->getFileName(), 3) . '/resources/fonts/Inter';
 $fonts = (new FontSet())
     ->with(new FontFace('Brand', $inter . '/Inter-Regular.ttf', 400), new FontFace('Brand', $inter . '/Inter-Bold.ttf', 700))
     ->withFallbacks('Inter');

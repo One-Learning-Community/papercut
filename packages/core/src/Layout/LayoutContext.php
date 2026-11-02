@@ -17,6 +17,8 @@ use Papercut\Tree\Region;
 /**
  * Shared state for one layout run: fonts, theme, images, warnings, the
  * current node path and the overflow mode.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class LayoutContext
 {

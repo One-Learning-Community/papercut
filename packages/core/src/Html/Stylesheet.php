@@ -7,7 +7,11 @@ namespace Papercut\Html;
 use Papercut\Document;
 use Papercut\Export\HtmlOptions;
 
-/** The fixed stylesheet shared by every HTML export; only the page box and @font-face rules vary. */
+/**
+ * The fixed stylesheet shared by every HTML export; only the page box and @font-face rules vary.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
+ */
 final class Stylesheet
 {
     public static function css(Document $doc, HtmlOptions $o, string $fontFaces): string

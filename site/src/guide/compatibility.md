@@ -26,6 +26,7 @@ A breaking change to the public API waits for the next major version (2.0). Mino
 ## What it doesn't cover
 
 - **Anything marked `@internal`.** These can change in any release, including a patch. Editors such as PhpStorm warn when you use them.
+- **The engine.** The layout engine (`Papercut\Layout`), the tree walk (`Papercut\Tree`), the HTML writer and the text layout classes are internal. The HTML export's font sources (`FontSource`, `GoogleFonts`, `LocalFonts` and the types they use) are public.
 - **Custom backends.** The `Papercut\Backend` interfaces and the `Papercut\Paint` display list are internal. Papercut's own PDF writer is the only backend, which leaves room to add things like tagged PDF without a breaking change.
 - **Exact output.** The PDF, HTML and Word files a document produces can differ between versions. A bug fix can move a line or a page break, and the bytes of the files change too. Content isn't dropped without a warning, and a fix that changes layout is listed in the changelog.
 - **Word layout.** Word, LibreOffice and Google Docs lay out a Word file themselves, so page breaks in a Word file can differ from the PDF.

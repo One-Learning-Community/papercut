@@ -15,6 +15,8 @@ use Papercut\Value\Auto;
 /**
  * Dispatches nodes to their layouters. Expands Components, resolves the
  * node's computed style and maintains the context's node path.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class LayoutEngine
 {

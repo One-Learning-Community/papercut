@@ -14,6 +14,8 @@ use Papercut\Tree\Region;
  * Flows each Page template's body across physical pages between its header
  * and footer, with its background behind. Header, footer and background
  * fragments are laid out once per template (once per variant) and reused on the pages that use them.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class Paginator
 {
