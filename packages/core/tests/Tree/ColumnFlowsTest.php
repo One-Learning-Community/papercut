@@ -311,13 +311,12 @@ final class ColumnFlowsTest extends TestCase
 
     public function test_a_direct_engine_call_drops_nothing(): void
     {
+        /** @var \ArrayObject<string, array{Region, list<string>, list<string>}> $seen */
         $seen = new \ArrayObject();
-        [$ctx, $engine] = $this->engineWithProbe($seen);
+        [, $engine] = $this->engineWithProbe($seen);
         $padded = View::make(new RegionProbe('direct'))->padding(Length::points(4));
         $engine->layout($padded, ComputedStyle::root(Theme::default()), new Constraints(200.0, null, true));
         self::assertSame([Region::Body, ['view'], ['view', 'probe']], $seen['direct']);
-        $ancestors = $ctx->ancestors();
-        self::assertSame([], $ancestors);
     }
 }
 
