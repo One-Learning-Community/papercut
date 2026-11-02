@@ -117,7 +117,9 @@ final class BlockLayouter implements Layouter
                     // that width so it doesn't resolve them again against its shrunk width.
                     $max = BoxGeometry::resolve($cs->maxWidth, $slot);
                     $min = BoxGeometry::resolve($cs->minWidth, $slot);
-                    $width = max($min ?? 0.0, min($width, $max ?? \INF));
+                    // A fixed width is kept even when it's wider than the slot, as it would be without the limits.
+                    $base = $cs->width instanceof Length ? $cs->width->points : $width;
+                    $width = max($min ?? 0.0, min($base, $max ?? \INF));
                     $child = ExactWidth::pin($child, $width, $cs);
                 }
             }

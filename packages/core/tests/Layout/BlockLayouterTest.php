@@ -365,6 +365,14 @@ final class BlockLayouterTest extends TestCase
         self::assertSame(60.0, $child['width']);
     }
 
+    public function test_a_percent_min_width_leaves_a_wider_fixed_width_alone(): void
+    {
+        $col = Column::make(View::make(Text::make('ab'))->width(pt(300))->minWidth(percent(10))->alignSelf(Align::Center));
+        $child = self::onlyChild((new LayoutHarness())->layout($col, 200)->fragment);
+        self::assertSame(300.0, $child['width']);
+        self::assertSame(-50.0, $child['x']);
+    }
+
     public function test_fixed_height_box_never_returns_partial_for_nested_forced_break(): void
     {
         $col = Column::make(Column::make(Text::make('a'), PageBreak::make(), Text::make('b')))->height(pt(100));
