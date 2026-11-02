@@ -221,7 +221,7 @@ final class ColumnFlowLayoutTest extends TestCase
     public function test_flow_with_its_own_border_throws(): void
     {
         $this->expectException(InvalidStructure::class);
-        $this->expectExceptionMessageMatches('/can\'t have a border, background or padding/');
+        $this->expectExceptionMessageMatches('/can\'t have a border, background, padding or size/');
         $this->paginate(Document::make($this->page()->body($this->flow(Text::make('a'))->border(pt(1)))));
     }
 
@@ -251,5 +251,37 @@ final class ColumnFlowLayoutTest extends TestCase
         $links = array_values(array_filter($ops, fn ($o) => $o instanceof LinkOp));
         self::assertCount(1, $links);
         self::assertEqualsWithDelta(120.0, $links[0]->x, 1e-9);
+    }
+
+    public function test_flow_with_its_own_size_throws(): void
+    {
+        $sizes = [
+            fn (View $v) => $v->height(pt(60)),
+            fn (View $v) => $v->width(pt(100)),
+            fn (View $v) => $v->minHeight(pt(60)),
+            fn (View $v) => $v->maxWidth(pt(100)),
+        ];
+        foreach ($sizes as $size) {
+            try {
+                $this->paginate(Document::make($this->page()->body($size($this->flow(...self::lines(1, 6))))));
+                self::fail('expected InvalidStructure');
+            } catch (InvalidStructure $e) {
+                self::assertStringContainsString('border, background, padding or size', $e->getMessage());
+                self::assertStringContainsString('Put it inside a View with that style.', $e->getMessage());
+            }
+        }
+    }
+
+    public function test_markup_flow_in_a_row_keeps_its_one_column_width(): void
+    {
+        $base = ColumnFlow::make(Text::make('aa'));
+        $spec = $base->columnSpec();
+        self::assertNotNull($spec);
+        $flow = $base->withColumnSpec($spec->withFromMarkup());
+        $pages = $this->paginate(Document::make($this->page()->body(Row::make($flow, Text::make('zz')))));
+        $runs = array_column($this->runs($pages[0]), 1, 0);
+        self::assertSame(10.0, $runs['aa']);
+        // 'aa' is one column wide, not two columns plus a gap: zz sits right after it
+        self::assertEqualsWithDelta(10.0 + 10.0, $runs['zz'], 1e-9);
     }
 }

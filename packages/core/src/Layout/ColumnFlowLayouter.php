@@ -9,7 +9,7 @@ use Papercut\Node;
 use Papercut\Paint\Line;
 use Papercut\Style\ComputedStyle;
 use Papercut\Tree\{ColumnFlowPlacement, ColumnFlows};
-use Papercut\Value\ColumnSpec;
+use Papercut\Value\{Auto, ColumnSpec};
 use Papercut\View;
 
 /**
@@ -33,7 +33,7 @@ final class ColumnFlowLayouter implements Layouter
         }
         if (self::hasBox($style)) {
             throw new InvalidStructure(sprintf(
-                'A ColumnFlow can\'t have a border, background or padding (at "%s"). Put it inside a View with that style.',
+                'A ColumnFlow can\'t have a border, background, padding or size (at "%s"). Put it inside a View with that style.',
                 $ctx->path(),
             ));
         }
@@ -45,6 +45,10 @@ final class ColumnFlowLayouter implements Layouter
     {
         $spec = self::spec($node);
         $one = $engine->blockLayouter()->intrinsic($node, $style, $engine);
+        $ctx = $engine->context();
+        if ($spec->fromMarkup && ColumnFlows::placement($ctx->ancestors(), $ctx->region)->isBlocked()) {
+            return $one;
+        }
         $gaps = array_sum($spec->gaps);
 
         return ['min' => $spec->count * $one['min'] + $gaps, 'max' => $spec->count * $one['max'] + $gaps];
@@ -115,7 +119,9 @@ final class ColumnFlowLayouter implements Layouter
         $p = $s->padding;
         return $b->top->points !== 0.0 || $b->right->points !== 0.0 || $b->bottom->points !== 0.0 || $b->left->points !== 0.0
             || $p->top->points !== 0.0 || $p->right->points !== 0.0 || $p->bottom->points !== 0.0 || $p->left->points !== 0.0
-            || $s->background !== null;
+            || $s->background !== null
+            || !$s->width instanceof Auto || !$s->height instanceof Auto
+            || $s->minWidth !== null || $s->maxWidth !== null || $s->minHeight !== null || $s->maxHeight !== null;
     }
 
     private static function where(ColumnFlowPlacement $p): string

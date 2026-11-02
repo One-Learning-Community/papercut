@@ -217,7 +217,13 @@ final class LayoutEngine
         $this->ctx->pushPath(NodePath::segment($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index);
-            $size = $this->layouterFor($node, $style)->intrinsic($node, $style, $this);
+            // Pushed as in layout(), so a layouter can judge its placement while measuring.
+            $this->ctx->pushNode($node, $style);
+            try {
+                $size = $this->layouterFor($node, $style)->intrinsic($node, $style, $this);
+            } finally {
+                $this->ctx->popNode();
+            }
             if ($byParent === null) {
                 /** @var \WeakMap<ComputedStyle, array{min: float, max: float}> $byParent */
                 $byParent = new \WeakMap();
@@ -247,7 +253,12 @@ final class LayoutEngine
             }
             $auto = new ComputedStyle(...[...get_object_vars($style), 'width' => Auto::instance()]);
 
-            return $this->layouterFor($node, $auto)->intrinsic($node, $auto, $this);
+            $this->ctx->pushNode($node, $auto);
+            try {
+                return $this->layouterFor($node, $auto)->intrinsic($node, $auto, $this);
+            } finally {
+                $this->ctx->popNode();
+            }
         } finally {
             $this->ctx->popPath();
         }
