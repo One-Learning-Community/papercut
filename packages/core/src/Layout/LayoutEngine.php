@@ -36,6 +36,7 @@ final class LayoutEngine
     private readonly BlockLayouter $block;
     private readonly FlexLayouter $flex;
     private readonly TableLayouter $table;
+    private readonly ColumnFlowLayouter $columnFlow;
 
     public function __construct(private readonly LayoutContext $ctx)
     {
@@ -43,6 +44,7 @@ final class LayoutEngine
         $this->anywhereIntrinsics = new \WeakMap();
         $this->block = new BlockLayouter();
         $this->flex = new FlexLayouter();
+        $this->columnFlow = new ColumnFlowLayouter();
         $leaf = new LeafLayouter();
         $this->layouters[Text::class] = new TextLayouter();
         $this->layouters[Link::class] = new LinkLayouter($this->block);
@@ -293,6 +295,9 @@ final class LayoutEngine
     private function layouterFor(Node $node, ComputedStyle $style): Layouter
     {
         if ($node instanceof View) {
+            if ($node->columnSpec() !== null) {
+                return $this->columnFlow;
+            }
             return $style->direction === Direction::Row ? $this->flex : $this->block;
         }
         return $this->layouters[$node::class] ?? throw new \LogicException(sprintf(

@@ -54,12 +54,18 @@ final class ForcedBreakTest extends TestCase
         self::assertSame(ForcedBreak::Page, $r->token?->forced);
     }
 
-    public function test_column_break_inside_a_flow_is_forced_column(): void
+    public function test_column_break_inside_a_flow_moves_to_the_next_column(): void
     {
         $r = (new LayoutHarness())->layout(ColumnFlow::make(Text::make('a'), ColumnBreak::make(), Text::make('b')), 200);
+        self::assertSame(Status::Complete, $r->status);
+        self::assertCount(2, $r->fragment?->children() ?? []);
+    }
+
+    public function test_column_break_in_the_last_column_of_a_flow_is_forced_page(): void
+    {
+        $r = (new LayoutHarness())->layout(ColumnFlow::make(Text::make('a'), ColumnBreak::make(), Text::make('b'))->columns(1), 200);
         self::assertSame(Status::Partial, $r->status);
-        self::assertSame(2, $r->token?->index);
-        self::assertSame(ForcedBreak::Column, $r->token->forced);
+        self::assertSame(ForcedBreak::Page, $r->token?->forced);
     }
 
     public function test_column_break_outside_a_flow_throws_invalid_structure(): void
@@ -83,7 +89,7 @@ final class ForcedBreakTest extends TestCase
             (new LayoutHarness())->layout($flow, 200);
             self::fail('Expected InvalidStructure');
         } catch (InvalidStructure $e) {
-            self::assertSame('A ColumnBreak only works inside a ColumnFlow (at "column > table[0] > tr[0] > td[0] > column[0] > column-break[1]").', $e->getMessage());
+            self::assertSame('A ColumnBreak only works inside a ColumnFlow (at "column-flow > table[0] > tr[0] > td[0] > column[0] > column-break[1]").', $e->getMessage());
         }
     }
 
@@ -94,7 +100,7 @@ final class ForcedBreakTest extends TestCase
             (new LayoutHarness())->layout($flow, 200);
             self::fail('Expected InvalidStructure');
         } catch (InvalidStructure $e) {
-            self::assertSame('A ColumnBreak only works inside a ColumnFlow (at "column > row[0] > column-break[1]").', $e->getMessage());
+            self::assertSame('A ColumnBreak only works inside a ColumnFlow (at "column-flow > row[0] > column-break[1]").', $e->getMessage());
         }
     }
 

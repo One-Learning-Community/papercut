@@ -13,7 +13,7 @@ final class NodePath
     public static function segment(Node $node, ?ComputedStyle $style, ?int $index): string
     {
         $name = $node instanceof View && $style !== null
-            ? ($style->direction === Direction::Row ? 'row' : 'column')
+            ? ($node->columnSpec() !== null ? 'column-flow' : ($style->direction === Direction::Row ? 'row' : 'column'))
             : $node->debugName();
         return $index === null ? $name : sprintf('%s[%d]', $name, $index);
     }
