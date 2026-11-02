@@ -142,7 +142,7 @@ The guide lives at [one-learning-community.github.io/papercut](https://one-learn
 
 ## Status
 
-0.7, before 1.0. Until 1.0 a minor version may change the API; patch versions won't. Word, LibreOffice and Google Docs lay out a Word file themselves, so its page breaks can differ from the PDF's. No performance or compatibility benchmarks have been
+0.7, before 1.0. Until 1.0 a minor version may change the API; patch versions won't. [Versions and compatibility](https://one-learning-community.github.io/papercut/guide/compatibility.html) says what the promise covers. Word, LibreOffice and Google Docs lay out a Word file themselves, so its page breaks can differ from the PDF's. No performance or compatibility benchmarks have been
 published; don't assume any. Requires PHP 8.4+, and Laravel 12 or 13 for `papercut/laravel` (CI tests against both).
 
 Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning

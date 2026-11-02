@@ -8,6 +8,30 @@ use PHPUnit\Framework\TestCase;
 
 final class ArchitectureTest extends TestCase
 {
+    /** Backend and Paint are internal: no custom backends. These two stay public so a backend can be configured. */
+    public function test_backend_and_paint_types_are_internal(): void
+    {
+        $src = realpath(__DIR__ . '/../src');
+        self::assertIsString($src);
+        $public = ['Backend/PhpPdf/PhpPdfBackend.php', 'Backend/PhpPdf/FontStateCache.php'];
+        $missing = [];
+        foreach (['Backend', 'Paint'] as $dir) {
+            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($src . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
+            foreach ($it as $file) {
+                $rel = substr($file->getPathname(), strlen($src) + 1);
+                if ($file->getExtension() !== 'php' || in_array($rel, $public, true)) {
+                    continue;
+                }
+                $code = (string) file_get_contents($file->getPathname());
+                if (preg_match('/\/\*\*(?:(?!\*\/).)*@internal(?:(?!\*\/).)*\*\/\s*(?:#\[[^\n]*\]\s*)*(?:final |abstract |readonly )*(?:class|interface|enum|trait) /s', $code) !== 1) {
+                    $missing[] = $rel;
+                }
+            }
+        }
+        sort($missing);
+        self::assertSame([], $missing, 'Mark these @internal, or add them to the public list with a reason');
+    }
+
     public function test_only_phppdf_backend_imports_dskripchenko(): void
     {
         $src = realpath(__DIR__ . '/../src');

@@ -56,7 +56,7 @@ export default defineUserConfig({
       '/guide/': [
         {
           text: 'Start',
-          children: ['/guide/', '/guide/installation.md', '/guide/first-document.md'],
+          children: ['/guide/', '/guide/installation.md', '/guide/first-document.md', '/guide/compatibility.md'],
         },
         {
           text: 'Building documents',
