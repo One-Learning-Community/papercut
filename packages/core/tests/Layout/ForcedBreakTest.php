@@ -58,7 +58,7 @@ final class ForcedBreakTest extends TestCase
     {
         $r = (new LayoutHarness())->layout(ColumnFlow::make(Text::make('a'), ColumnBreak::make(), Text::make('b')), 200);
         self::assertSame(Status::Partial, $r->status);
-        self::assertSame(1 + 1, $r->token?->index);
+        self::assertSame(2, $r->token?->index);
         self::assertSame(ForcedBreak::Column, $r->token->forced);
     }
 
@@ -79,8 +79,23 @@ final class ForcedBreakTest extends TestCase
     public function test_column_break_inside_a_table_cell_inside_a_flow_throws(): void
     {
         $flow = ColumnFlow::make(Table::make()->row(TableCell::make(Column::make(Text::make('a'), ColumnBreak::make(), Text::make('b')))));
-        $this->expectException(InvalidStructure::class);
-        (new LayoutHarness())->layout($flow, 200);
+        try {
+            (new LayoutHarness())->layout($flow, 200);
+            self::fail('Expected InvalidStructure');
+        } catch (InvalidStructure $e) {
+            self::assertSame('A ColumnBreak only works inside a ColumnFlow (at "column > table[0] > tr[0] > td[0] > column[0] > column-break[1]").', $e->getMessage());
+        }
+    }
+
+    public function test_column_break_directly_in_a_row_throws(): void
+    {
+        $flow = ColumnFlow::make(\Papercut\Row::make(Text::make('a'), ColumnBreak::make(), Text::make('b')), Text::make('c'));
+        try {
+            (new LayoutHarness())->layout($flow, 200);
+            self::fail('Expected InvalidStructure');
+        } catch (InvalidStructure $e) {
+            self::assertSame('A ColumnBreak only works inside a ColumnFlow (at "column > row[0] > column-break[1]").', $e->getMessage());
+        }
     }
 
     public function test_column_break_is_skipped_as_a_last_child_and_inside_a_fixed_height_box(): void
