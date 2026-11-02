@@ -136,6 +136,8 @@ $document = Document::make(Page::letter()->body(
 | `columnGap(pt(24))` | `column-gap="24pt"` | The space between columns. Give one length for every gap, or one per space (`columnGap(pt(24), pt(12))`) when the gaps differ. |
 | `columnRule()` | `rule` | A thin line in each gap. `columnRule(pt(1), Color::parse('slate-400'))` and `rule="1pt slate-400"` set the width (default 0.5pt) and the colour (default black). |
 
+Gaps can't be negative and a rule needs a width above zero. If the gaps leave no room for the columns (four columns with 36pt gaps in a 100pt box), it's a layout overflow like any other: an error by default, a warning and a single column when clipping.
+
 `gap` is the ordinary style gap, as on any box: it spaces the flow's children, and `columnGap()` / `column-gap` is the space between columns. The flow itself can't have its own border, background, padding or size. To draw a box around columns, wrap the flow in a `View`:
 
 ```php
@@ -149,8 +151,8 @@ View::make(
 - Content fills column 1, then column 2 and so on, then column 1 of the next page, under that page's header and above its footer. Text splits between lines across columns as it does across pages, and tables and lists split as they do across pages.
 - `keepTogether` and `keepWithNext` work at column breaks as they do at page breaks, so a heading stays with its first paragraph at the bottom of a column.
 - A `PageBreak` ends the page. What follows starts in column 1 of the next page, still in the same flow.
-- A `ColumnBreak` sends what follows to the top of the next column. In the last column it goes to the next page. Outside a flow it's an error. Breaks collapse at the top of a column: a `ColumnBreak` right before a `PageBreak` doesn't add a page, and two `ColumnBreak`s in a row advance one column.
-- Content too wide for its column is handled like content too wide anywhere else, and an error names the path through the flow, for example `page > body > column-flow > image[1]`.
+- A `ColumnBreak` sends what follows to the top of the next column. In the last column it goes to the next page. Outside a flow it's an error. A `ColumnBreak` right before a `PageBreak` doesn't add a page. Two `ColumnBreak`s in a row, or a flow that opens with a `ColumnBreak`, advance one column only when the flow starts at the top of a page. In a flow that starts lower on the page, the second break of a pair sends what follows to the next page and leaves the second column empty, and a leading `ColumnBreak` moves the whole flow to the next page.
+- Content too wide for its column is handled like content too wide anywhere else, and an error names the path through the flow, for example `page > body > column-flow[0] > image[1]`.
 
 ### Ending level
 
