@@ -4,7 +4,7 @@ sidebar: false
 
 # Examples
 
-The repository includes seven example documents, each written twice: once as a Blade view and once in plain PHP. Comparing the two versions is a good way to see how Blade tags map to the PHP API. The invoice, transcript, integration guide and certificate use US Letter and inches; the report, form responses and knowledge base article use A4 and millimetres.
+The repository includes eight example documents, each written twice: once as a Blade view and once in plain PHP. Comparing the two versions is a good way to see how Blade tags map to the PHP API. The invoice, transcript, integration guide and certificate use US Letter and inches; the report, form responses, knowledge base article and academic paper use A4 and millimetres.
 
 | Document | What it shows | Blade | PHP |
 |---|---|---|---|
@@ -15,6 +15,7 @@ The repository includes seven example documents, each written twice: once as a B
 | Integration guide | portrait, landscape and portrait pages in one document, highlighted code blocks, method badges, a QR code, a checklist | [guide.blade.php][gd-b] | [guide.php][gd-p] |
 | Certificate | a [page template](/guide/pages.md#filling-in-an-existing-pdf): a name, course and date placed on a blank PDF, and a signature image on the signature line. PDF only | [certificate.blade.php][ce-b] | [certificate.php][ce-p] |
 | Knowledge base article | HTML from a rich text editor, converted by [Markup](/guide/rich-text.md): headings, a nested list, a table, a highlighted code block, a quotation | [article.blade.php][ar-b] | [article.php][ar-p] |
+| Academic paper | a full-width title, authors and abstract, then a body in two columns with a table and a figure that ends level, and a full-width closing note | [paper.blade.php][pa-b] | [paper.php][pa-p] |
 
 [inv-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/invoice.blade.php
 [inv-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/invoice.php
@@ -28,6 +29,8 @@ The repository includes seven example documents, each written twice: once as a B
 [ce-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/certificate.php
 [ar-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/article.blade.php
 [ar-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/article.php
+[pa-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/paper.blade.php
+[pa-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/paper.php
 [res-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php
 [res-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php
 
@@ -64,6 +67,10 @@ Each card shows the PDF. Download the Word file too, and open it in Word, LibreO
     <div class="example-pages"><a :href="$withBase('/examples/article.pdf')"><img :src="$withBase('/examples/article-1.png')" alt="Knowledge base article, page 1" loading="lazy"></a></div>
     <figcaption><strong>Knowledge base article</strong> (page 1 of 2) <a :href="$withBase('/examples/article.pdf')">PDF</a> · <a :href="$withBase('/examples/article.docx')" download>Word</a></figcaption>
   </figure>
+  <figure class="example-card">
+    <div class="example-pages"><a :href="$withBase('/examples/paper.pdf')"><img :src="$withBase('/examples/paper-1.png')" alt="Academic paper, page 1" loading="lazy"></a></div>
+    <figcaption><strong>Academic paper</strong> (page 1 of 2) <a :href="$withBase('/examples/paper.pdf')">PDF</a> · <a :href="$withBase('/examples/paper.docx')" download>Word</a></figcaption>
+  </figure>
 </div>
 
 ## Running them
@@ -80,6 +87,7 @@ php examples/core/responses.php
 php examples/core/guide.php
 php examples/core/certificate.php
 php examples/core/article.php
+php examples/core/paper.php
 
 # The same documents as HTML (all but the certificate): writes examples/html/<name>.html
 php examples/html/render.php
@@ -244,3 +252,34 @@ $article = Column::make(
 In the example, `$html` is a heredoc holding what an editor would save: `h2` and `h3` headings, paragraphs with bold, italic and links, a list with a nested list, a table with a header row, a `<pre><code class="language-bash">` block and a blockquote. The theme styles all of it, so the article matches the rest of your documents. The code block is highlighted because of its `language-bash` class.
 
 Anything Papercut can't convert is reported, never silently lost. The example's test turns on strict mode and checks that the article produces no warnings. See [Rich text](/guide/rich-text.md#conversion-warnings) for what gets converted and what the warnings mean.
+
+## The academic paper example
+
+A paper puts a title and abstract across the whole page, then sets the body in two columns. In Papercut a `ColumnFlow` is the two-column part: text fills the first column, continues in the second, and carries on to the next page. The title, the abstract and the closing note around it are ordinary full-width blocks on the same page:
+
+::: tabs#lang
+
+@tab Blade
+
+```blade
+<x-doc::column-flow columns="2" gap="6mm" rule>
+    @foreach ($sections as $i => [$title, $paragraphs])
+        <x-doc::h3 margin="{{ $i === 0 ? '0' : '8pt 0 0 0' }}">{{ $title }}</x-doc::h3>
+        @foreach ($paragraphs as $paragraph)
+            <x-doc::p align="justify">{{ $paragraph }}</x-doc::p>
+        @endforeach
+    @endforeach
+</x-doc::column-flow>
+```
+
+@tab PHP
+
+```php
+ColumnFlow::make(...$body)->columns(2)->columnGap(mm(6))->columnRule(),
+```
+
+:::
+
+The flow sits between the title block and the note as one more child of the page body. The headings are the theme's `h3`, which stays with the paragraph after it, so a heading that lands at the bottom of a column moves to the top of the next one with its paragraph (look for "2. Methods" on page 1). The table and the figure are each wrapped in a block that keeps together, so neither is split between columns. On the last page the two columns end at about the same height instead of leaving the second one short.
+
+In Word the same document is three sections: the full-width title, a two-column section for the body, and the full-width note. The table and the chart in this example are made up for illustration.

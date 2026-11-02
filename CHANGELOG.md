@@ -5,6 +5,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- A `paper` example (`examples/core/documents/paper.php` and `examples/laravel/views/paper.blade.php`): a two-page academic paper on A4 with a full-width title and abstract, a two-column body with a table and a figure that ends level, and a full-width closing note, with PDF, HTML and Word output.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added
