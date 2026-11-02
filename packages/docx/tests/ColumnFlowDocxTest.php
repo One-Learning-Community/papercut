@@ -144,11 +144,49 @@ final class ColumnFlowDocxTest extends TestCase
         self::assertSame(2, $d->count('//w:cols/w:col'));
         self::assertSame('720', $d->value('//w:cols/w:col[1]/@w:space'));
         self::assertNull($d->value('//w:cols/w:col[2]/@w:space'));
+        self::assertSame(['2769', '5537'], $d->values('//w:cols/w:col/@w:w'));
     }
 
     public function test_a_page_break_after_the_flow_does_not_leave_it_unlevelled(): void
     {
         $d = self::export(Page::a4()->body(ColumnFlow::make(Text::make('a'))->columns(2)->breakAfter(), Text::make('next')));
         self::assertSame(1, $d->count('//w:cols'));
+        // A continuous section follows the flow's, and the break after the flow is the only page break.
+        self::assertSame(1, $d->count('/w:document/w:body/w:p[1]/w:pPr/w:sectPr/w:cols'));
+        self::assertSame(1, $d->count('/w:document/w:body/w:sectPr/w:type[@w:val="continuous"]'));
+        self::assertSame(1, $d->count("//w:br[@w:type='page']"));
+    }
+
+    public function test_two_flows_on_one_page(): void
+    {
+        $d = self::export(Page::a4()->body(
+            Text::make('t'),
+            ColumnFlow::make(Text::make('a'))->columns(2),
+            ColumnFlow::make(Text::make('b'))->columns(3),
+        ));
+        // plain, cols 2, cols 3, levelling.
+        self::assertSame(4, $d->count(self::ANY_SECT));
+        self::assertSame(['2', '3'], $d->values('//w:cols/@w:num'));
+        self::assertSame(['continuous', 'continuous', 'continuous'], $d->values('//w:sectPr/w:type/@w:val'));
+        self::assertSame(1, $d->count('/w:document/w:body/w:p[2]/w:pPr/w:sectPr/w:cols[@w:num="2"]'));
+        self::assertSame(1, $d->count('/w:document/w:body/w:p[3]/w:pPr/w:sectPr/w:cols[@w:num="3"]'));
+        self::assertSame(0, $d->count('/w:document/w:body/w:sectPr/w:cols'));
+    }
+
+    public function test_a_later_template_starting_with_a_flow_drops_its_leading_break(): void
+    {
+        $d = self::export(Document::make(
+            Page::a4()->body(Text::make('first')),
+            Page::a5()->body(ColumnFlow::make(Text::make('a')->breakBefore(), Text::make('b'))->columns(2)),
+        ));
+        self::assertSame(0, $d->count('//w:pageBreakBefore'));
+        self::assertSame(0, $d->count("//w:br[@w:type='page']"));
+    }
+
+    public function test_body_text_equal_to_the_column_break_marker_survives(): void
+    {
+        $d = self::export(Page::a4()->body(ColumnFlow::make(Text::make('papercut-column-break'), ColumnBreak::make(), Text::make('see papercut-column-break'))->columns(2)));
+        self::assertSame(1, $d->count("//w:br[@w:type='column']"));
+        self::assertSame(['papercut-column-break', 'see papercut-column-break'], $d->values('//w:t[normalize-space()]'));
     }
 }

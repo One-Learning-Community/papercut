@@ -79,7 +79,7 @@ final class DocxPatcherColumnsTest extends TestCase
             new Paragraph([new Run('b')]),
         ]);
         $bytes = (new Word2007Writer(new StyleRegistry()))->write(new DocxDocument($one));
-        $d = DocxInspector::of(DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'))));
+        $d = DocxInspector::of(DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'), columnBreaks: 1)));
         self::assertSame(1, $d->count("//w:p/w:r/w:br[@w:type='column']"));
         self::assertSame(0, $d->count("//w:t[contains(., 'papercut')]"));
         self::assertSame(['a', 'b'], $d->values('//w:t'));
@@ -92,6 +92,37 @@ final class DocxPatcherColumnsTest extends TestCase
         $bytes = (new Word2007Writer(new StyleRegistry()))->write(new DocxDocument($one));
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('php-docx output changed: ');
-        DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01')));
+        DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'), columnBreaks: 1));
+    }
+
+    /** @return array<string, array{int}> */
+    public static function counts(): array
+    {
+        return ['without real breaks' => [0], 'with a real break' => [1]];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('counts')]
+    public function test_body_text_holding_the_sentinel_is_left_alone(int $breaks): void
+    {
+        $paragraphs = [
+            new Paragraph([new Run(DocxPatcher::COLUMN_BREAK)]),
+            new Paragraph([new Run('the marker ' . DocxPatcher::COLUMN_BREAK . ' here')]),
+        ];
+        if ($breaks > 0) {
+            $paragraphs[] = new Paragraph([new Run(DocxPatcher::COLUMN_BREAK, new RunStyle(sizeHalfPoints: 2))]);
+        }
+        $bytes = (new Word2007Writer(new StyleRegistry()))->write(new DocxDocument(new Section($paragraphs)));
+        $d = DocxInspector::of(DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'), columnBreaks: $breaks)));
+        self::assertSame($breaks, $d->count("//w:br[@w:type='column']"));
+        $texts = $d->values('//w:t');
+        self::assertSame([DocxPatcher::COLUMN_BREAK, 'the marker ' . DocxPatcher::COLUMN_BREAK . ' here'], array_slice($texts, 0, 2));
+    }
+
+    public function test_fewer_runs_than_counted_fails_loudly(): void
+    {
+        $bytes = (new Word2007Writer(new StyleRegistry()))->write(new DocxDocument(new Section([new Paragraph([new Run('x')])])));
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('column break run not found');
+        DocxPatcher::patch($bytes, new PatchSpec('Inter', 20, null, new \DateTimeImmutable('2000-01-01'), columnBreaks: 1));
     }
 }

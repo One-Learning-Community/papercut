@@ -31,6 +31,7 @@ final class DocxVisitor implements TreeVisitor
     /** @var list<array{page: Page, regions: array<string, list<BlockElement>>, floats: list<DocxImage>}> */
     private array $pages = [];
     private ?Page $page = null;
+    private int $columnBreaks = 0;
     /** True inside a background or overlay region: only its pictures reach Word, as floating pictures. */
     private bool $skipping = false;
     /** The background or overlay region being walked. */
@@ -61,6 +62,12 @@ final class DocxVisitor implements TreeVisitor
         /** Set to give each page its own theme. */
         private readonly ?PageThemes $themes = null,
     ) {
+    }
+
+    /** How many column breaks the walk wrote. */
+    public function columnBreaks(): int
+    {
+        return $this->columnBreaks;
     }
 
     /** @return list<array{page: Page, regions: array<string, list<BlockElement>>, floats: list<DocxImage>}> */
@@ -304,6 +311,8 @@ final class DocxVisitor implements TreeVisitor
         foreach (array_reverse($this->stack) as $frame) {
             if ($frame->node instanceof View && $frame->node->columnSpec() !== null) {
                 if ($frame->cols !== null) {
+                    $this->columnBreaks++;
+
                     return [Flow::columnBreak()];
                 }
                 break;

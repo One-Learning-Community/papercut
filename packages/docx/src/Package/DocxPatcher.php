@@ -76,7 +76,7 @@ final class DocxPatcher
         if ($spec->columns !== []) {
             $parts = self::columns($parts, $spec->columns);
         }
-        $parts = self::columnBreaks($parts);
+        $parts = self::columnBreaks($parts, $spec->columnBreaks);
 
         $font = self::attr($spec->fontFamily);
         $lang = $spec->lang === null ? '' : '<w:lang w:val="' . self::attr($spec->lang) . '"/>';
@@ -163,26 +163,24 @@ final class DocxPatcher
     }
 
     /**
-     * Turns each run that holds only COLUMN_BREAK into a column break run. php-docx writes no break run but the page break.
+     * Turns the $count runs Flow::columnBreak() wrote into column break runs. Only that run's exact markup counts, so
+     * body text that happens to hold the sentinel is left alone; nothing is touched when $count is 0.
      *
      * @param array<string, string> $parts
      * @return array<string, string>
      */
-    private static function columnBreaks(array $parts): array
+    private static function columnBreaks(array $parts, int $count): array
     {
-        $xml = $parts['word/document.xml'] ?? '';
-        if (!str_contains($xml, self::COLUMN_BREAK)) {
+        if ($count === 0) {
             return $parts;
         }
-        $xml = (string) preg_replace(
-            '~<w:r>(?:<w:rPr>(?:(?!</w:rPr>).)*</w:rPr>)?<w:t(?: xml:space="preserve")?>' . preg_quote(self::COLUMN_BREAK, '~') . '</w:t></w:r>~s',
-            '<w:r><w:br w:type="column"/></w:r>',
-            $xml,
-        );
-        if (str_contains($xml, self::COLUMN_BREAK)) {
+        $run = '<w:r><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr><w:t xml:space="preserve">' . self::COLUMN_BREAK . '</w:t></w:r>';
+        $xml = $parts['word/document.xml'] ?? '';
+        $found = substr_count($xml, $run);
+        if ($found < $count) {
             throw new \LogicException('php-docx output changed: column break run not found');
         }
-        $parts['word/document.xml'] = $xml;
+        $parts['word/document.xml'] = str_replace($run, '<w:r><w:br w:type="column"/></w:r>', $xml);
 
         return $parts;
     }

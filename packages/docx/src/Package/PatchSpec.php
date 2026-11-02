@@ -26,6 +26,8 @@ final readonly class PatchSpec
         public array $tocs = [],
         /** @var array<int, string> `w:cols` XML by section index, in document order; DocxPatcher writes it after the section's `w:pgMar` */
         public array $columns = [],
+        /** How many column break runs (Flow::columnBreak()) the body holds; DocxPatcher turns exactly that many into breaks. */
+        public int $columnBreaks = 0,
     ) {
     }
 }

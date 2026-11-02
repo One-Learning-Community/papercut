@@ -118,7 +118,7 @@ final class DocxExporter implements Exporter
 
         $bytes = DocxPatcher::patch(
             (new Word2007Writer($registry))->write($docx),
-            new PatchSpec($fonts->name($root->fontFamily), (int) round($root->fontSize * 2), $meta->lang, $date, $mirror, $numbering, $fonts->written(), $toc?->fields() ?? [], $columns),
+            new PatchSpec($fonts->name($root->fontFamily), (int) round($root->fontSize * 2), $meta->lang, $date, $mirror, $numbering, $fonts->written(), $toc?->fields() ?? [], $columns, $visitor->columnBreaks()),
             $fidelity,
         );
 
@@ -195,7 +195,7 @@ final class DocxExporter implements Exporter
         $sections = [];
         $columns = [];
         foreach ($groups as $g => $pages) {
-            $segments = self::segments($this->body($pages));
+            $segments = self::withoutEmptySegments(self::segments($this->body($pages)));
             if ($g > 0) {
                 $segments[0]['blocks'] = self::withoutLeadingBreak($segments[0]['blocks']);
             }
@@ -204,7 +204,6 @@ final class DocxExporter implements Exporter
                 // The next section starts on a new page by itself.
                 array_pop($segments[$lastSegment]['blocks']);
             }
-            $segments = self::withoutEmptySegments($segments);
             foreach ($segments as $i => $segment) {
                 $body = $segment['blocks'];
                 // Word needs a section to end in a paragraph; php-docx's own is default height and can spill onto a new page.
