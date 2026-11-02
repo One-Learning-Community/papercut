@@ -146,7 +146,7 @@ published; don't assume any. Requires PHP 8.4+, and Laravel 12 or 13 for `paperc
 
 Not supported yet: HarfBuzz shaping (the backend exposes no glyph-level drawing API; its built-in shaping covers kerning
 and ligatures within runs), right-to-left and bidirectional paragraph layout, hyphenation, Knuth-Plass line breaking,
-multi-column text flow, fillable form fields (AcroForms) and PDF/A. Filling in an existing PDF works through page templates.
+fillable form fields (AcroForms) and PDF/A. Filling in an existing PDF works through page templates.
 Signing and merging aren't built in, but php-pdf can do both to a Papercut PDF; see
 [Passwords, signatures and merging](https://one-learning-community.github.io/papercut/guide/passwords-and-signatures.html).
 

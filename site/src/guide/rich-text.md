@@ -89,7 +89,25 @@ In PHP, `Markup::flatten()` does the same thing and merges the converted content
 ## Style modes
 
 - **`theme`** (the default): the HTML provides the structure, and your theme decides how it looks. Inline `style="…"` attributes are ignored.
-- **`original`**: inline styles are applied on top of the theme. Colour, font size, weight, italic and text decoration work everywhere. `background-color` works on spans too. Alignment, margin, padding and sizes work on block elements only. Anything else is dropped and reported.
+- **`original`**: inline styles are applied on top of the theme. Colour, font size, weight, italic and text decoration work everywhere. `background-color` works on spans too. Alignment, margin, padding and sizes work on block elements only. Column properties on a `div` make a [column flow](#columns). Anything else is dropped and reported.
+
+## Columns
+
+In `original` style mode, a `div` (or a block tag that would otherwise be dropped, like `section`) whose `style` attribute sets `column-count`, `columns`, `column-gap` or `column-rule` becomes a [column flow](./layout.md#column-flow). Only the style attribute is read, never a stylesheet.
+
+```html
+<div style="column-count: 2; column-gap: 24pt; column-rule: 1pt solid #999">
+  <p>…</p>
+</div>
+```
+
+- `column-count` sets the number of columns. `columns` sets it too: only its count is read, and a width in it is ignored. A count above 45 is clamped to 45, with a note.
+- `column-gap` sets the gap. `column-rule` sets the width and colour of the rule.
+- `column-span`, `column-width` and `column-fill` are dropped, with a note. The flow has no way to span columns, work out a count from a width, or leave columns unbalanced.
+- On `p`, headings, lists and tables the column properties are dropped, with a note.
+- Box styles on the same `div`, such as a border, background or padding, go on a box around the flow.
+
+In `theme` mode, the default, author styles are ignored, so the content stays in one column. A flow made this way never throws for where it ends up. Inside a table cell, a row or another flow it lays out as one column, with a note.
 
 ## Images
 

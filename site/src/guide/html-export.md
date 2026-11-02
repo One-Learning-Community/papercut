@@ -45,6 +45,10 @@ To pick the HTML element a view exports as, call `htmlTag()` (`div`, `section`, 
 
 The HTML uses meaningful tags where it can: sections become `<section>`, callouts `<aside>`, blockquotes `<blockquote>`, lists `<ol>` or `<ul>`, and tables `<table>`.
 
+## Columns
+
+A [column flow](./layout.md#column-flow) exports as an element with CSS columns (`column-count`, `column-gap`, `column-rule`), and a `ColumnBreak` as a column break. The browser fills the columns itself, so they won't match the PDF line for line, and a child that starts a new column can show an extra gap above it, because CSS can't know where a column starts. Unequal column widths and unequal gaps are approximated as equal columns and equal gaps, reported as approximated.
+
 ## Fonts
 
 A PDF carries its fonts inside the file, but a browser has to load them from somewhere. By default the HTML only names the fonts and the browser uses whatever it has. To embed your fonts, link to files you host, or load them from Google Fonts, see [Fonts in HTML](./web-fonts.md).

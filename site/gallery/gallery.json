@@ -10,6 +10,25 @@
           "alt": "Boxes arranged in a row and a column, with gaps, alignment and a growing box",
           "pages": 1,
           "variants": []
+        },
+        {
+          "id": "column-flow",
+          "title": "Column flow",
+          "api": "/guide/layout.html#column-flow",
+          "alt": "A heading and paragraphs set in two columns that end level",
+          "pages": 1,
+          "variants": [
+            {
+              "id": "rule",
+              "label": "columnRule()",
+              "alt": "Three columns with a thin rule in each gap"
+            },
+            {
+              "id": "widths",
+              "label": "columnWidths(2, 1)",
+              "alt": "Two columns, the first twice as wide as the second"
+            }
+          ]
         }
       ]
     },
