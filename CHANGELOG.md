@@ -7,7 +7,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- On PHP 8.4 and 8.5, exports could crash with `zend_mm_heap corrupted` or a segfault. A PHP garbage-collector bug (php/php-src#20001) corrupts memory when an object is a key in several WeakMaps; Papercut's per-export caches are now plain object storage instead, so the pattern no longer occurs.
+- On PHP 8.4 and 8.5, exports could crash with `zend_mm_heap corrupted` or a segfault. A PHP garbage-collector bug (php/php-src#20001) corrupts memory when an object is a key in several WeakMaps that hold objects, arrays or strings; Papercut's caches no longer use that pattern.
 
 ## [0.7.0] - 2026-11-01
 
