@@ -189,4 +189,29 @@ final class ColumnFlowDocxTest extends TestCase
         self::assertSame(1, $d->count("//w:br[@w:type='column']"));
         self::assertSame(['papercut-column-break', 'see papercut-column-break'], $d->values('//w:t[normalize-space()]'));
     }
+
+    public function test_a_table_in_a_flow_is_sized_to_its_column(): void
+    {
+        $table = Table::make()->columns('1fr 1fr 1fr')->row(TableCell::make(Text::make('a')), TableCell::make(Text::make('b')), TableCell::make(Text::make('c')));
+        $d = self::export(Page::a4()->margin(pt(72))->body(ColumnFlow::make($table)->withColumnSpec(new ColumnSpec(2, null, [36.0]))));
+        // 451.3pt less the 36pt gap, over two columns: 207.6pt = 4153 twips.
+        $column = (int) round((595.276 - 144 - 36) / 2 * 20);
+        self::assertLessThanOrEqual($column, (int) $d->value('//w:tblW/@w:w'));
+        self::assertEqualsWithDelta($column, array_sum(array_map('intval', $d->values('//w:tblGrid/w:gridCol/@w:w'))), 3);
+    }
+
+    public function test_a_bordered_box_in_a_flow_is_sized_to_its_column(): void
+    {
+        $box = View::make(Text::make('boxed'))->padding(pt(6))->border(pt(1), Color::hex('#000000'));
+        $d = self::export(Page::a4()->margin(pt(72))->body(ColumnFlow::make($box)->withColumnSpec(new ColumnSpec(2, null, [36.0]))));
+        $column = (int) round((595.276 - 144 - 36) / 2 * 20);
+        self::assertLessThanOrEqual($column, (int) $d->value('//w:tblW/@w:w'));
+    }
+
+    public function test_unequal_shares_size_to_the_narrowest_column(): void
+    {
+        $table = Table::make()->columns('1fr')->row(TableCell::make(Text::make('a')));
+        $d = self::export(Page::a4()->margin(pt(72))->body(ColumnFlow::make($table)->withColumnSpec(new ColumnSpec(2, [1.0, 2.0], [36.0]))));
+        self::assertLessThanOrEqual(2769, (int) $d->value('//w:tblW/@w:w'));
+    }
 }

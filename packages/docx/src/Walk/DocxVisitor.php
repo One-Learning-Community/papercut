@@ -138,7 +138,14 @@ final class DocxVisitor implements TreeVisitor
         $width = $this->outerWidth($node, $style, $parent, $at);
         $content = max(0.0, $width - $style->padding->horizontal() - $style->borderWidth->horizontal());
         $isRow = $node instanceof View && $style->direction === Direction::Row;
+        $spec = $node instanceof View ? $node->columnSpec() : null;
+        $cols = $spec === null ? null : $this->flowColumns($spec, $style, $at);
+        if ($spec !== null && $cols !== null) {
+            // Word flows content through every column, so tables and boxes are sized to the narrowest one.
+            $content = min(array_column($spec->columns($this->stack[0]->width), 'width'));
+        }
         $frame = new Frame($node, $style, $width, $content, $isRow);
+        $frame->cols = $cols;
         $frame->backdrop = Fade::under($style->background, $parent->backdrop);
         // Word draws these as table cells, whose lists start again at level 0: a table cell, a row's child, a decorated box
         // (which leave() wraps in a table). Entered before the node's own list opens, so a decorated list's items restart too.
@@ -167,9 +174,6 @@ final class DocxVisitor implements TreeVisitor
         } elseif ($node instanceof Link) {
             $this->links[] = TextMapper::href($node->uri());
             $this->fidelity->approximated('block link', $at->path());
-        }
-        if ($node instanceof View && $node->columnSpec() !== null) {
-            $frame->cols = $this->flowColumns($node->columnSpec(), $style, $at);
         }
         $this->stack[] = $frame;
         if (TextMapper::glyph($node, $style) !== null) {
