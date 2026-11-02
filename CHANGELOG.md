@@ -16,7 +16,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- The `Papercut\Backend` interfaces and the `Papercut\Paint` display list are marked `@internal`: custom backends aren't supported. Making a `PhpPdfBackend` with its options and passing it to `PdfOptions(backend:)` still is.
+- The `Papercut\Backend` interfaces and the `Papercut\Paint` display list are marked `@internal`: custom backends aren't supported. Making a `PhpPdfBackend` with its options and passing it to `PdfOptions(backend:)` still is. `examples/core/hello.php`, which draws with the backend directly, is now labelled a contributor demo.
 - A `paper` example (`examples/core/documents/paper.php` and `examples/laravel/views/paper.blade.php`): a two-page academic paper on A4 with a full-width title and abstract, a two-column body with a table and a figure that ends level, and a full-width closing note, with PDF, HTML and Word output.
 
 ### Fixed

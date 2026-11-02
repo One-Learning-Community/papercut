@@ -75,7 +75,7 @@ php -d xdebug.mode=off -d opcache.enable_cli=1 bench/run.php | php bench/check.p
 ## Examples
 
 ```
-php examples/core/invoice.php        # also transcript.php, report.php, hello.php
+php examples/core/invoice.php        # also transcript.php, report.php, hello.php (internal backend demo)
 php examples/laravel/render.php      # needs `composer install` in packages/laravel
 ```
 

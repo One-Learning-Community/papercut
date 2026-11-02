@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-// Low-level demo: draws a card with the backend directly. Run: php examples/core/hello.php
+// For contributors: draws a card with the backend directly, using Papercut's internal display list
+// (Papercut\Backend and Papercut\Paint are @internal and may change in any release). Run: php examples/core/hello.php
 require __DIR__ . '/../../packages/core/vendor/autoload.php';
 
 use Papercut\Backend\PhpPdf\PhpPdfBackend;

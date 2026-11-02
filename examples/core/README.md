@@ -15,4 +15,4 @@ php examples/core/paper.php        # academic paper: full-width title and abstra
 
 Each script requires its Document from `documents/<name>.php`, which just returns it, so the same documents can be rendered by other exporters. `php examples/html/render.php` writes `examples/html/{invoice,transcript,report,responses,guide,article,paper}.html` (full pages with fonts linked by relative path, so open them from a checkout). The certificate is left out of the HTML and Word renders: it fills in a PDF template, which those exports drop. `certificate-template.php` rebuilds the blank template in `examples/assets/`.
 
-Each script writes `examples/core/<name>.pdf` (git-ignored) and prints its name. `hello.php` is a low-level backend demo.
+Each script writes `examples/core/<name>.pdf` (git-ignored) and prints its name. `hello.php` is a demo for contributors that draws with the internal backend directly; it isn't public API.
