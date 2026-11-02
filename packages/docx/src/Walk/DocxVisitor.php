@@ -21,6 +21,8 @@ use function Papercut\pt;
 /**
  * Turns a tree walk into php-docx blocks (approach B2 of the multi-format spec): columns flow as paragraphs,
  * rows become borderless fixed-layout tables sized by WidthResolver, and a decorated box becomes a single-cell table.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class DocxVisitor implements TreeVisitor
 {

@@ -8,7 +8,11 @@ use Papercut\Exception\InvalidValue;
 use Papercut\Laravel\Tag;
 use Papercut\Value\{Color, Length};
 
-/** Text flowing through several columns; `column-gap` is the gap between columns, `gap` the ordinary style gap between children. */
+/**
+ * Text flowing through several columns; `column-gap` is the gap between columns, `gap` the ordinary style gap between children.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
+ */
 final class ColumnFlow extends PapercutComponent
 {
     protected function ownAttributes(): array

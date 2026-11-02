@@ -6,7 +6,11 @@ namespace Papercut\Docx\Package;
 
 use Papercut\Text\FontInfo;
 
-/** What DocxPatcher writes into php-docx's output. */
+/**
+ * What DocxPatcher writes into php-docx's output.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
+ */
 final readonly class PatchSpec
 {
     /** @param array<string, ?FontInfo> $fonts */

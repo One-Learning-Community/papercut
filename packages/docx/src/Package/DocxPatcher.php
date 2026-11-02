@@ -12,6 +12,8 @@ use Papercut\Value\ColumnSpec;
  * Fixes php-docx's output where it can't express what Papercut needs: `left`/`right` alignment
  * (Google Docs ignores `start`/`end`), run shading in any colour, the theme's default font, and the document language.
  * It edits the exact markup php-docx writes and throws when that markup changes, so an upgrade fails loudly.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
 final class DocxPatcher
 {

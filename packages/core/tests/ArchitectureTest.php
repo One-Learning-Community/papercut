@@ -21,10 +21,15 @@ final class ArchitectureTest extends TestCase
             'Html/FontVariant.php', 'Html/GoogleFonts.php', 'Html/LocalFonts.php',
         ];
         $missing = [];
-        foreach (['Backend', 'Paint', 'Layout', 'Tree', 'Html'] as $dir) {
+        $dirs = ['Backend', 'Paint', 'Layout', 'Tree', 'Html', '../../docx/src/Map', '../../docx/src/Package', '../../docx/src/Walk',
+            '../../laravel/src/Components', '../../laravel/src/Console', '../../laravel/src/Preview', '../../laravel/src/Rendering'];
+        foreach ($dirs as $dir) {
+            if (!is_dir($src . '/' . $dir)) {
+                continue; // the docx and laravel packages are only next to the core in the monorepo
+            }
             $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($src . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
             foreach ($it as $file) {
-                $rel = substr($file->getPathname(), strlen($src) + 1);
+                $rel = str_replace('../../', '', substr($file->getPathname(), strlen($src) + 1));
                 if ($file->getExtension() !== 'php' || in_array($rel, $public, true)) {
                     continue;
                 }

@@ -10,7 +10,11 @@ use Papercut\Node;
 use Papercut\Style\ComputedStyle;
 use Papercut\Value\Color;
 
-/** One open node during the walk, collecting what its children produced. */
+/**
+ * One open node during the walk, collecting what its children produced.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
+ */
 final class Frame
 {
     /** @var list<array{blocks: list<BlockElement>, style: ?ComputedStyle, index: int, boxed: bool}> one entry per child; boxed: the blocks are this child's own decorated box */

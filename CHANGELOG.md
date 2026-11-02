@@ -16,7 +16,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- The `Papercut\Backend` interfaces, the `Papercut\Paint` display list, the layout engine (`Papercut\Layout`), the tree walk (`Papercut\Tree`), the HTML writer, `StyleResolver`, `PageThemes`, `FontRegistry` and the text layout classes are marked `@internal`: custom backends aren't supported. Making a `PhpPdfBackend` with its options and passing it to `PdfOptions(backend:)` still is. `examples/core/hello.php`, which draws with the backend directly, is now labelled a contributor demo.
+- The `Papercut\Backend` interfaces, the `Papercut\Paint` display list, the layout engine (`Papercut\Layout`), the tree walk (`Papercut\Tree`), the HTML writer, `StyleResolver`, `PageThemes`, `FontRegistry` and the text layout classes, the exporter classes and `Exporter` (export with `toPdf()`, `toHtml()` or `export(new DocxExporter())`), `ComputedStyle`, the Word export's internals and the Laravel package's component, command, preview and rendering classes are marked `@internal`: custom backends aren't supported. Making a `PhpPdfBackend` with its options and passing it to `PdfOptions(backend:)` still is. `examples/core/hello.php`, which draws with the backend directly, is now labelled a contributor demo.
 - A `paper` example (`examples/core/documents/paper.php` and `examples/laravel/views/paper.blade.php`): a two-page academic paper on A4 with a full-width title and abstract, a two-column body with a table and a figure that ends level, and a full-width closing note, with PDF, HTML and Word output.
 
 ### Fixed

@@ -10,7 +10,11 @@ use Papercut\Docx\Package\DocxPatcher;
 use Papercut\Docx\Walk\Frame;
 use Papercut\Style\ComputedStyle;
 
-/** A column's children as a run of blocks: gap and vertical margins as paragraph spacing, pagination as flags. */
+/**
+ * A column's children as a run of blocks: gap and vertical margins as paragraph spacing, pagination as flags.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
+ */
 final class Flow
 {
     /** A hairline paragraph's exact line height in twips; its space after is the requested space less this. */
