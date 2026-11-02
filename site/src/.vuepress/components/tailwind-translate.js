@@ -164,6 +164,10 @@ export function readClasses(list, unit = 'pt') {
     if (c === 'break-before-page') return (props['break-before'] = true)
     if (c === 'break-after-page') return (props['break-after'] = true)
 
+    // Columns
+    if ((m = c.match(/^columns-(\d+)$/))) return (props.$columns = m[1])
+    if (c === 'divide-x') return (props.$rule = true)
+
     // Flex
     if (c === 'flex-wrap') return (props.wrap = true)
     if (c === 'flex-nowrap') return
@@ -425,7 +429,15 @@ export function translate(source, { unit = 'pt' } = {}) {
       skipped.push(...r.raws.flex)
       const own = new Set(el.attrs.map(([k]) => k.replace(/^:/, '')))
       for (const k of Object.keys(props)) if (own.has(k)) delete props[k]
-      if (!own.has('gap')) applyGap(props, gaps, name === 'row' ? 'x' : 'y', skipped)
+      if (name === 'column-flow') {
+        const g = gaps.x
+        if (g && !own.has('column-gap')) extraAttrs.push(`column-gap="${esc(g.v)}"`)
+        const all = [gaps.y, gaps.all, gaps['space-x'], gaps['space-y']].find(Boolean)
+        if (all && !own.has('gap')) props.gap = all.v
+        for (const x of Object.values(gaps)) if (x !== g && x !== all) skipped.push(x.raw)
+        if (props.$rule && !own.has('rule')) extraAttrs.push('rule')
+        if (props.$columns && !own.has('columns')) extraAttrs.unshift(`columns="${props.$columns}"`)
+      } else if (!own.has('gap')) applyGap(props, gaps, name === 'row' ? 'x' : 'y', skipped)
       note(d, skipped)
       const open = `${pad(d)}<x-doc::${name}${attrs(props, name, extraAttrs)}`
       if (!hasContent(el)) return lines.push(`${open} />`)
@@ -505,6 +517,9 @@ export function translate(source, { unit = 'pt' } = {}) {
       return lines.push(`${pad(d)}</x-doc::link>`)
     }
 
+    // Columns: Tailwind's `columns-N` becomes a column flow, `gap-x-*` its column gap and `divide-x` its rule.
+    if (props.$columns) return columnFlow(el, props, skipped, gaps, r, d)
+
     // Everything else is a box. Inline-only boxes become text.
     if (!INLINE.has(tag) && !['div', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav', 'figure', 'figcaption', 'address', 'blockquote', 'span', 'label', 'small', 'strong', 'b', 'em', 'i', 'li', 'dl', 'dt', 'dd', 'form', 'fieldset'].includes(tag)) {
       skipped.push(`<${tag}>(as a column)`)
@@ -522,6 +537,31 @@ export function translate(source, { unit = 'pt' } = {}) {
     lines.push(`${pad(d)}<x-doc::${box}${attrs(props, box)}>`)
     blocks(el.children, d + 1, props)
     lines.push(`${pad(d)}</x-doc::${box}>`)
+  }
+
+  /** A column flow takes no box styles of its own: padding, borders and the like go on a view around it. */
+  function columnFlow(el, props, skipped, gaps, r, d) {
+    const { $columns, $rule, $flex, ...rest } = props
+    const flowProps = {}
+    for (const k of Object.keys(rest)) if (TEXT_PROPS.has(k)) (flowProps[k] = rest[k]), delete rest[k]
+    const own = gaps.x
+    const between = [gaps.y, gaps.all, gaps['space-y']].find(Boolean)
+    if (between) flowProps.gap = between.v
+    for (const g of Object.values(gaps)) if (g !== own && g !== between) skipped.push(g.raw)
+    skipped.push(...unused(r, { gap: true, hidden: true }))
+    const flow = [`columns="${$columns}"`]
+    if (own) flow.push(`column-gap="${esc(own.v)}"`)
+    if ($rule) flow.push('rule')
+    note(d, skipped)
+    const boxed = Object.keys(rest).length > 0
+    if (boxed) {
+      lines.push(`${pad(d)}<x-doc::view${attrs(rest, 'view')}>`)
+      d++
+    }
+    lines.push(`${pad(d)}<x-doc::column-flow ${flow.join(' ')}${attrs(flowProps, 'view')}>`)
+    blocks(el.children, d + 1)
+    lines.push(`${pad(d)}</x-doc::column-flow>`)
+    if (boxed) lines.push(`${pad(d - 1)}</x-doc::view>`)
   }
 
   /** Papercut has one gap per box: use the one on its own axis. */

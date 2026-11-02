@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Node, PageBreak, PageNumber, Spacer};
+use Papercut\{ColumnBreak, Node, PageBreak, PageNumber, Spacer};
 use Papercut\Paint\PageNumberSlot;
 use Papercut\Style\ComputedStyle;
 use Papercut\Text\{CachedFont, FontStyle};
@@ -18,7 +18,7 @@ final class LeafLayouter implements Layouter
 {
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
-        if ($node instanceof PageBreak) {
+        if ($node instanceof PageBreak || $node instanceof ColumnBreak) {
             return LayoutResult::complete(new Fragment($c->width, 0.0));
         }
         if ($node instanceof PageNumber) {

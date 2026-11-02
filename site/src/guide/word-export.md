@@ -62,6 +62,14 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | SVG text | ≈ in the system's fonts |
 | Pictures without the PHP extension they need (below) | ✗ left out |
 
+### Columns
+
+A [column flow](./layout.md#column-flow) that sits on the page, with only plain wrappers (boxes with no border, background, padding, width, height or alignment) around it, becomes a section of its own that starts on the same page, with real Word columns: the count, the widths, the gaps and the rule. They stay editable in Word. Full-width content before and after it sits in one-column sections of its own. A `ColumnBreak` becomes a Word column break. Content in a flow is sized to the column, as it is in the PDF.
+
+Word levels columns itself before a section break, so the columns end level in Word as in the PDF. The rule in Word is Word's plain line: the width and colour the PDF uses don't carry over.
+
+A flow inside a box (a bordered or padded view, a card) comes out as one column, since Word has no columns inside boxes. It's reported as approximated, with the flow's path.
+
 ### Table of contents
 
 A [table of contents](./pages.md#tables-of-contents) becomes a real Word table of contents field. Papercut fills it in with the entries and the page numbers from the PDF layout, so readers see them as soon as the file opens. Word paginates a little differently from the PDF, so a number can be a page off. Right-click the table and choose Update Field for exact numbers.

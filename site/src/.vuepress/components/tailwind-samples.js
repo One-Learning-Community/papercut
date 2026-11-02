@@ -44,6 +44,14 @@ export const samples = [
 </table>`,
   },
   {
+    name: 'Columns',
+    source: `<div class="columns-2 gap-x-8 divide-x">
+  <h3 class="text-lg font-bold">Notes from the field</h3>
+  <p>The first survey went out in March and the answers came back within a week.</p>
+  <p>Readers asked for shorter sections and clearer headings.</p>
+</div>`,
+  },
+  {
     name: 'Web-only classes',
     source: `<nav class="hidden md:flex print:hidden gap-4">Menu</nav>
 <section class="grid grid-cols-2 gap-6 p-6 md:p-10 shadow-lg hover:shadow-xl">

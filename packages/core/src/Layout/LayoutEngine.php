@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Component, Image, Link, ListNode, Node, OverflowMode, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, Text, Toc, View};
+use Papercut\{ColumnBreak, Component, Image, Link, ListNode, Node, OverflowMode, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, Text, Toc, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Paint\{Anchor, Bookmark};
 use Papercut\Style\{ComputedStyle, Direction};
@@ -36,6 +36,7 @@ final class LayoutEngine
     private readonly BlockLayouter $block;
     private readonly FlexLayouter $flex;
     private readonly TableLayouter $table;
+    private readonly ColumnFlowLayouter $columnFlow;
 
     public function __construct(private readonly LayoutContext $ctx)
     {
@@ -43,6 +44,7 @@ final class LayoutEngine
         $this->anywhereIntrinsics = new \SplObjectStorage();
         $this->block = new BlockLayouter();
         $this->flex = new FlexLayouter();
+        $this->columnFlow = new ColumnFlowLayouter();
         $leaf = new LeafLayouter();
         $this->layouters[Text::class] = new TextLayouter();
         $this->layouters[Link::class] = new LinkLayouter($this->block);
@@ -56,6 +58,7 @@ final class LayoutEngine
         $this->layouters[TableCell::class] = $this->table;
         $this->layouters[Spacer::class] = $leaf;
         $this->layouters[PageBreak::class] = $leaf;
+        $this->layouters[ColumnBreak::class] = $leaf;
         $this->layouters[PageNumber::class] = $leaf;
         $this->layouters[ListNode::class] = new ListLayouter();
         $this->layouters[MarkedItem::class] = new MarkedItemLayouter();
@@ -99,8 +102,11 @@ final class LayoutEngine
     {
         $node = $this->expand($node);
         $this->ctx->pushPath($pathName ?? NodePath::segment($node, null, $index));
+        $pushed = false;
         try {
             $style = $this->enter($node, $parent, $index, $pathName);
+            $this->ctx->pushNode($node, $style);
+            $pushed = true;
             $layouter = $this->layouterFor($node, $style);
             $result = $layouter->layout($node, $style, $c, $token, $this);
             if ($token === null && $this->ctx->bookmarks && $result->fragment !== null) {
@@ -126,6 +132,9 @@ final class LayoutEngine
             }
             return $result;
         } finally {
+            if ($pushed) {
+                $this->ctx->popNode();
+            }
             $this->ctx->popPath();
         }
     }
@@ -208,7 +217,13 @@ final class LayoutEngine
         $this->ctx->pushPath(NodePath::segment($node, null, $index));
         try {
             $style = $this->enter($node, $parent, $index);
-            $size = $this->layouterFor($node, $style)->intrinsic($node, $style, $this);
+            // Pushed as in layout(), so a layouter can judge its placement while measuring.
+            $this->ctx->pushNode($node, $style);
+            try {
+                $size = $this->layouterFor($node, $style)->intrinsic($node, $style, $this);
+            } finally {
+                $this->ctx->popNode();
+            }
             if ($byParent === null) {
                 /** @var \SplObjectStorage<ComputedStyle, array{min: float, max: float}> $byParent */
                 $byParent = new \SplObjectStorage();
@@ -238,7 +253,12 @@ final class LayoutEngine
             }
             $auto = new ComputedStyle(...[...get_object_vars($style), 'width' => Auto::instance()]);
 
-            return $this->layouterFor($node, $auto)->intrinsic($node, $auto, $this);
+            $this->ctx->pushNode($node, $auto);
+            try {
+                return $this->layouterFor($node, $auto)->intrinsic($node, $auto, $this);
+            } finally {
+                $this->ctx->popNode();
+            }
         } finally {
             $this->ctx->popPath();
         }
@@ -286,6 +306,9 @@ final class LayoutEngine
     private function layouterFor(Node $node, ComputedStyle $style): Layouter
     {
         if ($node instanceof View) {
+            if ($node->columnSpec() !== null) {
+                return $this->columnFlow;
+            }
             return $style->direction === Direction::Row ? $this->flex : $this->block;
         }
         return $this->layouters[$node::class] ?? throw new \LogicException(sprintf(

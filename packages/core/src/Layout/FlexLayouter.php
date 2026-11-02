@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Node, PageBreak, Spacer, View};
+use Papercut\{ColumnBreak, Node, PageBreak, Spacer, View};
+use Papercut\Tree\{ColumnFlows, NodePath};
 use Papercut\Style\{Align, ComputedStyle};
 use Papercut\Value\{Auto, Length};
 
@@ -154,7 +155,7 @@ final class FlexLayouter implements Layouter
         $n = 0;
         foreach (self::children($node) as $i => $child) {
             $child = $engine->expand($child);
-            if ($child instanceof PageBreak) {
+            if ($child instanceof PageBreak || $child instanceof ColumnBreak) {
                 continue;
             }
             $margin = $engine->styleOf($child, $style, $i)->margin->horizontal();
@@ -194,6 +195,14 @@ final class FlexLayouter implements Layouter
         $items = [];
         foreach (self::children($node) as $i => $child) {
             $child = $engine->expand($child);
+            if ($child instanceof ColumnBreak) {
+                // a row as the nearest container never allows a column break
+                $ctx = $engine->context();
+                $ctx->pushPath(NodePath::segment($child, null, $i));
+                $path = $ctx->path();
+                $ctx->popPath();
+                throw ColumnFlows::strayBreak($path);
+            }
             if ($child instanceof PageBreak) {
                 if ($warn) {
                     $engine->context()->warnOnce('PageBreak inside a row is ignored');

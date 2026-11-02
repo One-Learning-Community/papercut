@@ -26,7 +26,7 @@ $load = static function (string $name): Document {
 };
 
 // The certificate is left out: it fills in a PDF template, which this export drops.
-foreach (['invoice', 'transcript', 'report', 'responses', 'guide', 'article'] as $name) {
+foreach (['invoice', 'transcript', 'report', 'responses', 'guide', 'article', 'paper'] as $name) {
     $load($name)->toHtml(new HtmlOptions(fullPage: true, fontMode: FontMode::Link, fontUrl: $fontUrl))->save(__DIR__ . '/' . $name . '.html');
     echo 'Wrote examples/html/' . $name . ".html\n";
 }
