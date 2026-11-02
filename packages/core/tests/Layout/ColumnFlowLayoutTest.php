@@ -23,10 +23,10 @@ final class ColumnFlowLayoutTest extends TestCase
     private array $warnings = [];
 
     /** @return list<PageDisplayList> */
-    private function paginate(Document $doc): array
+    private function paginate(Document $doc, \Papercut\OverflowMode $mode = \Papercut\OverflowMode::Throw): array
     {
         $b = new FakeBackend();
-        $ctx = new LayoutContext(FontRegistry::withDefaults($b), Theme::default(), $b, \Papercut\OverflowMode::Throw, function (string $w): void { $this->warnings[] = $w; });
+        $ctx = new LayoutContext(FontRegistry::withDefaults($b), Theme::default(), $b, $mode, function (string $w): void { $this->warnings[] = $w; });
         return Painter::paint((new Paginator(new LayoutEngine($ctx), $ctx))->paginate($doc));
     }
 
@@ -283,5 +283,36 @@ final class ColumnFlowLayoutTest extends TestCase
         self::assertSame(10.0, $runs['aa']);
         // 'aa' is one column wide, not two columns plus a gap: zz sits right after it
         self::assertEqualsWithDelta(10.0 + 10.0, $runs['zz'], 1e-9);
+    }
+
+    public function test_gaps_that_leave_no_room_throw_with_the_flow_path(): void
+    {
+        $doc = Document::make($this->page()->body(ColumnFlow::make(Text::make('abc'))->columns(4)->columnGap(pt(80))));
+        try {
+            $this->paginate($doc);
+            self::fail('Expected LayoutOverflow.');
+        } catch (LayoutOverflow $e) {
+            self::assertStringEndsWith('column-flow[0]', $e->path);
+        }
+    }
+
+    public function test_default_gaps_in_a_narrow_box_throw_with_the_flow_path(): void
+    {
+        $doc = Document::make($this->page()->body(View::make(ColumnFlow::make(Text::make('abc'))->columns(4))->width(pt(100))));
+        try {
+            $this->paginate($doc);
+            self::fail('Expected LayoutOverflow.');
+        } catch (LayoutOverflow $e) {
+            self::assertStringEndsWith('column-flow[0]', $e->path);
+        }
+    }
+
+    public function test_gaps_that_leave_no_room_warn_and_stay_in_the_box_when_clipping(): void
+    {
+        $doc = Document::make($this->page()->body(View::make(ColumnFlow::make(Text::make('abc'))->columns(4))->width(pt(100))));
+        $pages = $this->paginate($doc, \Papercut\OverflowMode::Clip);
+        self::assertCount(1, $this->warnings);
+        self::assertStringContainsString('leave no room for columns', $this->warnings[0]);
+        self::assertSame([['abc', 10.0]], $this->runs($pages[0]));
     }
 }

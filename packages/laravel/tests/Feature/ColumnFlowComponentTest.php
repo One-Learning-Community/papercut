@@ -98,6 +98,18 @@ final class ColumnFlowComponentTest extends TestCase
         $this->flow('<x-doc::column-flow rule="thick"><x-doc::text>A</x-doc::text></x-doc::column-flow>');
     }
 
+    public function test_negative_gap_and_non_positive_rule_are_invalid_values(): void
+    {
+        foreach (['column-gap="-10pt"', 'rule="-1pt"', 'rule="0pt"'] as $attr) {
+            try {
+                $this->flow('<x-doc::column-flow ' . $attr . '><x-doc::text>A</x-doc::text></x-doc::column-flow>');
+                self::fail('Expected InvalidValue for ' . $attr);
+            } catch (InvalidValue $e) {
+                self::assertNotSame('', $e->getMessage());
+            }
+        }
+    }
+
     public function test_other_attributes_are_styles(): void
     {
         $this->expectException(UnknownAttribute::class);

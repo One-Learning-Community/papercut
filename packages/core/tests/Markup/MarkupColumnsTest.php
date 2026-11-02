@@ -195,4 +195,15 @@ final class MarkupColumnsTest extends TestCase
         }
         self::assertCount(2, $xs, 'two distinct x positions: ' . implode(', ', array_keys($xs)));
     }
+
+    public function test_non_positive_rule_width_and_negative_gap_are_dropped_not_thrown(): void
+    {
+        $v = self::original('<div style="column-count: 2; column-rule: -2pt solid red"><p>x</p></div>');
+        self::assertNull(self::spec($v)->rule);
+        self::assertSame([[FidelityLevel::Dropped, 'markup CSS "column-rule: -2pt solid red"']], self::notes($v));
+        $v = self::original('<div style="column-count: 2; column-rule: 0pt solid red"><p>x</p></div>');
+        self::assertNull(self::spec($v)->rule);
+        $v = self::original('<div style="column-count: 2; column-gap: -4pt"><p>x</p></div>');
+        self::assertSame([36.0], self::spec($v)->gaps);
+    }
 }

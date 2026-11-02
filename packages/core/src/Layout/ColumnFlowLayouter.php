@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\Exception\InvalidStructure;
-use Papercut\Node;
+use Papercut\Exception\{InvalidStructure, LayoutOverflow};
+use Papercut\{Node, OverflowMode};
 use Papercut\Paint\Line;
 use Papercut\Style\ComputedStyle;
 use Papercut\Tree\{ColumnFlowPlacement, ColumnFlows};
@@ -36,6 +36,19 @@ final class ColumnFlowLayouter implements Layouter
                 'A ColumnFlow can\'t have a border, background, padding or size (at "%s"). Put it inside a View with that style.',
                 $ctx->path(),
             ));
+        }
+
+        if (!$spec->fits($c->width)) {
+            $message = sprintf('The column gaps (%.2fpt) leave no room for columns in %.2fpt', array_sum($spec->gaps), $c->width);
+            if ($ctx->quiet) {
+                $ctx->holdBack();
+            } elseif ($ctx->overflow === OverflowMode::Throw) {
+                throw LayoutOverflow::tooWide($ctx->path(), $message);
+            } else {
+                $ctx->warnOnce($message . '; laid out as one column.');
+            }
+
+            return $engine->blockLayouter()->layout($node, $style, $c, $token, $engine);
         }
 
         return $this->page($node, $style, $spec, $c, $token, $engine);

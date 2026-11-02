@@ -128,4 +128,67 @@ final class ColumnFlowTest extends TestCase
             self::assertStringContainsString('expected 1 gap.', $e->getMessage());
         }
     }
+
+    #[Test]
+    public function negative_gaps_and_non_positive_rule_widths_are_rejected(): void
+    {
+        foreach ([
+            static fn () => ColumnFlow::make('a')->columns(3)->columnGap(pt(-10)),
+            static fn () => ColumnFlow::make('a')->columnGap(pt(-1)),
+            static fn () => ColumnFlow::make('a')->columnRule(pt(-1)),
+            static fn () => ColumnFlow::make('a')->columnRule(pt(0)),
+            static fn () => new ColumnSpec(2, null, [-5.0]),
+            static fn () => new ColumnSpec(2, null, [5.0], new \Papercut\Value\ColumnRule(0.0, Color::black())),
+        ] as $make) {
+            try {
+                $make();
+                self::fail('Expected InvalidValue.');
+            } catch (InvalidValue $e) {
+                self::assertNotSame('', $e->getMessage());
+            }
+        }
+        self::assertSame([0.0], self::spec(ColumnFlow::make('a')->columnGap(pt(0)))->gaps);
+    }
+
+    #[Test]
+    public function columns_never_start_beyond_the_width(): void
+    {
+        $cols = ColumnSpec::equal(4)->columns(100.0);
+        foreach ($cols as $c) {
+            self::assertLessThanOrEqual(100.0, $c['x'] + $c['width']);
+        }
+    }
+
+    #[Test]
+    public function gaps_left_pending_without_a_fitting_count_throw_when_read(): void
+    {
+        $flow = ColumnFlow::make('a')->columnGap(pt(10), pt(20));
+        $this->expectException(InvalidValue::class);
+        $flow->columnSpec();
+    }
+
+    #[Test]
+    public function every_gap_count_error_is_grammatical(): void
+    {
+        foreach ([
+            static fn () => ColumnFlow::make('a')->columns(3)->columnGap(pt(1), pt(2))->columns(2),
+            static fn () => ColumnFlow::make('a')->columns(2)->columnGap(pt(1), pt(2)),
+            static fn () => new ColumnSpec(2, null, [1.0, 2.0]),
+            static fn () => ColumnFlow::make('a')->columnGap(pt(1), pt(2))->columnSpec(),
+        ] as $make) {
+            try {
+                $make();
+                self::fail('Expected InvalidValue.');
+            } catch (InvalidValue $e) {
+                self::assertStringNotContainsString('1 gaps', $e->getMessage());
+                self::assertStringContainsString('expected 1 gap', $e->getMessage());
+            }
+        }
+        try {
+            new ColumnSpec(4, null, [1.0]);
+            self::fail('Expected InvalidValue.');
+        } catch (InvalidValue $e) {
+            self::assertStringContainsString('expected 3 gaps', $e->getMessage());
+        }
+    }
 }

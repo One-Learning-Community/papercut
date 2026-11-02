@@ -32,8 +32,22 @@ final readonly class ColumnSpec
         }
         if (count($gaps) !== $count - 1) {
             throw InvalidValue::for('column gaps', (string) count($gaps))
-                ->because(sprintf('expected %d gaps', $count - 1));
+                ->because('expected ' . self::gapsText($count - 1));
         }
+        foreach ($gaps as $gap) {
+            if (!is_finite($gap) || $gap < 0) {
+                throw InvalidValue::for('column gap', InvalidValue::number($gap))->because('must not be negative');
+            }
+        }
+        if ($rule !== null && (!is_finite($rule->width) || $rule->width <= 0)) {
+            throw InvalidValue::for('column rule width', InvalidValue::number($rule->width))->because('must be greater than zero');
+        }
+    }
+
+    /** "1 gap", "3 gaps" */
+    public static function gapsText(int $n): string
+    {
+        return $n === 1 ? '1 gap' : sprintf('%d gaps', $n);
     }
 
     /** @throws InvalidValue outside 1..MAX_COLUMNS */
@@ -55,6 +69,12 @@ final readonly class ColumnSpec
         return new self($this->count, $this->shares, $this->gaps, $this->rule, true);
     }
 
+    /** Whether the gaps leave room for columns in a flow $width wide. */
+    public function fits(float $width): bool
+    {
+        return array_sum($this->gaps) < $width;
+    }
+
     /**
      * Column boxes across a flow $width wide.
      *
@@ -68,7 +88,7 @@ final readonly class ColumnSpec
         $x = 0.0;
         for ($i = 0; $i < $this->count; $i++) {
             $w = $space * ($this->shares[$i] ?? 1.0) / $total;
-            $out[] = ['x' => $x, 'width' => $w];
+            $out[] = ['x' => min($x, $width), 'width' => $w];
             $x += $w + ($this->gaps[$i] ?? 0.0);
         }
         return $out;

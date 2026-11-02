@@ -99,8 +99,12 @@ final class View implements Styled, Annotated
         return $this->style()->direction === Direction::Row ? 'row' : 'column';
     }
 
+    /** @throws InvalidValue when gaps given before the column count don't fit it */
     public function columnSpec(): ?ColumnSpec
     {
+        if ($this->pendingGaps !== null && $this->columns !== null) {
+            self::gapsFor($this->pendingGaps, $this->columns->count);
+        }
         return $this->columns;
     }
 
@@ -145,7 +149,7 @@ final class View implements Styled, Annotated
         }
         if (count($points) !== $spaces) {
             throw InvalidValue::for('column gaps', (string) count($points))->because(
-                $spaces === 1 ? 'expected 1 gap' : sprintf('expected 1 gap or %d gaps', $spaces),
+                $spaces === 1 ? 'expected 1 gap' : sprintf('expected 1 gap or %s', ColumnSpec::gapsText($spaces)),
             );
         }
         return $points;
