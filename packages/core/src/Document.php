@@ -101,6 +101,12 @@ final class Document
         return new DocumentMeta($this->title, $this->author, $this->subject, $this->keywords, $this->lang, $this->createdAt);
     }
 
+    /**
+     * Exports with PHP's cycle collector paused, then collects once: on long documents it ran
+     * repeatedly during layout and found nothing to free. Code that runs during the export (a
+     * component's render, an onWarning callback) runs with it paused too. The caller's setting is
+     * restored afterwards, also when the export throws.
+     */
     public function export(Exporter $exporter, ?ExportOptions $options = null): Output
     {
         $gc = gc_enabled();

@@ -103,7 +103,8 @@ final class LayoutContext
         // A weak reference, so the context and its itemizers form no cycle: the export's caches are freed when it returns.
         $self = \WeakReference::create($this);
         return $this->itemizers[$this->theme] ??= new Itemizer($this->fonts, static function (string $msg) use ($self): void {
-            $self->get()?->warn($msg);
+            // The context outlives its itemizers; if that ever changes, fail loudly rather than drop the warning.
+            ($self->get() ?? throw new \LogicException('A warning arrived after its layout context was freed.'))->warn($msg);
         }, $this->fallbackFamilies, $this->theme);
     }
 
@@ -331,9 +332,9 @@ final class LayoutContext
     {
         $self = \WeakReference::create($this); // no cycle, as in itemizer()
         return $this->svgFonts[strtolower($style->fontFamily)] ??= new SvgFonts($this->fonts, $style->fontFamily, $this->fallbackFamilies, static function (string $msg) use ($self): void {
-            $ctx = $self->get();
-            $ctx?->missingGlyphs($msg);
-            $ctx?->warn($msg, withPath: false);
+            $ctx = $self->get() ?? throw new \LogicException('A warning arrived after its layout context was freed.');
+            $ctx->missingGlyphs($msg);
+            $ctx->warn($msg, withPath: false);
         });
     }
 

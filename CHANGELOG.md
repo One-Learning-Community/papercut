@@ -7,8 +7,12 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Faster exports that use less memory, with the same output. A 100-page table renders in about 0.97 s instead of 1.69 s and peaks at 184 MB instead of 342 MB, and the 10-page benchmark document takes 58 ms instead of 97 ms. Layout now reuses the styles it already resolved, an export frees its caches as soon as it returns, and common values and styles are shared rather than copied.
-- An export runs with PHP's cycle collector paused and collects once when it ends. On long documents the collector ran repeatedly during layout and found nothing to free. The caller's setting is restored afterwards, also when the export throws.
+- Faster exports that use less memory. A 100-page table renders in about 0.97 s instead of 1.69 s and peaks at 184 MB instead of 342 MB, and the 10-page benchmark document takes 58 ms instead of 97 ms. Layout now reuses the styles it already resolved, an export frees its caches as soon as it returns, and common values and styles are shared rather than copied. The PDF output is the same, except for the list spacing below.
+- An export runs with PHP's cycle collector paused and collects once when it ends. On long documents the collector ran repeatedly during layout and found nothing to free. Code that runs during the export runs with it paused too. The caller's setting is restored afterwards, also when the export throws.
+
+### Fixed
+
+- A list inside a table cell that sits in a list item kept no spacing below it in PDF output, as if it were nested in the outer list. A table cell starts outside any list, as HTML and Word export already treated it, so the list now gets the theme's list spacing.
 
 ## [0.8.0] - 2026-11-02
 

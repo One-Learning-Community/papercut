@@ -81,11 +81,46 @@ final class GarbageCollectionTest extends TestCase
 
     public function test_an_export_frees_the_cycles_it_leaves(): void
     {
+        $exporter = new class implements Exporter {
+            public function export(Document $doc, ExportOptions $options): Output
+            {
+                $cycle = new \stdClass();
+                $cycle->self = $cycle;
+                return new Output('', 'text/plain', 'txt');
+            }
+
+            public function defaultOptions(): ExportOptions
+            {
+                return new PdfOptions();
+            }
+        };
         gc_enable();
         gc_collect_cycles();
-        $doc = self::document();
-        $doc->toPdf();
-        self::assertSame(0, gc_collect_cycles(), 'nothing should be left for a later collection');
+        self::document()->export($exporter);
+        self::assertSame(0, gc_collect_cycles(), 'the export collected its own cycle on the way out');
+    }
+
+    public function test_a_nested_export_leaves_the_collector_off_for_the_outer_one(): void
+    {
+        $exporter = new class implements Exporter {
+            public ?bool $afterInner = null;
+
+            public function export(Document $doc, ExportOptions $options): Output
+            {
+                $doc->toHtml();
+                $this->afterInner = gc_enabled();
+                return new Output('', 'text/plain', 'txt');
+            }
+
+            public function defaultOptions(): ExportOptions
+            {
+                return new PdfOptions();
+            }
+        };
+        gc_enable();
+        self::document()->export($exporter);
+        self::assertFalse($exporter->afterInner);
+        self::assertTrue(gc_enabled());
     }
 
     public function test_an_export_creates_no_reference_cycles(): void

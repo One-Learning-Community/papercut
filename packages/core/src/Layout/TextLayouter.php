@@ -286,7 +286,8 @@ final class TextLayouter implements Layouter
             $x += $w;
         }
         $baseline = $top + $box['baseline'];
-        // Grouping keys, computed once per item: lines are grouped several ways below.
+        // Grouping keys, computed once per item: lines are grouped several ways below. group() pairs them with
+        // $placed by position, so $placed must keep one entry per item, in order (measureMerged and the offset do).
         $styleKeys = $runKeys = $hrefKeys = [];
         foreach ($line->items as $item) {
             $key = self::styleKey($item);

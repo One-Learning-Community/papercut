@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Style;
 
-use Papercut\{Column, TableCell, Text};
+use Papercut\{Column, ListItem, TableCell, Text};
 use Papercut\Style\{Style, StyleResolver, Theme};
 use Papercut\Value\{Color, Edges};
 use PHPUnit\Framework\TestCase;
@@ -86,12 +86,26 @@ final class StyleResolverTest extends TestCase
             'named padding' => TableCell::th('a')->apply('roomy'),
             'named weight' => TableCell::th('a')->apply('light'),
         ];
-        foreach ($cells as $label => $cell) {
-            $viaTable = $r->resolve($prepare->invoke(null, $cell, $theme), $r->root());
-            $viaResolver = $r->resolveInTable($cell, $r->root());
-            self::assertEquals($viaTable->padding, $viaResolver->padding, "$label padding");
-            self::assertSame($viaTable->fontWeight, $viaResolver->fontWeight, "$label weight");
+        // Layout resolves cell copies through resolveInTable() (StyleResolver::copyOf()), so the two must agree
+        // in full, also under a row inside a list item.
+        $inList = $r->resolve(ListItem::make('item'), $r->root());
+        foreach (['at the top' => $r->root(), 'in a list' => $inList] as $where => $row) {
+            foreach ($cells as $label => $cell) {
+                $viaTable = $r->resolve($prepare->invoke(null, $cell, $theme), $row);
+                $viaResolver = $r->resolveInTable($cell, $row);
+                self::assertEquals($viaTable, $viaResolver, "$label, $where");
+            }
         }
+    }
+
+    public function test_a_table_cell_is_never_in_a_list(): void
+    {
+        $r = new StyleResolver(Theme::default());
+        $row = $r->resolve(ListItem::make('item'), $r->root());
+        self::assertTrue($row->inList);
+        self::assertFalse($r->resolveInTable(TableCell::make('a'), $row)->inList);
+        self::assertFalse($r->resolve(TableCell::make('a'), $row)->inList, 'a cell resolved on its own, as layout does a pinned cell');
+        self::assertFalse($r->resolve(TableCell::make('a')->width(pt(300)), $row)->inList);
     }
 
     public function test_a_registered_cell_copy_resolves_as_its_cell_does_in_a_table(): void

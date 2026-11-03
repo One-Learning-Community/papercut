@@ -153,6 +153,9 @@ final class StyleResolver
         $style = $style->merge($node->style());
         if ($node instanceof ListEntry) {
             $inList = true;
+        } elseif ($node instanceof TableCell) {
+            // A table cell starts outside any list, however it is resolved (in a row, or as a copy layout pins to its column).
+            $inList = false;
         }
         $computed = $parent->child($style, $inList);
         if ($node instanceof View && isset($this->wrappers[$node]) && $computed == $parent) {
