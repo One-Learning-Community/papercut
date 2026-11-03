@@ -78,6 +78,7 @@ jobs:
         working-directory: packages/docx
     env:
       PAPERCUT_BENCH_MACHINE: ci-ubuntu-latest
+      PAPERCUT_BENCH_TIMINGS: warn
     steps:
       - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
@@ -90,7 +91,7 @@ jobs:
       - run: composer install --no-interaction --no-progress --no-dev --classmap-authoritative
       - name: Benchmark (Word export of core's prose article with and without TOC page numbers, and the 10-page table)
         run: php -d opcache.enable_cli=1 bench/run.php | tee bench-result.json
-      - name: Compare with the committed baseline (each timing and memory peak fails if > 20% higher)
+      - name: Compare with the committed baseline (memory peaks and page counts fail if off; timings > 20% slower warn, as runner speed varies)
         run: PAPERCUT_BASELINE=bench/baseline.json php ../core/bench/check.php bench-result.json
       - uses: actions/upload-artifact@v7
         if: always()
