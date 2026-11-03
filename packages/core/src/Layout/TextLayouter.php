@@ -396,9 +396,7 @@ final class TextLayouter implements Layouter
         foreach (self::group($placed, $runKeys) as $group) {
             $delta = 0.0;
             if (count($group) > 1) {
-                $first = $group[0]['item'];
-                $text = implode('', array_map(static fn (array $p): string => $p['item']->text, $group));
-                $delta = $first->font->advance($text, $first->size, $first->style->letterSpacing) - array_sum(array_column($group, 'w'));
+                $delta = self::joinDelta($group);
             }
             $last = count($group) - 1;
             $isTab = $group[0]['item']->kind === 'tab';
@@ -415,6 +413,38 @@ final class TextLayouter implements Layouter
             $shift = $isTab ? 0.0 : $shift + $delta;
         }
         return $out;
+    }
+
+    /**
+     * How much wider a run is drawn as one string than its items measured apart: the kerning (and any letter-spacing
+     * difference) where neighbouring items meet. Each join is measured from the characters that meet, and a space
+     * together with the characters on both sides of it, so the font's cache answers almost every join instead of
+     * shaping the whole run again.
+     *
+     * @param non-empty-list<array{item: InlineItem, x: float, w: float}> $group
+     */
+    private static function joinDelta(array $group): float
+    {
+        $first = $group[0]['item'];
+        $font = $first->font;
+        $size = $first->size;
+        $spacing = $first->style->letterSpacing;
+        $width = static fn (string $t): float => $font->advance($t, $size, $spacing);
+        $texts = array_values(array_filter(array_map(static fn (array $p): string => $p['item']->text, $group), static fn (string $t): bool => $t !== ''));
+        $count = count($texts);
+        $delta = 0.0;
+        for ($i = 1; $i < $count; $i++) {
+            $a = mb_substr($texts[$i - 1], -1, 1, 'UTF-8');
+            if ($texts[$i] === ' ' && $i + 1 < $count && $texts[$i + 1] !== ' ') {
+                $b = mb_substr($texts[$i + 1], 0, 1, 'UTF-8');
+                $delta += $width($a . ' ' . $b) - $width($a) - $width(' ') - $width($b);
+                $i++;
+                continue;
+            }
+            $b = mb_substr($texts[$i], 0, 1, 'UTF-8');
+            $delta += $width($a . $b) - $width($a) - $width($b);
+        }
+        return $delta;
     }
 
     /**

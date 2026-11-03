@@ -13,6 +13,8 @@ final class CachedFont implements FontHandle
     private array $unit = [];
     /** @var array<string, float> */
     private array $spaced = [];
+    /** @var array<string, bool> */
+    private array $covered = [];
 
     public function __construct(private readonly FontHandle $inner)
     {
@@ -33,5 +35,5 @@ final class CachedFont implements FontHandle
 
     public function ascent(float $size): float { return $this->inner->ascent($size); }
     public function descent(float $size): float { return $this->inner->descent($size); }
-    public function covers(string $text): bool { return $this->inner->covers($text); }
+    public function covers(string $text): bool { return $this->covered[$text] ??= $this->inner->covers($text); }
 }
