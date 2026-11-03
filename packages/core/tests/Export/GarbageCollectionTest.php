@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Export;
 
-use Papercut\{Document, Page, Text};
+use Papercut\{Document, Page, Svg, Text};
 use Papercut\Export\{ExportOptions, Exporter, Output, PdfOptions};
 use PHPUnit\Framework\TestCase;
 
@@ -86,6 +86,21 @@ final class GarbageCollectionTest extends TestCase
         $doc = self::document();
         $doc->toPdf();
         self::assertSame(0, gc_collect_cycles(), 'nothing should be left for a later collection');
+    }
+
+    public function test_an_export_creates_no_reference_cycles(): void
+    {
+        // Cycles would keep the export's caches alive until a collection finds them.
+        $doc = Document::make(Page::a4()->body(
+            Text::make('Text through the itemizer'),
+            Svg::fromString('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><text x="0" y="15">SVG text</text></svg>'),
+        ));
+        gc_enable();
+        gc_collect_cycles();
+        $before = gc_status()['collected'];
+        $doc->toPdf();
+        $doc->toHtml();
+        self::assertSame(0, gc_status()['collected'] - $before);
     }
 
     private static function document(): Document
