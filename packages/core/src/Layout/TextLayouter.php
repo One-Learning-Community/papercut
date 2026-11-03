@@ -145,6 +145,12 @@ final class TextLayouter implements Layouter
         return $node;
     }
 
+    /** Drops the cached lines (LayoutEngine::pageDone()). */
+    public function forgetLines(): void
+    {
+        $this->lineCache = new \SplObjectStorage();
+    }
+
     /**
      * Broken lines and their line boxes, cached per node, width and style.
      *

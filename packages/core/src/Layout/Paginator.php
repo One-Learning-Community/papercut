@@ -104,6 +104,7 @@ final class Paginator
                 $before = $header === null ? $layers : [...$layers, ['x' => $left, 'y' => $top, 'fragment' => $header]];
                 $after = $footer === null ? [] : [['x' => $left, 'y' => $h - $m->bottom->points - $footer->height, 'fragment' => $footer]];
                 $out[] = new PlacedPage($w, $h, [...$before, ['x' => $left, 'y' => $bodyY, 'fragment' => $body], ...$after, ...$overlay]);
+                $this->engine->pageDone();
             };
 
             // A page shorter than a later one (a tall first-page or even-page header) may be what is in the way
