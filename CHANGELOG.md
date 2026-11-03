@@ -5,6 +5,15 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `DocxOptions(tocPageNumbers: false)` and the Laravel config key `papercut.docx.toc_page_numbers` skip the page layout that fills in a Word table of contents' page numbers. The field lists its entries without numbers until the reader updates it in Word, and the export runs as fast as one without a table of contents.
+
+### Changed
+
+- Faster Word export with a table of contents. The page layout behind its page numbers only measures: it doesn't draw underlines, highlights or links, or re-measure kerning. On an 80-section benchmark the export takes about 435 ms instead of 560 ms and peaks at 36 MB instead of 67 MB. The page numbers are the same.
+- Faster text layout: ASCII words skip a character-by-character scan, a font remembers which text it covers, and for fonts without ligatures, such as the bundled Inter and Cousine, kerning between the words of a run is measured where they meet instead of across the whole run. PDF export of the same benchmark takes about 465 ms instead of 555 ms. The PDF output is the same.
+
 ## [0.9.0] - 2026-11-03
 
 ### Added

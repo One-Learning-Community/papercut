@@ -76,7 +76,27 @@ A [table of contents](./pages.md#tables-of-contents) becomes a real Word table o
 
 An updated field rebuilds itself from Word's Heading 1 to Heading 4 styles, so two things aren't honoured after an update: `toc(false)` and markup's `toc` option (the headings come back), and a level set with `bookmark($title, $level)` (the heading's own level is used).
 
-To get those page numbers, Word export runs the PDF layout for a document that has a table of contents, and only for those. If the page layout can't run, for instance because a font isn't registered, the export still succeeds and the field is written without page numbers. Right-click the table and choose Update Field in Word to fill them in.
+To get those page numbers, Word export lays out the pages, as for a PDF, for a document that has a table of contents, and only for those. That costs about as much as a PDF export. If the page layout can't run, for instance because a font isn't registered, the export still succeeds and the field is written without page numbers. Right-click the table and choose Update Field in Word to fill them in.
+
+When speed matters more than numbers on first open, turn the layout off. The entries are still listed and linked, without page numbers until the reader updates the field:
+
+::: code-tabs#style
+@tab Laravel
+```php
+// config/papercut.php
+'docx' => [
+    'toc_page_numbers' => false,
+],
+```
+@tab PHP
+```php
+use Papercut\Docx\{DocxExporter, DocxOptions};
+
+$document->export(new DocxExporter(), new DocxOptions(tocPageNumbers: false))->save('report.docx');
+```
+:::
+
+`DocxOptions` takes the same `theme`, `fonts`, `onWarning` and `strict` as `ExportOptions`.
 
 ### Fonts in Word
 

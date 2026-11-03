@@ -29,6 +29,12 @@ php artisan vendor:publish --tag=papercut-config
 | `overflow` | `null` | `'throw'` or `'clip'`. `null` throws in `local` and `testing` and clips everywhere else. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). |
 | `strict` | `false` | When `true`, an export throws instead of dropping content. Worth turning on in tests. See [Strict mode](/guide/rich-text.md#strict-mode). |
 
+## Word
+
+| Key | Default | Description |
+|---|---|---|
+| `docx.toc_page_numbers` | `true` | Lays out the pages to fill in a [table of contents](/guide/word-export.md#table-of-contents)' page numbers, which costs about as much as a PDF export. `false` skips it: entries show without numbers until the reader updates the field in Word. |
+
 ## HTML
 
 | Key | Default | Description |

@@ -396,7 +396,10 @@ final class TextLayouter implements Layouter
         foreach (self::group($placed, $runKeys) as $group) {
             $delta = 0.0;
             if (count($group) > 1) {
-                $delta = self::joinDelta($group);
+                $first = $group[0]['item'];
+                $delta = $first->font->joinsInPairs()
+                    ? self::joinDelta($group)
+                    : $first->font->advance(implode('', array_map(static fn (array $p): string => $p['item']->text, $group)), $first->size, $first->style->letterSpacing) - array_sum(array_column($group, 'w'));
             }
             $last = count($group) - 1;
             $isTab = $group[0]['item']->kind === 'tab';
@@ -416,8 +419,8 @@ final class TextLayouter implements Layouter
     }
 
     /**
-     * How much wider a run is drawn as one string than its items measured apart: the kerning (and any letter-spacing
-     * difference) where neighbouring items meet. Each join is measured from the characters that meet, and a space
+     * How much wider a run is drawn as one string than its items measured apart, for a font that joins in pairs (see
+     * JoinsInPairs): the kerning (and any letter-spacing difference) where neighbouring items meet. Each join is measured from the characters that meet, and a space
      * together with the characters on both sides of it, so the font's cache answers almost every join instead of
      * shaping the whole run again.
      *

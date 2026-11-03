@@ -10,8 +10,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * A merged run's width is its items' widths plus what each join adds, measured from the characters that meet (for real
- * fonts, which kern in pairs; TextLayouter also measures a space with both its neighbours).
+ * A merged run's width is its items' widths plus what each join adds, measured from the characters that meet (for fonts
+ * that join in pairs, as the bundled ones do; TextLayouter also measures a space with both its neighbours).
  * TextLayouter relies on this to place merged runs without shaping each whole run again.
  */
 final class RunWidthTest extends TestCase
@@ -36,6 +36,7 @@ final class RunWidthTest extends TestCase
         $options = new PdfOptions();
         $font = FontRegistry::fromSet($options->fonts(), $options->backend())->resolve($family, $weight, $style);
         $size = 11.0;
+        self::assertTrue($font->joinsInPairs());
 
         $parts = 0.0;
         $prev = null;
