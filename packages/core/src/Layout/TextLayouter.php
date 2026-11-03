@@ -22,6 +22,8 @@ final class TextLayouter implements Layouter
 {
     /** @var \SplObjectStorage<Node, array<string, array{style: ComputedStyle, theme: \Papercut\Style\Theme, lines: list<Line>, boxes: list<array{baseline: float, height: float}>}>> */
     private \SplObjectStorage $lineCache;
+    /** The engine's LayoutContext::$measureOnly, read at each layout() call. */
+    private bool $measureOnly = false;
 
     public function __construct()
     {
@@ -30,6 +32,7 @@ final class TextLayouter implements Layouter
 
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
+        $this->measureOnly = $engine->context()->measureOnly;
         $box = [
             'width' => BoxGeometry::borderBoxWidth($style, $c->width),
             'content' => BoxGeometry::contentWidth($style, $c->width),
@@ -304,6 +307,17 @@ final class TextLayouter implements Layouter
 
         // Text runs: one per word on justified lines, otherwise merged by identical style.
         $lineWidth = $line->width;
+        if ($this->measureOnly) {
+            // Runs as the lines hold them: list markers and table of contents numbers line up on their baselines and right edges.
+            foreach (self::group($placed, $runKeys) as $group) {
+                $text = implode('', array_map(static fn (array $p): string => $p['item']->text, $group));
+                if (trim($text) !== '') {
+                    $first = $group[0]['item'];
+                    $f->addOp(new TextRun($group[0]['x'] + ($align === TextAlign::Right ? $width - $line->width : ($align === TextAlign::Center ? ($width - $line->width) / 2 : 0.0)), $baseline, $text, $first->font, $first->size, $first->style->color, $first->style->letterSpacing));
+                }
+            }
+            return;
+        }
         if (!$justified) {
             $merged = self::measureMerged($placed, $runKeys);
             $lineWidth += array_sum(array_column($merged, 'w')) - array_sum(array_column($placed, 'w'));
