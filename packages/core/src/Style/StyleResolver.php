@@ -19,15 +19,17 @@ use function Papercut\pt;
 final class StyleResolver
 {
     private ?ComputedStyle $root = null;
+    /** Computed styles per node and parent. Nodes are immutable, so a node under the same parent always resolves the same. */
+    private StyleMemo $styles;
+    /** The same for cells resolved under a table row, with the theme's cell defaults. */
+    private StyleMemo $cellStyles;
     /**
-     * Computed styles memoized per node and parent style (both by identity).
-     * Nodes are immutable, so a node under the same parent always resolves the same.
+     * One instance per distinct computed style, by its serialized form. A long table resolves
+     * thousands of nodes to a handful of styles; each is kept once.
      *
-     * @var \SplObjectStorage<Node, \SplObjectStorage<ComputedStyle, ComputedStyle>>
+     * @var array<string, ComputedStyle>
      */
-    private \SplObjectStorage $styles;
-    /** @var \SplObjectStorage<TableCell, \SplObjectStorage<ComputedStyle, ComputedStyle>> */
-    private \SplObjectStorage $cellStyles;
+    private array $interned = [];
     /** @var \SplObjectStorage<TableCell, TableCell> layout's prepared copies of table cells, each to the cell it copies */
     private \SplObjectStorage $copies;
     /** @var \SplObjectStorage<View, true> the columns layout wraps a page region's nodes in */
@@ -51,8 +53,8 @@ final class StyleResolver
     public function __construct(private readonly Theme $theme)
     {
         $this->endsContainer = new \WeakMap();
-        $this->styles = new \SplObjectStorage();
-        $this->cellStyles = new \SplObjectStorage();
+        $this->styles = new StyleMemo();
+        $this->cellStyles = new StyleMemo();
         $this->copies = new \SplObjectStorage();
         $this->wrappers = new \SplObjectStorage();
     }
@@ -102,13 +104,7 @@ final class StyleResolver
         if ($node instanceof TableCell && isset($this->copies[$node])) {
             return $this->resolveInTable($this->copies[$node], $parent);
         }
-        $byParent = $this->styles[$node] ?? null;
-        if ($byParent === null) {
-            /** @var \SplObjectStorage<ComputedStyle, ComputedStyle> $byParent */
-            $byParent = new \SplObjectStorage();
-            $this->styles[$node] = $byParent;
-        }
-        return $byParent[$parent] ??= $this->compute($node, $parent);
+        return $this->styles->get($node, $parent) ?? $this->styles->put($node, $parent, $this->compute($node, $parent));
     }
 
     /**
@@ -119,16 +115,20 @@ final class StyleResolver
      */
     public function resolveInTable(TableCell $cell, ComputedStyle $rowStyle): ComputedStyle
     {
-        $byParent = $this->cellStyles[$cell] ?? null;
-        if ($byParent === null) {
-            /** @var \SplObjectStorage<ComputedStyle, ComputedStyle> $byParent */
-            $byParent = new \SplObjectStorage();
-            $this->cellStyles[$cell] = $byParent;
+        $cached = $this->cellStyles->get($cell, $rowStyle);
+        if ($cached !== null) {
+            return $cached;
         }
         $header = $cell->header();
         // Two shared base styles, one for header cells and one for body cells.
         $base = $this->cellBase[(int) $header] ??= new Style(padding: $this->theme->cellPadding, fontWeight: $header ? 700 : null);
-        return $byParent[$rowStyle] ??= $this->compute($cell, $rowStyle, $base, false);
+        return $this->cellStyles->put($cell, $rowStyle, $this->compute($cell, $rowStyle, $base, false));
+    }
+
+    /** The one instance of this computed style (see $interned). */
+    private function intern(ComputedStyle $style): ComputedStyle
+    {
+        return $this->interned[serialize($style)] ??= $style;
     }
 
     private function compute(Node $node, ComputedStyle $parent, ?Style $style = null, ?bool $inList = null): ComputedStyle
@@ -163,9 +163,9 @@ final class StyleResolver
         }
         $this->noteLastChild($node, $computed);
         if ($node instanceof ListNode && !$parent->inList && $style->margin === null && !isset($this->endsContainer[$node])) {
-            return $this->withListSpacing($node, $computed);
+            return $this->intern($this->withListSpacing($node, $computed));
         }
-        return $computed;
+        return $this->intern($computed);
     }
 
     /** Records the last child of a container whose bottom edge shows (see endsContainer), so a list ending it adds no spacing. */
