@@ -7,7 +7,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Faster exports that use less memory. A 100-page table renders in about 0.97 s instead of 1.69 s and peaks at 184 MB instead of 342 MB, and the 10-page benchmark document takes 58 ms instead of 97 ms. Layout now reuses the styles it already resolved, an export frees its caches as soon as it returns, and common values and styles are shared rather than copied. The PDF output is the same, except for the list spacing below.
+- Faster exports that use less memory. A 100-page table renders in about 0.86 s instead of 1.72 s and peaks at 114 MB instead of 342 MB, and the 10-page benchmark document takes 55 ms instead of 95 ms. Layout reuses the styles it already resolved, each distinct style is kept once, each page's layout caches are dropped when the page is done, an export frees what it used as soon as it returns, and common values are shared rather than copied. The PDF output is the same, except for the list spacing below.
 - An export runs with PHP's cycle collector paused and collects once when it ends. On long documents the collector ran repeatedly during layout and found nothing to free. Code that runs during the export runs with it paused too. The caller's setting is restored afterwards, also when the export throws.
 
 ### Fixed
