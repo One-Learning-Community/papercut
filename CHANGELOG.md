@@ -9,7 +9,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- `DocxOptions(tocPageNumbers: false)` and the Laravel config key `papercut.docx.toc_page_numbers` skip the page layout that fills in a Word table of contents' page numbers. The field lists its entries without numbers until the reader updates it in Word, and the export runs as fast as one without a table of contents.
+- `DocxOptions(tocPageNumbers: false)` and the Laravel config key `papercut.docx.toc_page_numbers` skip the page layout that fills in a Word table of contents' page numbers. The field lists its entries without numbers until the reader updates it in Word, and the export runs nearly as fast as one without a table of contents.
 
 ### Changed
 
