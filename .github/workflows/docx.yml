@@ -70,3 +70,32 @@ jobs:
             examples/docx/*.docx
             examples/docx/lo/*.png
           if-no-files-found: ignore
+
+  bench:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/docx
+    env:
+      PAPERCUT_BENCH_MACHINE: ci-ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, zlib, dom, zip, opcache
+          ini-values: opcache.enable_cli=1
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --no-progress --no-dev --classmap-authoritative
+      - name: Benchmark (Word export of core's prose article with and without TOC page numbers, and the 10-page table)
+        run: php -d opcache.enable_cli=1 bench/run.php | tee bench-result.json
+      - name: Compare with the committed baseline (each timing and memory peak fails if > 20% higher)
+        run: PAPERCUT_BASELINE=bench/baseline.json php ../core/bench/check.php bench-result.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bench-docx
+          path: |
+            packages/docx/bench-result.json
+            packages/docx/bench/baseline.json
