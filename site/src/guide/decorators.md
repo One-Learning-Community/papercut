@@ -48,7 +48,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The title can be a string or any component, and it always stays on the same page as the start of the body.
+The title can be a string or any component, and it always stays on the same page as the start of the body. To make it a heading, see [Titles as headings](#titles-as-headings).
 
 ## Callout
 
@@ -130,6 +130,39 @@ $document = Document::make(Page::a4()->body(
 :::
 
 The number is a string, so `3`, `3.2` and `C` all work. Papercut doesn't count sections for you or add punctuation, and the theme controls how the number looks. With `keep-together`, a section that fits on one page is never split. A longer one still breaks, but its heading always stays with the start of its content.
+
+### Titles as headings
+
+A section or card title is plain text unless you give it a heading level. `heading="1"` to `heading="4"` (`->heading(1)` in PHP) makes the title a real heading: it gets a PDF bookmark, an entry in the [table of contents](/guide/pages.md#tables-of-contents), an `h1` to `h4` tag in HTML and a Heading 1 to 4 style in Word. It keeps the section's or card's own title look.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::toc />
+<x-doc::section number="1" title="Units" heading="1">
+  …
+</x-doc::section>
+<x-doc::card heading="2">
+  <x-slot:title>{{ $unit->name }}</x-slot:title>
+  …
+</x-doc::card>
+```
+@tab PHP
+```php
+use Papercut\{Document, Page, Text, Toc};
+use Papercut\Decorator\{Card, Section};
+
+$document = Document::make(Page::a4()->body(
+    Toc::make(),
+    Section::make(Text::p('Every unit in the course.'))->number('1')->title('Units')->heading(1),
+    Card::make(Text::p('Reading and discussion.'))->title('Unit 1: Foundations')->heading(2),
+));
+```
+:::
+
+A numbered section's entry and bookmark include the number, such as "1 Units". To set different text, put `bookmark("…")` on the title `Text`, or in Blade build the title in PHP. The title has to be text. A title slot is joined into one line of text, so a heading tag inside the slot doesn't make a heading; use `heading` instead. In PHP, a title that is a box or other component can't be a heading and throws `InvalidStructure`.
+
+To make any text a heading without the h1 to h4 look, use `Text::make('…')->asHeading(2)`.
 
 ## Field
 

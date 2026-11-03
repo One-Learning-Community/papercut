@@ -9,6 +9,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Section and card titles can be headings: `heading="1"` to `"4"` on `<x-doc::section>` and `<x-doc::card>`, `->heading($level)` on `Section` and `Card`. The title gets a PDF bookmark, a table of contents entry, an `h` tag in HTML and a Heading style in Word, and keeps its look. A numbered section's entry and bookmark read "2 Units".
+- `Text::asHeading($level)` makes any text a heading at levels 1 to 4 without the h1 to h4 look. `Text::headingLevel()` reads the level back, from either source.
 - Markup can keep its headings out of tables of contents: `<x-doc::markup toc="false">`, `new MarkupOptions(toc: false)`, and a `papercut.markup.toc` config default. Every heading the tag converts is left out, wherever it sits; it still looks like a heading and keeps its PDF bookmark. In Word, an updated table of contents field brings them back, as with `toc(false)` on a heading.
 
 ### Changed

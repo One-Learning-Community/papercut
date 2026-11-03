@@ -73,10 +73,10 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-doc::card>` | `title`, `variant` | Style. `title` also works as a slot. |
+| `<x-doc::card>` | `title`, `heading`, `variant` | Style. `title` also works as a slot. `heading` (1 to 4) makes the title a heading, see [Titles as headings](/guide/decorators.md#titles-as-headings). |
 | `<x-doc::callout>` | `type`, `title`, `variant` | Style. `type`: `note`, `tip`, `warning`, `danger`, or a tone you define. |
 | `<x-doc::blockquote>` | `cite`, `variant` | Style. `cite` also works as a slot. |
-| `<x-doc::section>` | `title`, `number`, `rule`, `variant` | Style. `title` also works as a slot. |
+| `<x-doc::section>` | `title`, `number`, `rule`, `heading`, `variant` | Style. `title` also works as a slot. `heading` (1 to 4) makes the title a heading, see [Titles as headings](/guide/decorators.md#titles-as-headings). |
 | `<x-doc::field>` | `label`, `placeholder`, `lines`, `variant` | Style. `label` also works as a slot. `lines` is a positive integer. |
 | `<x-doc::choices>` | `type`, `emphasize-selected`, `variant` | Style. `type`: `checkbox` or `radio`. Holds only `<x-doc::choice>`. |
 | `<x-doc::choice>` | `selected` | Valid only inside `<x-doc::choices>`. No style. |
