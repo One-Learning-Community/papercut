@@ -103,7 +103,18 @@ final class Document
 
     public function export(Exporter $exporter, ?ExportOptions $options = null): Output
     {
-        return $exporter->export($this, $options ?? $exporter->defaultOptions());
+        $gc = gc_enabled();
+        if ($gc) {
+            gc_disable();
+        }
+        try {
+            return $exporter->export($this, $options ?? $exporter->defaultOptions());
+        } finally {
+            if ($gc) {
+                gc_enable();
+                gc_collect_cycles();
+            }
+        }
     }
 
     public function toPdf(?PdfOptions $options = null): Output
