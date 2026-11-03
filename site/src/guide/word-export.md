@@ -74,7 +74,7 @@ A flow inside a box (a bordered or padded view, a card) comes out as one column,
 
 A [table of contents](./pages.md#tables-of-contents) becomes a real Word table of contents field. Papercut fills it in with the entries and the page numbers from the PDF layout, so readers see them as soon as the file opens. Word paginates a little differently from the PDF, so a number can be a page off. Right-click the table and choose Update Field for exact numbers.
 
-An updated field rebuilds itself from Word's Heading 1 to Heading 4 styles, so two things aren't honoured after an update: `toc(false)` (the heading comes back), and a level set with `bookmark($title, $level)` (the heading's own level is used).
+An updated field rebuilds itself from Word's Heading 1 to Heading 4 styles, so two things aren't honoured after an update: `toc(false)` and markup's `toc` option (the headings come back), and a level set with `bookmark($title, $level)` (the heading's own level is used).
 
 To get those page numbers, Word export runs the PDF layout for a document that has a table of contents, and only for those. If the page layout can't run, for instance because a font isn't registered, the export still succeeds and the field is written without page numbers. Right-click the table and choose Update Field in Word to fill them in.
 

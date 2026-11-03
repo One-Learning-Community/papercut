@@ -5,6 +5,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Markup can keep its headings out of tables of contents: `<x-doc::markup toc="false">`, `new MarkupOptions(toc: false)`, and a `papercut.markup.toc` config default. Every heading the tag converts is left out, wherever it sits; it still looks like a heading and keeps its PDF bookmark. In Word, an updated table of contents field brings them back, as with `toc(false)` on a heading.
+
 ### Changed
 
 - Faster exports that use less memory. A 100-page table renders in about 0.86 s instead of 1.72 s and peaks at 114 MB instead of 342 MB, and the 10-page benchmark document takes 55 ms instead of 95 ms. Layout reuses the styles it already resolved, each distinct style is kept once, each page's layout caches are dropped when the page is done, an export frees what it used as soon as it returns, and common values are shared rather than copied. The PDF output is the same, except for the list spacing below.

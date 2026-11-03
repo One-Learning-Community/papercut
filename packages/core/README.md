@@ -212,7 +212,8 @@ $document = Document::make(
 - Both entry points return a `Text` (a single paragraph of inline content) or a `View`, and accept `null` and `''`, which produce nothing.
 
 `MarkupOptions`: `styles` (`StyleMode::Theme` default or `Original`), `images` (a `Closure(string $src): ?string`
-returning image bytes) and `blankParagraphs` (`BlankParagraphs::Drop` default, or `Keep`).
+returning image bytes), `blankParagraphs` (`BlankParagraphs::Drop` default, or `Keep`) and `toc` (`true` default;
+`false` leaves every converted heading out of tables of contents, keeping its look and bookmark).
 
 ### What is converted
 

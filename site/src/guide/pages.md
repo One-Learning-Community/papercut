@@ -396,7 +396,7 @@ The options:
 
 The entries are the `h1` to `h4` headings in page bodies, in document order, including headings from [rich text](./rich-text.md). A document can have more than one table of contents, and each one is independent. Headings in headers, footers, backgrounds and overlays are never listed, and a table of contents there throws `InvalidStructure`. If no heading matches, the table of contents draws only its title and reports a warning.
 
-To leave a heading out, use `toc="false"` in Blade or `->toc(false)` in PHP. It keeps its bookmark. Setting `bookmark="Short title"` also sets the entry's text. `bookmark(false)` turns off the bookmark only, so the entry still shows the heading's own text. A level from `bookmark($title, $level)` is the entry's level too.
+To leave a heading out, use `toc="false"` in Blade or `->toc(false)` in PHP. It keeps its bookmark. Setting `bookmark="Short title"` also sets the entry's text. `bookmark(false)` turns off the bookmark only, so the entry still shows the heading's own text. A level from `bookmark($title, $level)` is the entry's level too. To leave out every heading in converted HTML, use the markup tag's [`toc` option](/guide/rich-text.md#headings-and-the-table-of-contents).
 
 The table of contents is an ordinary block. Entries never split across pages, and it doesn't start a new page by itself. Add a page break after it, as above, to start your content on a fresh page. The `PdfOptions` setting that turns bookmarks off doesn't affect it.
 

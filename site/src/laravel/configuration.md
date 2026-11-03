@@ -69,6 +69,7 @@ final class CdnImageUrl implements ImageUrlResolver
 | `markup.images` | `null` | An `ImageResolver` class. `null` treats every `<img>` as missing. |
 | `markup.styles` | `'theme'` | `'theme'` or `'original'`. See [Rich text](/guide/rich-text.md#style-modes). |
 | `markup.blank_paragraphs` | `'drop'` | `'drop'` or `'keep'`. |
+| `markup.toc` | `true` | `false` keeps the headings markup converts out of tables of contents. See [Rich text](/guide/rich-text.md#headings-and-the-table-of-contents). |
 | `markup.highlight` | `true` | `false` keeps `<pre><code class="language-x">` as plain `pre` blocks instead of [code blocks](/guide/text.md#code-blocks). |
 
 ### Markup images

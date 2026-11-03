@@ -34,7 +34,7 @@ In Blade, bind the value with `:html` rather than `html`, otherwise Blade escape
 
 ## Writing HTML in the template
 
-For a simple table, or a heading and a few paragraphs, you can write plain HTML between the tags instead of learning the Papercut tags for it. It's converted the same way as `:html`, and takes the same `styles`, `blank-paragraphs` and `images` attributes:
+For a simple table, or a heading and a few paragraphs, you can write plain HTML between the tags instead of learning the Papercut tags for it. It's converted the same way as `:html`, and takes the same `styles`, `blank-paragraphs`, `images` and `toc` attributes:
 
 ```blade
 <x-doc::card title="Summary">
@@ -52,6 +52,36 @@ For a simple table, or a heading and a few paragraphs, you can write plain HTML 
 ```
 
 Blade runs first, so loops, conditions and `{{ }}` echoes work as usual, and an echoed value stays text: `{{ '<b>' }}` shows `<b>`, it doesn't make anything bold. Your own Blade components can go inside too, as long as they render HTML. Papercut tags can't, because they aren't HTML; put them next to the markup tag instead. The tag takes HTML in its slot, `:html` or `:text`, only one of them.
+
+## Headings and the table of contents
+
+Headings in converted HTML are ordinary headings, so a [table of contents](/guide/pages.md#tables-of-contents) lists them. When the HTML comes from authors and the table of contents should list only your own headings, turn that off for the whole tag:
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::toc />
+<x-doc::h1>Unit 1</x-doc::h1>
+<x-doc::markup :html="$unit->intro" toc="false" />
+```
+@tab PHP
+```php
+use Papercut\{Document, Page, Text, Toc};
+use Papercut\Markup\{Markup, MarkupOptions};
+
+$intro = '<h2>Warm-up</h2><p>Read the passage.</p>';
+
+$document = Document::make(Page::a4()->body(
+    Toc::make(),
+    Text::h1('Unit 1'),
+    Markup::html($intro, new MarkupOptions(toc: false)),
+));
+```
+:::
+
+Every `h1` to `h6` the tag converts is left out, wherever it sits: in a list, a table or a quote. They still look like headings and keep their PDF bookmarks, the same as `toc="false"` on a single heading. `papercut.markup.toc` sets the default for every markup tag, and `toc="true"` turns it back on for one. In Word, the headings come back if someone updates the table of contents field (see [Word export](/guide/word-export.md#table-of-contents)).
+
+Putting `->toc(false)` on the converted result doesn't do this: like any style on a box, it applies to the box itself, not to the headings inside it. Use the option.
 
 ## Inside a line of text
 
