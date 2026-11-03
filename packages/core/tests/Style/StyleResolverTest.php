@@ -135,4 +135,26 @@ final class StyleResolverTest extends TestCase
         self::assertNotSame($r->root(), $style);
         self::assertEquals(Edges::all(pt(4)), $style->padding);
     }
+
+    public function test_nodes_with_the_same_style_share_one_computed_style(): void
+    {
+        $r = new StyleResolver(Theme::default());
+        $a = $r->resolve(Text::make('one')->right()->bold(), $r->root());
+        $b = $r->resolve(Text::make('two')->bold()->right(), $r->root());
+        self::assertSame($a, $b);
+        self::assertNotSame($a, $r->resolve(Text::make('three')->right(), $r->root()));
+    }
+
+    public function test_a_node_under_a_second_parent_resolves_and_is_remembered_under_each(): void
+    {
+        $r = new StyleResolver(Theme::default());
+        $text = Text::make('a');
+        $big = $r->resolve(Column::make()->size(pt(20)), $r->root());
+        $first = $r->resolve($text, $r->root());
+        $second = $r->resolve($text, $big);
+        self::assertSame(20.0, $second->fontSize);
+        self::assertNotSame($first, $second);
+        self::assertSame($first, $r->resolve($text, $r->root()));
+        self::assertSame($second, $r->resolve($text, $big));
+    }
 }
