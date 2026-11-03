@@ -28,6 +28,10 @@ final class StyleResolver
     private \SplObjectStorage $styles;
     /** @var \SplObjectStorage<TableCell, \SplObjectStorage<ComputedStyle, ComputedStyle>> */
     private \SplObjectStorage $cellStyles;
+    /** @var \SplObjectStorage<TableCell, TableCell> layout's prepared copies of table cells, each to the cell it copies */
+    private \SplObjectStorage $copies;
+    /** @var \SplObjectStorage<View, true> the columns layout wraps a page region's nodes in */
+    private \SplObjectStorage $wrappers;
     /** @var array<int, Style> a cell's base style, by whether it is a header cell */
     private array $cellBase = [];
     private ?Style $none = null;
@@ -49,6 +53,32 @@ final class StyleResolver
         $this->endsContainer = new \WeakMap();
         $this->styles = new \SplObjectStorage();
         $this->cellStyles = new \SplObjectStorage();
+        $this->copies = new \SplObjectStorage();
+        $this->wrappers = new \SplObjectStorage();
+    }
+
+    /**
+     * Registers the column layout wraps a page region's nodes in (the tree walk visits them under the
+     * root style directly). When its computed style equals its parent's, it resolves to the parent itself,
+     * so the nodes in it share the styles the walk already resolved instead of computing them again.
+     *
+     * @internal Paginator only.
+     */
+    public function wrapper(View $column): void
+    {
+        $this->wrappers[$column] = true;
+    }
+
+    /**
+     * Registers layout's copy of a cell with the theme's cell defaults applied (TableLayouter::prepare()).
+     * The copy then resolves as the cell itself does under its row, the same style either way, so it
+     * and everything in it share the styles the tree walk already resolved instead of computing them again.
+     *
+     * @internal TableLayouter only.
+     */
+    public function copyOf(TableCell $copy, TableCell $cell): void
+    {
+        $this->copies[$copy] = $cell;
     }
 
     /** The theme this resolver resolves against. */
@@ -69,6 +99,9 @@ final class StyleResolver
      */
     public function resolve(Node $node, ComputedStyle $parent): ComputedStyle
     {
+        if ($node instanceof TableCell && isset($this->copies[$node])) {
+            return $this->resolveInTable($this->copies[$node], $parent);
+        }
         $byParent = $this->styles[$node] ?? null;
         if ($byParent === null) {
             /** @var \SplObjectStorage<ComputedStyle, ComputedStyle> $byParent */
@@ -122,6 +155,9 @@ final class StyleResolver
             $inList = true;
         }
         $computed = $parent->child($style, $inList);
+        if ($node instanceof View && isset($this->wrappers[$node]) && $computed == $parent) {
+            return $parent;
+        }
         $this->noteLastChild($node, $computed);
         if ($node instanceof ListNode && !$parent->inList && $style->margin === null && !isset($this->endsContainer[$node])) {
             return $this->withListSpacing($node, $computed);

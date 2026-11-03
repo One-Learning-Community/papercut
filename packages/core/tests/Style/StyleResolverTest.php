@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Style;
 
-use Papercut\{TableCell, Text};
+use Papercut\{Column, TableCell, Text};
 use Papercut\Style\{Style, StyleResolver, Theme};
 use Papercut\Value\{Color, Edges};
 use PHPUnit\Framework\TestCase;
@@ -92,5 +92,33 @@ final class StyleResolverTest extends TestCase
             self::assertEquals($viaTable->padding, $viaResolver->padding, "$label padding");
             self::assertSame($viaTable->fontWeight, $viaResolver->fontWeight, "$label weight");
         }
+    }
+
+    public function test_a_registered_cell_copy_resolves_as_its_cell_does_in_a_table(): void
+    {
+        $r = new StyleResolver(Theme::default());
+        $cell = TableCell::th('a');
+        $copy = $cell->padding(pt(3));
+        $r->copyOf($copy, $cell);
+        self::assertSame($r->resolveInTable($cell, $r->root()), $r->resolve($copy, $r->root()));
+    }
+
+    public function test_a_wrapper_column_with_nothing_of_its_own_resolves_to_its_parent(): void
+    {
+        $r = new StyleResolver(Theme::default());
+        $column = Column::make(Text::make('a'));
+        $r->wrapper($column);
+        self::assertSame($r->root(), $r->resolve($column, $r->root()));
+        self::assertNotSame($r->root(), $r->resolve(Column::make(Text::make('a')), $r->root()), 'an unregistered column gets its own style');
+    }
+
+    public function test_a_wrapper_column_with_a_style_of_its_own_resolves_normally(): void
+    {
+        $r = new StyleResolver(Theme::default());
+        $column = Column::make(Text::make('a'))->padding(pt(4));
+        $r->wrapper($column);
+        $style = $r->resolve($column, $r->root());
+        self::assertNotSame($r->root(), $style);
+        self::assertEquals(Edges::all(pt(4)), $style->padding);
     }
 }

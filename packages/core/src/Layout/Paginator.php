@@ -86,6 +86,7 @@ final class Paginator
         $overlay = $this->overlay($page, $root, $w, $h);
 
         $body = Column::make(...$page->bodyNodes());
+        $this->ctx->styles->wrapper($body);
         $token = null;
         while (true) {
             $number = count($out) + 1;
@@ -330,7 +331,9 @@ final class Paginator
         }
         // The slot names are the region names.
         $region = Region::from($pathName);
-        return $this->inRegion($region, fn (): ?Fragment => $this->withoutBookmarks(fn (): ?Fragment => $this->engine->layout(Column::make(...$nodes), $root, new Constraints($width, null, true), pathName: $pathName)->fragment));
+        $column = Column::make(...$nodes);
+        $this->ctx->styles->wrapper($column);
+        return $this->inRegion($region, fn (): ?Fragment => $this->withoutBookmarks(fn (): ?Fragment => $this->engine->layout($column, $root, new Constraints($width, null, true), pathName: $pathName)->fragment));
     }
 
     /**
