@@ -209,8 +209,8 @@ final readonly class Style
 
     public function merge(Style $over): self
     {
-        if ($over === $this) {
-            return $this;
+        if ($over === $this || $this->isEmpty()) {
+            return $over;
         }
         // Plain loops: styles are merged for every node, and this is a hot path.
         $mine = get_object_vars($this);
@@ -221,10 +221,7 @@ final readonly class Style
                 $changed = true;
             }
         }
-        if (!$changed) {
-            return $this;
-        }
-        return $this->isEmpty() ? $over : new self(...$mine);
+        return $changed ? new self(...$mine) : $this;
     }
 
     public function isEmpty(): bool

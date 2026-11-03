@@ -28,6 +28,9 @@ final class StyleResolver
     private \SplObjectStorage $styles;
     /** @var \SplObjectStorage<TableCell, \SplObjectStorage<ComputedStyle, ComputedStyle>> */
     private \SplObjectStorage $cellStyles;
+    /** @var array<int, Style> a cell's base style, by whether it is a header cell */
+    private array $cellBase = [];
+    private ?Style $none = null;
     /**
      * Nodes that end a container whose bottom edge shows (a table cell, or a box with bottom
      * padding, a bottom border or a background), directly or through transparent wrappers
@@ -89,16 +92,15 @@ final class StyleResolver
             $byParent = new \SplObjectStorage();
             $this->cellStyles[$cell] = $byParent;
         }
-        return $byParent[$rowStyle] ??= $this->compute(
-            $cell,
-            $rowStyle,
-            new Style(padding: $this->theme->cellPadding, fontWeight: $cell->header() ? 700 : null),
-            false,
-        );
+        $header = $cell->header();
+        // Two shared base styles, one for header cells and one for body cells.
+        $base = $this->cellBase[(int) $header] ??= new Style(padding: $this->theme->cellPadding, fontWeight: $header ? 700 : null);
+        return $byParent[$rowStyle] ??= $this->compute($cell, $rowStyle, $base, false);
     }
 
-    private function compute(Node $node, ComputedStyle $parent, Style $style = new Style(), ?bool $inList = null): ComputedStyle
+    private function compute(Node $node, ComputedStyle $parent, ?Style $style = null, ?bool $inList = null): ComputedStyle
     {
+        $style ??= $this->none ??= new Style();
         if ($node instanceof Text && $node->preset() !== null) {
             $preset = $node->preset();
             $style = $style->merge($preset === 'p' ? $this->theme->paragraph() : $this->theme->heading((int) substr($preset, 1)));
