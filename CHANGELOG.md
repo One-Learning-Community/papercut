@@ -5,6 +5,11 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- PDF export paints each page as soon as it is laid out and frees its layout before the next page, instead of keeping every page's layout until the end. Page numbers and table of contents entries are filled in once the pages are done. On the benchmarks the export's peak memory drops by 6 to 18%; the PDF output is the same.
+- The page layout behind a Word table of contents' page numbers keeps only each heading's page, and stops once every listed heading has one.
+
 ## [0.9.1] - 2026-11-03
 
 ### Added
