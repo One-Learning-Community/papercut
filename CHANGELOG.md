@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-03
+
 ### Added
 
 - Markup can keep its headings out of tables of contents: `<x-doc::markup toc="false">`, `new MarkupOptions(toc: false)`, and a `papercut.markup.toc` config default. Every heading the tag converts is left out, wherever it sits; it still looks like a heading and keeps its PDF bookmark. In Word, an updated table of contents field brings them back, as with `toc(false)` on a heading.

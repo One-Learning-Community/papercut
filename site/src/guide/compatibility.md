@@ -4,7 +4,7 @@ Papercut follows [Semantic Versioning](https://semver.org/). This page says what
 
 ## Before 1.0
 
-Papercut is at 0.8. Until 1.0, a minor version (0.8 to 0.9) may change the API, and the [changelog](https://github.com/One-Learning-Community/papercut/blob/main/CHANGELOG.md) lists every change. A patch version (0.8.0 to 0.8.1) only fixes bugs. Require a minor version with a caret, such as `^0.8`, and Composer won't move you past it.
+Papercut is at 0.9. Until 1.0, a minor version (0.9 to 0.10) may change the API, and the [changelog](https://github.com/One-Learning-Community/papercut/blob/main/CHANGELOG.md) lists every change. A patch version (0.9.0 to 0.9.1) only fixes bugs. Require a minor version with a caret, such as `^0.9`, and Composer won't move you past it.
 
 ## From 1.0
 
@@ -12,7 +12,7 @@ A breaking change to the public API waits for the next major version (2.0). Mino
 
 ## The three packages move together
 
-`papercut/core`, `papercut/laravel` and `papercut/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: each package requires the matching minor version of the core (`^0.8`).
+`papercut/core`, `papercut/laravel` and `papercut/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: each package requires the matching minor version of the core (`^0.9`).
 
 ## What the promise covers
 
