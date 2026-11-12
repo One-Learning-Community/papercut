@@ -12,7 +12,7 @@ use Papercut\Page;
 use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver, Theme};
 use Papercut\Text\{FontRegistry, Itemizer, SvgFonts};
 use Papercut\Toc\TocIndex;
-use Papercut\Tree\Region;
+use Papercut\Tree\{NodePath, Region};
 
 /**
  * Shared state for one layout run: fonts, theme, images, warnings, the
@@ -22,7 +22,7 @@ use Papercut\Tree\Region;
  */
 final class LayoutContext
 {
-    /** @var list<string> */
+    /** @var list<string|array{Node, ?ComputedStyle, ?int}> the path's segments; a node's is named only when the path is read (NodePath::segment()) */
     private array $path = [];
     /** @var \SplObjectStorage<Theme, Itemizer> one per theme, which the itemizer reads span styles from */
     private \SplObjectStorage $itemizers;
@@ -221,6 +221,12 @@ final class LayoutContext
         $this->path[] = $name;
     }
 
+    /** Pushes a node's segment of the path, named only if the path is read (NodePath::segment()). */
+    public function pushNodePath(Node $node, ?ComputedStyle $style, ?int $index): void
+    {
+        $this->path[] = [$node, $style, $index];
+    }
+
     public function popPath(): void
     {
         array_pop($this->path);
@@ -282,7 +288,12 @@ final class LayoutContext
 
     public function path(): string
     {
-        return implode(' > ', $this->path);
+        $names = [];
+        foreach ($this->path as $i => $segment) {
+            // Named once: a table of contents reads the path at every node.
+            $names[] = $this->path[$i] = is_string($segment) ? $segment : NodePath::segment(...$segment);
+        }
+        return implode(' > ', $names);
     }
 
     /** Opens a list; returns its 1-based depth among open lists of the same kind. */
