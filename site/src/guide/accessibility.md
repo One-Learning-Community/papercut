@@ -21,23 +21,19 @@ $document->toPdf(new PdfOptions(tagged: true))->save('report.pdf');
 ```
 @tab Laravel
 ```php
-use Papercut\Export\PdfOptions;
 use Papercut\Laravel\Facades\Papercut;
 
-$pending = Papercut::view('pdf.report', $data);   // the view sets title and lang on its document tag
-$base = Papercut::pdfOptions();
-
-return response($pending->document()->toPdf(new PdfOptions(
-    theme: $base->theme(),
-    fonts: $base->fonts(),
-    onWarning: $base->onWarning(),
-    strict: $base->strict(),
-    tagged: true,
-))->bytes(), 200, ['Content-Type' => 'application/pdf']);
+// The view sets title and lang on its document tag.
+return Papercut::view('pdf.report', $data)
+    ->tagged()
+    ->pdf()
+    ->download('report.pdf');
 ```
 :::
 
 A tagged PDF needs a document title and a language. Without them Papercut throws `InvalidStructure`. The title is what a reader announces when the file opens, and the language tells a screen reader which pronunciation rules to use. Set them with `Document::title()` and `->lang()`, or `title` and `lang` on `<x-doc::document>`. Untagged exports don't need either.
+
+In Laravel, `->tagged()` turns it on for one document (`->tagged(false)` turns it off). To tag every PDF, set `'tagged' => true` in `config/papercut.php`. A document can still opt out.
 
 If the installed php-pdf is too old to write tagged PDFs, Papercut warns through `onWarning` and writes an untagged PDF instead. In [strict mode](./rich-text.md#strict-mode) it throws.
 

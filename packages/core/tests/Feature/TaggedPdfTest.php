@@ -360,6 +360,17 @@ final class TaggedPdfTest extends TestCase
         self::assertFalse((new PdfOptions())->tagged());
     }
 
+    public function test_withTagged_copies_the_options_and_keeps_the_rest(): void
+    {
+        $locked = Encryption::password('x');
+        $options = (new PdfOptions(bookmarks: false, encryption: $locked))->withTagged(true);
+        self::assertTrue($options->tagged());
+        self::assertFalse($options->bookmarks());
+        self::assertSame($locked, $options->encryption());
+        self::assertFalse($options->withTagged(false)->tagged());
+        self::assertSame($locked, $options->withTagged(false)->encryption());
+    }
+
     public function test_a_missing_title_throws(): void
     {
         $doc = Document::make(Page::a4()->body(Text::make('x')))->lang('en');

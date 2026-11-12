@@ -63,6 +63,12 @@ final readonly class PdfOptions extends ExportOptions
         return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->backend, $this->overflow, $this->cacheDir, $this->bookmarks, $encryption, $this->tagged);
     }
 
+    /** A copy that writes a tagged PDF (or not), keeping every other option. */
+    public function withTagged(bool $tagged): self
+    {
+        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->backend, $this->overflow, $this->cacheDir, $this->bookmarks, $this->encryption, $tagged);
+    }
+
     public function encryption(): ?Encryption
     {
         return $this->encryption;

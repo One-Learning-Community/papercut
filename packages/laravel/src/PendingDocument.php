@@ -21,6 +21,7 @@ final class PendingDocument
         private readonly Document $document,
         private readonly PapercutManager $manager,
         private readonly ?Encryption $encryption = null,
+        private readonly ?bool $tagged = null,
     ) {
     }
 
@@ -30,7 +31,7 @@ final class PendingDocument
      */
     public function encrypt(#[\SensitiveParameter] string|Encryption $password): self
     {
-        return new self($this->document, $this->manager, is_string($password) ? Encryption::password($password) : $password);
+        return new self($this->document, $this->manager, is_string($password) ? Encryption::password($password) : $password, $this->tagged);
     }
 
     /**
@@ -44,7 +45,16 @@ final class PendingDocument
     {
         $override = ThemeConfig::override($values, 'in ->theme()', $this->manager->fontFamilies());
 
-        return new self($this->document->theme($override), $this->manager, $this->encryption);
+        return new self($this->document->theme($override), $this->manager, $this->encryption, $this->tagged);
+    }
+
+    /**
+     * A copy whose PDF is tagged (accessible, PDF/UA-1) or not, whatever `papercut.tagged` says.
+     * A tagged PDF needs a document title and language.
+     */
+    public function tagged(bool $on = true): self
+    {
+        return new self($this->document, $this->manager, $this->encryption, $on);
     }
 
     public function document(): Document
@@ -55,7 +65,11 @@ final class PendingDocument
     public function pdf(): PendingOutput
     {
         return $this->pdf ??= new PendingOutput(
-            fn (): \Papercut\Export\Output => $this->document->toPdf($this->manager->pdfOptions()->withEncryption($this->encryption)),
+            function (): \Papercut\Export\Output {
+                $options = $this->manager->pdfOptions()->withEncryption($this->encryption);
+
+                return $this->document->toPdf($this->tagged === null ? $options : $options->withTagged($this->tagged));
+            },
             'document',
             'pdf',
             'application/pdf',

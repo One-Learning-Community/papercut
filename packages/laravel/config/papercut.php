@@ -21,6 +21,8 @@ return [
     'overflow' => null,
     // Turn headings (and anything with bookmark="…") into the PDF's bookmarks panel
     'bookmarks' => true,
+    // Write accessible (tagged, PDF/UA-1) PDFs. Needs a document title and language; ->tagged() on a document overrides this
+    'tagged' => false,
     // Strict export: throw instead of dropping content a format cannot render. Consider true in tests.
     'strict' => false,
     // Base directory for relative <x-doc::image src>

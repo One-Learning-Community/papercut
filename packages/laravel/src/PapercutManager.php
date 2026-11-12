@@ -360,6 +360,11 @@ class PapercutManager
             throw new \InvalidArgumentException('Invalid papercut.bookmarks: ' . (is_scalar($bookmarks) ? var_export($bookmarks, true) : get_debug_type($bookmarks)) . '; expected true or false');
         }
 
+        $tagged = config('papercut.tagged', false);
+        if (!is_bool($tagged)) {
+            throw new \InvalidArgumentException('Invalid papercut.tagged: ' . (is_scalar($tagged) ? var_export($tagged, true) : get_debug_type($tagged)) . '; expected true or false');
+        }
+
         $base = $this->exportOptions();
 
         return new PdfOptions(
@@ -370,6 +375,7 @@ class PapercutManager
             overflow: $mode,
             cacheDir: self::cacheDir(),
             bookmarks: $bookmarks,
+            tagged: $tagged,
         );
     }
 
