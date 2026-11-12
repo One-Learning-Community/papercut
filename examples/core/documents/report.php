@@ -113,6 +113,6 @@ $document = Document::make(
         ->header(Row::make(Text::make('Papercut Design Report')->size(pt(8))->color('slate-500'), Spacer::flex(), Text::make('Confidential')->size(pt(8))->color('slate-500')))
         ->body(Column::make(...$body)->gap(pt(0)))
         ->footer(PageNumber::make('{page} / {total}')->center()->size(pt(8))->color('slate-500')),
-)->title('Designing Papercut')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
+)->title('Designing Papercut')->lang('en')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
 
 return $document;

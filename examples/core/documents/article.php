@@ -86,4 +86,4 @@ $article = Column::make(
 
 return Document::make(
     Page::a4()->margin(mm(20))->header($header)->body($article)->footer($footer),
-)->title('Setting up two-factor sign-in')->author('Plotline')->createdAt(new DateTimeImmutable('2026-03-12T09:00:00Z'));
+)->title('Setting up two-factor sign-in')->lang('en')->author('Plotline')->createdAt(new DateTimeImmutable('2026-03-12T09:00:00Z'));

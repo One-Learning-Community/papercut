@@ -93,6 +93,6 @@ $document = Document::make(
             )->padding(Edges::of(pt(8), pt(0), pt(0), pt(0)))
                 ->borderWidth(Edges::of(pt(0.5), pt(0), pt(0), pt(0)))->borderColor('slate-200'),
         ),
-)->title('Invoice INV-2026-0142')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));
+)->title('Invoice INV-2026-0142')->lang('en')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));
 
 return $document;

@@ -60,7 +60,7 @@ foreach ($courses as $c) {
 }
 
 $summary = Column::make(
-    Text::h3('Cumulative summary'),
+    Text::h3('Cumulative summary')->asHeading(2),
     Row::make(
         Text::make(sprintf('%d credits attempted, %.1f quality points.', $credits, $points))->grow(1),
         Text::make('GPA ' . number_format($gpa, 2))->bold()->size(pt(14)),
@@ -74,8 +74,8 @@ $document = Document::make(
             Spacer::flex(),
             Text::make('Papercut')->color('slate-500'),
         ))
-        ->body(Column::make($card, Text::h2('Course history'), $table, $summary)->gap(pt(10)))
+        ->body(Column::make($card, Text::h2('Course history')->asHeading(1), $table, $summary)->gap(pt(10)))
         ->footer(PageNumber::make('Page {page} of {total}')->center()->size(pt(8))->color('slate-500')),
-)->title('Official Transcript')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
+)->title('Official Transcript')->lang('en')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
 
 return $document;

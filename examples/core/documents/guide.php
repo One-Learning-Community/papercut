@@ -109,11 +109,11 @@ $first = Column::make(
     Callout::make('Test keys create sandbox shipments that never reach a carrier. Switch to a live key only after the checklist on the last page.')
         ->tone('warning')->title('Start with a test key'),
     Column::make(
-        Text::h3('Set up')->keepWithNext(),
+        Text::h3('Set up')->asHeading(2)->keepWithNext(),
         ListNode::ordered(...$steps),
     )->gap(pt(4)),
     Column::make(
-        Text::h3('Create a shipment')->keepWithNext(),
+        Text::h3('Create a shipment')->asHeading(2)->keepWithNext(),
         CodeBlock::make($curl)->language('bash')->label('Request')->variant('caption'),
         CodeBlock::make($json)->language('json')->label('Response: 201 Created')->variant('strip'),
     )->gap(pt(8)),
@@ -156,11 +156,11 @@ foreach ($errors as [$status, $code, $meaning, $action]) {
 
 $second = Column::make(
     Column::make(
-        Text::h3('Endpoint reference')->keepWithNext(),
+        Text::h3('Endpoint reference')->asHeading(2)->keepWithNext(),
         Text::make('All paths are relative to https://api.example.com. Send the key as a bearer token; limits are per key.')->color('slate-600'),
     )->gap(pt(3)),
     $table,
-    Column::make(Text::h3('Errors')->keepWithNext(), $errorTable)->gap(pt(4)),
+    Column::make(Text::h3('Errors')->asHeading(2)->keepWithNext(), $errorTable)->gap(pt(4)),
 )->gap(pt(12));
 
 // Page 3: portrait.
@@ -176,7 +176,7 @@ foreach ($checklist as [$label, $done]) {
 
 $third = Column::make(
     Column::make(
-        Text::h3('Webhooks')->keepWithNext(),
+        Text::h3('Webhooks')->asHeading(2)->keepWithNext(),
         Text::make('Parcelpost calls your endpoint when a shipment changes state. Each delivery is signed, so check the signature before you trust the body.'),
     )->gap(pt(4)),
     CodeBlock::make($verify)->language('php')->label('verify.php')->variant('strip'),
@@ -187,7 +187,7 @@ $third = Column::make(
             Text::make('Webhook docs')->size(pt(8))->color('slate-500'),
         )->gap(pt(4))->align('center'),
     )->gap(pt(16)),
-    Column::make(Text::h3('Go-live checklist')->keepWithNext(), $list)->gap(pt(6)),
+    Column::make(Text::h3('Go-live checklist')->asHeading(2)->keepWithNext(), $list)->gap(pt(6)),
     Blockquote::make('Retries are on our side. Answer quickly and keep your handler boring.')->cite('Parcelpost support team'),
 )->gap(pt(12));
 
@@ -195,4 +195,4 @@ return Document::make(
     Page::letter()->margin(in(0.75))->header($header('Integration guide'))->body($first)->footer($footer),
     Page::letter()->landscape()->margin(in(0.75))->header($header('Integration guide | Reference'))->body($second)->footer($footer),
     Page::letter()->margin(in(0.75))->header($header('Integration guide | Webhooks'))->body($third)->footer($footer),
-)->title('Parcelpost API integration guide')->author('Parcelpost')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));
+)->title('Parcelpost API integration guide')->lang('en')->author('Parcelpost')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));

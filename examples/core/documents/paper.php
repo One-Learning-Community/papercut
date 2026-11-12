@@ -65,7 +65,7 @@ $caption = static fn (string $text) => Text::make($text)->size(pt(8.5))->color('
 
 $body = [];
 foreach ($sections as $i => [$title, $paragraphs]) {
-    $body[] = Text::h3($title)->margin(Edges::of($i === 0 ? pt(0) : pt(8), pt(0), pt(0), pt(0)));
+    $body[] = Text::h3($title)->asHeading(2)->margin(Edges::of($i === 0 ? pt(0) : pt(8), pt(0), pt(0), pt(0)));
     foreach ($paragraphs as $p) {
         $body[] = Text::p($p)->justify();
     }
@@ -116,4 +116,4 @@ return Document::make(
             $note,
         )
         ->footer(PageNumber::make('Page {page} of {total}')->center()->size(pt(8))->color('slate-500')),
-)->title('Wider Hive Spacing Improves Winter Survival of Honey Bee Colonies')->author('Marta Lindqvist, Tomas Okafor, Reiko Havel')->createdAt(new DateTimeImmutable('2026-03-12T09:00:00Z'));
+)->title('Wider Hive Spacing Improves Winter Survival of Honey Bee Colonies')->lang('en')->author('Marta Lindqvist, Tomas Okafor, Reiko Havel')->createdAt(new DateTimeImmutable('2026-03-12T09:00:00Z'));

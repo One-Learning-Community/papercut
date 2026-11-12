@@ -110,7 +110,7 @@ final class ExamplesTest extends TestCase
     public function test_transcript_heading_sits_in_the_summary_box_like_the_blade_view_and_courses_are_distinct(): void
     {
         $source = (string) file_get_contents(dirname(__DIR__, 4) . '/examples/core/documents/transcript.php');
-        self::assertMatchesRegularExpression('/\$summary = Column::make\(\s*Text::h3\(\'Cumulative summary\'\),/', $source);
+        self::assertMatchesRegularExpression('/\$summary = Column::make\(\s*Text::h3\(\'Cumulative summary\'\)->asHeading\(2\),/', $source);
         self::assertStringNotContainsString('keepWithNext', $source);
         $root = dirname(__DIR__, 4);
         exec(sprintf('cd %s && %s -d xdebug.mode=off examples/core/transcript.php 2>&1', escapeshellarg($root), escapeshellarg(PHP_BINARY)));

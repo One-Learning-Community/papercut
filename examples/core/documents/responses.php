@@ -24,7 +24,7 @@ $items = [
 ];
 
 $body = [
-    Text::h2('Workshop feedback'),
+    Text::h2('Workshop feedback')->asHeading(1),
     Card::make(
         KeyValueList::make()
             ->row('Respondent', 'Jane Smith')
@@ -66,6 +66,6 @@ $document = Document::make(
     Page::a4()->margin(mm(20))
         ->body(Column::make(...$body)->gap(pt(12)))
         ->footer(PageNumber::make('Page {page} of {total}')->center()->size(pt(8))->color('slate-500')),
-)->title('Feedback form response')->author('Northwind Studio')->createdAt(new DateTimeImmutable('2026-03-02T14:30:00Z'));
+)->title('Feedback form response')->lang('en')->author('Northwind Studio')->createdAt(new DateTimeImmutable('2026-03-02T14:30:00Z'));
 
 return $document;
