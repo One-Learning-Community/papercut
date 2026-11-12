@@ -63,9 +63,9 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-doc::image>` | `src` or `data`, `fit`, `alt` | Style. `fit` is `contain`, `cover` or `fill`. `alt` is the alternative text (blank means decorative). Relative `src` stays inside `papercut.image_path`. |
+| `<x-doc::image>` | `src` or `data`, `fit`, `alt` | Style. `fit` is `contain`, `cover` or `fill`. `alt` is the alternative text; `alt=""` marks the image decorative, and leaving `alt` out warns in a tagged PDF. Relative `src` stays inside `papercut.image_path`. |
 | `<x-doc::pdf-page>` | `src` or `data`, `page`, `password` | Style. A page of an existing PDF, sized like an image. Relative `src` stays inside `papercut.image_path`. Left out of HTML and Word exports. |
-| `<x-doc::svg>` | `src` or `data`, or SVG markup inside the tag, `alt` | Style. Sized like an image. `alt` replaces the SVG's `<title>` as its alternative text. Relative `src` stays inside `papercut.image_path`. |
+| `<x-doc::svg>` | `src` or `data`, or SVG markup inside the tag, `alt` | Style. Sized like an image. `alt` replaces the SVG's `<title>` as its alternative text; `alt=""` marks it decorative, and an SVG with no `alt` and no `<title>` warns in a tagged PDF. Relative `src` stays inside `papercut.image_path`. |
 | `<x-doc::qr-code>` | `value`, `level`, `quiet-zone`, `shape`, `eyes`, `eye-color`, `gradient`, `gradient-type`, `alt` | Style. `alt` is the alternative text, `QR code: <value>` by default. `level` is `L`, `M`, `Q` or `H`. Square: size it with `width`. `shape` is `square`, `rounded` or `dots` (the last two raise `level` to at least `Q`); `eyes` is `square`, `dot` or `pointy`; `gradient` is two colors. Styling needs `bacon/bacon-qr-code`; see [Styled QR codes](/guide/images-and-links.md#styled-qr-codes). No content. |
 | `<x-doc::node>` | `node` | Embeds a `Node` or `Component` built in PHP. |
 

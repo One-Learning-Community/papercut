@@ -167,7 +167,7 @@ final class TocDocxTest extends TestCase
         $doc = Document::make(Page::a4()->body(
             Toc::make(),
             Text::h1('Tall picture'),
-            Image::bytes(self::png())->width(pt(100))->height(pt(2000)),
+            Image::bytes(self::png())->alt('')->width(pt(100))->height(pt(2000)),
         ));
 
         $d = self::export($doc, $options);

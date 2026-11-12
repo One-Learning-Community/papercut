@@ -46,6 +46,10 @@ final class SvgComponentTest extends TestCase
         $none = $this->nodeFrom('<x-doc::svg src="logo.svg" />');
         self::assertInstanceOf(Svg::class, $none);
         self::assertNull($none->altText());
+        self::assertFalse($none->isDecorative());
+        $decorative = $this->nodeFrom('<x-doc::svg src="logo.svg" alt="" />');
+        self::assertInstanceOf(Svg::class, $decorative);
+        self::assertTrue($decorative->isDecorative());
     }
 
     public function test_src_is_resolved_inside_the_image_path(): void

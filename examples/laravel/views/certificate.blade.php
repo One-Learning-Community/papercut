@@ -12,7 +12,7 @@
                 <x-doc::text size="13pt" color="slate-900">{{ $date }}</x-doc::text>
             </x-doc::place>
             <x-doc::place x="7.4in" y="7.02in" anchor="bottom">
-                <x-doc::svg src="signature.svg" width="2.2in" />
+                <x-doc::svg src="signature.svg" alt="Signature of the academy director" width="2.2in" />
             </x-doc::place>
         </x-slot:overlay>
     </x-doc::page>

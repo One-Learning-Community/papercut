@@ -38,6 +38,11 @@ final class BoundAttributesTest extends TestCase
         $decorative = $this->nodeFrom('<x-doc::image :data="$png" alt="" />', ['png' => $png]);
         self::assertInstanceOf(Image::class, $decorative);
         self::assertNull($decorative->altText());
+        self::assertTrue($decorative->isDecorative(), 'alt="" is decorative');
+
+        $missing = $this->nodeFrom('<x-doc::image :data="$png" />', ['png' => $png]);
+        self::assertInstanceOf(Image::class, $missing);
+        self::assertFalse($missing->isDecorative(), 'no alt attribute is missing, not decorative');
     }
 
     public function test_a_bound_qr_value_is_encoded_as_given(): void

@@ -346,7 +346,7 @@ A line to sign on, with the signer's name, role and date under it.
 ```blade
 <x-doc::row gap="36pt">
   <x-doc::signature name="Jane Smith" role="Director" date="12 March 2026">
-    <x-doc::svg src="signature.svg" height="28pt" />
+    <x-doc::svg src="signature.svg" alt="Jane Smith's signature" height="28pt" />
   </x-doc::signature>
   <x-doc::signature name="Witness" role="Name and date" />
 </x-doc::row>

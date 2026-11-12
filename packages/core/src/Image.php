@@ -14,6 +14,7 @@ final class Image implements Styled
 
     private ImageFit $fit = ImageFit::Contain;
     private ?string $altText = null;
+    private bool $decorative = false;
 
     private function __construct(
         private readonly string $kind,
@@ -40,18 +41,30 @@ final class Image implements Styled
         return $clone;
     }
 
-    /** Alternative text for screen readers (tagged PDF); null or blank leaves the image decorative. */
+    /**
+     * Alternative text for screen readers: the description in tagged PDF, the `alt` in HTML and the description
+     * in Word. Three states: never set (or null) is missing, which a tagged PDF warns about; a blank string
+     * (`alt('')`) says the image is purely decorative, so it is kept out of a tagged PDF's structure and
+     * written with an empty description; anything else is the alt text.
+     */
     public function alt(?string $alt): self
     {
         $clone = clone $this;
+        $clone->decorative = $alt !== null && trim($alt) === '';
         $clone->altText = $alt === null || trim($alt) === '' ? null : trim($alt);
         return $clone;
     }
 
-    /** The alternative text, or null. */
+    /** The alternative text, or null when it is missing or the image is decorative. */
     public function altText(): ?string
     {
         return $this->altText;
+    }
+
+    /** True for an explicit `alt('')`: the image is deliberately decorative, as opposed to missing its alt text. */
+    public function isDecorative(): bool
+    {
+        return $this->decorative;
     }
 
     public function fitMode(): ImageFit

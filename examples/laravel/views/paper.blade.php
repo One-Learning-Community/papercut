@@ -52,7 +52,7 @@
                         </x-doc::table>
                     </x-doc::column>
                     <x-doc::column gap="4pt" margin="4pt 0 8pt 0" keep-together>
-                        <x-doc::svg src="survival-chart.svg" width="80mm" />
+                        <x-doc::svg src="survival-chart.svg" alt="Bar chart of the share of colonies alive in spring at 10, 20, 30 and 40 cm spacing" width="80mm" />
                         <x-doc::text size="8.5pt" color="slate-600" bold>Figure 1. Colonies alive in spring at 10, 20, 30 and 40 cm (left to right); the gridlines mark 25, 50, 75 and 100 percent.</x-doc::text>
                     </x-doc::column>
                 @endif

@@ -75,7 +75,7 @@ foreach ($sections as $i => [$title, $paragraphs]) {
             $table,
         )->gap(pt(4))->margin(Edges::of(pt(4), pt(0), pt(8), pt(0)))->keepTogether();
         $body[] = Column::make(
-            Svg::file($assets . '/survival-chart.svg')->width(mm(80)),
+            Svg::file($assets . '/survival-chart.svg')->alt('Bar chart of the share of colonies alive in spring at 10, 20, 30 and 40 cm spacing')->width(mm(80)),
             $caption('Figure 1. Colonies alive in spring at 10, 20, 30 and 40 cm (left to right); the gridlines mark 25, 50, 75 and 100 percent.')->bold(),
         )->gap(pt(4))->margin(Edges::of(pt(4), pt(0), pt(8), pt(0)))->keepTogether();
     }

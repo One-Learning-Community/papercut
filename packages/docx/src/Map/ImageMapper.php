@@ -24,6 +24,8 @@ final class ImageMapper
 {
     /** @var array<string, LoadedImage> one load per source per export */
     private array $loaded = [];
+    /** @var array<string, true> paths already warned about a missing alt */
+    private array $warnedAlt = [];
 
     public function __construct(
         private readonly Fidelity $fidelity,
@@ -68,7 +70,7 @@ final class ImageMapper
             $this->unfinished($s, $path);
         }
 
-        return [new DocxImage($bytes, $format, Units::emu($w), Units::emu($h), $n->altText())];
+        return [new DocxImage($bytes, $format, Units::emu($w), Units::emu($h), $this->alt($n->altText(), $n->isDecorative(), $path, 'image'))];
     }
 
     /** @return list<BlockElement> */
@@ -118,7 +120,7 @@ final class ImageMapper
             $this->fidelity->approximated('SVG text in the system\'s fonts', $path);
         }
 
-        return [$this->picture($png, $s, $w, $h, $path, $n->description())];
+        return [$this->picture($png, $s, $w, $h, $path, $this->alt($n->description(), $n->isDecorative(), $path, 'SVG'))];
     }
 
     /**
@@ -137,6 +139,27 @@ final class ImageMapper
             $n instanceof Svg => $n->document()->widthPt + $decor,
             default => $this->load($n)->widthPx * 0.75 + $decor,
         };
+    }
+
+    /**
+     * The description to write: the alt text, '' for a deliberately decorative picture (so Word records an empty
+     * description rather than its "image" placeholder), or null for a missing one, which keeps php-docx's default
+     * and is reported as a plain warning (never a strict-mode failure: Word output makes no accessibility claim).
+     */
+    private function alt(?string $text, bool $decorative, string $path, string $what): ?string
+    {
+        if ($text !== null) {
+            return $text;
+        }
+        if ($decorative) {
+            return '';
+        }
+        if (!isset($this->warnedAlt[$path])) {
+            $this->warnedAlt[$path] = true;
+            $this->fidelity->warn(sprintf("[%s] %s has no alt text; Word gets a generic description. Describe it with ->alt('…') (the alt attribute in Blade and markup), or mark it decorative with ->alt('').", $path, $what));
+        }
+
+        return null;
     }
 
     /** A PNG Papercut drew, with the node's opacity applied. */

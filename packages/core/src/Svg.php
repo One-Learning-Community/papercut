@@ -54,6 +54,12 @@ final class Svg implements Styled
         return $clone;
     }
 
+    /** True for an explicit `alt('')`: the drawing is deliberately decorative, even if it has a `<title>`. */
+    public function isDecorative(): bool
+    {
+        return $this->decorative;
+    }
+
     /** The explicit alternative text, or null. */
     public function altText(): ?string
     {

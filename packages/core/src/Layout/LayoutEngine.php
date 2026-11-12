@@ -364,14 +364,23 @@ final class LayoutEngine
             $node instanceof TableCell => $this->cellTag($node, $key, $index),
             $node instanceof Image => $node->altText() !== null
                 ? new Tag('Figure', $key, alt: $node->altText())
-                : Tag::artifact($key),
+                : $this->undescribed($node->isDecorative(), 'An image'),
             $node instanceof Svg => ($alt = $node->description()) !== null
                 ? new Tag('Figure', $key, alt: $alt)
-                : Tag::artifact($key),
+                : $this->undescribed($node->isDecorative(), 'An SVG with no title'),
             $node instanceof QrCode => new Tag('Figure', $key, alt: $node->label()),
             $node instanceof PdfPage, $node instanceof Spacer => Tag::artifact($key),
             default => null,
         };
+    }
+
+    /** An artifact for an image with no description; a missing alt (not a deliberate `alt('')`) is reported first. */
+    private function undescribed(bool $decorative, string $what): Tag
+    {
+        if (!$decorative) {
+            $this->ctx->missingAlt($what);
+        }
+        return Tag::artifact($this->ctx->path());
     }
 
     /** TH for a header cell (its scope a column in the header rows, a row elsewhere), TD otherwise; spans are attributes. */

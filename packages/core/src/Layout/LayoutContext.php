@@ -201,6 +201,23 @@ final class LayoutContext
         $this->report($report, "\0dropped\0" . $report->path . "\0" . $feature);
     }
 
+    /**
+     * Tagged PDF: an image or drawing with no alt text and no decorative mark. Warns once per path; strict mode throws.
+     *
+     * @throws \Papercut\Exception\InvalidStructure in strict mode
+     */
+    public function missingAlt(string $what): void
+    {
+        $message = sprintf(
+            "%s has no alt text, so a tagged PDF treats it as decorative and a screen reader skips it. Describe it with ->alt('…') (the alt attribute in Blade and markup), or mark it decorative on purpose with ->alt('').",
+            $what,
+        );
+        if ($this->strict && !$this->muted) {
+            throw new \Papercut\Exception\InvalidStructure(sprintf('[%s] %s', $this->path(), $message));
+        }
+        $this->warnOnce($message);
+    }
+
     /** Reports a fidelity approximation at the current path, once per path and feature. */
     public function approximated(string $feature): void
     {

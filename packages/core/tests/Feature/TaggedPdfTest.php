@@ -620,11 +620,80 @@ final class TaggedPdfTest extends TestCase
         self::assertSame(3, self::countRole(self::tree($doc), 'P'), implode(',', $roles));
     }
 
+    public function test_image_alt_is_missing_decorative_or_text(): void
+    {
+        $image = Image::bytes(TestImages::png(4, 4));
+        self::assertFalse($image->isDecorative());
+        self::assertNull($image->altText());
+        self::assertTrue($image->alt('')->isDecorative());
+        self::assertTrue($image->alt('  ')->isDecorative());
+        self::assertNull($image->alt('')->altText());
+        self::assertFalse($image->alt('')->alt(null)->isDecorative(), 'null resets to missing');
+        self::assertFalse($image->alt('')->alt('A cat')->isDecorative());
+        self::assertSame('A cat', $image->alt(' A cat ')->altText());
+    }
+
+    public function test_an_image_without_alt_warns_once_naming_the_fix_and_stays_an_artifact(): void
+    {
+        $w = [];
+        $png = TestImages::png(10, 10);
+        $this->warnings($w, true, false, [Text::make('Body'), Image::bytes($png), Image::bytes($png)->alt('Fine'), Image::bytes($png)->alt('')]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString('image', strtolower($w[0]));
+        self::assertStringContainsString("->alt('…')", $w[0]);
+        self::assertStringContainsString("->alt('')", $w[0]);
+        self::assertStringContainsString('alt attribute', $w[0]);
+    }
+
+    public function test_a_decorative_image_or_svg_does_not_warn(): void
+    {
+        $w = [];
+        $svg = Svg::fromString(sprintf(self::SVG, ''));
+        $this->warnings($w, true, true, [Text::make('Body'), Image::bytes(TestImages::png(10, 10))->alt(''), $svg->alt(''), Svg::fromString(sprintf(self::SVG, '<title>T</title>'))]);
+        self::assertSame([], $w);
+    }
+
+    public function test_an_svg_with_no_alt_and_no_title_warns(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [Text::make('Body'), Svg::fromString(sprintf(self::SVG, ''))]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString("->alt('')", $w[0]);
+    }
+
+    public function test_an_image_without_alt_throws_in_strict_mode(): void
+    {
+        $w = [];
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage("->alt('')");
+        $this->warnings($w, true, true, [Text::make('Body'), Image::bytes(TestImages::png(10, 10))]);
+    }
+
+    public function test_an_untagged_pdf_never_warns_about_alt_and_is_unchanged(): void
+    {
+        $w = [];
+        $png = TestImages::png(10, 10);
+        $this->warnings($w, false, true, [Text::make('Body'), Image::bytes($png), Svg::fromString(sprintf(self::SVG, ''))]);
+        self::assertSame([], $w);
+        $make = static fn (Image $i): string => Document::make(Page::a4()->body(Column::make($i)))->toPdf(new PdfOptions())->bytes();
+        self::assertSame($make(Image::bytes($png)), $make(Image::bytes($png)->alt('')));
+    }
+
+    public function test_markup_img_without_alt_attribute_is_missing_and_empty_alt_is_decorative(): void
+    {
+        $o = new MarkupOptions(images: fn (string $s): string => TestImages::png(40, 20));
+        $w = [];
+        $this->warnings($w, true, false, [Text::make('Body'), Markup::html('<img src="a.png" alt="">', $o)]);
+        self::assertSame([], $w);
+        $this->warnings($w, true, false, [Text::make('Body'), Markup::html('<img src="a.png">', $o)]);
+        self::assertCount(1, $w);
+    }
+
     public function test_a_tree_with_no_content_warns_naming_the_cause(): void
     {
         $w = [];
         $png = TestImages::png(10, 10);
-        $this->warnings($w, true, false, [Image::bytes($png)]);
+        $this->warnings($w, true, false, [Image::bytes($png)->alt('')]);
         self::assertCount(1, $w);
         self::assertStringContainsString('no content', $w[0]);
         self::assertStringContainsString('artifact', $w[0]);
@@ -636,7 +705,7 @@ final class TaggedPdfTest extends TestCase
         $w = [];
         $this->expectException(InvalidStructure::class);
         $this->expectExceptionMessage('no content');
-        $this->warnings($w, true, true, [Image::bytes(TestImages::png(10, 10))]);
+        $this->warnings($w, true, true, [Image::bytes(TestImages::png(10, 10))->alt('')]);
     }
 
     public function test_a_tree_with_content_does_not_warn_about_being_empty(): void

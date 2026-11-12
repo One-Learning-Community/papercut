@@ -167,6 +167,28 @@ final class ImageMapperTest extends TestCase
         self::assertSame('Scan me', self::export(QrCode::make('https://acme.test')->alt('Scan me'))->value('//wp:docPr/@descr'));
     }
 
+    public function test_a_decorative_image_has_an_empty_description_and_a_missing_alt_warns_without_throwing(): void
+    {
+        $png = self::picture('png');
+        $export = static function (Image $image, array &$warnings): DocxInspector {
+            $options = new \Papercut\Docx\DocxOptions(
+                onWarning: static function (string $m) use (&$warnings): void {
+                    $warnings[] = $m;
+                },
+                strict: true,
+            );
+            $doc = \Papercut\Document::make(\Papercut\Page::a4()->body($image));
+
+            return DocxInspector::of($doc->export(new \Papercut\Docx\DocxExporter(), $options)->bytes());
+        };
+        $w = [];
+        self::assertSame('', $export(Image::bytes($png)->alt(''), $w)->value('//wp:docPr/@descr'));
+        self::assertSame([], $w);
+        self::assertSame('image', $export(Image::bytes($png), $w)->value('//wp:docPr/@descr'), 'missing keeps the library default');
+        self::assertCount(1, $w);
+        self::assertStringContainsString("->alt('')", $w[0]);
+    }
+
     #[RequiresPhpExtension('imagick')]
     public function test_svg_alt_replaces_its_title(): void
     {

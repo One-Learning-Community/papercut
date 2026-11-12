@@ -56,7 +56,7 @@ Text::h3('Units')->asHeading(2);
 
 A skipped level is reported through `onWarning`, naming the heading and its page. In strict mode it throws `InvalidStructure`. The checks apply to tagged output only, and page headers and footers are ignored.
 
-**Alternative text.** Give every image that carries information a short description of what it shows, with `alt`. `Svg` and `QrCode` take `alt` too; an SVG without one uses its `<title>`, and a QR code is described as `QR code: <value>`. See [Images, SVG, links and QR codes](./images-and-links.md).
+**Alternative text.** Give every image alt text: a short description of what it shows, set with `alt`. `Svg` and `QrCode` take `alt` too; an SVG without one uses its `<title>`, and a QR code is described as `QR code: <value>`. See [Images, SVG, links and QR codes](./images-and-links.md).
 
 ::: code-tabs#style
 @tab Blade
@@ -69,7 +69,9 @@ Image::file('chart.png')->alt('Revenue by region, 2024 to 2026');
 ```
 :::
 
-**Decorative images.** An image with no alt text, or a blank one, is treated as decoration: it is kept out of the structure tree and a screen reader skips it. That is right for rules, flourishes and backgrounds, and wrong for anything the reader needs. The same goes for an SVG with neither `alt` nor `<title>`. An SVG that has a `<title>` but is only decoration takes a blank `alt('')` (`alt=""`), which keeps it out of the structure tree; `alt(null)` goes back to the title.
+**Decorative images.** If an image is purely decorative (a rule, a flourish, a background), say so with a blank alt text: `->alt('')` in PHP, `alt=""` in Blade and in markup. It is then kept out of the structure tree and a screen reader skips it, without a warning. An image with no `alt` at all is different: Papercut cannot tell a forgotten description from a deliberate one, so a tagged PDF warns through `onWarning`, naming the fix, and throws `InvalidStructure` in strict mode. The image is still drawn, as an artifact, so a screen reader skips it until you add alt text. An untagged PDF never warns. The same goes for an SVG with neither `alt` nor `<title>`; an SVG that has a `<title>` but is only decoration takes `alt('')`, and `alt(null)` goes back to the title. A Word export gets the same description, and warns about a missing one (never an error, even in strict mode).
+
+Validators such as veraPDF check that alt text exists, not that it is any good. "image" or "chart" passes, and says nothing. Write what a reader who cannot see the image needs to know.
 
 **Links.** Link text should make sense on its own. A screen reader can list every link in a document, and "click here" tells the reader nothing. Papercut describes each link with the text it covers, a link around an image with the image's alt text, and falls back to the address for a link with no text.
 

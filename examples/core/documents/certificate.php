@@ -20,6 +20,6 @@ return Document::make(
         Place::at(in(5.5), in(4.15), Text::make($name)->size(pt(34))->bold()->color('slate-900'))->anchor(Anchor::Bottom),
         Place::at(in(5.5), in(6.03), Text::make($course)->size(pt(22))->bold()->color('indigo-600'))->anchor(Anchor::Bottom),
         Place::at(in(3.3), in(6.91), Text::make($date)->size(pt(13))->color('slate-900'))->anchor(Anchor::Bottom),
-        Place::at(in(7.4), in(7.02), Svg::file($assets . '/signature.svg')->width(in(2.2)))->anchor(Anchor::Bottom),
+        Place::at(in(7.4), in(7.02), Svg::file($assets . '/signature.svg')->alt('Signature of the academy director')->width(in(2.2)))->anchor(Anchor::Bottom),
     ),
 )->title('Certificate of Completion')->lang('en')->author('Hivewise Academy')->createdAt(new DateTimeImmutable('2026-03-02T09:00:00Z'));

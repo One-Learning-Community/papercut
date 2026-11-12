@@ -14,6 +14,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Image alt text is three-state, as `Svg`'s already was: no alt (or `alt(null)`) is missing, a blank `alt('')` is deliberately decorative, anything else is the text. `Image::isDecorative()` and `Svg::isDecorative()` tell them apart. A tagged PDF warns through `onWarning` about an image, or an SVG with no `alt` and no `<title>`, that has no alt (and throws `InvalidStructure` in strict mode), naming `->alt('…')` and `->alt('')` as the fix; it is still drawn as an artifact. Decorative images do not warn, and an untagged PDF is unchanged. In `<img>` markup and the Blade tags, `alt=""` is decorative and a missing `alt` is missing. A Word export writes an empty description for a decorative image instead of "image", and warns (never throws, even in strict mode) about a missing alt, keeping the default description.
 - The example documents set a language and use heading levels that start at 1 and don't skip, so they pass PDF/UA-1. Their Word and HTML goldens changed with them.
 
 ## [0.9.2] - 2026-11-11
