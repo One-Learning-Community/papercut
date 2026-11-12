@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-11
+
 ### Changed
 
 - PDF export paints each page as soon as it is laid out and frees its layout before the next page, instead of keeping every page's layout until the end. Page numbers and table of contents entries are filled in once the pages are done. On the benchmarks the export's peak memory drops by 6 to 18%; the PDF output is the same.
