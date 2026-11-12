@@ -112,7 +112,7 @@ final class LayoutContext
         return $this->itemizers[$this->theme] ??= new Itemizer($this->fonts, static function (string $msg) use ($self): void {
             // The context outlives its itemizers; if that ever changes, fail loudly rather than drop the warning.
             ($self->get() ?? throw new \LogicException('A warning arrived after its layout context was freed.'))->warn($msg);
-        }, $this->fallbackFamilies, $this->theme);
+        }, $this->fallbackFamilies, $this->theme, $this->styles);
     }
 
     /** SVG text with characters no font has prints empty boxes: content the PDF drops, so strict mode throws. */
