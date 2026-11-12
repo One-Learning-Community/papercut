@@ -7,7 +7,7 @@ namespace Papercut\Layout;
 use Papercut\{Node, Text};
 use Papercut\Paint\{Line as LineOp, Link as LinkOp, Rect, TextRun};
 use Papercut\Style\{ComputedStyle, TextAlign, WhiteSpace};
-use Papercut\Text\{FontStyle, InlineItem, Line, LineBreaker};
+use Papercut\Text\{FontStyle, InlineItem, Itemizer, Line, LineBreaker};
 use Papercut\Value\Length;
 
 /**
@@ -176,6 +176,9 @@ final class TextLayouter implements Layouter
             return ['lines' => $hit['lines'], 'boxes' => $hit['boxes']];
         }
         $items = $engine->context()->itemizer()->itemize($node->spanList(), $style);
+        if ($engine->context()->tagged) {
+            $items = Itemizer::withLinkText($items);
+        }
         $lines = $items === [] ? [] : LineBreaker::break($items, $width);
         $boxes = array_map(fn (Line $line): array => $this->lineBox($line, $style, $engine), $lines);
         $entries[$key] = ['style' => $style, 'theme' => $engine->context()->theme, 'lines' => $lines, 'boxes' => $boxes];
@@ -381,7 +384,7 @@ final class TextLayouter implements Layouter
             if ($href === null) {
                 continue;
             }
-            $f->addOp(new LinkOp($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], $href, implode('', array_column(array_column($group, 'item'), 'text'))));
+            $f->addOp(new LinkOp($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], $href, $group[0]['item']->linkText ?? implode('', array_column(array_column($group, 'item'), 'text'))));
         }
     }
 

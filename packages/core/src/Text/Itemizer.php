@@ -92,6 +92,37 @@ final class Itemizer
     }
 
     /**
+     * Gives each item of a link the text of the whole link it belongs to (consecutive items with one href), so
+     * a link that wraps over lines, or pages, is described by all of it on every piece.
+     *
+     * @param list<InlineItem> $items
+     * @return list<InlineItem>
+     */
+    public static function withLinkText(array $items): array
+    {
+        $out = [];
+        $count = count($items);
+        for ($i = 0; $i < $count;) {
+            $href = $items[$i]->href;
+            $j = $i;
+            if ($href !== null) {
+                while ($j + 1 < $count && $items[$j + 1]->href === $href) {
+                    $j++;
+                }
+                $text = '';
+                for ($k = $i; $k <= $j; $k++) {
+                    $text .= $items[$k]->kind === 'break' ? ' ' : $items[$k]->text;
+                }
+                $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+            }
+            for (; $i <= $j; $i++) {
+                $out[] = $href === null ? $items[$i] : $items[$i]->withLinkText($text);
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Under pre-wrap every space is an item of its own, a newline is a break and a tab is a tab item.
      *
      * @return list<InlineItem>

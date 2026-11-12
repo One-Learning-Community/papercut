@@ -519,6 +519,26 @@ final class TaggedPdfTest extends TestCase
         self::assertStringContainsString('heading="2"', $w[0]);
     }
 
+    public function test_a_link_that_wraps_is_described_by_all_its_text_on_every_line(): void
+    {
+        $long = str_repeat('very long link text ', 12);
+        $bytes = $this->small(Text::h1('H'), Text::markup('Start <a href="https://long.test">' . $long . '</a> end.'))->toPdf(new PdfOptions(tagged: true))->bytes();
+        $contents = StructTree::linkContents($bytes);
+        self::assertGreaterThan(1, count($contents));
+        self::assertSame(array_fill(0, count($contents), trim($long)), $contents);
+    }
+
+    public function test_a_link_around_an_svg_or_qr_code_is_described_by_its_alt_text(): void
+    {
+        $svg = Svg::fromString('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><title>Company logo</title><rect width="10" height="10"/></svg>');
+        $bytes = $this->small(
+            Text::h1('H'),
+            Link::to('https://logo.test', $svg),
+            Link::to('https://qr.test', QrCode::make('https://qr.test')->alt('Scan to open the page')),
+        )->toPdf(new PdfOptions(tagged: true))->bytes();
+        self::assertSame(['Company logo', 'Scan to open the page'], StructTree::linkContents($bytes));
+    }
+
     public function test_a_first_heading_below_h1_warns(): void
     {
         $w = [];

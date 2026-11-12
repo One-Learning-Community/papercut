@@ -22,16 +22,23 @@ final readonly class InlineItem
         public ComputedStyle $style,
         public ?string $href = null,
         public bool $breakAfter = false,
+        /** for an item of a link: what the whole link says, for its description in a tagged PDF (set only when tagging) */
+        public ?string $linkText = null,
     ) {
     }
 
     public function withWidth(float $width): self
     {
-        return new self($this->kind, $this->text, $this->font, $this->size, $width, $this->style, $this->href, $this->breakAfter);
+        return new self($this->kind, $this->text, $this->font, $this->size, $width, $this->style, $this->href, $this->breakAfter, $this->linkText);
     }
 
     public function withText(string $text, float $width, bool $breakAfter): self
     {
-        return new self($this->kind, $text, $this->font, $this->size, $width, $this->style, $this->href, $breakAfter);
+        return new self($this->kind, $text, $this->font, $this->size, $width, $this->style, $this->href, $breakAfter, $this->linkText);
+    }
+
+    public function withLinkText(string $linkText): self
+    {
+        return new self($this->kind, $this->text, $this->font, $this->size, $this->width, $this->style, $this->href, $this->breakAfter, $linkText);
     }
 }

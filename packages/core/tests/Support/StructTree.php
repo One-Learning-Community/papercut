@@ -88,4 +88,24 @@ final class StructTree
             'objr' => str_contains($body, '/Type /OBJR'),
         ];
     }
+
+    /**
+     * The /Contents of every link annotation, in file order.
+     *
+     * @return list<string>
+     */
+    public static function linkContents(string $pdf): array
+    {
+        preg_match_all('/^  \/Contents (?:<([0-9a-fA-F]+)>|\((.*)\))$/m', PdfInspector::qdf($pdf), $m, PREG_SET_ORDER);
+        $out = [];
+        foreach ($m as $c) {
+            if (($c[1] ?? '') !== '') {
+                $bytes = (string) hex2bin($c[1]);
+                $out[] = mb_convert_encoding(str_starts_with($bytes, "\xFE\xFF") ? substr($bytes, 2) : $bytes, 'UTF-8', 'UTF-16BE');
+            } else {
+                $out[] = $c[2] ?? '';
+            }
+        }
+        return $out;
+    }
 }

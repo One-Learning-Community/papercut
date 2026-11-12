@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Component, Image, Link, Node, Text};
+use Papercut\{Component, Image, Link, Node, QrCode, Svg, Text};
 use Papercut\Toc\HeadingText;
 use Papercut\Paint\Link as LinkOp;
 use Papercut\Style\ComputedStyle;
@@ -40,6 +40,12 @@ final class LinkLayouter implements Layouter
         }
         if ($node instanceof Image) {
             return $node->altText() ?? '';
+        }
+        if ($node instanceof Svg) {
+            return $node->description() ?? '';
+        }
+        if ($node instanceof QrCode) {
+            return $node->label();
         }
         if ($node instanceof Component || !method_exists($node, 'children')) {
             return '';
