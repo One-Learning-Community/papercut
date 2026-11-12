@@ -516,6 +516,7 @@ final class TaggedPdfTest extends TestCase
         self::assertStringContainsString('on page 1 is H3 right after an H1', $w[0]);
         self::assertStringContainsString("Make it H2: Text::h3('…')->asHeading(2)", $w[0]);
         self::assertStringContainsString('->heading(2)', $w[0]);
+        self::assertStringContainsString('heading="2"', $w[0]);
     }
 
     public function test_a_first_heading_below_h1_warns(): void

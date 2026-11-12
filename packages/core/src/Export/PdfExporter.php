@@ -108,9 +108,11 @@ final class PdfExporter implements Exporter
                 $text = mb_strlen($heading['text']) > 40 ? mb_substr($heading['text'], 0, 39) . '…' : $heading['text'];
                 $page = $heading['page'];
                 $fix = sprintf(
-                    'Make it H%1$d: Text::h%2$d(\'…\')->asHeading(%1$d) keeps the H%2$d look (a Section or Card takes ->heading(%1$d)).',
+                    'Make it H%1$d: %2$s (a Section or Card takes ->heading(%1$d), a Blade text tag heading="%1$d").',
                     $previous + 1,
-                    $level,
+                    $level <= 4
+                        ? sprintf('Text::h%2$d(\'…\')->asHeading(%1$d) keeps the H%2$d look', $previous + 1, $level)
+                        : sprintf('->asHeading(%d)', $previous + 1),
                 );
                 $name = $text === '' ? 'A heading' : sprintf('Heading "%s"', $text);
                 $message = $previous === 0
