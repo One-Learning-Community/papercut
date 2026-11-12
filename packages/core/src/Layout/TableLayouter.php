@@ -968,7 +968,7 @@ final class TableLayouter implements Layouter
 
         /** @var list<array{x: float, y: float, fragment: Fragment}> $rows row boxes, then the spanning cells over them */
         $rows = [];
-        /** @var list<array{x: float, y: float, fragment: Fragment}> $overlay */
+        /** @var list<array{x: float, y: float, fragment: Fragment, row?: int}> $overlay row: the row a cell starts in */
         $overlay = [];
         $state = $started;
         $ox = fn (int $o): float => $rowStyle($cells[$o]->row)->borderWidth->left->points + $rowStyle($cells[$o]->row)->padding->left->points + $slots[$cells[$o]->row][$cells[$o]->index]['x'];
@@ -1010,7 +1010,7 @@ final class TableLayouter implements Layouter
                     }
                     $f = $res->fragment;
                 }
-                $overlay[] = ['x' => $ox($o), 'y' => $ys[$first] + ($topOf($first) ? BoxGeometry::topEdge($rowStyles[$first]) : 0.0), 'fragment' => $f];
+                $overlay[] = ['x' => $ox($o), 'y' => $ys[$first] + ($topOf($first) ? BoxGeometry::topEdge($rowStyles[$first]) : 0.0), 'fragment' => $f, 'row' => $cells[$o]->row];
             }
             $next = $rowPending ? $fit : $fit + 1;
             if ($rowPending) {
@@ -1084,7 +1084,7 @@ final class TableLayouter implements Layouter
                     $f = $stretchCell($o, $f, $sliceHeight, $fresh, $endOf($o) >= $next);
                 }
                 if ($parts[$o]) {
-                    $overlay[] = ['x' => $ox($o), 'y' => $top, 'fragment' => $f];
+                    $overlay[] = ['x' => $ox($o), 'y' => $top, 'fragment' => $f, 'row' => $cells[$o]->row];
                 } else {
                     $sliceCells[] = ['x' => $slots[$from][$cells[$o]->index]['x'], 'fragment' => $f];
                 }
@@ -1116,7 +1116,7 @@ final class TableLayouter implements Layouter
             }
         }
         if ($engine->context()->tagged) {
-            $overlay = self::homeSpanningCells($rows, $overlay);
+            self::homeSpanningCells($overlay, $engine);
         }
         foreach ([...$rows, ...$overlay] as $child) {
             $fragment->addChild($child['x'], $child['y'], $child['fragment']);
@@ -1248,33 +1248,26 @@ final class TableLayouter implements Layouter
     }
 
     /**
-     * Cells that span rows are painted over the rows, after them; in the structure they belong in the row they start in.
-     * Marks each with that row's key, when the row is in this fragment.
+     * Cells that span rows are painted over the rows, after them; in the structure they belong in the row they
+     * start in, even when that row is on an earlier page. Marks each with that row's key.
      *
-     * @param list<array{x: float, y: float, fragment: Fragment}> $rows
-     * @param list<array{x: float, y: float, fragment: Fragment}> $overlay
-     * @return list<array{x: float, y: float, fragment: Fragment}>
+     * @param list<array{x: float, y: float, fragment: Fragment, row?: int}> $overlay
      */
-    private static function homeSpanningCells(array $rows, array $overlay): array
+    private static function homeSpanningCells(array $overlay, LayoutEngine $engine): void
     {
-        $rowKeys = [];
-        foreach ($rows as $row) {
-            if ($row['fragment']->tag !== null) {
-                $rowKeys[$row['fragment']->tag->key] = true;
-            }
-        }
         foreach ($overlay as $entry) {
+            if (!isset($entry['row'])) {
+                continue; // decoration only: it is not content
+            }
             // A cell is laid out as its own tagged fragment, which may sit in a plain box that gives it its height.
             $cell = $entry['fragment'];
             while ($cell->tag === null && count($cell->children()) === 1) {
                 $cell = $cell->children()[0]['fragment'];
             }
-            $tag = $cell->tag;
-            if ($tag !== null && $tag->keepsWhenEmpty() && preg_match('/^(.* > tr\[\d+\]) > t[dh]\[\d+\]$/', $tag->key, $m) === 1 && isset($rowKeys[$m[1]])) {
-                $cell->tag = $tag->homedIn($m[1]);
+            if ($cell->tag !== null && $cell->tag->keepsWhenEmpty()) {
+                $cell->tag = $cell->tag->homedIn((string) self::rowKey($engine, sprintf(' > tr[%d]', $entry['row'])));
             }
         }
-        return $overlay;
     }
 
     /** The key of a row's tag: the table's path plus $suffix, or null when not tagging. */

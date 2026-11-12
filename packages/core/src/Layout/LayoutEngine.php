@@ -115,7 +115,7 @@ final class LayoutEngine
             $pushed = true;
             $layouter = $this->layouterFor($node, $style);
             $result = $layouter->layout($node, $style, $c, $token, $this);
-            $this->tag($result, $node, $pathName);
+            $this->tag($result, $node, $pathName, $index);
             if ($token === null && $this->ctx->bookmarks && $result->fragment !== null) {
                 $bookmark = self::bookmark($node, $style);
                 if ($bookmark !== null) {
@@ -133,7 +133,7 @@ final class LayoutEngine
                     ? $this->clipped($layouter, $node, $style, $c, $token)
                     : null;
                 if ($clipped !== null) {
-                    $this->tag($clipped, $node, $pathName);
+                    $this->tag($clipped, $node, $pathName, $index);
                     return $clipped;
                 }
                 $this->recordFailure();
@@ -325,15 +325,15 @@ final class LayoutEngine
     }
 
     /** Gives the result's fragment its structure role when tagging, unless a layouter already did. */
-    private function tag(LayoutResult $result, Node $node, ?string $pathName): void
+    private function tag(LayoutResult $result, Node $node, ?string $pathName, ?int $index): void
     {
         if ($this->ctx->tagged && $result->fragment !== null && $result->fragment->tag === null) {
-            $result->fragment->tag = $this->tagFor($node, $pathName);
+            $result->fragment->tag = $this->tagFor($node, $pathName, $index);
         }
     }
 
     /** The structure role of a node's fragment, or null for none (its content joins the parent). */
-    private function tagFor(Node $node, ?string $pathName): ?Tag
+    private function tagFor(Node $node, ?string $pathName, ?int $index): ?Tag
     {
         $key = $this->ctx->path();
         $region = $this->ctx->region;
@@ -352,7 +352,7 @@ final class LayoutEngine
             $node instanceof ListNode => new Tag('L', $key),
             $node instanceof MarkedItem => new Tag('LI', $key),
             $node instanceof Table => new Tag('Table', $key),
-            $node instanceof TableCell => $this->cellTag($node, $key),
+            $node instanceof TableCell => $this->cellTag($node, $key, $index),
             $node instanceof Image => $node->altText() !== null
                 ? new Tag('Figure', $key, alt: $node->altText())
                 : Tag::artifact($key),
@@ -362,7 +362,7 @@ final class LayoutEngine
     }
 
     /** TH for a header cell (its scope a column in the header rows, a row elsewhere), TD otherwise; spans are attributes. */
-    private function cellTag(TableCell $cell, string $key): Tag
+    private function cellTag(TableCell $cell, string $key, ?int $column): Tag
     {
         $header = $cell->header() || $this->ctx->inHeaderRow;
         $attributes = [];
@@ -374,7 +374,7 @@ final class LayoutEngine
                 $attributes = ['O' => 'Table'] + $attributes + [$name => $span];
             }
         }
-        return new Tag($header ? 'TH' : 'TD', $key, attributes: $attributes);
+        return new Tag($header ? 'TH' : 'TD', $key, attributes: $attributes, column: $column);
     }
 
     /** A heading's automatic bookmark, or the one set with bookmark(); placed on the block's first fragment only. */

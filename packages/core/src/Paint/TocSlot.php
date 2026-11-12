@@ -32,6 +32,8 @@ final readonly class TocSlot
         public float $letterSpacing,
         public float $boxWidth,
         public float $boxHeight,
+        /** the entry's title, as the description of its link */
+        public ?string $description = null,
     ) {
     }
 }

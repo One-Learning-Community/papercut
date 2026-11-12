@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{Column, ColumnFlow, Document, Image, Link, ListNode, Page, Span, Table, TableCell, Text};
+use Papercut\{Column, ColumnFlow, Document, Image, Link, ListNode, Page, Span, Table, TableCell, Text, Toc};
 use Papercut\Backend\{Backend, FontHandle, ImageHandle, TaggingCapability};
 use Papercut\Backend\PhpPdf\{PhpPdfBackend, TaggingSupport};
 use Papercut\Exception\{InvalidStructure, UnsupportedFeature};
@@ -201,13 +201,69 @@ final class TaggedPdfTest extends TestCase
         self::assertTrue($tree[2]['objr']);
     }
 
-    public function test_links_in_a_page_header_stay_out_of_the_structure(): void
+    public function test_links_in_a_page_header_are_described_and_last_in_document(): void
     {
         $doc = Document::make(Page::a4()->header(Link::to('https://example.com', Text::make('Home')))->body(Text::make('Body')))->title('T')->lang('en');
-        $root = StructTree::of($doc->toPdf(new PdfOptions(tagged: true))->bytes());
-        self::assertSame(['P'], array_column($root[0]['kids'], 'role'));
-        // php-pdf keeps a link nobody placed as a Link at the end of the root, outside Document.
-        self::assertSame(['Document', 'Link'], array_column($root, 'role'));
+        $pdf = $doc->toPdf(new PdfOptions(tagged: true))->bytes();
+        $root = StructTree::of($pdf);
+        self::assertSame(['Document'], array_column($root, 'role'));
+        self::assertSame(['P', 'Link'], array_column($root[0]['kids'], 'role'));
+        self::assertTrue($root[0]['kids'][1]['objr']);
+        self::assertSame(['Home'], self::contents($pdf));
+    }
+
+    /** @return list<string> the /Contents of every annotation, in file order */
+    private static function contents(string $pdf): array
+    {
+        preg_match_all('~/Contents (\((?:[^()\\\\]|\\\\.)*\)|<[0-9a-f]+>)~i', StructTree::qdf($pdf), $m);
+        return array_map(static fn (string $c): string => $c[0] === '<'
+            ? mb_convert_encoding(substr((string) hex2bin(substr($c, 1, -1)), 2), 'UTF-8', 'UTF-16BE')
+            : substr($c, 1, -1), $m[1]);
+    }
+
+    public function test_a_link_block_is_described_by_all_its_text(): void
+    {
+        $words = str_repeat('alpha beta ', 40);
+        $doc = $this->small(Link::to('https://example.com', Text::make($words), Text::make('and more')));
+        $contents = self::contents($doc->toPdf(new PdfOptions(tagged: true))->bytes());
+        self::assertSame([trim($words) . ' and more'], $contents);
+    }
+
+    public function test_an_inline_link_is_described_by_its_own_text(): void
+    {
+        $doc = $this->small(Text::spans(Span::text('See '), new Span('the site', href: 'https://example.com'), Span::text(' now and later.')));
+        self::assertSame(['the site'], self::contents($doc->toPdf(new PdfOptions(tagged: true))->bytes()));
+    }
+
+    public function test_a_contents_entry_is_described_by_its_title(): void
+    {
+        $doc = $this->small(Toc::make(), Text::h1('Alpha'), Text::h2('Beta'));
+        self::assertSame(['Alpha', 'Beta'], self::contents($doc->toPdf(new PdfOptions(tagged: true))->bytes()));
+    }
+
+    public function test_a_link_around_an_image_is_described_by_its_alt_text(): void
+    {
+        $doc = $this->small(Link::to('https://example.com', Image::bytes(TestImages::png(40, 20))->alt('Logo')));
+        self::assertSame(['Logo'], self::contents($doc->toPdf(new PdfOptions(tagged: true))->bytes()));
+    }
+
+    public function test_a_link_without_text_falls_back_to_its_address(): void
+    {
+        $doc = $this->small(Link::to('https://example.com', Image::bytes(TestImages::png(40, 20))));
+        self::assertSame(['https://example.com'], self::contents($doc->toPdf(new PdfOptions(tagged: true))->bytes()));
+    }
+
+    public function test_a_spanning_cell_that_continues_on_the_next_page_stays_in_its_row(): void
+    {
+        $doc = $this->small(Table::make()->columns('1fr 1fr 1fr')->head('A', 'B', 'C')
+            ->row('a', TableCell::make(self::long())->rowspan(2), 'c')->row('p', 'q'));
+        self::assertGreaterThan(2, (int) PdfInspector::info($doc->toPdf()->bytes())['Pages']);
+        $table = self::tree($doc)[0];
+        self::assertSame(['Table'], [$table['role']]);
+        self::assertSame(['TR', 'TR', 'TR'], array_column($table['kids'], 'role'));
+        self::assertSame(['TD', 'TD', 'TD'], array_column($table['kids'][1]['kids'], 'role'));
+        self::assertSame(1, self::countRole([$table['kids'][1]['kids'][1]], 'TD'));
+        self::assertGreaterThan(1, self::countRole($table['kids'][1]['kids'][1]['kids'], 'P'));
     }
 
     public function test_a_link_describes_itself_with_the_text_it_covers(): void

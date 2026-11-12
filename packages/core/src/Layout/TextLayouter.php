@@ -381,7 +381,7 @@ final class TextLayouter implements Layouter
             if ($href === null) {
                 continue;
             }
-            $f->addOp(new LinkOp($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], $href));
+            $f->addOp(new LinkOp($group[0]['x'], $top, array_sum(array_column($group, 'w')), $box['height'], $href, implode('', array_column(array_column($group, 'item'), 'text'))));
         }
     }
 

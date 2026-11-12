@@ -8,7 +8,7 @@ use Papercut\{Column, Node, Text, Toc};
 use Papercut\Paint\{TextRun, TocSlot};
 use Papercut\Style\ComputedStyle;
 use Papercut\Text\{CachedFont, FontStyle};
-use Papercut\Toc\TocLine;
+use Papercut\Toc\{HeadingText, TocLine};
 use Papercut\View;
 
 /**
@@ -121,6 +121,7 @@ final class TocLayouter implements Layouter
             $entry->letterSpacing,
             $c->width,
             $f->height,
+            HeadingText::plain($line->title),
         ));
         return LayoutResult::complete($f);
     }

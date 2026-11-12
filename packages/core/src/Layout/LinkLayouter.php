@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\{Link, Node};
+use Papercut\{Component, Image, Link, Node, Text};
+use Papercut\Toc\HeadingText;
 use Papercut\Paint\Link as LinkOp;
 use Papercut\Style\ComputedStyle;
 
@@ -25,8 +26,31 @@ final class LinkLayouter implements Layouter
             throw new \LogicException(sprintf('LinkLayouter cannot lay out %s.', $node::class));
         }
         $res = $this->block->layout($node, $style, $c, $token, $engine);
-        $res->fragment?->addOp(new LinkOp(0.0, 0.0, $res->fragment->width, $res->fragment->height, $node->uri()));
+        $res->fragment?->addOp(new LinkOp(0.0, 0.0, $res->fragment->width, $res->fragment->height, $node->uri(), self::say($node)));
         return $res;
+    }
+
+    /**
+     * What a node says: its text, and the alternative text of its images.
+     */
+    private static function say(Node|Component $node): string
+    {
+        if ($node instanceof Text) {
+            return HeadingText::plain($node);
+        }
+        if ($node instanceof Image) {
+            return $node->altText() ?? '';
+        }
+        if ($node instanceof Component || !method_exists($node, 'children')) {
+            return '';
+        }
+        $parts = [];
+        foreach ($node->children() as $child) {
+            if ($child instanceof Node) {
+                $parts[] = self::say($child);
+            }
+        }
+        return implode(' ', $parts);
     }
 
     public function intrinsic(Node $node, ComputedStyle $style, LayoutEngine $engine): array

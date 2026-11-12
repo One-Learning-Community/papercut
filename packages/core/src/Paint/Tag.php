@@ -29,6 +29,8 @@ final readonly class Tag
         public string $artifactType = self::LAYOUT,
         /** key of the row element this cell belongs to when it is painted outside it (a cell spanning rows), or null */
         public ?string $home = null,
+        /** for a table cell: its column among its row's cells */
+        public ?int $column = null,
     ) {
     }
 
@@ -40,18 +42,12 @@ final readonly class Tag
     /** A copy that belongs in the row element $rowKey. */
     public function homedIn(string $rowKey): self
     {
-        return new self($this->role, $this->key, $this->alt, $this->attributes, $this->artifactType, $rowKey);
+        return new self($this->role, $this->key, $this->alt, $this->attributes, $this->artifactType, $rowKey, $this->column);
     }
 
     /** Table cells stay in the structure when they have nothing to draw, so a row keeps all its cells. */
     public function keepsWhenEmpty(): bool
     {
         return $this->role === 'TD' || $this->role === 'TH';
-    }
-
-    /** The column a cell's key ends with ("... > td[2]"), or null. */
-    public function column(): ?int
-    {
-        return preg_match('/ > t[dh]\[(\d+)\]$/', $this->key, $m) === 1 ? (int) $m[1] : null;
     }
 }

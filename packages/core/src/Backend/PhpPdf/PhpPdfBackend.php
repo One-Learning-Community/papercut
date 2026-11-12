@@ -217,7 +217,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             } elseif ($op instanceof Opacity) {
                 $this->drawOpacity($p, $h, $op, $inherited, fn (array $inner, float $alpha) => $this->drawStructured($p, $h, $inner, $alpha, $chain));
             } elseif ($op instanceof Link) {
-                $this->node($p, $chain)->link($p, $this->linkFor($h, $op, $ops));
+                $this->node($p, $chain)->link($p, $this->linkFor($h, $op));
             } elseif ($op instanceof Bookmark || $op instanceof Anchor) {
                 $this->drawOps($p, $h, [$op], $inherited);
             } else {
@@ -242,7 +242,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         $column = null;
         if ($tag->home !== null) {
             $chain[] = new Tag('TR', $tag->home);
-            $column = $tag->column();
+            $column = $tag->column;
         }
         if ($t->ops === [] || self::holdsTags($t->ops)) {
             $chain[] = $tag;
@@ -254,7 +254,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         $mcid = $p->nextMcid();
         $parent->leaf($tag->role, $p, $mcid, $tag->alt, $tag->attributes);
         foreach (self::linkOps($t->ops) as $link) {
-            $parent->link($p, $this->linkFor($h, $link, $t->ops));
+            $parent->link($p, $this->linkFor($h, $link));
         }
         $p->beginMarkedContent($tag->role, $mcid);
         $this->skipLinks = true;
@@ -294,15 +294,13 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     }
 
     /**
-     * A link as the structure keeps it, described by the text it covers (taken from $scope). php-pdf joins a link
-     * inside a Link container to that element, so the element holds the text and the annotation.
+     * A link as the structure keeps it, described by what it says (or its URI, or just "Link" for an internal one).
+     * php-pdf joins a link inside a Link container to that element, so the element holds the text and the annotation.
      *
-     * @param list<Op> $scope
      * @return array{x: float, y: float, width: float, height: float, uri: string, internal: bool, contents: string}
      */
-    private function linkFor(float $h, Link $op, array $scope): array
+    private function linkFor(float $h, Link $op): array
     {
-        $text = self::textUnder($scope, $op);
         $internal = $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]);
         return [
             'x' => $op->x,
@@ -311,7 +309,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             'height' => $op->height,
             'uri' => $internal ? substr($op->uri, 1) : $op->uri,
             'internal' => $internal,
-            'contents' => $text !== '' ? $text : ($internal ? 'Link' : $op->uri),
+            'contents' => $op->description ?? ($internal ? 'Link' : $op->uri),
         ];
     }
 
@@ -330,7 +328,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     private function writeContainer(PdfDocument $doc, StructNode $node): void
     {
         $doc->beginStructContainer($node->role, $node->page, $node->attributes);
-        foreach ($node->children as $child) {
+        foreach ([...$node->children, ...$node->tail] as $child) {
             $this->writeStructure($doc, $child);
         }
         $doc->endStructContainer();
@@ -344,24 +342,6 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             ? $node->page->addInternalLink($l['x'], $l['y'], $l['width'], $l['height'], $l['uri'], $l['contents'])
             : $node->page->addExternalLink($l['x'], $l['y'], $l['width'], $l['height'], $l['uri'], $l['contents']);
         $doc->placeLinkInStructure($node->page);
-    }
-
-    /**
-     * @param list<Op> $ops
-     */
-    private static function textUnder(array $ops, Link $link): string
-    {
-        $text = '';
-        foreach ($ops as $op) {
-            if ($op instanceof TextRun) {
-                if ($op->x >= $link->x - 1.0 && $op->x <= $link->x + $link->width && $op->baseline >= $link->y && $op->baseline <= $link->y + $link->height + 1.0) {
-                    $text .= $op->text;
-                }
-            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
-                $text .= self::textUnder($op->ops, $link);
-            }
-        }
-        return trim((string) preg_replace('/\s+/u', ' ', $text));
     }
 
     /**
@@ -424,6 +404,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
                 $op instanceof Bookmark => $this->bookmark($p, $h, $op),
                 $op instanceof Anchor => $this->registerDestination($p, $h, $op),
                 $op instanceof Link && $this->skipLinks => null,
+                // Links in running headers and footers are artifacts' own: the tagged PDF keeps them at the end of Document.
+                $op instanceof Link && $this->root !== null => $this->root->tailLink($p, $this->linkFor($h, $op)),
                 // A #name link whose name matches a registered anchor becomes an internal link.
                 $op instanceof Link && $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]) => $p->addInternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, substr($op->uri, 1)),
                 $op instanceof Link => $p->addExternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, $op->uri),

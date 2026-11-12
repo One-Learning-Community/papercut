@@ -209,7 +209,7 @@ final class Painter
             $op instanceof DrawPdfPage => new DrawPdfPage($op->x + $dx, $op->y + $dy, $op->width, $op->height, $op->page),
             $op instanceof Bookmark => new Bookmark($op->level, $op->title, $op->x + $dx, $op->y + $dy),
             $op instanceof Anchor => new Anchor($op->name, $op->x + $dx, $op->y + $dy),
-            $op instanceof Link => new Link($op->x + $dx, $op->y + $dy, $op->width, $op->height, $op->uri),
+            $op instanceof Link => new Link($op->x + $dx, $op->y + $dy, $op->width, $op->height, $op->uri, $op->description),
             $op instanceof Clip => new Clip($op->x + $dx, $op->y + $dy, $op->width, $op->height, array_map(static fn (Op $o): Op => self::translate($o, $dx, $dy), $op->ops)),
             $op instanceof Opacity => new Opacity($op->alpha, array_map(static fn (Op $o): Op => self::translate($o, $dx, $dy), $op->ops)),
             default => throw new \LogicException(sprintf('Painter cannot translate %s.', $op::class)),
@@ -254,7 +254,7 @@ final class Painter
                 $ops[] = new TextRun($start, $baseline, str_repeat('.', $count), $s->font, $s->size, $s->color, $s->letterSpacing);
             }
         }
-        $ops[] = new Link($dx, $dy, $s->boxWidth, $s->boxHeight, '#' . $s->destination);
+        $ops[] = new Link($dx, $dy, $s->boxWidth, $s->boxHeight, '#' . $s->destination, $s->description);
         return $ops;
     }
 }

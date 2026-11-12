@@ -22,6 +22,8 @@ final class StructNode
 
     /** @var list<StructNode> in reading order */
     public array $children = [];
+    /** @var list<StructNode> links that belong to no content, written after the children */
+    public array $tail = [];
     /** @var array<string, StructNode> containers among the children, by id */
     private array $containers = [];
 
@@ -56,7 +58,7 @@ final class StructNode
         if (isset($this->containers[$id])) {
             return $this->containers[$id];
         }
-        $node = new self(self::CONTAINER, $tag->role, $page, $tag->attributes, column: $tag->column());
+        $node = new self(self::CONTAINER, $tag->role, $page, $tag->attributes, column: $tag->column);
         $this->containers[$id] = $node;
         $this->insert($node, $column);
         return $node;
@@ -72,6 +74,12 @@ final class StructNode
     public function link(PdfPage $page, array $link): void
     {
         $this->children[] = new self(self::LINK, 'Link', $page, link: $link);
+    }
+
+    /** @param array{x: float, y: float, width: float, height: float, uri: string, internal: bool, contents: string} $link */
+    public function tailLink(PdfPage $page, array $link): void
+    {
+        $this->tail[] = new self(self::LINK, 'Link', $page, link: $link);
     }
 
     private function insert(self $node, ?int $column): void
