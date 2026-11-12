@@ -1,0 +1,53 @@
+Document
+  P
+  H1
+  P x2
+  Div
+    P x2
+  H2
+  L
+    LI x4
+      Lbl
+      LBody
+        P
+  H2
+  P
+  Code
+  P
+  Code
+  H2
+  P
+  Table
+    TR
+      TH x5
+        P
+    TR x8
+      TD x5
+        P
+  H2
+  Table
+    TR
+      TH x4
+        P
+    TR x4
+      TD x4
+        P
+  H2
+  P x2
+  Code
+  Div
+    P
+    Table
+      TR x5
+        TD x2
+          P
+  Figure (alt)
+  P
+  H2
+  L
+    LI x6
+      Lbl (alt)
+      LBody
+        P
+  BlockQuote
+    P x2

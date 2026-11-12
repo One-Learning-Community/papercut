@@ -108,4 +108,34 @@ final class StructTree
         }
         return $out;
     }
+
+    /**
+     * A compact outline of the elements' roles, one per line and indented by depth, for goldens: a figure shows
+     * `(alt)` when it has alternative text, and siblings with identical contents are one line with a count (`P x3`).
+     *
+     * @param list<array<string, mixed>> $elements
+     */
+    public static function outline(array $elements, int $depth = 0): string
+    {
+        $lines = [];
+        $count = count($elements);
+        for ($i = 0; $i < $count;) {
+            $label = $elements[$i]['role'] . ($elements[$i]['alt'] !== null ? ' (alt)' : '') . ($elements[$i]['objr'] ? ' [link]' : '');
+            $kids = self::outline($elements[$i]['kids'], $depth + 1);
+            $n = 1;
+            while ($i + $n < $count && self::signature($elements[$i + $n]) === self::signature($elements[$i])) {
+                $n++;
+            }
+            $lines[] = str_repeat('  ', $depth) . $label . ($n > 1 ? ' x' . $n : '') . "\n" . $kids;
+            $i += $n;
+        }
+
+        return implode('', $lines);
+    }
+
+    /** @param array<string, mixed> $element */
+    private static function signature(array $element): string
+    {
+        return $element['role'] . ($element['alt'] !== null ? '(alt)' : '') . ($element['objr'] ? '[link]' : '') . '{' . self::outline($element['kids']) . '}';
+    }
 }
