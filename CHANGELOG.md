@@ -5,6 +5,16 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Accessible PDFs: `new PdfOptions(tagged: true)` writes a tagged PDF with a structure tree and PDF/UA-1 identification. Headings, paragraphs, lists, tables (header cells, scopes and spans), images, SVG and QR codes (as figures), links, block quotes, sections, cards, callouts, code blocks and tables of contents get structure roles; page headers, footers and backgrounds are artifacts. It needs `Document::title()` and `->lang()`, and throws `InvalidStructure` without them. Heading levels that skip a level warn through `onWarning` and throw in strict mode; `asHeading()` or `heading` fixes them. A php-pdf too old for tagging warns and writes an untagged PDF. Encrypted tagged PDFs always let screen readers extract text. See the new [Accessible PDFs](site/src/guide/accessibility.md) guide.
+- Alternative text: `alt()` on `Svg` and `QrCode` (as on `Image`), `alt` on `<x-doc::image>`, `<x-doc::svg>` and `<x-doc::qr-code>`. It is the figure's text in a tagged PDF, the `alt` attribute in HTML and the picture's description in Word. An SVG's `<title>` is its alt text by default, a QR code's is `QR code: <value>`, and an `<img alt>` in markup is used the same way.
+- `heading="1"` to `"4"` on `<x-doc::text>`, `<x-doc::p>` and `<x-doc::h1>` to `<x-doc::h4>`, matching `Text::asHeading()`.
+
+### Changed
+
+- The example documents set a language and use heading levels that start at 1 and don't skip, so they pass PDF/UA-1. Their Word and HTML goldens changed with them.
+
 ## [0.9.2] - 2026-11-11
 
 ### Changed
