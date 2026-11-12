@@ -659,7 +659,7 @@ final class HtmlWriter implements TreeVisitor
         }
         $decls['display'] = 'block';
         $decls['aspect-ratio'] = '1';
-        $label = $n->value() === null ? 'QR code' : 'QR code: ' . $n->value();
+        $label = $n->altText() ?? ($n->value() === null ? 'QR code' : 'QR code: ' . $n->value());
         $design = $n->design();
         if ($design !== null) {
             // An image, like other SVG: its gradient ids cannot clash with another code's on the page.
@@ -692,7 +692,7 @@ final class HtmlWriter implements TreeVisitor
             $decls += Css::flexItem($s);
         }
         $decls['object-fit'] = $n->fitMode()->value;
-        $this->out .= '<img src="' . self::esc(ImageSource::uri($n, $this->options->imageUrl(), $this->backend, fn () => $this->fidelity->warn(sprintf('[%s] imageUrl returned an unsafe URL; the image was embedded instead', $at->path())), $this->loadImage(...))) . '" alt=""' . self::styleAttr($decls) . '>';
+        $this->out .= '<img src="' . self::esc(ImageSource::uri($n, $this->options->imageUrl(), $this->backend, fn () => $this->fidelity->warn(sprintf('[%s] imageUrl returned an unsafe URL; the image was embedded instead', $at->path())), $this->loadImage(...))) . '" alt="' . self::esc($n->altText() ?? '') . '"' . self::styleAttr($decls) . '>';
 
         return '';
     }
@@ -711,7 +711,7 @@ final class HtmlWriter implements TreeVisitor
         if ($svg->hasText) {
             $this->fidelity->approximated('SVG text in the browser\'s own fonts', $at->path());
         }
-        $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($svg->xml) . '" alt="' . self::esc($svg->title) . '"' . self::styleAttr($decls) . '>';
+        $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($svg->xml) . '" alt="' . self::esc($n->altText() ?? $svg->title) . '"' . self::styleAttr($decls) . '>';
 
         return '';
     }

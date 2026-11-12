@@ -709,4 +709,15 @@ final class HtmlTablesImagesTest extends TestCase
         self::assertCount(1, $row);
         self::assertStringEndsWith('table[0] > tr[0]', $row[0]);
     }
+
+    public function test_an_image_alt_is_written_escaped_and_no_alt_stays_empty(): void
+    {
+        $png = TestImages::png(8, 8);
+        $html = $this->html(Document::make(Page::a4()->body(Column::make(
+            Image::bytes($png)->alt('A "cat" & <dog>'),
+            Image::bytes($png),
+        ))));
+        preg_match_all('/<img [^>]*?alt="([^"]*)"/', $html, $m);
+        self::assertSame(['A &quot;cat&quot; &amp; &lt;dog&gt;', ''], $m[1]);
+    }
 }

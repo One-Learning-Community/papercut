@@ -28,6 +28,7 @@ final class QrCode implements Styled
     public const int DEFAULT_QUIET_ZONE = 4;
 
     private ?QrDesign $design = null;
+    private ?string $altText = null;
 
     /**
      * @param non-empty-list<non-empty-list<bool>> $modules
@@ -97,6 +98,7 @@ final class QrCode implements Styled
         $clone->style = $this->style;
         $clone->styleName = $this->styleName;
         $clone->design = $this->design;
+        $clone->altText = $this->altText;
 
         return $clone;
     }
@@ -188,6 +190,20 @@ final class QrCode implements Styled
     }
 
     /** The code's styling, or null for a plain code drawn as squares. */
+    /** Alternative text for screen readers (tagged PDF, HTML); null or blank leaves the code decorative in PDF. */
+    public function alt(?string $alt): self
+    {
+        $clone = clone $this;
+        $clone->altText = $alt === null || trim($alt) === '' ? null : trim($alt);
+        return $clone;
+    }
+
+    /** The alternative text, or null. */
+    public function altText(): ?string
+    {
+        return $this->altText;
+    }
+
     public function design(): ?QrDesign
     {
         return $this->design;

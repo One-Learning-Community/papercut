@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{Column, ColumnFlow, Document, Image, Link, ListNode, Page, Span, Table, TableCell, Text, Toc};
+use Papercut\{QrCode, Svg, Column, ColumnFlow, Document, Image, Link, ListNode, Page, Span, Table, TableCell, Text, Toc};
 use Papercut\Backend\{Backend, FontHandle, ImageHandle, TaggingCapability};
 use Papercut\Backend\PhpPdf\{PhpPdfBackend, TaggingSupport};
 use Papercut\Exception\{InvalidStructure, UnsupportedFeature};
 use Papercut\Export\{Encryption, PdfOptions};
 use Papercut\Paint\DocumentMeta;
+use Papercut\Markup\{Markup, MarkupOptions};
 use Papercut\Tests\Support\{PdfInspector, StructTree, TestImages};
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
@@ -278,6 +279,53 @@ final class TaggedPdfTest extends TestCase
         self::assertSame(1, self::countRole($tree, 'TD'));
         self::assertSame([], self::find($tree, 'TD')[0]['kids']);
         self::assertStringContainsString('/Artifact << /Type /Layout >> BDC', StructTree::qdf($this->small(Table::make()->columns('1fr')->row(Image::bytes(TestImages::png(40, 20))))->toPdf(new PdfOptions(tagged: true))->bytes()));
+    }
+
+    private const string SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20">%s<rect width="40" height="20" fill="#336"/></svg>';
+
+    /** @return list<array<string, mixed>> */
+    private static function figures(\Papercut\Node ...$body): array
+    {
+        $doc = Document::make(Page::a4()->body(Column::make(...$body)))->title('T')->lang('en');
+        $bytes = $doc->toPdf(new PdfOptions(tagged: true))->bytes();
+        PdfInspector::check($bytes);
+        return self::find(self::tree($doc), 'Figure');
+    }
+
+    public function test_an_svg_title_is_its_alt_text(): void
+    {
+        $figures = self::figures(Svg::fromString(sprintf(self::SVG, '<title>Sales chart</title>')));
+        self::assertSame(['Sales chart'], array_column($figures, 'alt'));
+    }
+
+    public function test_an_explicit_svg_alt_overrides_the_title_and_blank_alt_falls_back(): void
+    {
+        $svg = Svg::fromString(sprintf(self::SVG, '<title>Sales chart</title>'));
+        self::assertSame(['Rising sales'], array_column(self::figures($svg->alt(' Rising sales ')), 'alt'));
+        self::assertSame(['Sales chart'], array_column(self::figures($svg->alt('Rising sales')->alt('  ')), 'alt'));
+        self::assertSame(['Only alt'], array_column(self::figures(Svg::fromString(sprintf(self::SVG, ''))->alt('Only alt')), 'alt'));
+    }
+
+    public function test_an_svg_without_a_title_or_alt_is_decorative(): void
+    {
+        self::assertSame([], self::figures(Svg::fromString(sprintf(self::SVG, ''))));
+        self::assertSame([], self::figures(Svg::fromString(sprintf(self::SVG, '<title>  </title>'))));
+    }
+
+    public function test_a_qr_code_with_alt_is_a_figure_and_without_is_decorative(): void
+    {
+        $qr = QrCode::make('https://example.com');
+        self::assertSame(['Link to the example site'], array_column(self::figures($qr->alt('Link to the example site')), 'alt'));
+        self::assertSame([], self::figures($qr));
+        self::assertSame([], self::figures($qr->alt(' ')));
+        self::assertSame('Kept', $qr->alt('Kept')->errorCorrection('H')->altText(), 'alt survives re-encoding');
+    }
+
+    public function test_markup_img_alt_becomes_the_images_alt_text(): void
+    {
+        $o = new MarkupOptions(images: fn (string $s): string => TestImages::png(40, 20));
+        $view = Markup::html('<img src="a.png" alt=" A cat "><img src="b.png" alt=""><img src="c.png">', $o);
+        self::assertSame(['A cat'], array_column(self::figures($view), 'alt'));
     }
 
     public function test_whitespace_alt_text_means_no_alt_text(): void

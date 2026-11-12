@@ -18,6 +18,7 @@ final class Svg implements Styled
     use HasStyle;
 
     private ?SvgDocument $document;
+    private ?string $altText = null;
 
     private function __construct(
         private readonly string $kind,
@@ -36,6 +37,23 @@ final class Svg implements Styled
     public static function fromString(string $svg): self
     {
         return new self('string', $svg);
+    }
+
+    /**
+     * Alternative text for screen readers (tagged PDF), replacing the drawing's own `<title>`;
+     * null or blank falls back to the title, and with no title the drawing is decorative.
+     */
+    public function alt(?string $alt): self
+    {
+        $clone = clone $this;
+        $clone->altText = $alt === null || trim($alt) === '' ? null : trim($alt);
+        return $clone;
+    }
+
+    /** The explicit alternative text, or null. */
+    public function altText(): ?string
+    {
+        return $this->altText;
     }
 
     /** @return array{kind: 'file'|'string', value: string} */

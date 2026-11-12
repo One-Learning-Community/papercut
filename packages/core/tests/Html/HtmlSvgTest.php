@@ -39,6 +39,19 @@ final class HtmlSvgTest extends TestCase
         return $out;
     }
 
+    public function test_an_explicit_alt_replaces_the_svg_title_and_is_escaped(): void
+    {
+        $img = self::imgs(self::html(Svg::fromString(self::LOGO)->alt('Acme "home" <logo>')))[0];
+        self::assertSame('Acme "home" <logo>', $img->getAttribute('alt'));
+    }
+
+    public function test_a_qr_codes_alt_replaces_its_default_label(): void
+    {
+        $qr = \Papercut\QrCode::make('https://example.com')->alt('Scan to visit');
+        self::assertStringContainsString('aria-label="Scan to visit"', self::html($qr));
+        self::assertStringContainsString('aria-label="QR code: https://example.com"', self::html(\Papercut\QrCode::make('https://example.com')));
+    }
+
     public function test_svg_is_an_img_with_a_data_uri_never_inline_markup(): void
     {
         $html = self::html(Svg::fromString(self::LOGO));
