@@ -39,10 +39,10 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     private array $destinations = [];
     /** @var array<string, PdfFormXObject> pages of other PDFs imported into the document being rendered, by handle id */
     private array $forms = [];
-    /** The structure tree of the tagged PDF being rendered, built while drawing and written when it is done. */
     /** Roles that only group other elements: with no tagged content in them, they are not elements. */
     private const array GROUPING = ['Div', 'Sect', 'BlockQuote', 'TOC', 'TOCI', 'L', 'LI', 'LBody', 'Table', 'TR', 'Link'];
 
+    /** The structure tree of the tagged PDF being rendered, built while drawing and written when it is done. */
     private ?StructNode $root = null;
     /** @var list<array{level: int, text: string, page: int, key: string}> the last tagged render's headings, in structure order */
     private array $headings = [];

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Backend;
 
 /**
- * A backend that can say whether it is able to write a tagged PDF. One that does not implement it is assumed to be.
+ * A backend that can say whether it is able to write a tagged PDF. One that does not implement it is treated as unable: a tagged export warns and writes an untagged PDF.
  *
  * @internal Part of Papercut's PDF writer. Custom backends aren't supported, and it may change in any release.
  */

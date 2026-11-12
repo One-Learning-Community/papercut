@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // Renders every document under examples/core/documents as a tagged PDF (PDF/UA-1) into a directory.
-// Any warning raised through onWarning (a heading skip, a missing alt text, tagging unavailable) fails the run.
+// Any warning raised through onWarning (a heading skip, tagging unavailable, an empty structure tree) fails the run.
 // Usage: php packages/core/tools/render-tagged-examples.php <output-dir>
 // Check the result with: php packages/core/tools/verapdf-ua1.php <output-dir>
 require __DIR__ . '/../vendor/autoload.php';
