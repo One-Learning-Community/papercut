@@ -59,3 +59,53 @@ jobs:
       - name: PHPStan
         if: matrix.laravel != '12'
         run: vendor/bin/phpstan analyse --memory-limit=1G
+
+  # Renders the example views tagged and validates them against PDF/UA-1 with veraPDF (the script lives in
+  # packages/core/tools). Needs the php-pdf release with PDF/UA support; skips itself, with a warning
+  # annotation, while the installed php-pdf lacks it (see core.yml).
+  tagged-pdf:
+    name: tagged PDF (PDF/UA-1, veraPDF)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/laravel
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, zlib, dom, gd, zip
+          coverage: none
+          tools: composer:v2
+      - name: Cache Composer downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer/files
+          key: composer-laravel13-8.4-${{ hashFiles('packages/*/composer.json') }}
+          restore-keys: composer-laravel13-8.4-
+      - run: composer install --no-interaction --no-progress
+      - name: Check php-pdf PDF/UA support
+        id: ua
+        run: |
+          missing=$(php -r 'require "vendor/autoload.php"; echo implode(", ", Papercut\Backend\PhpPdf\TaggingSupport::missing());')
+          if [ -n "$missing" ]; then
+            echo "supported=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Tagged PDF validation SKIPPED::The installed php-pdf lacks PDF/UA support ($missing). Raise the php-pdf requirement to the release that has it; this check then runs on its own."
+          else
+            echo "supported=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Render the example views tagged (any warning fails)
+        if: steps.ua.outputs.supported == 'true'
+        run: php tools/render-tagged-examples.php ../../build/tagged-laravel
+      - name: Validate against PDF/UA-1 (veraPDF)
+        if: steps.ua.outputs.supported == 'true'
+        run: php ../core/tools/verapdf-ua1.php ../../build/tagged-laravel ../../build/tagged-laravel-report.json
+      - name: Upload PDFs and veraPDF report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tagged-laravel
+          path: |
+            build/tagged-laravel/
+            build/tagged-laravel-report.json
+          if-no-files-found: ignore

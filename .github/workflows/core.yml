@@ -52,6 +52,57 @@ jobs:
           path: packages/core/tests/Visual/output/
           if-no-files-found: ignore
 
+  # Renders the core examples as tagged PDFs and validates them against PDF/UA-1 with veraPDF.
+  # Needs the php-pdf release with PDF/UA support. While composer.json still allows an older php-pdf,
+  # tagging falls back to untagged with a warning and this check would fail, so it skips itself
+  # (with a warning annotation) until the requirement is raised.
+  tagged-pdf:
+    name: tagged PDF (PDF/UA-1, veraPDF)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/core
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, zlib, dom, gd, imagick
+          coverage: none
+          tools: composer:v2
+      - name: Cache Composer downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer/files
+          key: composer-core-8.4-${{ hashFiles('packages/core/composer.json') }}
+          restore-keys: composer-core-8.4-
+      - run: composer install --no-interaction --no-progress
+      - name: Check php-pdf PDF/UA support
+        id: ua
+        run: |
+          missing=$(php -r 'require "vendor/autoload.php"; echo implode(", ", Papercut\Backend\PhpPdf\TaggingSupport::missing());')
+          if [ -n "$missing" ]; then
+            echo "supported=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Tagged PDF validation SKIPPED::The installed php-pdf lacks PDF/UA support ($missing). Raise the php-pdf requirement to the release that has it; this check then runs on its own."
+          else
+            echo "supported=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Render the examples tagged (any warning fails)
+        if: steps.ua.outputs.supported == 'true'
+        run: php tools/render-tagged-examples.php ../../build/tagged-core
+      - name: Validate against PDF/UA-1 (veraPDF)
+        if: steps.ua.outputs.supported == 'true'
+        run: php tools/verapdf-ua1.php ../../build/tagged-core ../../build/tagged-core-report.json
+      - name: Upload PDFs and veraPDF report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tagged-core
+          path: |
+            build/tagged-core/
+            build/tagged-core-report.json
+          if-no-files-found: ignore
+
   bench:
     runs-on: ubuntu-latest
     defaults:
