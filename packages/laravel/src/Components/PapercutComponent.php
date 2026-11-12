@@ -235,6 +235,18 @@ abstract class PapercutComponent extends Component
     }
 
     /**
+     * Applies the own `heading` attribute: the level a tagged PDF and the outline use, whatever the preset looks like.
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function headed(\Papercut\Text $text, array $data): \Papercut\Text
+    {
+        $own = $this->attrs($data)['own'];
+
+        return isset($own['heading']) ? $text->asHeading($this->headingOwn($own['heading'])) : $text;
+    }
+
+    /**
      * Like styled(), but maps the own `align` to text-align and `size` to font-size.
      *
      * @template T of \Papercut\Text|\Papercut\PageNumber

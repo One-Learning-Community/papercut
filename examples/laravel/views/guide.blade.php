@@ -1,5 +1,5 @@
 {{-- App-side content: an API integration guide on US Letter, portrait then landscape then portrait. --}}
-<x-doc::document title="Parcelpost API integration guide" author="Parcelpost">
+<x-doc::document title="Parcelpost API integration guide" lang="en" author="Parcelpost">
     <x-doc::page size="letter" margin="0.75in">
         <x-slot:header>
             <x-doc::row padding="0 0 6pt 0" border-width="0 0 0.75pt 0" border-color="slate-200">
@@ -21,7 +21,7 @@
             <x-doc::callout type="warning" title="Start with a test key">Test keys create sandbox shipments that never reach a carrier. Switch to a live key only after the checklist on the last page.</x-doc::callout>
 
             <x-doc::column gap="4pt">
-                <x-doc::h3 keep-with-next>Set up</x-doc::h3>
+                <x-doc::h3 heading="2" keep-with-next>Set up</x-doc::h3>
                 <x-doc::ol>
                     @foreach ($steps as $step)
                         <x-doc::li>{{ $step }}</x-doc::li>
@@ -30,7 +30,7 @@
             </x-doc::column>
 
             <x-doc::column gap="8pt">
-                <x-doc::h3 keep-with-next>Create a shipment</x-doc::h3>
+                <x-doc::h3 heading="2" keep-with-next>Create a shipment</x-doc::h3>
                 <x-doc::pre language="bash" label="Request" variant="caption">
                     curl https://api.example.com/v2/shipments \
                       -H "Authorization: Bearer pk_test_51Hx0" \
@@ -67,7 +67,7 @@
 
         <x-doc::column gap="12pt">
             <x-doc::column gap="3pt">
-                <x-doc::h3 keep-with-next>Endpoint reference</x-doc::h3>
+                <x-doc::h3 heading="2" keep-with-next>Endpoint reference</x-doc::h3>
                 <x-doc::text color="slate-600">All paths are relative to https://api.example.com. Send the key as a bearer token; limits are per key.</x-doc::text>
             </x-doc::column>
 
@@ -93,7 +93,7 @@
             </x-doc::table>
 
             <x-doc::column gap="4pt">
-                <x-doc::h3 keep-with-next>Errors</x-doc::h3>
+                <x-doc::h3 heading="2" keep-with-next>Errors</x-doc::h3>
                 <x-doc::table columns="0.7in 1.6in 3.2in 1fr">
                     <x-doc::thead>
                         <x-doc::tr background="slate-100">
@@ -131,7 +131,7 @@
 
         <x-doc::column gap="12pt">
             <x-doc::column gap="4pt">
-                <x-doc::h3 keep-with-next>Webhooks</x-doc::h3>
+                <x-doc::h3 heading="2" keep-with-next>Webhooks</x-doc::h3>
                 <x-doc::text>Parcelpost calls your endpoint when a shipment changes state. Each delivery is signed, so check the signature before you trust the body.</x-doc::text>
             </x-doc::column>
 
@@ -153,7 +153,7 @@
             </x-doc::row>
 
             <x-doc::column gap="6pt">
-                <x-doc::h3 keep-with-next>Go-live checklist</x-doc::h3>
+                <x-doc::h3 heading="2" keep-with-next>Go-live checklist</x-doc::h3>
                 <x-doc::choices type="checkbox">
                     @foreach ($checklist as [$label, $done])
                         <x-doc::choice :selected="$done">{{ $label }}</x-doc::choice>

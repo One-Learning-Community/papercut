@@ -62,7 +62,7 @@ final class QrCode extends PapercutComponent
         }
 
         if (isset($own['alt'])) {
-            $node = $node->alt((string) $own['alt']);
+            $node = $node->alt($this->scalarOwn($own['alt'], 'alt'));
         }
 
         return $this->styled($node, $data);

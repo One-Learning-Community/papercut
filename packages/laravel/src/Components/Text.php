@@ -9,11 +9,11 @@ final class Text extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
-        return ['align', 'size'];
+        return ['align', 'size', 'heading'];
     }
 
     protected function build(array $data): object
     {
-        return $this->textStyled($this->inlineText($data), $data);
+        return $this->textStyled($this->headed($this->inlineText($data), $data), $data);
     }
 }

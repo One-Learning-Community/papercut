@@ -30,9 +30,9 @@ On boxes, `align` is short for `align-items`.
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-doc::text>` | `align`, `size` | Style. Inline markup: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<code>`, `<span>`, `<a href>`, `<br>`. |
-| `<x-doc::p>` | `align`, `size` | Style. The paragraph preset. |
-| `<x-doc::h1>` to `<x-doc::h4>` | `align`, `size` | Style. Heading presets. |
+| `<x-doc::text>` | `align`, `size`, `heading` | Style. Inline markup: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<code>`, `<span>`, `<a href>`, `<br>`. `heading` (1 to 4) sets the heading level the document outline and a tagged PDF use, keeping the look: `<x-doc::h3 heading="2">`. |
+| `<x-doc::p>` | `align`, `size`, `heading` | Style. The paragraph preset. `heading` (1 to 4) sets the heading level the document outline and a tagged PDF use, keeping the look: `<x-doc::h3 heading="2">`. |
+| `<x-doc::h1>` to `<x-doc::h4>` | `align`, `size`, `heading` | Style. Heading presets. `heading` (1 to 4) sets the heading level the document outline and a tagged PDF use, keeping the look: `<x-doc::h3 heading="2">`. |
 | `<x-doc::markup>` | `html` or `text`, `styles`, `blank-paragraphs`, `images`, `toc` | Converts stored HTML or plain text, or plain HTML written in the slot (one of the three). Papercut tags in the slot are an error; components that render HTML are fine. `images` is an `ImageResolver` class name for this tag instead of `papercut.markup.images`, or `none` (lower case only) to show each image's alt text. `toc="false"` keeps every heading it converts out of tables of contents. See [Rich text](/guide/rich-text.md). |
 | `<x-doc::link>` | `href` | Style. `href` is required. |
 | `<x-doc::pre>` | `language`, `theme`, `label`, `variant` | Style. A preformatted block in the `pre` style. With `language` it is a [code block](/guide/text.md#code-blocks): coloured by a TextMate `theme` (default `papercut-light`), with a `label` (default the language's name in capitals; `false` hides it) and a `variant`, `strip` (label in a header bar) or `caption` (label above the box, rule on the left). `theme`, `label` and `variant` need a `language`. Highlighting needs `phiki/phiki`. The content is literal: tags are not parsed and entities are decoded, so `{{ $code }}` comes out exactly as the variable's value. The first and last blank lines are dropped and the common leading indentation is removed (put `{{ $code }}` right after the opening tag, or at the same indentation as the rest of the block; the first line's indentation counts too). Components inside are an error. The tag is found by a compile step that runs on every Blade view in the app, so a PHP string holding a literal `<x-doc::pre>` tag in an ordinary (non-Papercut) view gets an invisible U+E000 character after it. If you wrap a pre in a component of your own (`<x-doc::pre>{{ $slot }}</x-doc::pre>`), Blade trims the outer slot before the pre sees it: the first line loses its indentation and later lines keep theirs, so give the slot content that starts at the left edge or has an unindented first line. |
@@ -63,10 +63,10 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-doc::image>` | `src` or `data`, `fit` | Style. `fit` is `contain`, `cover` or `fill`. Relative `src` stays inside `papercut.image_path`. |
+| `<x-doc::image>` | `src` or `data`, `fit`, `alt` | Style. `fit` is `contain`, `cover` or `fill`. `alt` is the alternative text (blank means decorative). Relative `src` stays inside `papercut.image_path`. |
 | `<x-doc::pdf-page>` | `src` or `data`, `page`, `password` | Style. A page of an existing PDF, sized like an image. Relative `src` stays inside `papercut.image_path`. Left out of HTML and Word exports. |
-| `<x-doc::svg>` | `src` or `data`, or SVG markup inside the tag | Style. Sized like an image. Relative `src` stays inside `papercut.image_path`. |
-| `<x-doc::qr-code>` | `value`, `level`, `quiet-zone`, `shape`, `eyes`, `eye-color`, `gradient`, `gradient-type` | Style. `level` is `L`, `M`, `Q` or `H`. Square: size it with `width`. `shape` is `square`, `rounded` or `dots` (the last two raise `level` to at least `Q`); `eyes` is `square`, `dot` or `pointy`; `gradient` is two colors. Styling needs `bacon/bacon-qr-code`; see [Styled QR codes](/guide/images-and-links.md#styled-qr-codes). No content. |
+| `<x-doc::svg>` | `src` or `data`, or SVG markup inside the tag, `alt` | Style. Sized like an image. `alt` replaces the SVG's `<title>` as its alternative text. Relative `src` stays inside `papercut.image_path`. |
+| `<x-doc::qr-code>` | `value`, `level`, `quiet-zone`, `shape`, `eyes`, `eye-color`, `gradient`, `gradient-type`, `alt` | Style. `alt` is the alternative text, "QR code: <value>" by default. `level` is `L`, `M`, `Q` or `H`. Square: size it with `width`. `shape` is `square`, `rounded` or `dots` (the last two raise `level` to at least `Q`); `eyes` is `square`, `dot` or `pointy`; `gradient` is two colors. Styling needs `bacon/bacon-qr-code`; see [Styled QR codes](/guide/images-and-links.md#styled-qr-codes). No content. |
 | `<x-doc::node>` | `node` | Embeds a `Node` or `Component` built in PHP. |
 
 ## Decorators

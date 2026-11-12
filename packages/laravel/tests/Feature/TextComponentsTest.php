@@ -37,6 +37,28 @@ final class TextComponentsTest extends TestCase
         self::assertSame('p', $this->nodeFrom('<x-doc::p>Body <b>bold</b></x-doc::p>')->preset());
     }
 
+    public function test_heading_sets_the_level_and_keeps_the_look(): void
+    {
+        $h = $this->nodeFrom('<x-doc::h3 heading="2">Title</x-doc::h3>');
+        self::assertInstanceOf(Text::class, $h);
+        self::assertSame('h3', $h->preset());
+        self::assertSame(2, $h->headingLevel());
+        foreach (['text', 'p', 'h1', 'h4'] as $tag) {
+            $n = $this->nodeFrom("<x-doc::$tag heading=\"1\">Title</x-doc::$tag>");
+            self::assertInstanceOf(Text::class, $n);
+            self::assertSame(1, $n->headingLevel(), $tag);
+        }
+        $plain = $this->nodeFrom('<x-doc::h3>Title</x-doc::h3>');
+        self::assertInstanceOf(Text::class, $plain);
+        self::assertSame(3, $plain->headingLevel());
+    }
+
+    public function test_an_invalid_heading_level_is_rejected(): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
+        $this->nodeFrom('<x-doc::h2 heading="5">Title</x-doc::h2>');
+    }
+
     public function test_block_inside_text_is_rejected(): void
     {
         $this->expectException(InvalidStructure::class);

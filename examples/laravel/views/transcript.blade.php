@@ -1,4 +1,4 @@
-<x-doc::document title="Official Transcript" author="Papercut">
+<x-doc::document title="Official Transcript" lang="en" author="Papercut">
     <x-doc::page size="letter" margin="0.75in">
         <x-slot:header>
             <x-doc::row>
@@ -22,7 +22,7 @@
                 </x-doc::row>
             </x-doc::column>
 
-            <x-doc::h2>Course history</x-doc::h2>
+            <x-doc::h2 heading="1">Course history</x-doc::h2>
 
             <x-doc::table columns="0.9in 1fr 1in 0.75in 0.75in">
                 <x-doc::thead>
@@ -46,7 +46,7 @@
             </x-doc::table>
 
             <x-doc::column gap="4pt" padding="12pt" background="slate-50" radius="8pt" keep-together>
-                <x-doc::h3>Cumulative summary</x-doc::h3>
+                <x-doc::h3 heading="2">Cumulative summary</x-doc::h3>
                 <x-doc::row>
                     <x-doc::text grow="1">{{ sprintf('%d credits attempted, %.1f quality points.', $credits, $points) }}</x-doc::text>
                     <x-doc::text size="14pt" bold>GPA {{ number_format($gpa, 2) }}</x-doc::text>

@@ -36,11 +36,17 @@ final class QrCodeComponentTest extends TestCase
 
     public function test_alt_is_passed_to_the_code_and_survives_styling(): void
     {
-        $n = $this->nodeFrom('<x-doc::qr-code value="x" alt="Scan to pay" width="30mm" />');
+        $n = $this->nodeFrom('<x-doc::qr-code value="x" alt="Scan to pay" level="H" shape="dots" width="30mm" />');
 
         self::assertInstanceOf(QrCode::class, $n);
         self::assertSame('Scan to pay', $n->altText());
-        self::assertNull($this->nodeFrom('<x-doc::qr-code value="x" />')->altText());
+        self::assertSame('Scan to pay', $n->label());
+        self::assertSame(ErrorCorrection::High, $n->level());
+        self::assertSame(QrShape::Dots, $n->design()?->shape);
+        $plain = $this->nodeFrom('<x-doc::qr-code value="x" />');
+        self::assertInstanceOf(QrCode::class, $plain);
+        self::assertNull($plain->altText());
+        self::assertSame('QR code: x', $plain->label());
     }
 
     public function test_level_accepts_names(): void

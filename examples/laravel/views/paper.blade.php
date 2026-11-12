@@ -1,5 +1,5 @@
 {{-- App-side content: an academic paper. The title block and abstract run full width, the body flows through two columns, and a closing note runs full width again. --}}
-<x-doc::document title="Wider Hive Spacing Improves Winter Survival of Honey Bee Colonies" author="Marta Lindqvist, Tomas Okafor, Reiko Havel">
+<x-doc::document title="Wider Hive Spacing Improves Winter Survival of Honey Bee Colonies" lang="en" author="Marta Lindqvist, Tomas Okafor, Reiko Havel">
     <x-doc::page size="a4" margin="18mm">
         <x-slot:header>
             <x-doc::row padding="0 0 4pt 0" border-width="0 0 0.5pt 0" border-color="slate-200">
@@ -27,7 +27,7 @@
 
         <x-doc::column-flow columns="2" column-gap="6mm" rule>
             @foreach ($sections as $i => [$title, $paragraphs])
-                <x-doc::h3 margin="{{ $i === 0 ? '0' : '8pt 0 0 0' }}">{{ $title }}</x-doc::h3>
+                <x-doc::h3 heading="2" margin="{{ $i === 0 ? '0' : '8pt 0 0 0' }}">{{ $title }}</x-doc::h3>
                 @foreach ($paragraphs as $paragraph)
                     <x-doc::p align="justify">{{ $paragraph }}</x-doc::p>
                 @endforeach

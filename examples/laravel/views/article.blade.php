@@ -1,5 +1,5 @@
 {{-- App-side content: a knowledge base article. $html is the editor's HTML; <x-doc::markup> converts it. --}}
-<x-doc::document title="Setting up two-factor sign-in" author="Plotline">
+<x-doc::document title="Setting up two-factor sign-in" lang="en" author="Plotline">
     <x-doc::page size="a4" margin="20mm">
         <x-slot:header>
             <x-doc::row padding="0 0 6pt 0" border-width="0 0 0.75pt 0" border-color="slate-200">

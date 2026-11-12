@@ -1,8 +1,8 @@
 {{-- App-side content: a feedback-form response record built from the decorator tags. --}}
-<x-doc::document title="Feedback form response" author="Northwind Studio">
+<x-doc::document title="Feedback form response" lang="en" author="Northwind Studio">
     <x-doc::page size="a4" margin="20mm">
         <x-doc::column gap="14pt">
-            <x-doc::h2>Workshop feedback</x-doc::h2>
+            <x-doc::h2 heading="1">Workshop feedback</x-doc::h2>
 
             <x-doc::card title="Response details">
                 <x-doc::key-value label-width="30%">

@@ -30,7 +30,7 @@ $document = Document::make(Page::letter()->body(
 
 If a file isn't a supported image, Papercut throws `ImageUnreadable`.
 
-Give an image alternative text with `alt` (`->alt('A chart')` in PHP, `alt="A chart"` in Blade). It becomes the `alt` attribute in HTML exports, the description in Word, and the `/Alt` of the figure in a tagged PDF. `SVG` and `QrCode` take `alt` too; an SVG without one uses its `<title>`. An image without alt text is treated as decoration in a tagged PDF. In markup, an `<img>`'s `alt` is used the same way, and `alt=""` marks it decorative.
+Give an image alternative text with `alt` (`->alt('A chart')` in PHP, `alt="A chart"` in Blade). It becomes the `alt` attribute in HTML exports, the description in Word, and the `/Alt` of the figure in a tagged PDF. `Svg` and `QrCode` take `alt` too; an SVG without one uses its `<title>`, and a QR code is described as "QR code: <value>". An image without alt text is treated as decoration in a tagged PDF. In markup, an `<img>`'s `alt` is used the same way, and `alt=""` marks it decorative.
 
 In Blade, a relative `src` is looked up inside `papercut.image_path`, which defaults to `public_path()`, and `..` can't be used to escape that directory. Absolute paths are used as written. Remote URLs are never fetched.
 

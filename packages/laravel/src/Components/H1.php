@@ -9,11 +9,11 @@ final class H1 extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
-        return ['align', 'size'];
+        return ['align', 'size', 'heading'];
     }
 
     protected function build(array $data): object
     {
-        return $this->textStyled($this->inlineText($data)->withPreset('h1'), $data);
+        return $this->textStyled($this->headed($this->inlineText($data)->withPreset('h1'), $data), $data);
     }
 }

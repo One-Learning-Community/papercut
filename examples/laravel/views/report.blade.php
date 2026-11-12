@@ -1,4 +1,4 @@
-<x-doc::document title="Designing Papercut" author="Papercut">
+<x-doc::document title="Designing Papercut" lang="en" author="Papercut">
     <x-doc::page size="a4" margin="22mm">
         <x-slot:header>
             <x-doc::row>

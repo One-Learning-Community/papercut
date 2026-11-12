@@ -1,4 +1,4 @@
-<x-doc::document title="Invoice INV-2026-0142" author="Northwind Studio">
+<x-doc::document title="Invoice INV-2026-0142" lang="en" author="Northwind Studio">
     <x-doc::page size="letter" margin="0.75in">
         <x-doc::column gap="20pt">
             {{-- Letterhead --}}
