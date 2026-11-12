@@ -19,6 +19,7 @@ final class Svg implements Styled
 
     private ?SvgDocument $document;
     private ?string $altText = null;
+    private bool $decorative = false;
 
     private function __construct(
         private readonly string $kind,
@@ -41,12 +42,14 @@ final class Svg implements Styled
 
     /**
      * Alternative text for screen readers, replacing the drawing's own `<title>`: the description in tagged PDF,
-     * the `alt` in HTML and the description in Word. Null or blank falls back to the title, and with no title
-     * the drawing is decorative.
+     * the `alt` in HTML and the description in Word. Null falls back to the title, and with no title the drawing
+     * is decorative. A blank string (`alt('')`) says it is decorative even when it has a title: it is kept out
+     * of a tagged PDF's structure.
      */
     public function alt(?string $alt): self
     {
         $clone = clone $this;
+        $clone->decorative = $alt !== null && trim($alt) === '';
         $clone->altText = $alt === null || trim($alt) === '' ? null : trim($alt);
         return $clone;
     }
@@ -58,12 +61,16 @@ final class Svg implements Styled
     }
 
     /**
-     * What a screen reader says for the drawing: its alternative text, else its `<title>`, else null (decorative).
+     * What a screen reader says for the drawing: its alternative text, else its `<title>`, else null (decorative,
+     * as it is for a blank `alt('')`).
      *
      * @throws ImageUnreadable when the file cannot be read as SVG
      */
     public function description(): ?string
     {
+        if ($this->decorative) {
+            return null;
+        }
         if ($this->altText !== null) {
             return $this->altText;
         }

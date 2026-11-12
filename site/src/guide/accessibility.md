@@ -69,7 +69,7 @@ Image::file('chart.png')->alt('Revenue by region, 2024 to 2026');
 ```
 :::
 
-**Decorative images.** An image with no alt text, or a blank one, is treated as decoration: it is kept out of the structure tree and a screen reader skips it. That is right for rules, flourishes and backgrounds, and wrong for anything the reader needs. The same goes for an SVG with neither `alt` nor `<title>`.
+**Decorative images.** An image with no alt text, or a blank one, is treated as decoration: it is kept out of the structure tree and a screen reader skips it. That is right for rules, flourishes and backgrounds, and wrong for anything the reader needs. The same goes for an SVG with neither `alt` nor `<title>`. An SVG that has a `<title>` but is only decoration takes a blank `alt('')` (`alt=""`), which keeps it out of the structure tree; `alt(null)` goes back to the title.
 
 **Links.** Link text should make sense on its own. A screen reader can list every link in a document, and "click here" tells the reader nothing. Papercut describes each link with the text it covers, a link around an image with the image's alt text, and falls back to the address for a link with no text.
 

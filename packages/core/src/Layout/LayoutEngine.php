@@ -7,7 +7,7 @@ namespace Papercut\Layout;
 use Papercut\{ColumnBreak, Component, Image, Link, ListNode, Node, OverflowMode, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, Text, Toc, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
 use Papercut\Paint\{Anchor, Bookmark, Tag};
-use Papercut\Style\{ComputedStyle, Direction};
+use Papercut\Style\{ComputedStyle, Direction, StyleName};
 use Papercut\Toc\{HeadingText, TocLine};
 use Papercut\Tree\{Expander, NodePath, Region};
 use Papercut\Value\Auto;
@@ -349,7 +349,7 @@ final class LayoutEngine
         return match (true) {
             // The contents list's title: tagged-PDF practice (ISO 32000-1 14.8.4.3) keeps a TOC to TOCI, TOC and Caption children.
             $node instanceof Text && $this->ctx->isCaption($node) => new Tag('Caption', $key),
-            $node instanceof Text && $node->isHtmlCode() => new Tag('Code', $key, attributes: ['O' => 'Layout', 'Placement' => 'Block']),
+            $node instanceof Text && ($node->isHtmlCode() || StyleName::leads($node->styleName(), 'pre')) => new Tag('Code', $key, attributes: ['O' => 'Layout', 'Placement' => 'Block']),
             $node instanceof Text => new Tag(($level = HeadingText::level($node)) !== null ? 'H' . min(6, $level) : 'P', $key),
             $node instanceof View && $node->structRoleName() !== null => new Tag($node->structRoleName(), $key, alt: $node->structAltText()),
             $node instanceof Toc => new Tag('TOC', $key),

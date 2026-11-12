@@ -299,11 +299,11 @@ final class TaggedPdfTest extends TestCase
         self::assertSame(['Sales chart'], array_column($figures, 'alt'));
     }
 
-    public function test_an_explicit_svg_alt_overrides_the_title_and_blank_alt_falls_back(): void
+    public function test_an_explicit_svg_alt_overrides_the_title_and_null_alt_falls_back(): void
     {
         $svg = Svg::fromString(sprintf(self::SVG, '<title>Sales chart</title>'));
         self::assertSame(['Rising sales'], array_column(self::figures($svg->alt(' Rising sales ')), 'alt'));
-        self::assertSame(['Sales chart'], array_column(self::figures($svg->alt('Rising sales')->alt('  ')), 'alt'));
+        self::assertSame(['Sales chart'], array_column(self::figures($svg->alt('Rising sales')->alt(null)), 'alt'));
         self::assertSame(['Only alt'], array_column(self::figures(Svg::fromString(sprintf(self::SVG, ''))->alt('Only alt')), 'alt'));
     }
 
@@ -537,6 +537,25 @@ final class TaggedPdfTest extends TestCase
             Link::to('https://qr.test', QrCode::make('https://qr.test')->alt('Scan to open the page')),
         )->toPdf(new PdfOptions(tagged: true))->bytes();
         self::assertSame(['Company logo', 'Scan to open the page'], StructTree::linkContents($bytes));
+    }
+
+    public function test_a_blank_alt_makes_an_svg_with_a_title_decorative(): void
+    {
+        $svg = Svg::fromString('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><title>Company logo</title><rect width="10" height="10"/></svg>');
+        $roles = fn (Svg $s): array => self::roles(self::tree($this->small(Text::h1('H'), $s)));
+        self::assertSame(['H1', 'Figure'], $roles($svg));
+        self::assertSame(['H1', 'Figure'], $roles($svg->alt(null)));
+        self::assertSame(['H1'], $roles($svg->alt('')));
+        self::assertSame(['H1'], $roles($svg->alt('  ')));
+        self::assertSame(['H1', 'Figure'], $roles($svg->alt('')->alt('A logo')));
+    }
+
+    public function test_a_preformatted_block_in_markup_is_code(): void
+    {
+        $tree = self::tree($this->small(Markup::html('<p>Intro</p><pre>a  b' . "\n" . '  c</pre>')));
+        self::assertSame(['P', 'Code'], array_column($tree, 'role'));
+        self::assertStringContainsString('/Placement /Block', (string) $tree[1]['attrs']);
+        self::assertStringContainsString('/O /Layout', (string) $tree[1]['attrs']);
     }
 
     public function test_a_first_heading_below_h1_warns(): void
