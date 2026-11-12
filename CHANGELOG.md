@@ -9,6 +9,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 - PDF export paints each page as soon as it is laid out and frees its layout before the next page, instead of keeping every page's layout until the end. Page numbers and table of contents entries are filled in once the pages are done. On the benchmarks the export's peak memory drops by 6 to 18%; the PDF output is the same.
 - The page layout behind a Word table of contents' page numbers keeps only each heading's page, and stops once every listed heading has one.
+- Faster export in every format. Each distinct style is computed once per parent instead of once per node, nodes without a style of their own share one empty style, and a node's place in the layout path is named only when a warning or error needs it. On the benchmarks a 10-page table exports to PDF in about 38 ms instead of 51 ms and to HTML in about 17 ms instead of 25 ms, a 20-page article to PDF in about 82 ms instead of 92 ms, and peak memory drops too. The output is the same.
 
 ## [0.9.1] - 2026-11-03
 
