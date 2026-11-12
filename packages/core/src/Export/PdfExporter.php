@@ -73,7 +73,11 @@ final class PdfExporter implements Exporter
         if ($meta->lang === null || trim($meta->lang) === '') {
             throw new InvalidStructure('A tagged PDF needs a document language: set one with Document::lang(), for example lang(\'en-US\').');
         }
-        $missing = $backend instanceof TaggingCapability ? $backend->taggingMissing() : [];
+        if (!$backend instanceof TaggingCapability) {
+            (new Fidelity('pdf', $options))->dropped('tagged output (this backend cannot write a structure tree), writing an untagged PDF', 'document');
+            return false;
+        }
+        $missing = $backend->taggingMissing();
         if ($missing === []) {
             return true;
         }

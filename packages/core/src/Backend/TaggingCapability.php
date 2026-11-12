@@ -15,7 +15,8 @@ interface TaggingCapability
     public function taggingMissing(): array;
 
     /**
-     * The headings of the last tagged render in structure order, each once, with the page of its first part.
+     * The heading elements of the last tagged render in structure order. A heading that continues on another page
+     * is one entry per page piece (same key): the structure holds one element for each, and the level check needs all of them.
      *
      * @return list<array{level: int, text: string, page: int, key: string}>
      */

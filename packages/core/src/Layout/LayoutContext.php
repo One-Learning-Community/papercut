@@ -48,6 +48,8 @@ final class LayoutContext
     public bool $inHeaderRow = false;
     /** @var list<array{node: Node, style: ComputedStyle}> every node being laid out, outermost first, the current one last */
     private array $stack = [];
+    /** @var \SplObjectStorage<Node, mixed>|null */
+    private ?\SplObjectStorage $captions = null;
     /** Stack index of the region root while inRegion() runs, or null outside it. */
     private ?int $rootIndex = null;
     /** Off while laying out headers, footers and backgrounds, which repeat on every page. */
@@ -288,6 +290,18 @@ final class LayoutContext
     public function lineage(): array
     {
         return array_slice($this->stack, $this->rootIndex === null ? 0 : $this->rootIndex + 1);
+    }
+
+    /** Marks a Text as a caption (a contents list's title), which a tagged PDF gives the Caption role. */
+    public function markCaption(Node $node): void
+    {
+        $this->captions ??= new \SplObjectStorage();
+        $this->captions->attach($node);
+    }
+
+    public function isCaption(Node $node): bool
+    {
+        return $this->captions !== null && $this->captions->contains($node);
     }
 
     public function path(): string

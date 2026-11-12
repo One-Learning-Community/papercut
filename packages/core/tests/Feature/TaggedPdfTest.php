@@ -656,11 +656,114 @@ final class TaggedPdfTest extends TestCase
         self::assertSame(['H1', 'P'], array_column($tree, 'role'));
     }
 
+    private function decorated(): Document
+    {
+        return $this->small(Blockquote::make('q'), Section::make('s')->title('T'), Toc::make(), Text::h1('H'), CodeBlock::make('x'));
+    }
+
     public function test_untagged_output_is_the_same_with_decorators(): void
     {
-        $doc = fn (): Document => $this->small(Blockquote::make('q'), Section::make('s')->title('T'), Toc::make(), Text::h1('H'), CodeBlock::make('x'));
-        $a = $doc()->toPdf(new PdfOptions())->bytes();
-        self::assertStringNotContainsString('/StructTreeRoot', $a);
+        $default = $this->decorated()->toPdf(new PdfOptions())->bytes();
+        self::assertSame($default, $this->decorated()->toPdf(new PdfOptions(tagged: false))->bytes());
+        self::assertStringNotContainsString('/StructTreeRoot', $default);
+        self::assertStringNotContainsString('/BDC', StructTree::qdf($default));
+    }
+
+    public function test_tagged_decorator_output_is_a_valid_pdf(): void
+    {
+        foreach ([Blockquote::make('q')->cite('c'), Section::make('s')->title('T'), Card::make('c')->title('T'), Callout::make('c')] as $decorator) {
+            PdfInspector::check($this->small($decorator)->toPdf(new PdfOptions(tagged: true))->bytes());
+        }
+        self::addToAssertionCount(1);
+    }
+
+    public function test_an_empty_decorator_is_decoration_not_an_element(): void
+    {
+        $tree = self::tree($this->small(Card::make(), Blockquote::make(), Callout::make(), Text::make('x')));
+        self::assertSame(['P'], array_column($tree, 'role'));
+        $qdf = StructTree::qdf($this->small(Card::make(), Text::make('x'))->toPdf(new PdfOptions(tagged: true))->bytes());
+        self::assertSame(1, substr_count($qdf, '/MCID'), 'only the paragraph has marked content');
+    }
+
+    public function test_a_code_block_is_laid_out_as_a_block(): void
+    {
+        $tree = self::tree($this->small(CodeBlock::make('a = 1')->label(false)));
+        self::assertSame('Code', $tree[0]['role']);
+        self::assertSame('/O /Layout /Placement /Block', $tree[0]['attrs']);
+    }
+
+    public function test_decorators_in_a_page_header_and_footer_stay_artifacts(): void
+    {
+        $doc = Document::make(Page::a4()->header(Card::make(Text::make('Head')))->footer(Callout::make(Text::make('Foot')))->body(Text::make('Body')))->title('T')->lang('en');
+        self::assertSame(['P'], array_column(self::tree($doc), 'role'));
+    }
+
+    public function test_a_contents_list_without_a_title_has_no_caption(): void
+    {
+        $tree = self::tree($this->small(Toc::make(), Text::h1('Alpha')));
+        self::assertSame(['TOC', 'H1'], array_column($tree, 'role'));
+        self::assertSame(['TOCI'], array_column($tree[0]['kids'], 'role'));
+    }
+
+    public function test_a_contents_list_over_pages_is_one_toc(): void
+    {
+        $headings = [];
+        for ($i = 1; $i <= 120; $i++) {
+            $headings[] = Text::h2('Entry ' . $i);
+        }
+        $tree = self::tree($this->small(Toc::make()->levels(1, 2), Text::h1('Top'), ...$headings));
+        self::assertSame(1, self::countRole($tree, 'TOC'));
+        self::assertSame(121, self::countRole($tree, 'TOCI'));
+    }
+
+    public function test_strict_throws_for_a_skip_only_visible_in_structure_order(): void
+    {
+        // Painted: H1, H2, H3 (page 1), H4 (page 2): no skip. In the structure the H4 belongs to the section, right after its H2.
+        $doc = $this->small(
+            Text::h1('Top'),
+            Row::make(
+                Column::make(Section::make(Text::make(self::long()), Text::make('Late')->asHeading(4))->title('First')->heading(2)),
+                Column::make(Text::h3('Other')),
+            ),
+        );
+        $this->expectException(InvalidStructure::class);
+        $doc->toPdf(new PdfOptions(tagged: true, strict: true));
+    }
+
+    public function test_a_backend_that_cannot_tag_warns_and_writes_an_untagged_pdf(): void
+    {
+        $backend = new class (new PhpPdfBackend()) implements Backend {
+            public function __construct(private readonly PhpPdfBackend $inner)
+            {
+            }
+
+            public function loadFont(string $path): FontHandle
+            {
+                return $this->inner->loadFont($path);
+            }
+
+            public function loadImageFile(string $path): ImageHandle
+            {
+                return $this->inner->loadImageFile($path);
+            }
+
+            public function loadImageBytes(string $bytes): ImageHandle
+            {
+                return $this->inner->loadImageBytes($bytes);
+            }
+
+            public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string
+            {
+                return $this->inner->render($meta, $pages, $tagged);
+            }
+        };
+        $warnings = [];
+        $pdf = $this->document()->toPdf(new PdfOptions(onWarning: function (string $m) use (&$warnings): void {
+            $warnings[] = $m;
+        }, backend: $backend, tagged: true))->bytes();
+        self::assertCount(1, $warnings);
+        self::assertStringContainsString('cannot write a structure tree', $warnings[0]);
+        self::assertSame([], StructTree::of($pdf));
     }
 
     public function test_headings_are_checked_in_structure_order_when_a_section_continues_over_pages(): void

@@ -69,7 +69,9 @@ final class TocLayouter implements Layouter
         }
         $children = [];
         if ($toc->titleText() !== null) {
-            $children[] = Text::make($toc->titleText())->apply('toc.title')->keepWithNext();
+            $title = Text::make($toc->titleText())->apply('toc.title')->keepWithNext();
+            $engine->context()->markCaption($title);
+            $children[] = $title;
         }
         foreach ($entries as $entry) {
             $children[] = new TocLine($entry, $toc->hasLeaders());

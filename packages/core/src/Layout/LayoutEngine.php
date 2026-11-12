@@ -347,9 +347,9 @@ final class LayoutEngine
             return new Tag('Lbl', $key);
         }
         return match (true) {
-            // The contents list's title: a TOC holds only TOCI, TOC and Caption elements (PDF/UA-1 7.2).
-            $node instanceof Text && $this->parentIsToc() => new Tag('Caption', $key),
-            $node instanceof Text && $node->isHtmlCode() => new Tag('Code', $key),
+            // The contents list's title: tagged-PDF practice (ISO 32000-1 14.8.4.3) keeps a TOC to TOCI, TOC and Caption children.
+            $node instanceof Text && $this->ctx->isCaption($node) => new Tag('Caption', $key),
+            $node instanceof Text && $node->isHtmlCode() => new Tag('Code', $key, attributes: ['O' => 'Layout', 'Placement' => 'Block']),
             $node instanceof Text => new Tag(($level = HeadingText::level($node)) !== null ? 'H' . min(6, $level) : 'P', $key),
             $node instanceof View && $node->structRoleName() !== null => new Tag($node->structRoleName(), $key),
             $node instanceof Toc => new Tag('TOC', $key),
@@ -369,14 +369,6 @@ final class LayoutEngine
             $node instanceof PdfPage, $node instanceof Spacer => Tag::artifact($key),
             default => null,
         };
-    }
-
-    /** True when the node being laid out sits directly in a Toc (its title does). */
-    private function parentIsToc(): bool
-    {
-        $lineage = $this->ctx->lineage();
-        $parent = $lineage[count($lineage) - 2]['node'] ?? null;
-        return $parent instanceof Toc;
     }
 
     /** TH for a header cell (its scope a column in the header rows, a row elsewhere), TD otherwise; spans are attributes. */

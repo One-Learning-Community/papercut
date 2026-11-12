@@ -40,6 +40,9 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     /** @var array<string, PdfFormXObject> pages of other PDFs imported into the document being rendered, by handle id */
     private array $forms = [];
     /** The structure tree of the tagged PDF being rendered, built while drawing and written when it is done. */
+    /** Roles that only group other elements: with no tagged content in them, they are not elements. */
+    private const array GROUPING = ['Div', 'Sect', 'BlockQuote', 'TOC', 'TOCI', 'L', 'LI', 'LBody', 'Table', 'TR', 'Link'];
+
     private ?StructNode $root = null;
     /** @var list<array{level: int, text: string, page: int, key: string}> the last tagged render's headings, in structure order */
     private array $headings = [];
@@ -261,6 +264,11 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             $chain[] = $tag;
             $this->node($p, $chain, $column);
             $this->drawStructured($p, $h, $t->ops, $inherited, $chain);
+            return;
+        }
+        if (in_array($tag->role, self::GROUPING, true)) {
+            // A grouping element with nothing tagged inside is decoration (an empty card's border): no element, no content.
+            $this->drawArtifact($p, $h, $t->ops, $inherited, Tag::LAYOUT);
             return;
         }
         $parent = $this->node($p, $chain, $column);
