@@ -30,7 +30,7 @@ final class MarkedItemLayouter implements Layouter
             // The item's content gets its own group, so it is an LBody beside the marker's Lbl.
             $body = new Fragment($res->fragment->width, $res->fragment->height);
             $body->addChild(0.0, 0.0, $res->fragment);
-            $body->tag = new Tag('LBody', $engine->context()->path());
+            $body->tag = new Tag('LBody', $engine->context()->path() . ' > body');
         }
         $f = new Fragment($c->width, $body->height);
         if ($token === null && $item->marker !== null && $item->content->children() !== []) {

@@ -23,7 +23,7 @@ final readonly class PdfOptions extends ExportOptions
      * @param Encryption|null $encryption password protection and permissions; null writes an unencrypted PDF
      * @param bool $tagged writes an accessible PDF: a structure tree (headings, paragraphs, lists, tables, figures,
      *        links) and PDF/UA-1 identification. Needs a document title and language (`Document::title()`, `->lang()`).
-     *        Encrypted files keep the permission screen readers need
+     *        Encrypted files keep the permission screen readers need.
      */
     public function __construct(
         ?Theme $theme = null,

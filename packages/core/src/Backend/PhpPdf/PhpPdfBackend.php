@@ -16,7 +16,7 @@ use Papercut\Backend\Backend;
 use Papercut\Backend\FontHandle;
 use Papercut\Backend\ImageHandle;
 use Papercut\Backend\ImageFormat;
-use Papercut\Backend\{PdfPageHandle, PdfPageLoader};
+use Papercut\Backend\{PdfPageHandle, PdfPageLoader, TaggingCapability};
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Exception\PdfUnreadable;
@@ -30,17 +30,19 @@ use Papercut\Value\Color;
  * `PdfOptions(backend:)` is supported (for example to cache fonts as PHP files for opcache). Its other
  * methods are internal and may change in any release.
  */
-final class PhpPdfBackend implements Backend, PdfPageLoader
+final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
 {
     /** The document being rendered, for outline entries. */
     private ?PdfDocument $doc = null;
     private int $outlineLevel = 0;
-    /** True while rendering a tagged PDF, so links are placed in the structure. */
-    private bool $tagging = false;
     /** @var array<string, bool> anchors in the document being rendered; true once registered */
     private array $destinations = [];
     /** @var array<string, PdfFormXObject> pages of other PDFs imported into the document being rendered, by handle id */
     private array $forms = [];
+    /** The structure tree of the tagged PDF being rendered, built while drawing and written when it is done. */
+    private ?StructNode $root = null;
+    /** True while a leaf's own links are placed in the structure, so drawing leaves them out. */
+    private bool $skipLinks = false;
     private const array TEXT_STATE_PROPERTIES = ['lastFillR', 'lastFillG', 'lastFillB', 'lastCharSpacing'];
 
     /** @var array<string, PhpPdfFont> */
@@ -158,11 +160,9 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         if ($meta->lang !== null) {
             $doc->setLang($meta->lang);
         }
-        $this->open = [];
-        $this->tagging = $tagged;
+        $this->root = null;
         if ($tagged) {
             $doc->enablePdfUa();
-            $doc->setViewerPreferences(['displayDocTitle' => true]);
             $doc->useObjectStreams();
         }
         if ($meta->encryption !== null) {
@@ -170,137 +170,222 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
             $doc->encrypt($e->userPassword, $e->ownerPassword, self::permissions($e), EncryptionAlgorithm::Aes_256_R6);
         }
         try {
-            $first = true;
             foreach ($pages as $page) {
                 $pdfPage = $doc->addPage(customDimensionsPt: [$page->width, $page->height]);
                 if ($tagged) {
-                    if ($first) {
-                        $doc->beginStructContainer('Document', $pdfPage);
-                        $first = false;
-                    }
+                    $this->root ??= StructNode::root($pdfPage);
                     $pdfPage->setTabOrder('S');
-                    $this->drawStructured($pdfPage, $page->height, $page->ops);
+                    $this->drawStructured($pdfPage, $page->height, $page->ops, 1.0);
                 } else {
                     $this->drawOps($pdfPage, $page->height, $page->ops);
                 }
             }
             if ($tagged) {
-                foreach ($this->open as $_) {
-                    $doc->endStructContainer();
-                }
-                $doc->endStructContainer();
-                $this->open = [];
+                \assert($this->root !== null);
+                $this->writeStructure($doc, $this->root);
             }
             return $doc->toBytes();
         } finally {
             $this->doc = null;
-            $this->tagging = false;
+            $this->root = null;
             $this->forms = [];
             $this->destinations = [];
         }
     }
 
-    /** @var list<string> keys of the structure containers open below Document, outermost first */
-    private array $open = [];
+    /** @return list<string> */
+    public function taggingMissing(): array
+    {
+        return TaggingSupport::missing();
+    }
 
     /**
      * Draws ops as structure. Tagged groups become containers (when they hold other tagged
      * groups) or leaves (one marked-content sequence); untagged drawing is marked as an artifact.
+     * $chain is the enclosing groups' tags, outermost first.
      *
      * @param list<Op> $ops
+     * @param list<Tag> $chain
      */
-    private function drawStructured(PdfPage $p, float $h, array $ops, float $inherited = 1.0): void
+    private function drawStructured(PdfPage $p, float $h, array $ops, float $inherited, array $chain = []): void
     {
         foreach ($ops as $op) {
             if ($op instanceof Tagged) {
-                $this->drawTagged($p, $h, $op, $inherited);
+                $this->drawTagged($p, $h, $op, $inherited, $chain);
             } elseif ($op instanceof Clip) {
-                $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawStructured($p, $h, $op->ops, $inherited)));
+                $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawStructured($p, $h, $op->ops, $inherited, $chain)));
             } elseif ($op instanceof Opacity) {
-                if ($op->alpha <= 0.0) {
-                    continue;
-                }
-                if ($op->alpha >= 1.0) {
-                    $this->drawStructured($p, $h, $op->ops, $inherited);
-                    continue;
-                }
-                $effective = $inherited * $op->alpha;
-                $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, fn () => $this->drawStructured($p, $h, $op->ops, $effective)));
+                $this->drawOpacity($p, $h, $op, $inherited, fn (array $inner, float $alpha) => $this->drawStructured($p, $h, $inner, $alpha, $chain));
             } elseif ($op instanceof Link) {
-                $this->drawLink($p, $h, $op);
+                $this->node($p, $chain)->link($p, $this->linkFor($h, $op, $ops));
             } elseif ($op instanceof Bookmark || $op instanceof Anchor) {
                 $this->drawOps($p, $h, [$op], $inherited);
             } else {
-                $p->beginArtifact('Layout');
-                $this->drawOps($p, $h, [$op], $inherited);
-                $p->endMarkedContent();
+                $this->drawArtifact($p, $h, [$op], $inherited, Tag::LAYOUT);
             }
         }
     }
 
-    /** Draws one tagged group as a container (it holds other tagged groups) or a leaf (one marked-content sequence). */
-    private function drawTagged(PdfPage $p, float $h, Tagged $t, float $inherited): void
+    /**
+     * Draws one tagged group as a container (it holds other tagged groups, or nothing) or a leaf (one
+     * marked-content sequence). A cell with a home row belongs in that row though it is drawn after the rows.
+     *
+     * @param list<Tag> $chain
+     */
+    private function drawTagged(PdfPage $p, float $h, Tagged $t, float $inherited, array $chain): void
     {
-        $doc = $this->doc;
-        \assert($doc !== null);
         $tag = $t->tag;
         if ($tag->role === Tag::ARTIFACT) {
-            $p->beginArtifact('Pagination');
-            $this->drawOps($p, $h, $t->ops, $inherited);
-            $p->endMarkedContent();
+            $this->drawArtifact($p, $h, $t->ops, $inherited, $tag->artifactType);
             return;
         }
-        $role = $tag->role;
-        if (self::holdsTags($t->ops)) {
-            $this->closeTo($tag->key);
-            if (end($this->open) !== $tag->key . "\0" . $tag->role) {
-                $doc->beginStructContainer($role, $p, $tag->attributes);
-                $this->open[] = $tag->key . "\0" . $tag->role;
-            }
-            $this->drawStructured($p, $h, $t->ops, $inherited);
+        $column = null;
+        if ($tag->home !== null) {
+            $chain[] = new Tag('TR', $tag->home);
+            $column = $tag->column();
+        }
+        if ($t->ops === [] || self::holdsTags($t->ops)) {
+            $chain[] = $tag;
+            $this->node($p, $chain, $column);
+            $this->drawStructured($p, $h, $t->ops, $inherited, $chain);
             return;
         }
-        $this->closeTo($tag->key);
+        $parent = $this->node($p, $chain, $column);
         $mcid = $p->nextMcid();
-        $doc->addStructElement($role, $mcid, $p, $tag->alt, $tag->attributes);
+        $parent->leaf($tag->role, $p, $mcid, $tag->alt, $tag->attributes);
+        foreach (self::linkOps($t->ops) as $link) {
+            $parent->link($p, $this->linkFor($h, $link, $t->ops));
+        }
         $p->beginMarkedContent($tag->role, $mcid);
-        $this->drawOps($p, $h, $t->ops, $inherited);
+        $this->skipLinks = true;
+        try {
+            $this->drawOps($p, $h, $t->ops, $inherited);
+        } finally {
+            $this->skipLinks = false;
+        }
         $p->endMarkedContent();
     }
 
-    /** A link with a description, placed in the structure where it is drawn. */
-    private function drawLink(PdfPage $p, float $h, Link $op): void
+    /**
+     * The element for the groups in $chain, made (with its ancestors) when it is not there yet.
+     *
+     * @param list<Tag> $chain
+     */
+    private function node(PdfPage $p, array $chain, ?int $column = null): StructNode
     {
-        $y = $h - $op->y - $op->height;
-        $internal = $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]);
-        $internal
-            ? $p->addInternalLink($op->x, $y, $op->width, $op->height, substr($op->uri, 1), 'Go to ' . substr($op->uri, 1))
-            : $p->addExternalLink($op->x, $y, $op->width, $op->height, $op->uri, $op->uri);
-        $this->doc?->placeLinkInStructure($p);
+        \assert($this->root !== null);
+        $node = $this->root;
+        $last = count($chain) - 1;
+        foreach ($chain as $i => $tag) {
+            $node = $node->container($tag, $p, $i === $last ? $column : null);
+        }
+        return $node;
     }
 
-    /** Closes open containers that are not ancestors of (or the same element as) $key. */
-    private function closeTo(string $key): void
+    /** @param list<Op> $ops */
+    private function drawArtifact(PdfPage $p, float $h, array $ops, float $inherited, string $type): void
     {
-        while ($this->open !== []) {
-            $top = strstr(end($this->open), "\0", true);
-            if ($top === $key || str_starts_with($key, $top . ' > ')) {
-                return;
-            }
-            array_pop($this->open);
-            $this->doc?->endStructContainer();
+        $p->beginArtifact($type);
+        try {
+            $this->drawOps($p, $h, $ops, $inherited);
+        } finally {
+            $p->endMarkedContent();
         }
+    }
+
+    /**
+     * A link as the structure keeps it, described by the text it covers (taken from $scope). php-pdf joins a link
+     * inside a Link container to that element, so the element holds the text and the annotation.
+     *
+     * @param list<Op> $scope
+     * @return array{x: float, y: float, width: float, height: float, uri: string, internal: bool, contents: string}
+     */
+    private function linkFor(float $h, Link $op, array $scope): array
+    {
+        $text = self::textUnder($scope, $op);
+        $internal = $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]);
+        return [
+            'x' => $op->x,
+            'y' => $h - $op->y - $op->height,
+            'width' => $op->width,
+            'height' => $op->height,
+            'uri' => $internal ? substr($op->uri, 1) : $op->uri,
+            'internal' => $internal,
+            'contents' => $text !== '' ? $text : ($internal ? 'Link' : $op->uri),
+        ];
+    }
+
+    /**
+     * Writes the structure tree to php-pdf, adding the link annotations where the links belong.
+     */
+    private function writeStructure(PdfDocument $doc, StructNode $node): void
+    {
+        match ($node->kind) {
+            StructNode::LEAF => $doc->addStructElement($node->role, (int) $node->mcid, $node->page, $node->alt, $node->attributes),
+            StructNode::LINK => $this->writeLink($doc, $node),
+            default => $this->writeContainer($doc, $node),
+        };
+    }
+
+    private function writeContainer(PdfDocument $doc, StructNode $node): void
+    {
+        $doc->beginStructContainer($node->role, $node->page, $node->attributes);
+        foreach ($node->children as $child) {
+            $this->writeStructure($doc, $child);
+        }
+        $doc->endStructContainer();
+    }
+
+    private function writeLink(PdfDocument $doc, StructNode $node): void
+    {
+        $l = $node->link;
+        \assert($l !== null);
+        $l['internal']
+            ? $node->page->addInternalLink($l['x'], $l['y'], $l['width'], $l['height'], $l['uri'], $l['contents'])
+            : $node->page->addExternalLink($l['x'], $l['y'], $l['width'], $l['height'], $l['uri'], $l['contents']);
+        $doc->placeLinkInStructure($node->page);
+    }
+
+    /**
+     * @param list<Op> $ops
+     */
+    private static function textUnder(array $ops, Link $link): string
+    {
+        $text = '';
+        foreach ($ops as $op) {
+            if ($op instanceof TextRun) {
+                if ($op->x >= $link->x - 1.0 && $op->x <= $link->x + $link->width && $op->baseline >= $link->y && $op->baseline <= $link->y + $link->height + 1.0) {
+                    $text .= $op->text;
+                }
+            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
+                $text .= self::textUnder($op->ops, $link);
+            }
+        }
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
+    }
+
+    /**
+     * @param list<Op> $ops
+     * @return list<Link>
+     */
+    private static function linkOps(array $ops): array
+    {
+        $found = [];
+        foreach ($ops as $op) {
+            if ($op instanceof Link) {
+                $found[] = $op;
+            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
+                array_push($found, ...self::linkOps($op->ops));
+            }
+        }
+        return $found;
     }
 
     /** @param list<Op> $ops */
     private static function holdsTags(array $ops): bool
     {
         foreach ($ops as $op) {
-            if ($op instanceof Tagged) {
-                if ($op->tag->role !== Tag::ARTIFACT) {
-                    return true;
-                }
-            } elseif (($op instanceof Clip || $op instanceof Opacity) && self::holdsTags($op->ops)) {
+            if ($op instanceof Tagged || (($op instanceof Clip || $op instanceof Opacity) && self::holdsTags($op->ops))) {
                 return true;
             }
         }
@@ -338,8 +423,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
                 $op instanceof Tagged => $this->drawOps($p, $h, $op->ops, $inherited),
                 $op instanceof Bookmark => $this->bookmark($p, $h, $op),
                 $op instanceof Anchor => $this->registerDestination($p, $h, $op),
-                $op instanceof Link && $this->tagging => $this->drawLink($p, $h, $op),
-                                // A #name link whose name matches a registered anchor becomes an internal link.
+                $op instanceof Link && $this->skipLinks => null,
+                // A #name link whose name matches a registered anchor becomes an internal link.
                 $op instanceof Link && $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]) => $p->addInternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, substr($op->uri, 1)),
                 $op instanceof Link => $p->addExternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, $op->uri),
                 default => throw new \LogicException('Unsupported op ' . $op::class),
@@ -427,18 +512,20 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
             : $p->strokeLine($l->x1, $h - $l->y1, $l->x2, $h - $l->y2, $l->width, $r, $g, $b));
     }
 
-    private function drawOpacity(PdfPage $p, float $h, Opacity $op, float $inherited): void
+    /** @param (\Closure(list<Op>, float): void)|null $draw draws the group's ops at the given inherited opacity; plain ops by default */
+    private function drawOpacity(PdfPage $p, float $h, Opacity $op, float $inherited, ?\Closure $draw = null): void
     {
+        $draw ??= fn (array $ops, float $alpha) => $this->drawOps($p, $h, array_values($ops), $alpha);
         if ($op->alpha <= 0.0) {
             return;
         }
         if ($op->alpha >= 1.0) {
-            $this->drawOps($p, $h, $op->ops, $inherited);
+            $draw($op->ops, $inherited);
             return;
         }
         // PDF /ca replaces rather than multiplies, so compose nested alphas ourselves.
         $effective = $inherited * $op->alpha;
-        $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, fn () => $this->drawOps($p, $h, $op->ops, $effective)));
+        $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, fn () => $draw($op->ops, $effective)));
     }
 
     private function withAlpha(PdfPage $p, Color $c, float $inherited, \Closure $draw): void

@@ -52,7 +52,8 @@ final class StructTree
     {
         $out = [];
         if (preg_match('/^  \/K \[\n(.*?)\n  \]$/ms', $body, $m) === 1) {
-            preg_match_all('/(\d+) 0 R/', $m[1], $refs);
+            // Inline dictionaries are object references (OBJR), not child elements.
+            preg_match_all('/(\d+) 0 R/', (string) preg_replace('/<<.*?>>/s', '', $m[1]), $refs);
             foreach ($refs[1] as $ref) {
                 $out[] = $this->element((int) $ref);
             }
@@ -62,17 +63,27 @@ final class StructTree
         return $out;
     }
 
+    /** The /Alt text of an element, which php-pdf writes as UTF-16 hex. */
+    private static function alt(string $body): ?string
+    {
+        if (preg_match('/^  \/Alt <([0-9a-fA-F]+)>$/m', $body, $m) === 1) {
+            $bytes = (string) hex2bin($m[1]);
+            return mb_convert_encoding(str_starts_with($bytes, "\xFE\xFF") ? substr($bytes, 2) : $bytes, 'UTF-8', 'UTF-16BE');
+        }
+        return preg_match('/^  \/Alt \((.*)\)$/m', $body, $m) === 1 ? $m[1] : null;
+    }
+
     /** @return array<string, mixed> */
     private function element(int $n): array
     {
         $body = $this->objects[$n];
         preg_match('/^  \/S \/(\w+)$/m', $body, $role);
-        preg_match('/^  \/Alt \((.*)\)$/m', $body, $alt);
+        $alt = self::alt($body);
         preg_match('/^  \/A <<\n(.*?)\n  >>$/ms', $body, $attrs);
         return [
             'role' => $role[1] ?? '?',
             'kids' => $this->kids($body),
-            'alt' => $alt[1] ?? null,
+            'alt' => $alt,
             'attrs' => isset($attrs[1]) ? trim((string) preg_replace('/\s+/', ' ', $attrs[1])) : null,
             'objr' => str_contains($body, '/Type /OBJR'),
         ];

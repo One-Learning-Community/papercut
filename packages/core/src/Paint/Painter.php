@@ -100,7 +100,9 @@ final class Painter
                 if ($inner !== null) {
                     $changed = true;
                     if ($inner === []) {
-                        continue; // a group around nothing is left out, as flatten() leaves out one with no ops
+                        if (!($op instanceof Tagged && $op->tag->keepsWhenEmpty())) {
+                            continue; // a group around nothing is left out, as flatten() leaves out one with no ops
+                        }
                     }
                     $op = match (true) {
                         $op instanceof Clip => new Clip($op->x, $op->y, $op->width, $op->height, $inner),
@@ -190,7 +192,7 @@ final class Painter
         if ($f->opacity !== null && $ops !== []) {
             $ops = [new Opacity($f->opacity, $ops)];
         }
-        if ($f->tag !== null && $ops !== []) {
+        if ($f->tag !== null && ($ops !== [] || $f->tag->keepsWhenEmpty())) {
             $ops = [new Tagged($f->tag, $ops)];
         }
         return $ops;

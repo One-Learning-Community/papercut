@@ -40,11 +40,11 @@ final class Image implements Styled
         return $clone;
     }
 
-    /** Alternative text for screen readers (tagged PDF); null or empty leaves the image decorative. */
+    /** Alternative text for screen readers (tagged PDF); null or blank leaves the image decorative. */
     public function alt(?string $alt): self
     {
         $clone = clone $this;
-        $clone->altText = $alt;
+        $clone->altText = $alt === null || trim($alt) === '' ? null : trim($alt);
         return $clone;
     }
 

@@ -153,7 +153,7 @@ final class TableLayouter implements Layouter
             if (!$first && $engine->context()->tagged) {
                 // A repeated header is pagination, not content.
                 foreach ($headerRows as $hr) {
-                    $hr['fragment']->tag = new Tag(Tag::ARTIFACT, 'repeated-header');
+                    $hr['fragment']->tag = Tag::artifact('repeated-header');
                 }
             }
         }
@@ -1115,6 +1115,9 @@ final class TableLayouter implements Layouter
                 $reach = max($reach, $child['y'] + $cell['y'] + $cell['fragment']->height);
             }
         }
+        if ($engine->context()->tagged) {
+            $overlay = self::homeSpanningCells($rows, $overlay);
+        }
         foreach ([...$rows, ...$overlay] as $child) {
             $fragment->addChild($child['x'], $child['y'], $child['fragment']);
             $reach = max($reach, $child['y'] + $child['fragment']->height);
@@ -1242,6 +1245,36 @@ final class TableLayouter implements Layouter
             $fragment = self::rowFragment($rowStyle, $grid['width'], $split['height'], $cells, $first, !$pending, self::rowKey($engine));
             return ['height' => $fragment->height, 'tokens' => $split['tokens'], 'fragment' => $fragment];
         });
+    }
+
+    /**
+     * Cells that span rows are painted over the rows, after them; in the structure they belong in the row they start in.
+     * Marks each with that row's key, when the row is in this fragment.
+     *
+     * @param list<array{x: float, y: float, fragment: Fragment}> $rows
+     * @param list<array{x: float, y: float, fragment: Fragment}> $overlay
+     * @return list<array{x: float, y: float, fragment: Fragment}>
+     */
+    private static function homeSpanningCells(array $rows, array $overlay): array
+    {
+        $rowKeys = [];
+        foreach ($rows as $row) {
+            if ($row['fragment']->tag !== null) {
+                $rowKeys[$row['fragment']->tag->key] = true;
+            }
+        }
+        foreach ($overlay as $entry) {
+            // A cell is laid out as its own tagged fragment, which may sit in a plain box that gives it its height.
+            $cell = $entry['fragment'];
+            while ($cell->tag === null && count($cell->children()) === 1) {
+                $cell = $cell->children()[0]['fragment'];
+            }
+            $tag = $cell->tag;
+            if ($tag !== null && $tag->keepsWhenEmpty() && preg_match('/^(.* > tr\[\d+\]) > t[dh]\[\d+\]$/', $tag->key, $m) === 1 && isset($rowKeys[$m[1]])) {
+                $cell->tag = $tag->homedIn($m[1]);
+            }
+        }
+        return $overlay;
     }
 
     /** The key of a row's tag: the table's path plus $suffix, or null when not tagging. */

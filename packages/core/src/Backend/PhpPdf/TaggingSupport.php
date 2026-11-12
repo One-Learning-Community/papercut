@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Backend\PhpPdf;
 
 use Dskripchenko\PhpPdf\Pdf\Document as PdfDocument;
+use Dskripchenko\PhpPdf\Pdf\Page as PdfPage;
 
 /**
  * Whether the installed php-pdf can write a tagged PDF. Tagging needs methods that older releases
@@ -14,32 +15,33 @@ use Dskripchenko\PhpPdf\Pdf\Document as PdfDocument;
  */
 final class TaggingSupport
 {
-    /** php-pdf's document class to inspect; a test points it at a stand-in to simulate an old release. */
-    public static string $documentClass = PdfDocument::class;
-
-    /** Methods tagging calls, with the number of parameters each needs. */
+    /** Methods tagging calls, by class, with the number of parameters each needs. */
     private const array REQUIRED = [
-        'enablePdfUa' => 0,
-        'addStructElement' => 5,
-        'beginStructContainer' => 3,
-        'endStructContainer' => 0,
-        'placeLinkInStructure' => 1,
+        [PdfDocument::class, 'enablePdfUa', 0],
+        [PdfDocument::class, 'addStructElement', 5],
+        [PdfDocument::class, 'beginStructContainer', 3],
+        [PdfDocument::class, 'endStructContainer', 0],
+        [PdfDocument::class, 'placeLinkInStructure', 1],
+        [PdfPage::class, 'addExternalLink', 6],
+        [PdfPage::class, 'addInternalLink', 6],
     ];
 
-    /** @return list<string> the methods the installed php-pdf lacks (or has without the parameters tagging passes) */
-    public static function missing(): array
+    /**
+     * The methods missing from php-pdf's classes (or present without the parameters tagging passes).
+     * $classes maps a class to the one to inspect in its place, so a test can stand in an old release.
+     *
+     * @param array<class-string, string> $classes
+     * @return list<string>
+     */
+    public static function missing(array $classes = []): array
     {
         $missing = [];
-        foreach (self::REQUIRED as $method => $parameters) {
-            if (!method_exists(self::$documentClass, $method) || (new \ReflectionMethod(self::$documentClass, $method))->getNumberOfParameters() < $parameters) {
+        foreach (self::REQUIRED as [$class, $method, $parameters]) {
+            $class = $classes[$class] ?? $class;
+            if (!method_exists($class, $method) || (new \ReflectionMethod($class, $method))->getNumberOfParameters() < $parameters) {
                 $missing[] = $method;
             }
         }
         return $missing;
-    }
-
-    public static function available(): bool
-    {
-        return self::missing() === [];
     }
 }

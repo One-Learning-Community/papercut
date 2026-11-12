@@ -115,9 +115,7 @@ final class LayoutEngine
             $pushed = true;
             $layouter = $this->layouterFor($node, $style);
             $result = $layouter->layout($node, $style, $c, $token, $this);
-            if ($this->ctx->tagged && $result->fragment !== null && $result->fragment->tag === null) {
-                $result->fragment->tag = $this->tagFor($node, $pathName);
-            }
+            $this->tag($result, $node, $pathName);
             if ($token === null && $this->ctx->bookmarks && $result->fragment !== null) {
                 $bookmark = self::bookmark($node, $style);
                 if ($bookmark !== null) {
@@ -135,6 +133,7 @@ final class LayoutEngine
                     ? $this->clipped($layouter, $node, $style, $c, $token)
                     : null;
                 if ($clipped !== null) {
+                    $this->tag($clipped, $node, $pathName);
                     return $clipped;
                 }
                 $this->recordFailure();
@@ -325,30 +324,57 @@ final class LayoutEngine
         return $style;
     }
 
+    /** Gives the result's fragment its structure role when tagging, unless a layouter already did. */
+    private function tag(LayoutResult $result, Node $node, ?string $pathName): void
+    {
+        if ($this->ctx->tagged && $result->fragment !== null && $result->fragment->tag === null) {
+            $result->fragment->tag = $this->tagFor($node, $pathName);
+        }
+    }
+
     /** The structure role of a node's fragment, or null for none (its content joins the parent). */
     private function tagFor(Node $node, ?string $pathName): ?Tag
     {
         $key = $this->ctx->path();
-        if ($this->ctx->region !== Region::Body) {
-            return new Tag(Tag::ARTIFACT, $key);
+        $region = $this->ctx->region;
+        if ($region !== Region::Body) {
+            return Tag::artifact($key, match (true) {
+                $region === Region::Background || $region === Region::Overlay => Tag::BACKGROUND,
+                default => Tag::PAGINATION,
+            });
         }
         if ($pathName === 'marker') {
             return new Tag('Lbl', $key);
         }
         return match (true) {
             $node instanceof Text => new Tag(($level = HeadingText::level($node)) !== null ? 'H' . min(6, $level) : 'P', $key),
+            $node instanceof Link => new Tag('Link', $key),
             $node instanceof ListNode => new Tag('L', $key),
             $node instanceof MarkedItem => new Tag('LI', $key),
             $node instanceof Table => new Tag('Table', $key),
-            $node instanceof TableCell => $node->header() || $this->ctx->inHeaderRow
-                ? new Tag('TH', $key, attributes: ['O' => 'Table', 'Scope' => 'Column'])
-                : new Tag('TD', $key),
-            $node instanceof Image => $node->altText() !== null && $node->altText() !== ''
+            $node instanceof TableCell => $this->cellTag($node, $key),
+            $node instanceof Image => $node->altText() !== null
                 ? new Tag('Figure', $key, alt: $node->altText())
-                : new Tag(Tag::ARTIFACT, $key),
-            $node instanceof Svg, $node instanceof QrCode, $node instanceof PdfPage, $node instanceof Spacer => new Tag(Tag::ARTIFACT, $key),
+                : Tag::artifact($key),
+            $node instanceof Svg, $node instanceof QrCode, $node instanceof PdfPage, $node instanceof Spacer => Tag::artifact($key),
             default => null,
         };
+    }
+
+    /** TH for a header cell (its scope a column in the header rows, a row elsewhere), TD otherwise; spans are attributes. */
+    private function cellTag(TableCell $cell, string $key): Tag
+    {
+        $header = $cell->header() || $this->ctx->inHeaderRow;
+        $attributes = [];
+        if ($header) {
+            $attributes = ['O' => 'Table', 'Scope' => $this->ctx->inHeaderRow ? 'Column' : 'Row'];
+        }
+        foreach (['ColSpan' => $cell->colsSpanned(), 'RowSpan' => $cell->rowsSpanned()] as $name => $span) {
+            if ($span > 1) {
+                $attributes = ['O' => 'Table'] + $attributes + [$name => $span];
+            }
+        }
+        return new Tag($header ? 'TH' : 'TD', $key, attributes: $attributes);
     }
 
     /** A heading's automatic bookmark, or the one set with bookmark(); placed on the block's first fragment only. */

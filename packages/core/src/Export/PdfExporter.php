@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Export;
 
+use Papercut\Backend\{Backend, TaggingCapability};
 use Papercut\Document;
-use Papercut\Backend\PhpPdf\TaggingSupport;
 use Papercut\Exception\{InvalidStructure, UnsupportedFeature};
 use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
 use Papercut\Paint\{Clip, Op, Opacity, PageDisplayList, Painter, Tagged, TextRun};
@@ -23,8 +23,8 @@ final class PdfExporter implements Exporter
     public function export(Document $doc, ExportOptions $options): Output
     {
         $options = PdfOptions::from($options);
-        $tagged = $options->tagged() && self::canTag($doc, $options);
         $backend = $options->backend();
+        $tagged = $options->tagged() && self::requireTaggable($doc, $options, $backend);
         $fonts = $options->fonts();
         $themes = PageThemes::for($options->theme(), $doc);
         NoteReporter::report($doc, $themes, new Fidelity('pdf', $options));
@@ -53,12 +53,13 @@ final class PdfExporter implements Exporter
     }
 
     /**
-     * Whether a tagged PDF can be written: the document needs a title and a language, and php-pdf the methods
-     * tagging uses. Without those, warns and writes an untagged PDF.
+     * Whether a tagged PDF can be written: the document needs a title and a language, and the backend what
+     * tagging uses. Without that, warns and writes an untagged PDF.
      *
      * @throws InvalidStructure for a missing title or language
+     * @throws UnsupportedFeature in strict mode when the backend cannot tag
      */
-    private static function canTag(Document $doc, PdfOptions $options): bool
+    private static function requireTaggable(Document $doc, PdfOptions $options, Backend $backend): bool
     {
         $meta = $doc->meta();
         if ($meta->title === null || trim($meta->title) === '') {
@@ -67,14 +68,14 @@ final class PdfExporter implements Exporter
         if ($meta->lang === null || trim($meta->lang) === '') {
             throw new InvalidStructure('A tagged PDF needs a document language: set one with Document::lang(), for example lang(\'en-US\').');
         }
-        $missing = TaggingSupport::missing();
+        $missing = $backend instanceof TaggingCapability ? $backend->taggingMissing() : [];
         if ($missing === []) {
             return true;
         }
-        (new Fidelity('pdf', $options))->warn(sprintf(
-            'pdf: tagged output skipped, the installed php-pdf lacks %s (update php-pdf); writing an untagged PDF',
-            implode(', ', $missing),
-        ));
+        (new Fidelity('pdf', $options))->dropped(
+            sprintf('tagged output (the installed php-pdf lacks %s; update php-pdf), writing an untagged PDF', implode(', ', $missing)),
+            'document',
+        );
         return false;
     }
 
