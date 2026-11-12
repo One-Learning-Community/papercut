@@ -32,7 +32,7 @@ final class FakeBackend implements Backend
         return $this->image(sha1($bytes));
     }
 
-    public function render(DocumentMeta $meta, array $pages): string
+    public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string
     {
         return serialize(array_map(static fn (PageDisplayList $p): array => [$p->width, $p->height, count($p->ops)], $pages));
     }

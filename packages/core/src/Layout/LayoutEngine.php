@@ -6,10 +6,10 @@ namespace Papercut\Layout;
 
 use Papercut\{ColumnBreak, Component, Image, Link, ListNode, Node, OverflowMode, PageBreak, PageNumber, PdfPage, Place, QrCode, Spacer, Svg, Table, TableCell, Text, Toc, View};
 use Papercut\Exception\{InvalidValue, UnknownAttribute};
-use Papercut\Paint\{Anchor, Bookmark};
+use Papercut\Paint\{Anchor, Bookmark, Tag};
 use Papercut\Style\{ComputedStyle, Direction};
 use Papercut\Toc\{HeadingText, TocLine};
-use Papercut\Tree\{Expander, NodePath};
+use Papercut\Tree\{Expander, NodePath, Region};
 use Papercut\Value\Auto;
 
 /**
@@ -115,7 +115,7 @@ final class LayoutEngine
             $pushed = true;
             $layouter = $this->layouterFor($node, $style);
             $result = $layouter->layout($node, $style, $c, $token, $this);
-            if ($result->fragment !== null && $result->fragment->tag === null) {
+            if ($this->ctx->tagged && $result->fragment !== null && $result->fragment->tag === null) {
                 $result->fragment->tag = $this->tagFor($node, $pathName);
             }
             if ($token === null && $this->ctx->bookmarks && $result->fragment !== null) {
@@ -325,33 +325,33 @@ final class LayoutEngine
         return $style;
     }
 
-    /** A heading's automatic bookmark, or the one set with bookmark(); placed on the block's first fragment only. */
-    /** SPIKE: the structure role of a node's fragment, or null for none (its content joins the parent). */
-    private function tagFor(Node $node, ?string $pathName): ?\Papercut\Paint\Tag
+    /** The structure role of a node's fragment, or null for none (its content joins the parent). */
+    private function tagFor(Node $node, ?string $pathName): ?Tag
     {
         $key = $this->ctx->path();
-        if ($this->ctx->region !== \Papercut\Tree\Region::Body) {
-            return new \Papercut\Paint\Tag(\Papercut\Paint\Tag::ARTIFACT, $key);
+        if ($this->ctx->region !== Region::Body) {
+            return new Tag(Tag::ARTIFACT, $key);
         }
         if ($pathName === 'marker') {
-            return new \Papercut\Paint\Tag('Lbl', $key);
+            return new Tag('Lbl', $key);
         }
         return match (true) {
-            $node instanceof Text => new \Papercut\Paint\Tag(($level = HeadingText::level($node)) !== null ? 'H' . min(6, $level) : 'P', $key),
-            $node instanceof ListNode => new \Papercut\Paint\Tag('L', $key),
-            $node instanceof MarkedItem => new \Papercut\Paint\Tag('LI', $key),
-            $node instanceof Table => new \Papercut\Paint\Tag('Table', $key),
+            $node instanceof Text => new Tag(($level = HeadingText::level($node)) !== null ? 'H' . min(6, $level) : 'P', $key),
+            $node instanceof ListNode => new Tag('L', $key),
+            $node instanceof MarkedItem => new Tag('LI', $key),
+            $node instanceof Table => new Tag('Table', $key),
             $node instanceof TableCell => $node->header() || $this->ctx->inHeaderRow
-                ? new \Papercut\Paint\Tag('TH', $key, attributes: '<< /O /Table /Scope /Column >>')
-                : new \Papercut\Paint\Tag('TD', $key),
+                ? new Tag('TH', $key, attributes: ['O' => 'Table', 'Scope' => 'Column'])
+                : new Tag('TD', $key),
             $node instanceof Image => $node->altText() !== null && $node->altText() !== ''
-                ? new \Papercut\Paint\Tag('Figure', $key, alt: $node->altText())
-                : new \Papercut\Paint\Tag(\Papercut\Paint\Tag::ARTIFACT, $key),
-            $node instanceof Svg, $node instanceof QrCode, $node instanceof PdfPage, $node instanceof Spacer => new \Papercut\Paint\Tag(\Papercut\Paint\Tag::ARTIFACT, $key),
+                ? new Tag('Figure', $key, alt: $node->altText())
+                : new Tag(Tag::ARTIFACT, $key),
+            $node instanceof Svg, $node instanceof QrCode, $node instanceof PdfPage, $node instanceof Spacer => new Tag(Tag::ARTIFACT, $key),
             default => null,
         };
     }
 
+    /** A heading's automatic bookmark, or the one set with bookmark(); placed on the block's first fragment only. */
     private static function bookmark(Node $node, ComputedStyle $style): ?Bookmark
     {
         $heading = $node instanceof Text ? HeadingText::level($node) : null;

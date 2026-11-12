@@ -21,8 +21,9 @@ interface Backend
 
     /**
      * @param list<PageDisplayList> $pages
+     * @param bool $tagged write a structure tree from the pages' Tagged groups, with PDF/UA-1 identification
      * @throws \InvalidArgumentException when $pages is empty
      * @throws \LogicException for a font/image handle from another backend or an unknown op type
      */
-    public function render(DocumentMeta $meta, array $pages): string;
+    public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string;
 }

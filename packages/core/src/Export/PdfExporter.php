@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Papercut\Export;
 
 use Papercut\Document;
-use Papercut\Exception\UnsupportedFeature;
+use Papercut\Backend\PhpPdf\TaggingSupport;
+use Papercut\Exception\{InvalidStructure, UnsupportedFeature};
 use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
 use Papercut\Paint\{Clip, Op, Opacity, PageDisplayList, Painter, Tagged, TextRun};
 use Papercut\Style\PageThemes;
@@ -22,6 +23,7 @@ final class PdfExporter implements Exporter
     public function export(Document $doc, ExportOptions $options): Output
     {
         $options = PdfOptions::from($options);
+        $tagged = $options->tagged() && self::canTag($doc, $options);
         $backend = $options->backend();
         $fonts = $options->fonts();
         $themes = PageThemes::for($options->theme(), $doc);
@@ -36,6 +38,7 @@ final class PdfExporter implements Exporter
         );
         $ctx->themes = $themes;
         $ctx->bookmarks = $options->bookmarks();
+        $ctx->tagged = $tagged;
         $ctx->strict = $options->strict();
         $ctx->toc = TocIndex::collect($doc, $themes);
         // Each page is painted as soon as it is laid out, so its layout is freed before the next page's.
@@ -46,7 +49,33 @@ final class PdfExporter implements Exporter
 
         $meta = $doc->meta()->withEncryption($options->encryption());
 
-        return new Output($backend->render($meta, $pages), 'application/pdf', 'pdf');
+        return new Output($backend->render($meta, $pages, $tagged), 'application/pdf', 'pdf');
+    }
+
+    /**
+     * Whether a tagged PDF can be written: the document needs a title and a language, and php-pdf the methods
+     * tagging uses. Without those, warns and writes an untagged PDF.
+     *
+     * @throws InvalidStructure for a missing title or language
+     */
+    private static function canTag(Document $doc, PdfOptions $options): bool
+    {
+        $meta = $doc->meta();
+        if ($meta->title === null || trim($meta->title) === '') {
+            throw new InvalidStructure('A tagged PDF needs a document title: set one with Document::title().');
+        }
+        if ($meta->lang === null || trim($meta->lang) === '') {
+            throw new InvalidStructure('A tagged PDF needs a document language: set one with Document::lang(), for example lang(\'en-US\').');
+        }
+        $missing = TaggingSupport::missing();
+        if ($missing === []) {
+            return true;
+        }
+        (new Fidelity('pdf', $options))->warn(sprintf(
+            'pdf: tagged output skipped, the installed php-pdf lacks %s (update php-pdf); writing an untagged PDF',
+            implode(', ', $missing),
+        ));
+        return false;
     }
 
     /**

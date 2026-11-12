@@ -40,7 +40,7 @@ final class Image implements Styled
         return $clone;
     }
 
-    /** SPIKE: alternative text; null leaves the image decorative (an artifact). */
+    /** Alternative text for screen readers (tagged PDF); null or empty leaves the image decorative. */
     public function alt(?string $alt): self
     {
         $clone = clone $this;
@@ -48,6 +48,7 @@ final class Image implements Styled
         return $clone;
     }
 
+    /** The alternative text, or null. */
     public function altText(): ?string
     {
         return $this->altText;

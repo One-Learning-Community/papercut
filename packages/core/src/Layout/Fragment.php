@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Layout;
 
-use Papercut\Paint\{Op, PageNumberSlot, TocSlot};
+use Papercut\Paint\{Op, PageNumberSlot, Tag, TocSlot};
 
 /**
  * A laid-out box in local coordinates (top-left origin). Mutable only while
@@ -24,8 +24,8 @@ final class Fragment
     private array $slots = [];
 
     public ?float $opacity = null;
-    /** SPIKE: structure role for tagged PDF */
-    public ?\Papercut\Paint\Tag $tag = null;
+    /** Structure role for tagged PDF; set only when tagging. */
+    public ?Tag $tag = null;
     /** @var ?array{float, float, float, float} local x, y, width, height */
     public ?array $clip = null;
 

@@ -6,6 +6,7 @@ namespace Papercut\Layout;
 
 use Papercut\{Node, OverflowMode, Table, TableCell, TableRow, View};
 use Papercut\Exception\{LayoutOverflow, UnknownAttribute};
+use Papercut\Paint\Tag;
 use Papercut\Style\{ComputedStyle, Justify, Style, Theme};
 use Papercut\Value\{Auto, Fr, Length, Percent};
 
@@ -107,7 +108,7 @@ final class TableLayouter implements Layouter
         }
     }
 
-    /** SPIKE: the table being laid out, for header-row tagging */
+    /** The table being laid out, to tell its header rows when tagging. */
     private ?Table $current = null;
 
     /**
@@ -149,10 +150,10 @@ final class TableLayouter implements Layouter
                 $end = $tableGrid->groupEnd($r);
                 $headerRows[] = $this->measureUnit($table, $r, $end, $grid, $style, $c->fresh && $headerRows === [], $engine);
             }
-            if (!$first) {
-                // SPIKE: a repeated header is pagination, not content
+            if (!$first && $engine->context()->tagged) {
+                // A repeated header is pagination, not content.
                 foreach ($headerRows as $hr) {
-                    $hr['fragment']->tag = new \Papercut\Paint\Tag(\Papercut\Paint\Tag::ARTIFACT, 'repeated-header');
+                    $hr['fragment']->tag = new Tag(Tag::ARTIFACT, 'repeated-header');
                 }
             }
         }
@@ -752,7 +753,7 @@ final class TableLayouter implements Layouter
             foreach ($cellsOf as $j => $cell) {
                 $cells[] = ['x' => $slots[$j]['x'], 'fragment' => $this->stretch($cell, $j, $frags[$j], $slots[$j]['width'], $height, $rowStyle, $fresh, $engine)];
             }
-            $fragment = self::rowFragment($rowStyle, $grid['width'], $height, $cells, true, true, $engine->context()->path());
+            $fragment = self::rowFragment($rowStyle, $grid['width'], $height, $cells, true, true, self::rowKey($engine));
             return ['height' => $fragment->height, 'fragment' => $fragment];
         });
     }
@@ -1045,7 +1046,7 @@ final class TableLayouter implements Layouter
                     $placedCells[] = ['x' => $slots[$r][$cells[$o]->index]['x'], 'fragment' => $stretchCell($o, $frags[$o], $heights[$r], $fresh && $r === $from, $r === $fit && $rowPending)];
                     $state[$o] = null;
                 }
-                $row = self::rowFragment($rowStyles[$r], $grid['width'], $heights[$r], $placedCells, $topOf($r), !($r === $fit && $rowPending), $engine->context()->path() . sprintf(' > tr[%d]', $r));
+                $row = self::rowFragment($rowStyles[$r], $grid['width'], $heights[$r], $placedCells, $topOf($r), !($r === $fit && $rowPending), self::rowKey($engine, sprintf(' > tr[%d]', $r)));
                 $rows[] = ['x' => 0.0, 'y' => $ys[$r], 'fragment' => $row];
                 $height = $ys[$r] + $row->height;
             }
@@ -1100,7 +1101,7 @@ final class TableLayouter implements Layouter
                     $overlay[] = ['x' => $ox($o), 'y' => $top, 'fragment' => $f];
                 }
             }
-            $row = self::rowFragment($rs, $grid['width'], $sliceHeight, $sliceCells, $topOf($from), !$rowPending, $engine->context()->path() . sprintf(' > tr[%d]', $from));
+            $row = self::rowFragment($rs, $grid['width'], $sliceHeight, $sliceCells, $topOf($from), !$rowPending, self::rowKey($engine, sprintf(' > tr[%d]', $from)));
             $rows[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $row];
             $height = $row->height;
         }
@@ -1238,9 +1239,15 @@ final class TableLayouter implements Layouter
                 }
                 $cells[] = ['x' => $slot['x'], 'fragment' => $f];
             }
-            $fragment = self::rowFragment($rowStyle, $grid['width'], $split['height'], $cells, $first, !$pending, $engine->context()->path());
+            $fragment = self::rowFragment($rowStyle, $grid['width'], $split['height'], $cells, $first, !$pending, self::rowKey($engine));
             return ['height' => $fragment->height, 'tokens' => $split['tokens'], 'fragment' => $fragment];
         });
+    }
+
+    /** The key of a row's tag: the table's path plus $suffix, or null when not tagging. */
+    private static function rowKey(LayoutEngine $engine, string $suffix = ''): ?string
+    {
+        return $engine->context()->tagged ? $engine->context()->path() . $suffix : null;
     }
 
     /**
@@ -1253,7 +1260,7 @@ final class TableLayouter implements Layouter
     {
         $f = new Fragment($width, BoxGeometry::outerHeight($rowStyle, $contentHeight, $first, $last));
         if ($key !== null) {
-            $f->tag = new \Papercut\Paint\Tag('TR', $key);
+            $f->tag = new Tag('TR', $key);
         }
         BoxGeometry::decorate($f, $rowStyle, $first, $last);
         $ox = $rowStyle->borderWidth->left->points + $rowStyle->padding->left->points;
@@ -1312,7 +1319,9 @@ final class TableLayouter implements Layouter
         $ctx = $engine->context();
         $ctx->pushPath(sprintf('tr[%d]', $r));
         $wasHeader = $ctx->inHeaderRow;
-        $ctx->inHeaderRow = $this->current !== null && $r < count($this->current->headerRows());
+        if ($ctx->tagged) {
+            $ctx->inHeaderRow = $this->current !== null && $r < count($this->current->headerRows());
+        }
         try {
             return $fn($rowStyle);
         } finally {

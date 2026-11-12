@@ -20,6 +20,7 @@ use Papercut\Backend\{PdfPageHandle, PdfPageLoader};
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Exception\PdfUnreadable;
+use Papercut\Export\Encryption;
 use Papercut\Paint\{Anchor, Bookmark, Clip, DocumentMeta, DrawImage, DrawPdfPage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, Tag, Tagged, TextRun};
 use Papercut\Text\CachedFont;
 use Papercut\Value\Color;
@@ -34,6 +35,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
     /** The document being rendered, for outline entries. */
     private ?PdfDocument $doc = null;
     private int $outlineLevel = 0;
+    /** True while rendering a tagged PDF, so links are placed in the structure. */
+    private bool $tagging = false;
     /** @var array<string, bool> anchors in the document being rendered; true once registered */
     private array $destinations = [];
     /** @var array<string, PdfFormXObject> pages of other PDFs imported into the document being rendered, by handle id */
@@ -55,7 +58,6 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         string|false|null $cacheDir = null,
         ?GdImageConverter $gd = null,
         string $fontCacheFormat = FontStateCache::SERIALIZE,
-        private readonly bool $tagged = false,
     ) {
         $this->fontCache = new FontStateCache($cacheDir === false ? null : ($cacheDir ?? FontStateCache::defaultDir()), $fontCacheFormat);
         $this->gd = $gd ?? GdImageConverter::detect();
@@ -128,7 +130,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         return new PhpPdfPage($document, $page - 1, $w, $h, sha1($bytes) . ':' . $page);
     }
 
-    public function render(DocumentMeta $meta, array $pages): string
+    public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string
     {
         if ($pages === []) {
             throw new \InvalidArgumentException('Cannot render a document with no pages.');
@@ -157,9 +159,9 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
             $doc->setLang($meta->lang);
         }
         $this->open = [];
-        $this->marking = 0;
-        if ($this->tagged) {
-            method_exists($doc, 'enablePdfUa') ? $doc->enablePdfUa() : $doc->enableTagged();
+        $this->tagging = $tagged;
+        if ($tagged) {
+            $doc->enablePdfUa();
             $doc->setViewerPreferences(['displayDocTitle' => true]);
             $doc->useObjectStreams();
         }
@@ -171,7 +173,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
             $first = true;
             foreach ($pages as $page) {
                 $pdfPage = $doc->addPage(customDimensionsPt: [$page->width, $page->height]);
-                if ($this->tagged) {
+                if ($tagged) {
                     if ($first) {
                         $doc->beginStructContainer('Document', $pdfPage);
                         $first = false;
@@ -182,7 +184,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
                     $this->drawOps($pdfPage, $page->height, $page->ops);
                 }
             }
-            if ($this->tagged) {
+            if ($tagged) {
                 foreach ($this->open as $_) {
                     $doc->endStructContainer();
                 }
@@ -192,18 +194,17 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
             return $doc->toBytes();
         } finally {
             $this->doc = null;
+            $this->tagging = false;
             $this->forms = [];
             $this->destinations = [];
         }
     }
 
-    /** SPIKE: keys of the structure containers open below Document, outermost first */
+    /** @var list<string> keys of the structure containers open below Document, outermost first */
     private array $open = [];
-    /** SPIKE: >0 while inside a marked-content sequence (a leaf or an artifact) */
-    private int $marking = 0;
 
     /**
-     * SPIKE: draws ops as structure. Tagged groups become containers (when they hold other tagged
+     * Draws ops as structure. Tagged groups become containers (when they hold other tagged
      * groups) or leaves (one marked-content sequence); untagged drawing is marked as an artifact.
      *
      * @param list<Op> $ops
@@ -237,6 +238,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         }
     }
 
+    /** Draws one tagged group as a container (it holds other tagged groups) or a leaf (one marked-content sequence). */
     private function drawTagged(PdfPage $p, float $h, Tagged $t, float $inherited): void
     {
         $doc = $this->doc;
@@ -244,18 +246,15 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         $tag = $t->tag;
         if ($tag->role === Tag::ARTIFACT) {
             $p->beginArtifact('Pagination');
-            $this->marking++;
             $this->drawOps($p, $h, $t->ops, $inherited);
-            $this->marking--;
             $p->endMarkedContent();
             return;
         }
         $role = $tag->role;
-        $attrs = $tag->attributes === null ? [] : ['O' => 'Table', 'Scope' => 'Column'];
         if (self::holdsTags($t->ops)) {
             $this->closeTo($tag->key);
             if (end($this->open) !== $tag->key . "\0" . $tag->role) {
-                $doc->beginStructContainer($role, $p, $attrs);
+                $doc->beginStructContainer($role, $p, $tag->attributes);
                 $this->open[] = $tag->key . "\0" . $tag->role;
             }
             $this->drawStructured($p, $h, $t->ops, $inherited);
@@ -263,15 +262,13 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         }
         $this->closeTo($tag->key);
         $mcid = $p->nextMcid();
-        $doc->addStructElement($role, $mcid, $p, $tag->alt, $attrs);
+        $doc->addStructElement($role, $mcid, $p, $tag->alt, $tag->attributes);
         $p->beginMarkedContent($tag->role, $mcid);
-        $this->marking++;
         $this->drawOps($p, $h, $t->ops, $inherited);
-        $this->marking--;
         $p->endMarkedContent();
     }
 
-    /** SPIKE: a link with a description, placed in the structure where it is drawn. */
+    /** A link with a description, placed in the structure where it is drawn. */
     private function drawLink(PdfPage $p, float $h, Link $op): void
     {
         $y = $h - $op->y - $op->height;
@@ -341,8 +338,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
                 $op instanceof Tagged => $this->drawOps($p, $h, $op->ops, $inherited),
                 $op instanceof Bookmark => $this->bookmark($p, $h, $op),
                 $op instanceof Anchor => $this->registerDestination($p, $h, $op),
-                $op instanceof Link && $this->tagged => $this->drawLink($p, $h, $op),
-                // A #name link whose name matches a registered anchor becomes an internal link.
+                $op instanceof Link && $this->tagging => $this->drawLink($p, $h, $op),
+                                // A #name link whose name matches a registered anchor becomes an internal link.
                 $op instanceof Link && $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]) => $p->addInternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, substr($op->uri, 1)),
                 $op instanceof Link => $p->addExternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, $op->uri),
                 default => throw new \LogicException('Unsupported op ' . $op::class),
@@ -351,7 +348,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
     }
 
     /** Screen-reader access is always granted; printing allows high resolution too. */
-    private static function permissions(\Papercut\Export\Encryption $e): int
+    private static function permissions(Encryption $e): int
     {
         return PdfEncryption::PERM_ACCESSIBILITY
             | ($e->print ? PdfEncryption::PERM_PRINT | PdfEncryption::PERM_PRINT_HIGH : 0)

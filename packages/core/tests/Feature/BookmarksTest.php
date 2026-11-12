@@ -42,7 +42,7 @@ final class BookmarksTest extends TestCase
                 return $this->fake->loadImageBytes($bytes);
             }
 
-            public function render(DocumentMeta $meta, array $pages): string
+            public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string
             {
                 $this->pages = $pages;
                 return '';

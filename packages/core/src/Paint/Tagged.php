@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Paint;
 
-/** SPIKE: ops that belong to one structure element. @internal */
+/**
+ * Ops that belong to one structure element.
+ *
+ * @internal Part of Papercut's engine, not its public API. It may change in any release.
+ */
 final readonly class Tagged implements Op
 {
     /** @param list<Op> $ops */

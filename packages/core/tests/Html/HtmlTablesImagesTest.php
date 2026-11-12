@@ -563,9 +563,9 @@ final class HtmlTablesImagesTest extends TestCase
                 return $this->inner->loadImageBytes($bytes);
             }
 
-            public function render(DocumentMeta $meta, array $pages): string
+            public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string
             {
-                return $this->inner->render($meta, $pages);
+                return $this->inner->render($meta, $pages, $tagged);
             }
         };
     }
