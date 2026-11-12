@@ -42,6 +42,8 @@ final class LayoutContext
     public private(set) ?string $lastFailurePath = null;
     /** The region being laid out; the paginator sets it around each call. Body unless it says otherwise. */
     public Region $region = Region::Body;
+    /** SPIKE: true while a table header row's cells are laid out */
+    public bool $inHeaderRow = false;
     /** @var list<array{node: Node, style: ComputedStyle}> every node being laid out, outermost first, the current one last */
     private array $stack = [];
     /** Stack index of the region root while inRegion() runs, or null outside it. */

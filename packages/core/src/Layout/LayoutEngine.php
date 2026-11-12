@@ -115,6 +115,9 @@ final class LayoutEngine
             $pushed = true;
             $layouter = $this->layouterFor($node, $style);
             $result = $layouter->layout($node, $style, $c, $token, $this);
+            if ($result->fragment !== null && $result->fragment->tag === null) {
+                $result->fragment->tag = $this->tagFor($node, $pathName);
+            }
             if ($token === null && $this->ctx->bookmarks && $result->fragment !== null) {
                 $bookmark = self::bookmark($node, $style);
                 if ($bookmark !== null) {
@@ -323,6 +326,32 @@ final class LayoutEngine
     }
 
     /** A heading's automatic bookmark, or the one set with bookmark(); placed on the block's first fragment only. */
+    /** SPIKE: the structure role of a node's fragment, or null for none (its content joins the parent). */
+    private function tagFor(Node $node, ?string $pathName): ?\Papercut\Paint\Tag
+    {
+        $key = $this->ctx->path();
+        if ($this->ctx->region !== \Papercut\Tree\Region::Body) {
+            return new \Papercut\Paint\Tag(\Papercut\Paint\Tag::ARTIFACT, $key);
+        }
+        if ($pathName === 'marker') {
+            return new \Papercut\Paint\Tag('Lbl', $key);
+        }
+        return match (true) {
+            $node instanceof Text => new \Papercut\Paint\Tag(($level = HeadingText::level($node)) !== null ? 'H' . min(6, $level) : 'P', $key),
+            $node instanceof ListNode => new \Papercut\Paint\Tag('L', $key),
+            $node instanceof MarkedItem => new \Papercut\Paint\Tag('LI', $key),
+            $node instanceof Table => new \Papercut\Paint\Tag('Table', $key),
+            $node instanceof TableCell => $node->header() || $this->ctx->inHeaderRow
+                ? new \Papercut\Paint\Tag('TH', $key, attributes: '<< /O /Table /Scope /Column >>')
+                : new \Papercut\Paint\Tag('TD', $key),
+            $node instanceof Image => $node->altText() !== null && $node->altText() !== ''
+                ? new \Papercut\Paint\Tag('Figure', $key, alt: $node->altText())
+                : new \Papercut\Paint\Tag(\Papercut\Paint\Tag::ARTIFACT, $key),
+            $node instanceof Svg, $node instanceof QrCode, $node instanceof PdfPage, $node instanceof Spacer => new \Papercut\Paint\Tag(\Papercut\Paint\Tag::ARTIFACT, $key),
+            default => null,
+        };
+    }
+
     private static function bookmark(Node $node, ComputedStyle $style): ?Bookmark
     {
         $heading = $node instanceof Text ? HeadingText::level($node) : null;

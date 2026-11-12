@@ -24,6 +24,8 @@ final class Fragment
     private array $slots = [];
 
     public ?float $opacity = null;
+    /** SPIKE: structure role for tagged PDF */
+    public ?\Papercut\Paint\Tag $tag = null;
     /** @var ?array{float, float, float, float} local x, y, width, height */
     public ?array $clip = null;
 

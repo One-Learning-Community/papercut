@@ -7,7 +7,7 @@ namespace Papercut\Export;
 use Papercut\Document;
 use Papercut\Exception\UnsupportedFeature;
 use Papercut\Layout\{LayoutContext, LayoutEngine, Paginator};
-use Papercut\Paint\{Clip, Op, Opacity, PageDisplayList, Painter, TextRun};
+use Papercut\Paint\{Clip, Op, Opacity, PageDisplayList, Painter, Tagged, TextRun};
 use Papercut\Style\PageThemes;
 use Papercut\Text\FontRegistry;
 use Papercut\Toc\TocIndex;
@@ -85,7 +85,7 @@ final class PdfExporter implements Exporter
         foreach ($ops as $op) {
             if ($op instanceof TextRun) {
                 yield $op;
-            } elseif ($op instanceof Clip || $op instanceof Opacity) {
+            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
                 yield from self::textRuns($op->ops);
             }
         }

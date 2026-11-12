@@ -25,7 +25,9 @@ final class MarkedItemLayouter implements Layouter
             return $res;
         }
 
-        $body = $res->fragment;
+        $body = new Fragment($res->fragment->width, $res->fragment->height);
+        $body->addChild(0.0, 0.0, $res->fragment);
+        $body->tag = new \Papercut\Paint\Tag('LBody', $engine->context()->path());
         $f = new Fragment($c->width, $body->height);
         if ($token === null && $item->marker !== null && $item->content->children() !== []) {
             $marker = self::marker($item, $style, $engine);

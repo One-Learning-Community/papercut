@@ -20,7 +20,7 @@ use Papercut\Backend\{PdfPageHandle, PdfPageLoader};
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Exception\PdfUnreadable;
-use Papercut\Paint\{Anchor, Bookmark, Clip, DocumentMeta, DrawImage, DrawPdfPage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, TextRun};
+use Papercut\Paint\{Anchor, Bookmark, Clip, DocumentMeta, DrawImage, DrawPdfPage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, Tag, Tagged, TextRun};
 use Papercut\Text\CachedFont;
 use Papercut\Value\Color;
 
@@ -55,6 +55,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         string|false|null $cacheDir = null,
         ?GdImageConverter $gd = null,
         string $fontCacheFormat = FontStateCache::SERIALIZE,
+        private readonly bool $tagged = false,
     ) {
         $this->fontCache = new FontStateCache($cacheDir === false ? null : ($cacheDir ?? FontStateCache::defaultDir()), $fontCacheFormat);
         $this->gd = $gd ?? GdImageConverter::detect();
@@ -155,14 +156,38 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         if ($meta->lang !== null) {
             $doc->setLang($meta->lang);
         }
+        $this->open = [];
+        $this->marking = 0;
+        if ($this->tagged) {
+            $doc->enableTagged();
+            $doc->setViewerPreferences(['displayDocTitle' => true]);
+            $doc->useObjectStreams();
+        }
         if ($meta->encryption !== null) {
             $e = $meta->encryption;
             $doc->encrypt($e->userPassword, $e->ownerPassword, self::permissions($e), EncryptionAlgorithm::Aes_256_R6);
         }
         try {
+            $first = true;
             foreach ($pages as $page) {
                 $pdfPage = $doc->addPage(customDimensionsPt: [$page->width, $page->height]);
-                $this->drawOps($pdfPage, $page->height, $page->ops);
+                if ($this->tagged) {
+                    if ($first) {
+                        $doc->beginStructContainer('Document', $pdfPage);
+                        $first = false;
+                    }
+                    $pdfPage->setTabOrder('S');
+                    $this->drawStructured($pdfPage, $page->height, $page->ops);
+                } else {
+                    $this->drawOps($pdfPage, $page->height, $page->ops);
+                }
+            }
+            if ($this->tagged) {
+                foreach ($this->open as $_) {
+                    $doc->endStructContainer();
+                }
+                $doc->endStructContainer();
+                $this->open = [];
             }
             return $doc->toBytes();
         } finally {
@@ -170,6 +195,105 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
             $this->forms = [];
             $this->destinations = [];
         }
+    }
+
+    /** SPIKE: keys of the structure containers open below Document, outermost first */
+    private array $open = [];
+    /** SPIKE: >0 while inside a marked-content sequence (a leaf or an artifact) */
+    private int $marking = 0;
+
+    /**
+     * SPIKE: draws ops as structure. Tagged groups become containers (when they hold other tagged
+     * groups) or leaves (one marked-content sequence); untagged drawing is marked as an artifact.
+     *
+     * @param list<Op> $ops
+     */
+    private function drawStructured(PdfPage $p, float $h, array $ops, float $inherited = 1.0): void
+    {
+        foreach ($ops as $op) {
+            if ($op instanceof Tagged) {
+                $this->drawTagged($p, $h, $op, $inherited);
+            } elseif ($op instanceof Clip) {
+                $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawStructured($p, $h, $op->ops, $inherited)));
+            } elseif ($op instanceof Opacity) {
+                if ($op->alpha <= 0.0) {
+                    continue;
+                }
+                if ($op->alpha >= 1.0) {
+                    $this->drawStructured($p, $h, $op->ops, $inherited);
+                    continue;
+                }
+                $effective = $inherited * $op->alpha;
+                $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, fn () => $this->drawStructured($p, $h, $op->ops, $effective)));
+            } elseif ($op instanceof Bookmark || $op instanceof Anchor || $op instanceof Link) {
+                $this->drawOps($p, $h, [$op], $inherited);
+            } else {
+                $p->beginArtifact('Layout');
+                $this->drawOps($p, $h, [$op], $inherited);
+                $p->endMarkedContent();
+            }
+        }
+    }
+
+    private function drawTagged(PdfPage $p, float $h, Tagged $t, float $inherited): void
+    {
+        $doc = $this->doc;
+        \assert($doc !== null);
+        $tag = $t->tag;
+        if ($tag->role === Tag::ARTIFACT) {
+            $p->beginArtifact('Pagination');
+            $this->marking++;
+            $this->drawOps($p, $h, $t->ops, $inherited);
+            $this->marking--;
+            $p->endMarkedContent();
+            return;
+        }
+        $role = $tag->attributes === null ? $tag->role : $tag->role . ' /A ' . $tag->attributes;
+        if (self::holdsTags($t->ops)) {
+            $this->closeTo($tag->key);
+            if (end($this->open) !== $tag->key . "\0" . $tag->role) {
+                $doc->beginStructContainer($role, $p);
+                $this->open[] = $tag->key . "\0" . $tag->role;
+            }
+            $this->drawStructured($p, $h, $t->ops, $inherited);
+            return;
+        }
+        $this->closeTo($tag->key);
+        $mcid = $p->nextMcid();
+        $doc->addStructElement($role, $mcid, $p, $tag->alt);
+        $p->beginMarkedContent($tag->role, $mcid);
+        $this->marking++;
+        $this->drawOps($p, $h, $t->ops, $inherited);
+        $this->marking--;
+        $p->endMarkedContent();
+    }
+
+    /** Closes open containers that are not ancestors of (or the same element as) $key. */
+    private function closeTo(string $key): void
+    {
+        while ($this->open !== []) {
+            $top = strstr(end($this->open), "\0", true);
+            if ($top === $key || str_starts_with($key, $top . ' > ')) {
+                return;
+            }
+            array_pop($this->open);
+            $this->doc?->endStructContainer();
+        }
+    }
+
+    /** @param list<Op> $ops */
+    private static function holdsTags(array $ops): bool
+    {
+        foreach ($ops as $op) {
+            if ($op instanceof Tagged) {
+                if ($op->tag->role !== Tag::ARTIFACT) {
+                    return true;
+                }
+            } elseif (($op instanceof Clip || $op instanceof Opacity) && self::holdsTags($op->ops)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -181,7 +305,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         foreach ($ops as $op) {
             if ($op instanceof Anchor) {
                 $names[$op->name] = false;
-            } elseif ($op instanceof Clip || $op instanceof Opacity) {
+            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
                 self::collectDestinations($op->ops, $names);
             }
         }
@@ -200,6 +324,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
                 $op instanceof DrawPdfPage => $this->drawPdfPage($p, $h, $op),
                 $op instanceof Clip => $this->wrapped($p, fn () => $p->withClipRect($op->x, $h - $op->y - $op->height, $op->width, $op->height, fn () => $this->drawOps($p, $h, $op->ops, $inherited))),
                 $op instanceof Opacity => $this->drawOpacity($p, $h, $op, $inherited),
+                $op instanceof Tagged => $this->drawOps($p, $h, $op->ops, $inherited),
                 $op instanceof Bookmark => $this->bookmark($p, $h, $op),
                 $op instanceof Anchor => $this->registerDestination($p, $h, $op),
                 // A #name link whose name matches a registered anchor becomes an internal link.

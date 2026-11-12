@@ -13,6 +13,7 @@ final class Image implements Styled
     use HasStyle;
 
     private ImageFit $fit = ImageFit::Contain;
+    private ?string $altText = null;
 
     private function __construct(
         private readonly string $kind,
@@ -37,6 +38,19 @@ final class Image implements Styled
         $clone = clone $this;
         $clone->fit = $fit;
         return $clone;
+    }
+
+    /** SPIKE: alternative text; null leaves the image decorative (an artifact). */
+    public function alt(?string $alt): self
+    {
+        $clone = clone $this;
+        $clone->altText = $alt;
+        return $clone;
+    }
+
+    public function altText(): ?string
+    {
+        return $this->altText;
     }
 
     public function fitMode(): ImageFit

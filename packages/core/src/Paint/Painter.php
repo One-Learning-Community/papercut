@@ -95,14 +95,18 @@ final class Painter
                 }
                 continue;
             }
-            if ($op instanceof Clip || $op instanceof Opacity) {
+            if ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
                 $inner = self::resolveOps($op->ops, $page, $total, $anchors);
                 if ($inner !== null) {
                     $changed = true;
                     if ($inner === []) {
                         continue; // a group around nothing is left out, as flatten() leaves out one with no ops
                     }
-                    $op = $op instanceof Clip ? new Clip($op->x, $op->y, $op->width, $op->height, $inner) : new Opacity($op->alpha, $inner);
+                    $op = match (true) {
+                        $op instanceof Clip => new Clip($op->x, $op->y, $op->width, $op->height, $inner),
+                        $op instanceof Opacity => new Opacity($op->alpha, $inner),
+                        default => new Tagged($op->tag, $inner),
+                    };
                 }
             }
             $out[] = $op;
@@ -160,7 +164,7 @@ final class Painter
         foreach ($ops as $op) {
             if ($op instanceof Anchor) {
                 $found[$op->name] ??= $page;
-            } elseif ($op instanceof Clip || $op instanceof Opacity) {
+            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
                 self::collectOpAnchors($op->ops, $page, $found);
             }
         }
@@ -185,6 +189,9 @@ final class Painter
         }
         if ($f->opacity !== null && $ops !== []) {
             $ops = [new Opacity($f->opacity, $ops)];
+        }
+        if ($f->tag !== null && $ops !== []) {
+            $ops = [new Tagged($f->tag, $ops)];
         }
         return $ops;
     }
