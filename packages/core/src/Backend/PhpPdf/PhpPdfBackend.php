@@ -159,7 +159,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         $this->open = [];
         $this->marking = 0;
         if ($this->tagged) {
-            $doc->enableTagged();
+            method_exists($doc, 'enablePdfUa') ? $doc->enablePdfUa() : $doc->enableTagged();
             $doc->setViewerPreferences(['displayDocTitle' => true]);
             $doc->useObjectStreams();
         }
@@ -225,7 +225,9 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
                 }
                 $effective = $inherited * $op->alpha;
                 $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, fn () => $this->drawStructured($p, $h, $op->ops, $effective)));
-            } elseif ($op instanceof Bookmark || $op instanceof Anchor || $op instanceof Link) {
+            } elseif ($op instanceof Link) {
+                $this->drawLink($p, $h, $op);
+            } elseif ($op instanceof Bookmark || $op instanceof Anchor) {
                 $this->drawOps($p, $h, [$op], $inherited);
             } else {
                 $p->beginArtifact('Layout');
@@ -248,11 +250,12 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
             $p->endMarkedContent();
             return;
         }
-        $role = $tag->attributes === null ? $tag->role : $tag->role . ' /A ' . $tag->attributes;
+        $role = $tag->role;
+        $attrs = $tag->attributes === null ? [] : ['O' => 'Table', 'Scope' => 'Column'];
         if (self::holdsTags($t->ops)) {
             $this->closeTo($tag->key);
             if (end($this->open) !== $tag->key . "\0" . $tag->role) {
-                $doc->beginStructContainer($role, $p);
+                $doc->beginStructContainer($role, $p, $attrs);
                 $this->open[] = $tag->key . "\0" . $tag->role;
             }
             $this->drawStructured($p, $h, $t->ops, $inherited);
@@ -260,12 +263,23 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
         }
         $this->closeTo($tag->key);
         $mcid = $p->nextMcid();
-        $doc->addStructElement($role, $mcid, $p, $tag->alt);
+        $doc->addStructElement($role, $mcid, $p, $tag->alt, $attrs);
         $p->beginMarkedContent($tag->role, $mcid);
         $this->marking++;
         $this->drawOps($p, $h, $t->ops, $inherited);
         $this->marking--;
         $p->endMarkedContent();
+    }
+
+    /** SPIKE: a link with a description, placed in the structure where it is drawn. */
+    private function drawLink(PdfPage $p, float $h, Link $op): void
+    {
+        $y = $h - $op->y - $op->height;
+        $internal = $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]);
+        $internal
+            ? $p->addInternalLink($op->x, $y, $op->width, $op->height, substr($op->uri, 1), 'Go to ' . substr($op->uri, 1))
+            : $p->addExternalLink($op->x, $y, $op->width, $op->height, $op->uri, $op->uri);
+        $this->doc?->placeLinkInStructure($p);
     }
 
     /** Closes open containers that are not ancestors of (or the same element as) $key. */
@@ -327,6 +341,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader
                 $op instanceof Tagged => $this->drawOps($p, $h, $op->ops, $inherited),
                 $op instanceof Bookmark => $this->bookmark($p, $h, $op),
                 $op instanceof Anchor => $this->registerDestination($p, $h, $op),
+                $op instanceof Link && $this->tagged => $this->drawLink($p, $h, $op),
                 // A #name link whose name matches a registered anchor becomes an internal link.
                 $op instanceof Link && $op->uri[0] === '#' && isset($this->destinations[substr($op->uri, 1)]) => $p->addInternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, substr($op->uri, 1)),
                 $op instanceof Link => $p->addExternalLink($op->x, $h - $op->y - $op->height, $op->width, $op->height, $op->uri),
