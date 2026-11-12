@@ -44,6 +44,8 @@ final class LayoutContext
     public Region $region = Region::Body;
     /** On to give fragments structure roles (tagged PDF). */
     public bool $tagged = false;
+    /** True while the first page's overlay is laid out when tagging: its content is tagged like the body's, not an artifact. */
+    public bool $tagOverlay = false;
     /** True while a table header row's cells are laid out; read only when tagging. */
     public bool $inHeaderRow = false;
     /** @var list<array{node: Node, style: ComputedStyle}> every node being laid out, outermost first, the current one last */

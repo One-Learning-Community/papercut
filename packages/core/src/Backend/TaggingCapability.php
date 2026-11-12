@@ -21,4 +21,7 @@ interface TaggingCapability
      * @return list<array{level: int, text: string, page: int, key: string}>
      */
     public function headings(): array;
+
+    /** Whether the last tagged render's structure tree held any content: page furniture and decoration are not. */
+    public function structureHasContent(): bool;
 }

@@ -116,6 +116,12 @@ final class StructNode
         return false;
     }
 
+    /** True when some child is content: anything but the links that belong to no content. */
+    public function holdsContent(): bool
+    {
+        return array_any($this->children, static fn (self $child): bool => $child->hasContent());
+    }
+
     /** @param array{x: float, y: float, width: float, height: float, uri: string, internal: bool, contents: string} $link */
     public function link(PdfPage $page, array $link): void
     {

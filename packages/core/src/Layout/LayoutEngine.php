@@ -337,7 +337,7 @@ final class LayoutEngine
     {
         $key = $this->ctx->path();
         $region = $this->ctx->region;
-        if ($region !== Region::Body) {
+        if ($region !== Region::Body && !($region === Region::Overlay && $this->ctx->tagOverlay)) {
             return Tag::artifact($key, match (true) {
                 $region === Region::Background || $region === Region::Overlay => Tag::BACKGROUND,
                 default => Tag::PAGINATION,

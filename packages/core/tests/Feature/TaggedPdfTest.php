@@ -426,6 +426,11 @@ final class TaggedPdfTest extends TestCase
                 return $this->inner->headings();
             }
 
+            public function structureHasContent(): bool
+            {
+                return $this->inner->structureHasContent();
+            }
+
             public function taggingMissing(): array
             {
                 return ['addStructElement'];
@@ -582,6 +587,63 @@ final class TaggedPdfTest extends TestCase
         $this->expectException(UnsupportedFeature::class);
         $this->expectExceptionMessage('screen reader');
         $this->warnings($w, true, true, [Text::h1('Top'), self::importedPage()]);
+    }
+
+    public function test_overlay_content_is_tagged_and_decoration_is_not(): void
+    {
+        $page = Page::a4()->overlay(
+            \Papercut\Place::at(pt(100), pt(100), Text::make('Overlaid words')),
+            \Papercut\Place::at(pt(100), pt(300), Column::make()->width(pt(40))->height(pt(40))->background('#000')),
+        );
+        $doc = Document::make($page)->title('T')->lang('en');
+        self::assertSame(['P'], array_column(self::tree($doc), 'role'));
+    }
+
+    public function test_an_overlay_repeated_on_every_page_is_tagged_on_the_first_only(): void
+    {
+        $page = Page::a4()
+            ->overlay(\Papercut\Place::at(pt(100), pt(100), Text::make('Overlaid words')))
+            ->body(Column::make(Text::make(self::long() . self::long())));
+        $doc = Document::make($page)->title('T')->lang('en');
+        $bytes = $doc->toPdf(new PdfOptions(tagged: true))->bytes();
+        $pages = preg_match_all('#/Type /Page$#m', StructTree::qdf($bytes));
+        self::assertGreaterThan(1, $pages);
+        // One paragraph piece per page for the body, and the overlay's once.
+        self::assertSame(array_fill(0, $pages + 1, 'P'), array_column(self::tree($doc), 'role'));
+        PdfInspector::check($bytes);
+    }
+
+    public function test_the_certificate_example_has_content_in_its_structure(): void
+    {
+        $doc = (static fn () => require __DIR__ . '/../../../../examples/core/documents/certificate.php')();
+        $roles = self::roles(self::tree($doc));
+        self::assertSame(3, self::countRole(self::tree($doc), 'P'), implode(',', $roles));
+    }
+
+    public function test_a_tree_with_no_content_warns_naming_the_cause(): void
+    {
+        $w = [];
+        $png = TestImages::png(10, 10);
+        $this->warnings($w, true, false, [Image::bytes($png)]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString('no content', $w[0]);
+        self::assertStringContainsString('artifact', $w[0]);
+        self::assertStringContainsString('alt', $w[0]);
+    }
+
+    public function test_a_tree_with_no_content_throws_in_strict_mode(): void
+    {
+        $w = [];
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('no content');
+        $this->warnings($w, true, true, [Image::bytes(TestImages::png(10, 10))]);
+    }
+
+    public function test_a_tree_with_content_does_not_warn_about_being_empty(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [Text::h1('Top')]);
+        self::assertSame([], $w);
     }
 
     public function test_a_first_heading_below_h1_warns(): void

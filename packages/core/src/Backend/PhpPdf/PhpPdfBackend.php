@@ -48,6 +48,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     private array $headings = [];
     /** 1-based number of the page being drawn */
     private int $pageNumber = 0;
+    /** Whether the last tagged render's structure tree held any content below Document. */
+    private bool $structureHasContent = false;
     /** True while a leaf's own links are placed in the structure, so drawing leaves them out. */
     private bool $skipLinks = false;
     private const array TEXT_STATE_PROPERTIES = ['lastFillR', 'lastFillG', 'lastFillB', 'lastCharSpacing'];
@@ -193,6 +195,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             if ($tagged) {
                 \assert($this->root !== null);
                 $this->headings = $this->root->headings();
+                $this->structureHasContent = $this->root->holdsContent();
                 $this->writeStructure($doc, $this->root);
             }
             return $doc->toBytes();
@@ -207,6 +210,11 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     public function headings(): array
     {
         return $this->headings;
+    }
+
+    public function structureHasContent(): bool
+    {
+        return $this->structureHasContent;
     }
 
     /** @return list<string> */

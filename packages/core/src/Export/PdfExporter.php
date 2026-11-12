@@ -52,6 +52,7 @@ final class PdfExporter implements Exporter
         $bytes = $backend->render($meta, $pages, $tagged);
         if ($tagged && $backend instanceof TaggingCapability) {
             self::checkHeadings($backend->headings(), $options);
+            self::checkContent($backend->structureHasContent(), $options);
         }
 
         return new Output($bytes, 'application/pdf', 'pdf');
@@ -86,6 +87,25 @@ final class PdfExporter implements Exporter
             'document',
         );
         return false;
+    }
+
+    /**
+     * Tagged mode: a structure tree with nothing in it passes PDF/UA but a screen reader finds nothing to read.
+     * That is what a document of only artifacts (headers, footers, backgrounds, template pages, images without
+     * alt text) comes to.
+     *
+     * @throws InvalidStructure in strict mode
+     */
+    private static function checkContent(bool $hasContent, PdfOptions $options): void
+    {
+        if ($hasContent) {
+            return;
+        }
+        $message = 'The tagged PDF has no content in its structure: everything in the document is an artifact (page headers and footers, backgrounds, a template page, images or SVG without alt text, an imported PDF page), so a screen reader finds nothing to read. Put text in the body or an overlay, or give images alt text.';
+        if ($options->strict()) {
+            throw new InvalidStructure($message);
+        }
+        $options->onWarning()?->__invoke('pdf: ' . $message);
     }
 
     /**

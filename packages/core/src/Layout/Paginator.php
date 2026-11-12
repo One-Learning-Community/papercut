@@ -7,6 +7,7 @@ namespace Papercut\Layout;
 use Papercut\{Column, Component, Document, Node, OverflowMode, Page, PageVariant, View};
 use Papercut\Value\{Length, Percent};
 use Papercut\Exception\LayoutOverflow;
+use Papercut\Paint\Tag;
 use Papercut\Style\ComputedStyle;
 use Papercut\Tree\Region;
 
@@ -95,6 +96,8 @@ final class Paginator
             $layers[] = ['x' => 0.0, 'y' => 0.0, 'fragment' => $background];
         }
         $overlay = $this->overlay($page, $root, $w, $h);
+        // A tagged PDF has an overlay's content once, on the run's first page; on the pages after it, it is page furniture.
+        $overlayRepeat = $this->ctx->tagged ? self::asArtifact($overlay) : $overlay;
 
         $body = Column::make(...$page->bodyNodes());
         $this->ctx->styles->wrapper($body);
@@ -108,13 +111,13 @@ final class Paginator
             $bodyHeight = $contentHeight - $band['headerSpace'] - $band['footerSpace'];
             $header = $band['header'];
             $footer = $band['footer'];
-            $emit = function (Fragment $body) use (&$out, $w, $h, $layers, $overlay, $header, $footer, $left, $top, $bodyY, $m): void {
+            $emit = function (Fragment $body) use (&$out, $w, $h, $layers, $overlay, $overlayRepeat, $runStart, $header, $footer, $left, $top, $bodyY, $m): void {
                 if (count($out) >= self::MAX_PAGES) {
                     throw new LayoutOverflow('document', sprintf('more than %d pages', self::MAX_PAGES));
                 }
                 $before = $header === null ? $layers : [...$layers, ['x' => $left, 'y' => $top, 'fragment' => $header]];
                 $after = $footer === null ? [] : [['x' => $left, 'y' => $h - $m->bottom->points - $footer->height, 'fragment' => $footer]];
-                $placed = new PlacedPage($w, $h, [...$before, ['x' => $left, 'y' => $bodyY, 'fragment' => $body], ...$after, ...$overlay]);
+                $placed = new PlacedPage($w, $h, [...$before, ['x' => $left, 'y' => $bodyY, 'fragment' => $body], ...$after, ...(count($out) === $runStart ? $overlay : $overlayRepeat)]);
                 $out[] = $this->each === null ? $placed : ($this->each)($placed, count($out) + 1);
                 $this->engine->pageDone();
             };
@@ -291,6 +294,7 @@ final class Paginator
     {
         $layers = [];
         $this->ctx->pushPath('overlay');
+        $this->ctx->tagOverlay = $this->ctx->tagged;
         try {
             foreach ($page->overlayPlaces() as $i => $place) {
                 $box = View::make(...$place->children());
@@ -310,10 +314,30 @@ final class Paginator
                 ];
             }
         } finally {
+            $this->ctx->tagOverlay = false;
             $this->ctx->popPath();
         }
 
         return $layers;
+    }
+
+    /**
+     * The layers with each fragment wrapped in an artifact, so a tagged PDF keeps them as page furniture.
+     *
+     * @param list<array{x: float, y: float, fragment: Fragment}> $layers
+     * @return list<array{x: float, y: float, fragment: Fragment}>
+     */
+    private static function asArtifact(array $layers): array
+    {
+        $out = [];
+        foreach ($layers as $i => $layer) {
+            $wrap = new Fragment($layer['fragment']->width, $layer['fragment']->height);
+            $wrap->tag = Tag::artifact(sprintf('overlay[%d]', $i), Tag::BACKGROUND);
+            $wrap->addChild(0.0, 0.0, $layer['fragment']);
+            $out[] = ['x' => $layer['x'], 'y' => $layer['y'], 'fragment' => $wrap];
+        }
+
+        return $out;
     }
 
     private static function resolve(Length|Percent $v, float $basis): float
