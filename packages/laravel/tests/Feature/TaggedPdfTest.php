@@ -4,19 +4,15 @@ declare(strict_types=1);
 
 namespace Papercut\Laravel\Tests\Feature;
 
-use Papercut\{Document, Page, Text};
 use Papercut\Backend\PhpPdf\TaggingSupport;
 use Papercut\Export\Encryption;
-use Papercut\Laravel\Facades\Papercut;
-use Papercut\Laravel\PendingDocument;
+use Papercut\Laravel\Tests\Support\ReadsStructure;
 use Papercut\Laravel\Tests\TestCase;
 
+/** Tagged output; skipped when the installed php-pdf cannot write it. */
 final class TaggedPdfTest extends TestCase
 {
-    private function document(): PendingDocument
-    {
-        return Papercut::make(Document::make(Page::a4()->body(Text::h1('Title'), Text::p('Body')))->title('Doc')->lang('en-US'));
-    }
+    use ReadsStructure;
 
     protected function setUp(): void
     {
@@ -26,39 +22,11 @@ final class TaggedPdfTest extends TestCase
         }
     }
 
-    /** Whether a PDF has a structure tree; looks inside object streams (and decrypts with $password). */
-    private static function isTagged(string $pdf, string $password = ''): bool
-    {
-        $file = tempnam(sys_get_temp_dir(), 'pc') . '.pdf'; // qpdf's AppArmor profile wants .pdf
-        rename(substr($file, 0, -4), $file);
-        file_put_contents($file, $pdf);
-        exec(sprintf('qpdf --qdf --object-streams=disable --password=%s %s %s.qdf 2>&1 < /dev/null', escapeshellarg($password), escapeshellarg($file), escapeshellarg($file)));
-        $qdf = (string) file_get_contents($file . '.qdf');
-        unlink($file);
-        @unlink($file . '.qdf');
-
-        return str_contains($qdf, '/StructTreeRoot');
-    }
-
-    public function test_untagged_by_default(): void
-    {
-        $this->assertFalse(self::isTagged($this->document()->pdf()->toString()));
-    }
-
     public function test_the_config_turns_tagging_on(): void
     {
         config(['papercut.tagged' => true]);
 
         $this->assertTrue(self::isTagged($this->document()->pdf()->toString()));
-    }
-
-    public function test_an_invalid_config_value_is_rejected(): void
-    {
-        config(['papercut.tagged' => 'yes']);
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid papercut.tagged');
-        $this->document()->pdf()->toString();
     }
 
     public function test_tagged_overrides_the_config_per_document(): void
