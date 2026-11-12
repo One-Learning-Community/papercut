@@ -15,7 +15,7 @@ final class QrCode extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
-        return ['value', 'level', 'quiet-zone', 'shape', 'eyes', 'eye-color', 'gradient', 'gradient-type'];
+        return ['value', 'level', 'quiet-zone', 'shape', 'eyes', 'eye-color', 'gradient', 'gradient-type', 'alt'];
     }
 
     protected function build(array $data): object
@@ -59,6 +59,10 @@ final class QrCode extends PapercutComponent
                 : QrGradient::Diagonal);
         } elseif (isset($own['gradient-type'])) {
             throw self::invalid('gradient-type', $own['gradient-type'], 'it needs a gradient, such as gradient="#4f46e5 #0e7490"');
+        }
+
+        if (isset($own['alt'])) {
+            $node = $node->alt((string) $own['alt']);
         }
 
         return $this->styled($node, $data);

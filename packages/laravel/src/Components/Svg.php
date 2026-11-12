@@ -18,7 +18,7 @@ final class Svg extends PapercutComponent
 {
     protected function ownAttributes(): array
     {
-        return ['src', 'data'];
+        return ['src', 'data', 'alt'];
     }
 
     protected function build(array $data): object
@@ -41,6 +41,10 @@ final class Svg extends PapercutComponent
                 : \Papercut\Svg::fromString($markup ?? $inside);
         } catch (ImageUnreadable $e) {
             throw new ImageUnreadable($e->getMessage() . ' on ' . $where, 0, $e);
+        }
+
+        if (isset($own['alt'])) {
+            $node = $node->alt((string) $own['alt']);
         }
 
         return $this->styled($node, $data);

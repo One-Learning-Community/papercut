@@ -37,6 +37,17 @@ final class SvgComponentTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_alt_is_passed_to_the_svg(): void
+    {
+        $n = $this->nodeFrom('<x-doc::svg src="logo.svg" alt="Acme logo" />');
+
+        self::assertInstanceOf(Svg::class, $n);
+        self::assertSame('Acme logo', $n->altText());
+        $none = $this->nodeFrom('<x-doc::svg src="logo.svg" />');
+        self::assertInstanceOf(Svg::class, $none);
+        self::assertNull($none->altText());
+    }
+
     public function test_src_is_resolved_inside_the_image_path(): void
     {
         $n = $this->nodeFrom('<x-doc::svg src="logo.svg" width="40mm" />');

@@ -20,7 +20,7 @@ final class Image extends PapercutComponent
 
     protected function ownAttributes(): array
     {
-        return ['src', 'data', 'fit'];
+        return ['src', 'data', 'fit', 'alt'];
     }
 
     protected function build(array $data): object
@@ -49,6 +49,10 @@ final class Image extends PapercutComponent
             $fit = ImageFit::tryFrom((string) $own['fit'])
                 ?? throw InvalidValue::for('fit', (string) $own['fit'])->because('expected contain, cover or fill')->withContext('fit')->within('on ' . Tag::of('image'));
             $node = $node->fit($fit);
+        }
+
+        if (isset($own['alt'])) {
+            $node = $node->alt((string) $own['alt']);
         }
 
         return $this->styled($node, $data);

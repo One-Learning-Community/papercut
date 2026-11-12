@@ -34,6 +34,15 @@ final class QrCodeComponentTest extends TestCase
         self::assertSame(QrCode::DEFAULT_QUIET_ZONE, $n->quietZoneModules());
     }
 
+    public function test_alt_is_passed_to_the_code_and_survives_styling(): void
+    {
+        $n = $this->nodeFrom('<x-doc::qr-code value="x" alt="Scan to pay" width="30mm" />');
+
+        self::assertInstanceOf(QrCode::class, $n);
+        self::assertSame('Scan to pay', $n->altText());
+        self::assertNull($this->nodeFrom('<x-doc::qr-code value="x" />')->altText());
+    }
+
     public function test_level_accepts_names(): void
     {
         $n = $this->nodeFrom('<x-doc::qr-code value="x" level="quartile" />');

@@ -24,6 +24,22 @@ final class BoundAttributesTest extends TestCase
         self::assertSame(['kind' => 'bytes', 'value' => $png], $n->source());
     }
 
+    public function test_image_alt_is_passed_through_and_a_bound_alt_arrives_unescaped(): void
+    {
+        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+        $n = $this->nodeFrom('<x-doc::image :data="$png" alt="A logo" width="20mm" />', ['png' => $png]);
+        self::assertInstanceOf(Image::class, $n);
+        self::assertSame('A logo', $n->altText());
+
+        $bound = $this->nodeFrom('<x-doc::image :data="$png" :alt="$alt" />', ['png' => $png, 'alt' => 'Ann & "Bob" <3']);
+        self::assertInstanceOf(Image::class, $bound);
+        self::assertSame('Ann & "Bob" <3', $bound->altText());
+
+        $decorative = $this->nodeFrom('<x-doc::image :data="$png" alt="" />', ['png' => $png]);
+        self::assertInstanceOf(Image::class, $decorative);
+        self::assertNull($decorative->altText());
+    }
+
     public function test_a_bound_qr_value_is_encoded_as_given(): void
     {
         $n = $this->nodeFrom('<x-doc::qr-code :value="$url" />', ['url' => self::URL]);
