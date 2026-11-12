@@ -68,7 +68,7 @@ final class ImageMapper
             $this->unfinished($s, $path);
         }
 
-        return [new DocxImage($bytes, $format, Units::emu($w), Units::emu($h))];
+        return [new DocxImage($bytes, $format, Units::emu($w), Units::emu($h), $n->altText())];
     }
 
     /** @return list<BlockElement> */
@@ -98,7 +98,7 @@ final class ImageMapper
 
             return [];
         }
-        $label = $n->value() === null ? 'QR code' : 'QR code: ' . $n->value();
+        $label = $n->altText() ?? ($n->value() === null ? 'QR code' : 'QR code: ' . $n->value());
 
         return [$this->picture($png, $s, $inner, $inner, $path, $label)];
     }
@@ -118,7 +118,7 @@ final class ImageMapper
             $this->fidelity->approximated('SVG text in the system\'s fonts', $path);
         }
 
-        return [$this->picture($png, $s, $w, $h, $path, $doc->title === '' ? null : $doc->title)];
+        return [$this->picture($png, $s, $w, $h, $path, $n->altText() ?? ($doc->title === '' ? null : $doc->title))];
     }
 
     /**

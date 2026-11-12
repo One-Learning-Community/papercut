@@ -160,6 +160,21 @@ final class ImageMapperTest extends TestCase
         self::assertSame(['Dropped qr-code @ qr-code[0]'], self::reports(self::$fidelity));
     }
 
+    public function test_alt_text_is_the_pictures_description(): void
+    {
+        $png = self::picture('png');
+        self::assertSame('A "cat" & <dog>', self::export(Image::bytes($png)->alt('A "cat" & <dog>'))->value('//wp:docPr/@descr'));
+        self::assertSame('Scan me', self::export(QrCode::make('https://acme.test')->alt('Scan me'))->value('//wp:docPr/@descr'));
+    }
+
+    #[RequiresPhpExtension('imagick')]
+    public function test_svg_alt_replaces_its_title(): void
+    {
+        $xml = static fn (string $title): string => '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20">' . $title . '<rect width="40" height="20" fill="#0a0"/></svg>';
+        self::assertSame('Chart', self::export(Svg::fromString($xml('<title>Chart</title>')))->value('//wp:docPr/@descr'));
+        self::assertSame('Rising', self::export(Svg::fromString($xml('<title>Chart</title>'))->alt('Rising'))->value('//wp:docPr/@descr'));
+    }
+
     #[RequiresPhpExtension('imagick')]
     public function test_svg_is_a_picture_at_its_natural_size(): void
     {
