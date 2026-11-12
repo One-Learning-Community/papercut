@@ -79,6 +79,7 @@ final class Card implements Decorator
         $parts[] = View::make(...$this->children)->apply($this->part('card.body'));
 
         return View::make(...$parts)
+            ->structRole('Div')
             ->apply(trim($this->part('card') . ' ' . ($this->styleName() ?? '')))
             ->apply($this->style());
     }

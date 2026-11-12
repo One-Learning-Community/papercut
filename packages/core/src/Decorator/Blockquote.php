@@ -56,6 +56,7 @@ final class Blockquote implements Decorator
         }
 
         return View::make(...$parts)
+            ->structRole('BlockQuote')
             ->htmlTag('blockquote')
             ->apply(trim($this->part('blockquote') . ' ' . ($this->styleName() ?? '')))
             ->apply($this->style());

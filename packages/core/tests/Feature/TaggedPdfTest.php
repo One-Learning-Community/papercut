@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
+use Papercut\Decorator\{Badge, Blockquote, Callout, Card, ChoiceList, CodeBlock, Field, KeyValueList, Section, Signature, Stat, Totals};
 use Papercut\{Column, ColumnFlow, Document, Image, Link, ListNode, Page, QrCode, Row, Span, Svg, Table, TableCell, Text, Toc};
 use Papercut\Backend\{Backend, FontHandle, ImageHandle, TaggingCapability};
 use Papercut\Backend\PhpPdf\{PhpPdfBackend, TaggingSupport};
@@ -38,7 +39,7 @@ final class TaggedPdfTest extends TestCase
         )->title('Tagged')->lang('en-US')->createdAt(new \DateTimeImmutable('2026-01-01T00:00:00Z'));
     }
 
-    private function small(\Papercut\Node ...$body): Document
+    private function small(\Papercut\Node|\Papercut\Component ...$body): Document
     {
         return Document::make(Page::a4()->body(Column::make(...$body)))->title('T')->lang('en');
     }
@@ -409,6 +410,11 @@ final class TaggedPdfTest extends TestCase
                 return $this->inner->render($meta, $pages, $tagged);
             }
 
+            public function headings(): array
+            {
+                return $this->inner->headings();
+            }
+
             public function taggingMissing(): array
             {
                 return ['addStructElement'];
@@ -557,5 +563,132 @@ final class TaggedPdfTest extends TestCase
         $w = [];
         $this->warnings($w, true, false, [Text::h1('A'), Text::h3(str_repeat('split heading ', 700)), Text::make('x')]);
         self::assertCount(1, $w);
+    }
+
+    public function test_a_blockquote_is_a_blockquote_around_its_content(): void
+    {
+        $tree = self::tree($this->small(Blockquote::make('Said well.')->cite('Someone')));
+        self::assertSame(['BlockQuote'], array_column($tree, 'role'));
+        self::assertSame(['P', 'P'], array_column($tree[0]['kids'], 'role'));
+    }
+
+    public function test_a_code_block_is_code_beside_its_label(): void
+    {
+        $tree = self::tree($this->small(CodeBlock::make("a = 1\nb = 2")->language('text')));
+        self::assertSame(['P', 'Code'], array_column($tree, 'role'));
+        self::assertSame([], $tree[1]['kids']);
+    }
+
+    public function test_a_section_is_a_sect_holding_its_heading(): void
+    {
+        $tree = self::tree($this->small(Section::make(Text::make('Body'))->title('Intro')->heading(1)));
+        self::assertSame(['Sect'], array_column($tree, 'role'));
+        self::assertSame(['H1', 'P'], array_column($tree[0]['kids'], 'role'));
+    }
+
+    public function test_a_section_over_pages_is_one_sect(): void
+    {
+        $tree = self::tree($this->small(Section::make(Text::make(self::long()), Text::make(self::long()))->title('Intro')->heading(1), Text::make('after')));
+        self::assertSame(['Sect', 'P'], array_column($tree, 'role'));
+        self::assertGreaterThan(2, count($tree[0]['kids']));
+        self::assertSame('H1', $tree[0]['kids'][0]['role']);
+    }
+
+    public function test_cards_and_callouts_are_divs(): void
+    {
+        $tree = self::tree($this->small(Card::make(Text::make('c'))->title('Card'), Callout::make(Text::make('n'))->title('Note')));
+        self::assertSame(['Div', 'Div'], array_column($tree, 'role'));
+        self::assertSame(['P', 'P'], array_column($tree[0]['kids'], 'role'));
+        self::assertSame(['P', 'P'], array_column($tree[1]['kids'], 'role'));
+    }
+
+    public function test_a_card_heading_stays_a_heading_inside_the_div(): void
+    {
+        $tree = self::tree($this->small(Card::make(Text::make('c'))->title('Card')->heading(1)));
+        self::assertSame(['Div'], array_column($tree, 'role'));
+        self::assertSame(['H1', 'P'], array_column($tree[0]['kids'], 'role'));
+    }
+
+    public function test_a_contents_list_is_a_toc_of_toci_entries_with_their_links(): void
+    {
+        $doc = $this->small(Toc::make()->title('Contents'), Text::h1('Alpha'), Text::h2('Beta'));
+        $pdf = $doc->toPdf(new PdfOptions(tagged: true))->bytes();
+        PdfInspector::check($pdf);
+        $tree = self::tree($doc);
+        self::assertSame(['TOC', 'H1', 'H2'], array_column($tree, 'role'));
+        $toc = $tree[0];
+        self::assertSame(['Caption', 'TOCI', 'TOCI'], array_column($toc['kids'], 'role'));
+        foreach ([1, 2] as $i) {
+            $link = $toc['kids'][$i]['kids'];
+            self::assertSame(['Link'], array_column($link, 'role'));
+            self::assertTrue($link[0]['objr']);
+            self::assertSame(['P'], array_column($link[0]['kids'], 'role'));
+        }
+        self::assertSame(['Alpha', 'Beta'], self::contents($pdf));
+    }
+
+    public function test_decorators_without_a_role_leave_their_content_as_it_was(): void
+    {
+        $tree = self::tree($this->small(
+            Badge::make('New'),
+            Stat::make('9')->label('Open'),
+            KeyValueList::make()->row('Name', 'Ada'),
+            Totals::make()->row('Sum', '1')->total('Total', '2'),
+            Field::make(Text::make('v'))->label('Label'),
+            Signature::make()->name('Ada'),
+            ChoiceList::checkbox()->option('One', true),
+        ));
+        $roles = self::roles($tree);
+        self::assertNotContains('Div', $roles);
+        self::assertNotContains('Sect', $roles);
+        self::assertContains('Table', $roles);
+    }
+
+    public function test_a_custom_decorator_keeps_its_contents_roles(): void
+    {
+        $custom = new class () implements \Papercut\Component {
+            public function render(): \Papercut\View
+            {
+                return \Papercut\View::make(Text::h1('Mine'), Text::make('body'));
+            }
+        };
+        $tree = self::tree($this->small($custom));
+        self::assertSame(['H1', 'P'], array_column($tree, 'role'));
+    }
+
+    public function test_untagged_output_is_the_same_with_decorators(): void
+    {
+        $doc = fn (): Document => $this->small(Blockquote::make('q'), Section::make('s')->title('T'), Toc::make(), Text::h1('H'), CodeBlock::make('x'));
+        $a = $doc()->toPdf(new PdfOptions())->bytes();
+        self::assertStringNotContainsString('/StructTreeRoot', $a);
+    }
+
+    public function test_headings_are_checked_in_structure_order_when_a_section_continues_over_pages(): void
+    {
+        $w = [];
+        // Painted: H1, H2, H4 (page 1), H3 (page 2). In the structure the H3 belongs to the section, before the H4.
+        $this->warnings($w, true, false, [
+            Text::h1('Top'),
+            Row::make(
+                Column::make(Section::make(Text::make(self::long()), Text::h3('Late'))->title('First')->heading(2)),
+                Column::make(Text::h4('Other')),
+            ),
+        ]);
+        self::assertSame([], $w);
+    }
+
+    public function test_a_skip_in_structure_order_is_still_reported(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [
+            Text::h1('Top'),
+            Row::make(
+                Column::make(Section::make(Text::make(self::long()))->title('First')->heading(2)),
+                Column::make(Text::h4('Other')),
+            ),
+        ]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString('Heading "Other"', $w[0]);
+        self::assertStringContainsString('H4 right after an H2', $w[0]);
     }
 }

@@ -46,13 +46,15 @@ final class PdfExporter implements Exporter
         if ($options->strict()) {
             self::requireGlyphs($pages);
         }
-        if ($tagged) {
-            self::checkHeadings($pages, $options);
-        }
 
         $meta = $doc->meta()->withEncryption($options->encryption());
 
-        return new Output($backend->render($meta, $pages, $tagged), 'application/pdf', 'pdf');
+        $bytes = $backend->render($meta, $pages, $tagged);
+        if ($tagged && $backend instanceof TaggingCapability) {
+            self::checkHeadings($backend->headings(), $options);
+        }
+
+        return new Output($bytes, 'application/pdf', 'pdf');
     }
 
     /**
@@ -84,57 +86,38 @@ final class PdfExporter implements Exporter
 
     /**
      * Tagged mode: a heading more than one level below the previous one, or a first heading below H1, fails
-     * PDF/UA-1 (veraPDF 7.4.2-1). Checked on the painted pages, where the body headings are final: in
-     * reading order, a heading split over pages or columns reported once, with no measurement passes or retries and no page furniture.
+     * PDF/UA-1 (veraPDF 7.4.2-1). Checked on the backend's structure tree, in the order a reader meets the
+     * headings (a container that goes on over pages or beside another keeps its place), a split heading reported
+     * once, with no page furniture.
      *
-     * @param list<PageDisplayList> $pages
+     * @param list<array{level: int, text: string, page: int, key: string}> $headings
      * @throws InvalidStructure in strict mode
      */
-    private static function checkHeadings(array $pages, PdfOptions $options): void
+    private static function checkHeadings(array $headings, PdfOptions $options): void
     {
         $previous = 0;
         $warned = [];
-        foreach ($pages as $i => $page) {
-            foreach (self::headings($page->ops) as $tagged) {
-                $level = (int) substr($tagged->tag->role, 1);
-                if ($level > $previous + 1 && !isset($warned[$tagged->tag->key])) {
-                    $warned[$tagged->tag->key] = true;
-                    $text = trim((string) preg_replace('/\s+/u', ' ', implode(' ', array_map(
-                        static fn (TextRun $run): string => $run->text,
-                        iterator_to_array(self::textRuns($tagged->ops), false),
-                    ))));
-                    $text = mb_strlen($text) > 40 ? mb_substr($text, 0, 39) . '…' : $text;
-                    $fix = sprintf(
-                        'Make it H%1$d: Text::h%2$d(\'…\')->asHeading(%1$d) keeps the H%2$d look (a Section or Card takes ->heading(%1$d)).',
-                        $previous + 1,
-                        $level,
-                    );
-                    $name = $text === '' ? 'A heading' : sprintf('Heading "%s"', $text);
-                    $message = $previous === 0
-                        ? sprintf('The first heading%s on page %d, is H%d; a tagged PDF must start with H1. %s', $text === '' ? ',' : sprintf(', "%s"', $text), $i + 1, $level, $fix)
-                        : sprintf('%s on page %d is H%d right after an H%d; a tagged PDF can\'t skip heading levels. %s', $name, $i + 1, $level, $previous, $fix);
-                    if ($options->strict()) {
-                        throw new InvalidStructure($message);
-                    }
-                    $options->onWarning()?->__invoke('pdf: ' . $message);
+        foreach ($headings as $heading) {
+            $level = $heading['level'];
+            if ($level > $previous + 1 && !isset($warned[$heading['key']])) {
+                $warned[$heading['key']] = true;
+                $text = mb_strlen($heading['text']) > 40 ? mb_substr($heading['text'], 0, 39) . '…' : $heading['text'];
+                $page = $heading['page'];
+                $fix = sprintf(
+                    'Make it H%1$d: Text::h%2$d(\'…\')->asHeading(%1$d) keeps the H%2$d look (a Section or Card takes ->heading(%1$d)).',
+                    $previous + 1,
+                    $level,
+                );
+                $name = $text === '' ? 'A heading' : sprintf('Heading "%s"', $text);
+                $message = $previous === 0
+                    ? sprintf('The first heading%s on page %d, is H%d; a tagged PDF must start with H1. %s', $text === '' ? ',' : sprintf(', "%s"', $text), $page, $level, $fix)
+                    : sprintf('%s on page %d is H%d right after an H%d; a tagged PDF can\'t skip heading levels. %s', $name, $page, $level, $previous, $fix);
+                if ($options->strict()) {
+                    throw new InvalidStructure($message);
                 }
-                $previous = $level;
+                $options->onWarning()?->__invoke('pdf: ' . $message);
             }
-        }
-    }
-
-    /**
-     * @param list<Op> $ops
-     * @return iterable<Tagged> heading elements in paint order
-     */
-    private static function headings(array $ops): iterable
-    {
-        foreach ($ops as $op) {
-            if ($op instanceof Tagged && preg_match('/^H[1-6]$/', $op->tag->role) === 1) {
-                yield $op;
-            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
-                yield from self::headings($op->ops);
-            }
+            $previous = $level;
         }
     }
 

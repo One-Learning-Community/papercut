@@ -122,6 +122,7 @@ final class Section implements Decorator
         $parts[] = View::make(...$this->children)->apply($this->part('section.body'));
 
         return View::make(...$parts)
+            ->structRole('Sect')
             ->htmlTag('section')
             ->apply(trim($this->part('section') . ' ' . ($this->styleName() ?? '')))
             ->apply($this->style());

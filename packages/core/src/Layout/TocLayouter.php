@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Layout;
 
 use Papercut\{Column, Node, Text, Toc};
-use Papercut\Paint\{TextRun, TocSlot};
+use Papercut\Paint\{Tag, TextRun, TocSlot};
 use Papercut\Style\ComputedStyle;
 use Papercut\Text\{CachedFont, FontStyle};
 use Papercut\Toc\{HeadingText, TocLine};
@@ -104,11 +104,18 @@ final class TocLayouter implements Layouter
 
         $f = new Fragment($c->width, $title->height + $edges);
         BoxGeometry::decorate($f, $style, true, true);
-        $f->addChild($left, $top, $title);
+        // Tagged, the title, page number and link are one Link inside the entry; untagged, the slot stays on the entry.
+        $holder = $f;
+        if ($engine->context()->tagged) {
+            $holder = new Fragment($c->width, $f->height);
+            $holder->tag = new Tag('Link', $engine->context()->path() . ' > link');
+            $f->addChild(0.0, 0.0, $holder);
+        }
+        $holder->addChild($left, $top, $title);
         [$baseline, $leaderStart] = self::lastLine($title) ?? [$title->height - $font->descent($entry->fontSize), 0.0];
         $baseline += $top;
         $leaderStart += $left;
-        $f->addSlot(new TocSlot(
+        $holder->addSlot(new TocSlot(
             $line->entry->destination,
             $c->width - $number,
             $baseline,

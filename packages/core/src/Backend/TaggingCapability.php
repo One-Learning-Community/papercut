@@ -13,4 +13,11 @@ interface TaggingCapability
 {
     /** @return list<string> what the backend lacks to write a tagged PDF; empty when it can */
     public function taggingMissing(): array;
+
+    /**
+     * The headings of the last tagged render in structure order, each once, with the page of its first part.
+     *
+     * @return list<array{level: int, text: string, page: int, key: string}>
+     */
+    public function headings(): array;
 }

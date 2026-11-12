@@ -19,6 +19,7 @@ final class View implements Styled, Annotated
     private array $children = [];
     private bool $explicitDirection = false;
     private string $htmlTag = 'div';
+    private ?string $structRole = null;
     private ?ColumnSpec $columns = null;
     private bool $columnCountExplicit = false;
     /** @var ?list<float> gaps given before the column count was chosen */
@@ -82,6 +83,24 @@ final class View implements Styled, Annotated
         $clone = clone $this;
         $clone->htmlTag = $normalized;
         return $clone;
+    }
+
+    /**
+     * The structure role this view has in a tagged PDF (BlockQuote, Sect, Div, ...); null leaves its content to its children.
+     *
+     * @internal Set by the built-in decorators. A role not valid for the content makes the PDF fail PDF/UA, so it is not public yet.
+     */
+    public function structRole(?string $role): self
+    {
+        $clone = clone $this;
+        $clone->structRole = $role;
+        return $clone;
+    }
+
+    /** @internal */
+    public function structRoleName(): ?string
+    {
+        return $this->structRole;
     }
 
     public function htmlElement(): string

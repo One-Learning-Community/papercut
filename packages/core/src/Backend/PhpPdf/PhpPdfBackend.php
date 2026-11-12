@@ -41,6 +41,10 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     private array $forms = [];
     /** The structure tree of the tagged PDF being rendered, built while drawing and written when it is done. */
     private ?StructNode $root = null;
+    /** @var list<array{level: int, text: string, page: int, key: string}> the last tagged render's headings, in structure order */
+    private array $headings = [];
+    /** 1-based number of the page being drawn */
+    private int $pageNumber = 0;
     /** True while a leaf's own links are placed in the structure, so drawing leaves them out. */
     private bool $skipLinks = false;
     private const array TEXT_STATE_PROPERTIES = ['lastFillR', 'lastFillG', 'lastFillB', 'lastCharSpacing'];
@@ -161,6 +165,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             $doc->setLang($meta->lang);
         }
         $this->root = null;
+        $this->headings = [];
+        $this->pageNumber = 0;
         if ($tagged) {
             $doc->enablePdfUa();
             $doc->useObjectStreams();
@@ -171,6 +177,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         }
         try {
             foreach ($pages as $page) {
+                $this->pageNumber++;
                 $pdfPage = $doc->addPage(customDimensionsPt: [$page->width, $page->height]);
                 if ($tagged) {
                     $this->root ??= StructNode::root($pdfPage);
@@ -182,6 +189,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             }
             if ($tagged) {
                 \assert($this->root !== null);
+                $this->headings = $this->root->headings();
                 $this->writeStructure($doc, $this->root);
             }
             return $doc->toBytes();
@@ -191,6 +199,11 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             $this->forms = [];
             $this->destinations = [];
         }
+    }
+
+    public function headings(): array
+    {
+        return $this->headings;
     }
 
     /** @return list<string> */
@@ -252,7 +265,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         }
         $parent = $this->node($p, $chain, $column);
         $mcid = $p->nextMcid();
-        $parent->leaf($tag->role, $p, $mcid, $tag->alt, $tag->attributes);
+        $heading = preg_match('/^H[1-6]$/', $tag->role) === 1 ? ['key' => $tag->key, 'text' => self::plainText($t->ops), 'page' => $this->pageNumber] : null;
+        $parent->leaf($tag->role, $p, $mcid, $tag->alt, $tag->attributes, $heading);
         foreach (self::linkOps($t->ops) as $link) {
             $parent->link($p, $this->linkFor($h, $link));
         }
@@ -327,6 +341,9 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
 
     private function writeContainer(PdfDocument $doc, StructNode $node): void
     {
+        if (!$node->hasContent()) {
+            return;
+        }
         $doc->beginStructContainer($node->role, $node->page, $node->attributes);
         foreach ([...$node->children, ...$node->tail] as $child) {
             $this->writeStructure($doc, $child);
@@ -359,6 +376,24 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             }
         }
         return $found;
+    }
+
+    /**
+     * The text of the runs in $ops, with whitespace collapsed.
+     *
+     * @param list<Op> $ops
+     */
+    private static function plainText(array $ops): string
+    {
+        $text = '';
+        foreach ($ops as $op) {
+            if ($op instanceof TextRun) {
+                $text .= $op->text . ' ';
+            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
+                $text .= self::plainText($op->ops) . ' ';
+            }
+        }
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
     }
 
     /** @param list<Op> $ops */

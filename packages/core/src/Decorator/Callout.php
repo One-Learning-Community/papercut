@@ -86,6 +86,7 @@ final class Callout implements Decorator
         array_push($parts, ...$this->children);
 
         return View::make(...$parts)
+            ->structRole('Div')
             ->htmlTag('aside')
             ->apply(trim($this->part('callout', $this->tone) . ' ' . ($this->styleName() ?? '')))
             ->apply($this->style());
