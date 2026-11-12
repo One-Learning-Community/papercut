@@ -45,7 +45,6 @@ final class StyleResolver
     private \SplObjectStorage $wrappers;
     /** @var array<int, Style> a cell's base style, by whether it is a header cell */
     private array $cellBase = [];
-    private ?Style $none = null;
     /**
      * Nodes that end a container whose bottom edge shows (a table cell, or a box with bottom
      * padding, a bottom border or a background), directly or through transparent wrappers
@@ -152,24 +151,24 @@ final class StyleResolver
 
     private function compute(Node $node, ComputedStyle $parent, ?Style $style = null, ?bool $inList = null): ComputedStyle
     {
-        $style ??= $this->none ??= new Style();
+        $style ??= Style::none();
         if ($node instanceof Text && $node->preset() !== null) {
             $preset = $node->preset();
-            $style = $this->merge($style, $preset === 'p' ? $this->theme->paragraph() : $this->theme->heading((int) substr($preset, 1)));
+            $style = $style->merge($preset === 'p' ? $this->theme->paragraph() : $this->theme->heading((int) substr($preset, 1)));
             if ($preset !== 'p') {
-                $style = $this->merge($style, $this->theme->named($preset . '?'));
+                $style = $style->merge($this->theme->named($preset . '?'));
             }
         }
         if ($node instanceof TocNode) {
-            $style = $this->merge($style, $this->theme->named('toc'));
+            $style = $style->merge($this->theme->named('toc'));
         }
         if ($node instanceof Styled) {
             $name = $node->styleName();
             if (is_string($name)) {
-                $style = $this->merge($style, $this->theme->named($name));
+                $style = $style->merge($this->theme->named($name));
             }
         }
-        $style = $this->merge($style, $node->style());
+        $style = $style->merge($node->style());
         if ($node instanceof ListEntry) {
             $inList = true;
         } elseif ($node instanceof TableCell) {
@@ -191,12 +190,6 @@ final class StyleResolver
     public function span(ComputedStyle $text, Style $own): ComputedStyle
     {
         return $this->child($text, $own, null, false);
-    }
-
-    /** $over on top of $base; the empty base style needs no merge. */
-    private function merge(Style $base, Style $over): Style
-    {
-        return $base === $this->none ? $over : $base->merge($over);
     }
 
     /**
