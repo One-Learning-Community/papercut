@@ -11,6 +11,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - The page layout behind a Word table of contents' page numbers keeps only each heading's page, and stops once every listed heading has one.
 - Faster export in every format. Each distinct style is computed once per parent instead of once per node, nodes without a style of their own share one empty style, and a node's place in the layout path is named only when a warning or error needs it. On the benchmarks a 10-page table exports to PDF in about 38 ms instead of 51 ms and to HTML in about 17 ms instead of 25 ms, a 20-page article to PDF in about 82 ms instead of 92 ms, and peak memory drops too. The output is the same.
 
+### Fixed
+
+- Word exports with SVG pictures or styled QR codes are the same bytes every time. Imagick stamped the time of drawing into each PNG it made, so two exports of the same document differed.
+
 ## [0.9.1] - 2026-11-03
 
 ### Added
