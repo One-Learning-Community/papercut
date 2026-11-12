@@ -424,4 +424,78 @@ final class TaggedPdfTest extends TestCase
         self::assertStringContainsString('extract for accessibility: allowed', $report);
         self::assertStringContainsString('extract for any purpose: not allowed', $report);
     }
+
+    /**
+     * @param list<string> $warnings
+     * @param list<\Papercut\Node> $body
+     */
+    private function warnings(array &$warnings, bool $tagged, bool $strict, array $body, ?\Papercut\Node $header = null): void
+    {
+        $page = Page::a4();
+        if ($header !== null) {
+            $page = $page->header($header);
+        }
+        $options = new PdfOptions(tagged: $tagged, strict: $strict, onWarning: function (string $m) use (&$warnings): void {
+            $warnings[] = $m;
+        });
+        Document::make($page->body(Column::make(...$body)))->title('T')->lang('en')->toPdf($options);
+    }
+
+    public function test_a_skipped_heading_level_warns_naming_the_heading(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [Text::h1('Top'), Text::h3('A rather deep heading that is much too long to quote in full')]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString('"A rather deep heading that is much too …"', $w[0]);
+        self::assertStringContainsString('H3 after H1', $w[0]);
+        self::assertStringContainsString('H2', $w[0]);
+        self::assertStringContainsString('style the heading smaller', $w[0]);
+    }
+
+    public function test_a_first_heading_below_h1_warns(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [Text::h2('Start')]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString('after no heading', $w[0]);
+    }
+
+    public function test_orderly_heading_levels_do_not_warn(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [
+            Text::h1('A'), Text::h2('B'), Text::h1('C'), Text::h2('D'), Text::h3('E'), Text::h1('F'), Text::make('body'),
+        ]);
+        self::assertSame([], $w);
+    }
+
+    public function test_strict_mode_throws_for_a_skipped_level(): void
+    {
+        $w = [];
+        $this->expectException(UnsupportedFeature::class);
+        $this->expectExceptionMessage('skipping a level');
+        $this->warnings($w, true, true, [Text::h1('A'), Text::h3('B')]);
+    }
+
+    public function test_untagged_output_does_not_check_heading_levels(): void
+    {
+        $w = [];
+        $this->warnings($w, false, true, [Text::h3('B')]);
+        self::assertSame([], $w);
+    }
+
+    public function test_headings_in_the_page_header_are_ignored(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [Text::h1('A'), Text::h2('B')], Text::h4('Running header'));
+        self::assertSame([], $w);
+    }
+
+    public function test_a_heading_laid_out_more_than_once_warns_once(): void
+    {
+        $w = [];
+        $table = Table::make()->columns('1fr 1fr')->head('A', 'B')->rows([['1', '2']], fn (mixed $r): array => [Text::h3('In a cell'), $r[1]]);
+        $this->warnings($w, true, false, [Text::h1('A'), $table, ...array_map(fn (int $n): Text => Text::make(str_repeat('word ', 400)), range(1, 6))]);
+        self::assertCount(1, $w);
+    }
 }

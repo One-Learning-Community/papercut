@@ -46,6 +46,9 @@ final class PdfExporter implements Exporter
         if ($options->strict()) {
             self::requireGlyphs($pages);
         }
+        if ($tagged) {
+            self::checkHeadings($pages, $options);
+        }
 
         $meta = $doc->meta()->withEncryption($options->encryption());
 
@@ -77,6 +80,63 @@ final class PdfExporter implements Exporter
             'document',
         );
         return false;
+    }
+
+    /**
+     * Tagged mode: a heading more than one level below the previous one, or a first heading below H1, fails
+     * PDF/UA-1 (veraPDF 7.4.2-1). Checked on the painted pages, where the body headings are final: each once in
+     * reading order (a heading split over pages once), with no measurement passes or retries and no page furniture.
+     *
+     * @param list<PageDisplayList> $pages
+     * @throws UnsupportedFeature in strict mode
+     */
+    private static function checkHeadings(array $pages, PdfOptions $options): void
+    {
+        $previous = 0;
+        $seen = [];
+        foreach ($pages as $i => $page) {
+            foreach (self::headings($page->ops) as $tagged) {
+                if (isset($seen[$tagged->tag->key])) {
+                    continue;
+                }
+                $seen[$tagged->tag->key] = true;
+                $level = (int) substr($tagged->tag->role, 1);
+                if ($level > $previous + 1) {
+                    $text = trim((string) preg_replace('/\s+/u', ' ', implode(' ', array_map(
+                        static fn (TextRun $run): string => $run->text,
+                        iterator_to_array(self::textRuns($tagged->ops), false),
+                    ))));
+                    $text = mb_strlen($text) > 40 ? mb_substr($text, 0, 39) . '…' : $text;
+                    $message = sprintf(
+                        'heading "%s" is H%d after %s, skipping a level (PDF/UA needs the next level, H%d: use it, or style the heading smaller instead of skipping a level)',
+                        $text,
+                        $level,
+                        $previous === 0 ? 'no heading' : 'H' . $previous,
+                        $previous + 1,
+                    );
+                    if ($options->strict()) {
+                        throw UnsupportedFeature::from(new FidelityReport(FidelityLevel::Dropped, 'pdf', $message, sprintf('page %d', $i + 1)));
+                    }
+                    $options->onWarning()?->__invoke(sprintf('pdf: %s at page %d', $message, $i + 1));
+                }
+                $previous = $level;
+            }
+        }
+    }
+
+    /**
+     * @param list<Op> $ops
+     * @return iterable<Tagged> heading elements in paint order
+     */
+    private static function headings(array $ops): iterable
+    {
+        foreach ($ops as $op) {
+            if ($op instanceof Tagged && preg_match('/^H[1-6]$/', $op->tag->role) === 1) {
+                yield $op;
+            } elseif ($op instanceof Clip || $op instanceof Opacity || $op instanceof Tagged) {
+                yield from self::headings($op->ops);
+            }
+        }
     }
 
     /**
