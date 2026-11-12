@@ -676,6 +676,20 @@ final class TaggedPdfTest extends TestCase
         self::assertContains('Table', $roles);
     }
 
+    public function test_a_choice_list_is_a_list_whose_labels_say_what_is_selected(): void
+    {
+        $tree = self::tree($this->small(ChoiceList::radio()->option('Alpha', true)->option('Beta')));
+        self::assertSame(['L'], array_column($tree, 'role'));
+        $items = $tree[0]['kids'];
+        self::assertSame(['LI', 'LI'], array_column($items, 'role'));
+        foreach ($items as $item) {
+            self::assertSame(['Lbl', 'LBody'], array_column($item['kids'], 'role'));
+            self::assertSame(['P'], array_column($item['kids'][1]['kids'], 'role'));
+        }
+        self::assertSame('selected', $items[0]['kids'][0]['alt']);
+        self::assertSame('not selected', $items[1]['kids'][0]['alt']);
+    }
+
     public function test_a_custom_decorator_keeps_its_contents_roles(): void
     {
         $custom = new class () implements \Papercut\Component {

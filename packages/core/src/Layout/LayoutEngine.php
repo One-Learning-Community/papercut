@@ -351,7 +351,7 @@ final class LayoutEngine
             $node instanceof Text && $this->ctx->isCaption($node) => new Tag('Caption', $key),
             $node instanceof Text && $node->isHtmlCode() => new Tag('Code', $key, attributes: ['O' => 'Layout', 'Placement' => 'Block']),
             $node instanceof Text => new Tag(($level = HeadingText::level($node)) !== null ? 'H' . min(6, $level) : 'P', $key),
-            $node instanceof View && $node->structRoleName() !== null => new Tag($node->structRoleName(), $key),
+            $node instanceof View && $node->structRoleName() !== null => new Tag($node->structRoleName(), $key, alt: $node->structAltText()),
             $node instanceof Toc => new Tag('TOC', $key),
             $node instanceof TocLine => new Tag('TOCI', $key),
             $node instanceof Link => new Tag('Link', $key),

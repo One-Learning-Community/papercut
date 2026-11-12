@@ -20,6 +20,7 @@ final class View implements Styled, Annotated
     private bool $explicitDirection = false;
     private string $htmlTag = 'div';
     private ?string $structRole = null;
+    private ?string $structAlt = null;
     private ?ColumnSpec $columns = null;
     private bool $columnCountExplicit = false;
     /** @var ?list<float> gaps given before the column count was chosen */
@@ -90,11 +91,18 @@ final class View implements Styled, Annotated
      *
      * @internal Set by the built-in decorators. A role not valid for the content makes the PDF fail PDF/UA, so it is not public yet.
      */
-    public function structRole(?string $role): self
+    public function structRole(?string $role, ?string $alt = null): self
     {
         $clone = clone $this;
         $clone->structRole = $role;
+        $clone->structAlt = $alt;
         return $clone;
+    }
+
+    /** @internal The text equivalent of this view's structure element (its /Alt), for content that is drawn, not written. */
+    public function structAltText(): ?string
+    {
+        return $this->structAlt;
     }
 
     /** @internal */

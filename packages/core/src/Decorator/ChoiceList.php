@@ -84,12 +84,14 @@ final class ChoiceList implements Decorator
         foreach ($this->options as $option) {
             $rows[] = Row::make($this->marker($option->selected), $this->label($option))
                 ->apply($this->part('choice.option'))
-                ->keepTogether(true);
+                ->keepTogether(true)
+                ->structRole('LI');
         }
 
         return View::make(...$rows)
             ->apply(trim($this->part('choice') . ' ' . ($this->styleName() ?? '')))
-            ->apply($this->style());
+            ->apply($this->style())
+            ->structRole('L');
     }
 
     private function marker(bool $selected): View
@@ -100,7 +102,9 @@ final class ChoiceList implements Decorator
             $marker = View::make(View::make()->apply($this->part('choice.mark') . ($this->radio ? ' ' . $this->part('choice.mark.radio') : '')));
         }
         // A slot one line tall centres the marker on the label's first line at any font size or line height.
-        return View::make($marker->apply($name))->height(Length::lh(1))->justify(Justify::Center)->shrink(0);
+        // The marker is drawn, so a tagged PDF carries the state as the label's alternative text.
+        return View::make($marker->apply($name))->height(Length::lh(1))->justify(Justify::Center)->shrink(0)
+            ->structRole('Lbl', $selected ? 'selected' : 'not selected');
     }
 
     private function label(ChoiceOption $option): View
@@ -109,6 +113,6 @@ final class ChoiceList implements Decorator
         if ($this->emphasizeSelected && $option->selected) {
             $label = $label->apply($this->part('choice.label.selected'));
         }
-        return $label;
+        return $label->structRole('LBody');
     }
 }
