@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{QrCode, Svg, Column, ColumnFlow, Document, Image, Link, ListNode, Page, Span, Table, TableCell, Text, Toc};
+use Papercut\{Column, ColumnFlow, Document, Image, Link, ListNode, Page, QrCode, Row, Span, Svg, Table, TableCell, Text, Toc};
 use Papercut\Backend\{Backend, FontHandle, ImageHandle, TaggingCapability};
 use Papercut\Backend\PhpPdf\{PhpPdfBackend, TaggingSupport};
 use Papercut\Exception\{InvalidStructure, UnsupportedFeature};
@@ -312,12 +312,13 @@ final class TaggedPdfTest extends TestCase
         self::assertSame([], self::figures(Svg::fromString(sprintf(self::SVG, '<title>  </title>'))));
     }
 
-    public function test_a_qr_code_with_alt_is_a_figure_and_without_is_decorative(): void
+    public function test_a_qr_code_is_a_figure_with_its_alt_or_the_default_label(): void
     {
         $qr = QrCode::make('https://example.com');
         self::assertSame(['Link to the example site'], array_column(self::figures($qr->alt('Link to the example site')), 'alt'));
-        self::assertSame([], self::figures($qr));
-        self::assertSame([], self::figures($qr->alt(' ')));
+        self::assertSame(['QR code: https://example.com'], array_column(self::figures($qr), 'alt'));
+        self::assertSame(['QR code: https://example.com'], array_column(self::figures($qr->alt(' ')), 'alt'));
+        self::assertSame('QR code', QrCode::fromModules([[true, false], [false, true]])->label());
         self::assertSame('Kept', $qr->alt('Kept')->errorCorrection('H')->altText(), 'alt survives re-encoding');
     }
 
@@ -495,9 +496,9 @@ final class TaggedPdfTest extends TestCase
         $this->warnings($w, true, false, [Text::h1('Top'), Text::h3('A rather deep heading that is much too long to quote in full')]);
         self::assertCount(1, $w);
         self::assertStringContainsString('"A rather deep heading that is much too …"', $w[0]);
-        self::assertStringContainsString('H3 after H1', $w[0]);
-        self::assertStringContainsString('H2', $w[0]);
-        self::assertStringContainsString('style the heading smaller', $w[0]);
+        self::assertStringContainsString('on page 1 is H3 right after an H1', $w[0]);
+        self::assertStringContainsString("Make it H2: Text::h3('…')->asHeading(2)", $w[0]);
+        self::assertStringContainsString('->heading(2)', $w[0]);
     }
 
     public function test_a_first_heading_below_h1_warns(): void
@@ -505,7 +506,7 @@ final class TaggedPdfTest extends TestCase
         $w = [];
         $this->warnings($w, true, false, [Text::h2('Start')]);
         self::assertCount(1, $w);
-        self::assertStringContainsString('after no heading', $w[0]);
+        self::assertStringContainsString('The first heading, "Start" on page 1, is H2; a tagged PDF must start with H1', $w[0]);
     }
 
     public function test_orderly_heading_levels_do_not_warn(): void
@@ -520,8 +521,8 @@ final class TaggedPdfTest extends TestCase
     public function test_strict_mode_throws_for_a_skipped_level(): void
     {
         $w = [];
-        $this->expectException(UnsupportedFeature::class);
-        $this->expectExceptionMessage('skipping a level');
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('Heading "B" on page 1 is H3 right after an H1; a tagged PDF can\'t skip heading levels. Make it H2');
         $this->warnings($w, true, true, [Text::h1('A'), Text::h3('B')]);
     }
 
@@ -539,11 +540,22 @@ final class TaggedPdfTest extends TestCase
         self::assertSame([], $w);
     }
 
-    public function test_a_heading_laid_out_more_than_once_warns_once(): void
+    public function test_a_skip_is_found_after_a_split_heading_beside_a_later_one(): void
     {
         $w = [];
-        $table = Table::make()->columns('1fr 1fr')->head('A', 'B')->rows([['1', '2']], fn (mixed $r): array => [Text::h3('In a cell'), $r[1]]);
-        $this->warnings($w, true, false, [Text::h1('A'), $table, ...array_map(fn (int $n): Text => Text::make(str_repeat('word ', 400)), range(1, 6))]);
+        $this->warnings($w, true, false, [
+            Text::h1('A'),
+            Text::h2('B'),
+            Row::make(Column::make(Text::h3(str_repeat('split heading ', 500))), Column::make(Text::h1('Right'), Text::make('x'))),
+        ]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString('is H3 right after an H1', $w[0]);
+    }
+
+    public function test_a_split_heading_warns_once(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [Text::h1('A'), Text::h3(str_repeat('split heading ', 700)), Text::make('x')]);
         self::assertCount(1, $w);
     }
 }

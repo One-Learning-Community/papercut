@@ -98,7 +98,7 @@ final class ImageMapper
 
             return [];
         }
-        $label = $n->altText() ?? ($n->value() === null ? 'QR code' : 'QR code: ' . $n->value());
+        $label = $n->label();
 
         return [$this->picture($png, $s, $inner, $inner, $path, $label)];
     }
@@ -118,7 +118,7 @@ final class ImageMapper
             $this->fidelity->approximated('SVG text in the system\'s fonts', $path);
         }
 
-        return [$this->picture($png, $s, $w, $h, $path, $n->altText() ?? ($doc->title === '' ? null : $doc->title))];
+        return [$this->picture($png, $s, $w, $h, $path, $n->description())];
     }
 
     /**

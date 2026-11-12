@@ -40,8 +40,9 @@ final class Svg implements Styled
     }
 
     /**
-     * Alternative text for screen readers (tagged PDF), replacing the drawing's own `<title>`;
-     * null or blank falls back to the title, and with no title the drawing is decorative.
+     * Alternative text for screen readers, replacing the drawing's own `<title>`: the description in tagged PDF,
+     * the `alt` in HTML and the description in Word. Null or blank falls back to the title, and with no title
+     * the drawing is decorative.
      */
     public function alt(?string $alt): self
     {
@@ -54,6 +55,21 @@ final class Svg implements Styled
     public function altText(): ?string
     {
         return $this->altText;
+    }
+
+    /**
+     * What a screen reader says for the drawing: its alternative text, else its `<title>`, else null (decorative).
+     *
+     * @throws ImageUnreadable when the file cannot be read as SVG
+     */
+    public function description(): ?string
+    {
+        if ($this->altText !== null) {
+            return $this->altText;
+        }
+        $title = $this->document()->title;
+
+        return $title === '' ? null : $title;
     }
 
     /** @return array{kind: 'file'|'string', value: string} */

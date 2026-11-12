@@ -84,40 +84,39 @@ final class PdfExporter implements Exporter
 
     /**
      * Tagged mode: a heading more than one level below the previous one, or a first heading below H1, fails
-     * PDF/UA-1 (veraPDF 7.4.2-1). Checked on the painted pages, where the body headings are final: each once in
-     * reading order (a heading split over pages once), with no measurement passes or retries and no page furniture.
+     * PDF/UA-1 (veraPDF 7.4.2-1). Checked on the painted pages, where the body headings are final: in
+     * reading order, a heading split over pages or columns reported once, with no measurement passes or retries and no page furniture.
      *
      * @param list<PageDisplayList> $pages
-     * @throws UnsupportedFeature in strict mode
+     * @throws InvalidStructure in strict mode
      */
     private static function checkHeadings(array $pages, PdfOptions $options): void
     {
         $previous = 0;
-        $seen = [];
+        $warned = [];
         foreach ($pages as $i => $page) {
             foreach (self::headings($page->ops) as $tagged) {
-                if (isset($seen[$tagged->tag->key])) {
-                    continue;
-                }
-                $seen[$tagged->tag->key] = true;
                 $level = (int) substr($tagged->tag->role, 1);
-                if ($level > $previous + 1) {
+                if ($level > $previous + 1 && !isset($warned[$tagged->tag->key])) {
+                    $warned[$tagged->tag->key] = true;
                     $text = trim((string) preg_replace('/\s+/u', ' ', implode(' ', array_map(
                         static fn (TextRun $run): string => $run->text,
                         iterator_to_array(self::textRuns($tagged->ops), false),
                     ))));
                     $text = mb_strlen($text) > 40 ? mb_substr($text, 0, 39) . '…' : $text;
-                    $message = sprintf(
-                        'heading "%s" is H%d after %s, skipping a level (PDF/UA needs the next level, H%d: use it, or style the heading smaller instead of skipping a level)',
-                        $text,
-                        $level,
-                        $previous === 0 ? 'no heading' : 'H' . $previous,
+                    $fix = sprintf(
+                        'Make it H%1$d: Text::h%2$d(\'…\')->asHeading(%1$d) keeps the H%2$d look (a Section or Card takes ->heading(%1$d)).',
                         $previous + 1,
+                        $level,
                     );
+                    $name = $text === '' ? 'A heading' : sprintf('Heading "%s"', $text);
+                    $message = $previous === 0
+                        ? sprintf('The first heading%s on page %d, is H%d; a tagged PDF must start with H1. %s', $text === '' ? ',' : sprintf(', "%s"', $text), $i + 1, $level, $fix)
+                        : sprintf('%s on page %d is H%d right after an H%d; a tagged PDF can\'t skip heading levels. %s', $name, $i + 1, $level, $previous, $fix);
                     if ($options->strict()) {
-                        throw UnsupportedFeature::from(new FidelityReport(FidelityLevel::Dropped, 'pdf', $message, sprintf('page %d', $i + 1)));
+                        throw new InvalidStructure($message);
                     }
-                    $options->onWarning()?->__invoke(sprintf('pdf: %s at page %d', $message, $i + 1));
+                    $options->onWarning()?->__invoke('pdf: ' . $message);
                 }
                 $previous = $level;
             }

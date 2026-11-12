@@ -659,7 +659,7 @@ final class HtmlWriter implements TreeVisitor
         }
         $decls['display'] = 'block';
         $decls['aspect-ratio'] = '1';
-        $label = $n->altText() ?? ($n->value() === null ? 'QR code' : 'QR code: ' . $n->value());
+        $label = $n->label();
         $design = $n->design();
         if ($design !== null) {
             // An image, like other SVG: its gradient ids cannot clash with another code's on the page.
@@ -711,7 +711,7 @@ final class HtmlWriter implements TreeVisitor
         if ($svg->hasText) {
             $this->fidelity->approximated('SVG text in the browser\'s own fonts', $at->path());
         }
-        $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($svg->xml) . '" alt="' . self::esc($n->altText() ?? $svg->title) . '"' . self::styleAttr($decls) . '>';
+        $this->out .= '<img src="data:image/svg+xml;base64,' . base64_encode($svg->xml) . '" alt="' . self::esc($n->description() ?? '') . '"' . self::styleAttr($decls) . '>';
 
         return '';
     }

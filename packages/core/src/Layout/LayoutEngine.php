@@ -356,12 +356,10 @@ final class LayoutEngine
             $node instanceof Image => $node->altText() !== null
                 ? new Tag('Figure', $key, alt: $node->altText())
                 : Tag::artifact($key),
-            $node instanceof Svg => ($alt = $node->altText() ?? ($node->document()->title !== '' ? $node->document()->title : null)) !== null
+            $node instanceof Svg => ($alt = $node->description()) !== null
                 ? new Tag('Figure', $key, alt: $alt)
                 : Tag::artifact($key),
-            $node instanceof QrCode => $node->altText() !== null
-                ? new Tag('Figure', $key, alt: $node->altText())
-                : Tag::artifact($key),
+            $node instanceof QrCode => new Tag('Figure', $key, alt: $node->label()),
             $node instanceof PdfPage, $node instanceof Spacer => Tag::artifact($key),
             default => null,
         };

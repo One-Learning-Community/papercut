@@ -189,8 +189,10 @@ final class QrCode implements Styled
         return $this->designed(static fn (QrDesign $d): QrDesign => $d->with(gradientFrom: $from, gradientTo: $to, gradientType: $type));
     }
 
-    /** The code's styling, or null for a plain code drawn as squares. */
-    /** Alternative text for screen readers (tagged PDF, HTML); null or blank leaves the code decorative in PDF. */
+    /**
+     * Alternative text for screen readers: the description in tagged PDF, the `alt` in HTML and the description in Word.
+     * Null or blank goes back to the default, "QR code: <value>".
+     */
     public function alt(?string $alt): self
     {
         $clone = clone $this;
@@ -198,12 +200,19 @@ final class QrCode implements Styled
         return $clone;
     }
 
-    /** The alternative text, or null. */
+    /** The explicit alternative text, or null. */
     public function altText(): ?string
     {
         return $this->altText;
     }
 
+    /** What a screen reader says for the code: its alternative text, else "QR code: <value>" ("QR code" for a code made from modules). */
+    public function label(): string
+    {
+        return $this->altText ?? ($this->value === null ? 'QR code' : 'QR code: ' . $this->value);
+    }
+
+    /** The code's styling, or null for a plain code drawn as squares. */
     public function design(): ?QrDesign
     {
         return $this->design;
