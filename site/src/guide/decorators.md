@@ -220,6 +220,8 @@ $document = Document::make(Page::a4()->body(
 
 `type` is `checkbox` (the default) or `radio`. In PHP, use `ChoiceList::checkbox()` or `ChoiceList::radio()`. `emphasize-selected` makes the selected labels bold.
 
+In a [tagged PDF](./accessibility.md) each marker is read out as "selected" or "not selected". To change those words, pass `selected-text` and `unselected-text` in Blade, or call `->stateText('ausgewählt', 'nicht ausgewählt')` in PHP. Both must be non-blank. The text is used only as alternative text for screen readers; nothing is drawn. In Laravel, tags without these attributes use the `papercut::choices.selected` and `papercut::choices.unselected` translations, so one language file localizes every list (see [Translations](../laravel/README.md#translations) in the Laravel guide).
+
 The checkboxes and radio buttons are drawn as shapes, so they don't depend on your font having ☐ or ● characters, and they look the same in PDF and HTML. In Word they are written as the characters ☐, ▣, ○ and ◉, so they take the font's look there. They're sized to match the text and line up with the first line of each label. A long list can break across pages between options, but never in the middle of one.
 
 ## Key-value list

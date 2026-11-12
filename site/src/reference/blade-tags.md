@@ -78,7 +78,7 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 | `<x-doc::blockquote>` | `cite`, `variant` | Style. `cite` also works as a slot. |
 | `<x-doc::section>` | `title`, `number`, `rule`, `heading`, `variant` | Style. `title` also works as a slot. `heading` (1 to 4) makes the title a heading, see [Titles as headings](/guide/decorators.md#titles-as-headings). |
 | `<x-doc::field>` | `label`, `placeholder`, `lines`, `variant` | Style. `label` also works as a slot. `lines` is a positive integer. |
-| `<x-doc::choices>` | `type`, `emphasize-selected`, `variant` | Style. `type`: `checkbox` or `radio`. Holds only `<x-doc::choice>`. |
+| `<x-doc::choices>` | `type`, `emphasize-selected`, `selected-text`, `unselected-text`, `variant` | Style. `type`: `checkbox` or `radio`. `selected-text` and `unselected-text`: the marker's alternative text in tagged PDFs, defaulting to the `papercut::choices` translations. Holds only `<x-doc::choice>`. |
 | `<x-doc::choice>` | `selected` | Valid only inside `<x-doc::choices>`. No style. |
 | `<x-doc::key-value>` | `label-width`, `variant` | Style. A length or percentage. Holds only `<x-doc::kv>`. |
 | `<x-doc::kv>` | `label`, `total` | A label is required, as an attribute or a slot. `total` (a boolean) marks an emphasised row and is only allowed inside `<x-doc::totals>`. No style. |

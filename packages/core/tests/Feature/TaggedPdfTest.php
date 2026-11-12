@@ -797,6 +797,20 @@ final class TaggedPdfTest extends TestCase
         self::assertSame('not selected', $items[1]['kids'][0]['alt']);
     }
 
+    public function test_a_choice_list_states_can_be_translated(): void
+    {
+        $tree = self::tree($this->small(ChoiceList::checkbox()->stateText('ausgewählt', 'nicht ausgewählt')->option('A', true)->option('B')));
+        $items = $tree[0]['kids'];
+        self::assertSame('ausgewählt', $items[0]['kids'][0]['alt']);
+        self::assertSame('nicht ausgewählt', $items[1]['kids'][0]['alt']);
+    }
+
+    public function test_choice_list_state_text_cannot_be_blank(): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
+        ChoiceList::radio()->stateText('yes', ' ');
+    }
+
     public function test_a_custom_decorator_keeps_its_contents_roles(): void
     {
         $custom = new class () implements \Papercut\Component {

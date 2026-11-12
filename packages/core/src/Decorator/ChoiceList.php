@@ -6,6 +6,7 @@ namespace Papercut\Decorator;
 
 use Papercut\{Component, Node, Row, View};
 use Papercut\Concerns\{HasStyle, HasVariants};
+use Papercut\Exception\InvalidValue;
 use Papercut\Style\Justify;
 use Papercut\Value\Length;
 
@@ -26,6 +27,8 @@ final class ChoiceList implements Decorator
     /** @var list<ChoiceOption> */
     private array $options = [];
     private bool $emphasizeSelected = false;
+    private string $selectedText = 'selected';
+    private string $unselectedText = 'not selected';
 
     private function __construct(private readonly bool $radio)
     {
@@ -63,6 +66,23 @@ final class ChoiceList implements Decorator
     {
         $clone = clone $this;
         $clone->emphasizeSelected = $on;
+        return $clone;
+    }
+
+    /**
+     * The words a screen reader gets for a marker's state, in the document's language. Used only as
+     * alternative text in tagged PDFs; nothing is drawn. Defaults to "selected" and "not selected".
+     */
+    public function stateText(string $selected, string $unselected): self
+    {
+        foreach (['selected' => $selected, 'unselected' => $unselected] as $name => $text) {
+            if (trim($text) === '') {
+                throw InvalidValue::for("choice list $name text", $text)->because('it cannot be blank');
+            }
+        }
+        $clone = clone $this;
+        $clone->selectedText = $selected;
+        $clone->unselectedText = $unselected;
         return $clone;
     }
 
@@ -104,7 +124,7 @@ final class ChoiceList implements Decorator
         // A slot one line tall centres the marker on the label's first line at any font size or line height.
         // The marker is drawn, so a tagged PDF carries the state as the label's alternative text.
         return View::make($marker->apply($name))->height(Length::lh(1))->justify(Justify::Center)->shrink(0)
-            ->structRole('Lbl', $selected ? 'selected' : 'not selected');
+            ->structRole('Lbl', $selected ? $this->selectedText : $this->unselectedText);
     }
 
     private function label(ChoiceOption $option): View

@@ -17,7 +17,7 @@ final class Choices extends PapercutComponent
     /** @return list<string> */
     protected function ownAttributes(): array
     {
-        return ['type', 'emphasize-selected', 'variant'];
+        return ['type', 'emphasize-selected', 'selected-text', 'unselected-text', 'variant'];
     }
 
     protected function build(array $data): object
@@ -41,7 +41,18 @@ final class Choices extends PapercutComponent
         if (array_key_exists('emphasize-selected', $own)) {
             $list = $list->emphasizeSelected($this->boolOwn($own['emphasize-selected'], 'emphasize-selected'));
         }
+        $list = $list->stateText(
+            isset($own['selected-text']) ? $this->scalarOwn($own['selected-text'], 'selected-text') : self::translated('selected'),
+            isset($own['unselected-text']) ? $this->scalarOwn($own['unselected-text'], 'unselected-text') : self::translated('unselected'),
+        );
 
         return $this->styled($list, $data);
+    }
+
+    private static function translated(string $key): string
+    {
+        $text = __('papercut::choices.' . $key);
+
+        return is_string($text) ? $text : $key;
     }
 }

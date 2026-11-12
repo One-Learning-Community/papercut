@@ -63,6 +63,11 @@ final class PapercutServiceProvider extends ServiceProvider
             __DIR__ . '/../config/papercut.php' => $this->app->configPath('papercut.php'),
         ], 'papercut-config');
 
+        $this->loadTranslationsFrom(__DIR__ . '/../lang', 'papercut');
+        $this->publishes([
+            __DIR__ . '/../lang' => $this->app->langPath('vendor/papercut'),
+        ], 'papercut-lang');
+
         if ($this->app->runningInConsole()) {
             $this->commands([FontsCommand::class, InstallFontCommand::class]);
         }

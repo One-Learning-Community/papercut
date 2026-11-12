@@ -89,7 +89,7 @@ Image::file('chart.png')->alt('Revenue by region, 2024 to 2026');
 | Overlay content (`Page::overlay()`) | Tagged like the body, after it, on the run's first page; the repeats on later pages are artifacts |
 | Page headers, footers, backgrounds and template pages, repeated table headers | Artifacts: kept out of the reading order |
 
-A custom [decorator](./decorators.md) keeps the roles of what it contains. A [choice list](./decorators.md) is a list too: each marker is a label whose alternative text says "selected" or "not selected".
+A custom [decorator](./decorators.md) keeps the roles of what it contains. A [choice list](./decorators.md) is a list too: each marker is a label whose alternative text says "selected" or "not selected". Those words are English by default; set them with `ChoiceList::stateText()` (or `selected-text` and `unselected-text` in Blade) to match the document's language. In Laravel the default comes from the `papercut::choices` translations, so a document in another language needs one translation file instead of an attribute on every list.
 
 Overlay text, such as a name placed on a certificate template, is real content, so a screen reader reads it. Overlay content is read once, from the first page of each run of pages; its repeats on later pages are page furniture. If nothing in the document ends up in the structure (all headers, backgrounds, a template page and images without alt text), Papercut warns, and strict mode throws `InvalidStructure`: the file would pass a validator and still read as empty.
 

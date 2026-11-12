@@ -237,6 +237,47 @@ final class DecoratorComponentsTest extends TestCase
         self::assertStringContainsString('No way', implode('', self::texts($list->render())));
     }
 
+    /** @return list<string|null> the alternative text of each option's marker */
+    private static function markerAlts(ChoiceList $list): array
+    {
+        $alts = [];
+        foreach ($list->render()->children() as $row) {
+            self::assertInstanceOf(View::class, $row);
+            $marker = $row->children()[0];
+            self::assertInstanceOf(View::class, $marker);
+            $alts[] = $marker->structAltText();
+        }
+        return $alts;
+    }
+
+    private const TWO = '<x-doc::choice selected>A</x-doc::choice><x-doc::choice>B</x-doc::choice>';
+
+    public function test_choices_state_text_defaults_to_the_packaged_english(): void
+    {
+        self::assertSame(['selected', 'not selected'], self::markerAlts($this->nodeFrom('<x-doc::choices>' . self::TWO . '</x-doc::choices>')));
+    }
+
+    public function test_choices_state_text_attributes_override(): void
+    {
+        $list = $this->nodeFrom('<x-doc::choices selected-text="oui" unselected-text="non">' . self::TWO . '</x-doc::choices>');
+        self::assertSame(['oui', 'non'], self::markerAlts($list));
+    }
+
+    public function test_choices_state_text_follows_the_locale_translation(): void
+    {
+        app('translator')->addLines(['choices.selected' => 'ausgewählt', 'choices.unselected' => 'nicht ausgewählt'], 'xx', 'papercut');
+        app()->setLocale('xx');
+        self::assertSame(['ausgewählt', 'nicht ausgewählt'], self::markerAlts($this->nodeFrom('<x-doc::choices>' . self::TWO . '</x-doc::choices>')));
+        $list = $this->nodeFrom('<x-doc::choices selected-text="ja">' . self::TWO . '</x-doc::choices>');
+        self::assertSame(['ja', 'nicht ausgewählt'], self::markerAlts($list));
+    }
+
+    public function test_choices_state_text_must_be_a_non_blank_string(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->nodeFrom('<x-doc::choices selected-text=" ">' . self::TWO . '</x-doc::choices>');
+    }
+
     public function test_choices_default_to_checkbox_and_bad_type_fails(): void
     {
         $list = $this->nodeFrom('<x-doc::choices><x-doc::choice>A</x-doc::choice></x-doc::choices>');

@@ -128,6 +128,10 @@ The keys are `font_family`, `mono_family`, `font_size`, `color`, `line_height`, 
 
 Named styles in an override merge onto the existing style. Blade checks style names while it renders the view, before the controller's `->theme()` runs. So `->theme()` can change values and restyle existing names, but a new style name the view uses must be defined in `papercut.styles` or in a `:theme` in the view. See [Changing the theme for one document or page](/guide/styles.md#changing-the-theme-for-one-document-or-page).
 
+## Translations
+
+The text a tagged PDF gives screen readers for a choice list's markers comes from Laravel's translator, namespace `papercut`: `papercut::choices.selected` and `papercut::choices.unselected`. English ships with the package. Set the app locale and add `lang/vendor/papercut/{locale}/choices.php` (or run `php artisan vendor:publish --tag=papercut-lang` to copy the files and edit them), and every list follows. A `selected-text` or `unselected-text` attribute on a `<x-doc::choices>` wins over the translation.
+
 ## Caching
 
 Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. Papercut stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data the fragment is built from, and render the fragment each time.
