@@ -346,6 +346,9 @@ final class LayoutEngine
         if ($pathName === 'marker') {
             return new Tag('Lbl', $key);
         }
+        if ($node instanceof PdfPage) {
+            $this->ctx->dropped('the content of an imported PDF page from the tagged structure (it stays an artifact that a screen reader cannot see)');
+        }
         return match (true) {
             // The contents list's title: tagged-PDF practice (ISO 32000-1 14.8.4.3) keeps a TOC to TOCI, TOC and Caption children.
             $node instanceof Text && $this->ctx->isCaption($node) => new Tag('Caption', $key),

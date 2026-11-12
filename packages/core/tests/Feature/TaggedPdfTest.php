@@ -558,6 +558,32 @@ final class TaggedPdfTest extends TestCase
         self::assertStringContainsString('/O /Layout', (string) $tree[1]['attrs']);
     }
 
+    private static function importedPage(): \Papercut\PdfPage
+    {
+        $template = Document::make(Page::a4()->body(Text::make('Imported words')))->title('T')->lang('en')->toPdf()->bytes();
+        return \Papercut\PdfPage::bytes($template);
+    }
+
+    public function test_an_imported_pdf_page_warns_that_screen_readers_cannot_see_it(): void
+    {
+        $w = [];
+        $this->warnings($w, true, false, [Text::h1('Top'), self::importedPage()]);
+        self::assertCount(1, $w);
+        self::assertStringContainsString('imported PDF page', $w[0]);
+        self::assertStringContainsString('screen reader', $w[0]);
+        $w = [];
+        $this->warnings($w, false, false, [Text::h1('Top'), self::importedPage()]);
+        self::assertSame([], $w);
+    }
+
+    public function test_an_imported_pdf_page_throws_in_strict_mode(): void
+    {
+        $w = [];
+        $this->expectException(UnsupportedFeature::class);
+        $this->expectExceptionMessage('screen reader');
+        $this->warnings($w, true, true, [Text::h1('Top'), self::importedPage()]);
+    }
+
     public function test_a_first_heading_below_h1_warns(): void
     {
         $w = [];

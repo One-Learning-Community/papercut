@@ -185,11 +185,29 @@ final class LayoutContext
         $this->heldBack = true;
     }
 
+    /**
+     * Reports content the output drops at the current path, once per path and feature; strict mode throws.
+     *
+     * @throws UnsupportedFeature in strict mode
+     */
+    public function dropped(string $feature): void
+    {
+        $report = new FidelityReport(FidelityLevel::Dropped, $this->format, $feature, $this->path());
+        if ($this->strict && !$this->muted) {
+            throw UnsupportedFeature::from($report);
+        }
+        $this->report($report, "\0dropped\0" . $report->path . "\0" . $feature);
+    }
+
     /** Reports a fidelity approximation at the current path, once per path and feature. */
     public function approximated(string $feature): void
     {
         $report = new FidelityReport(FidelityLevel::Approximated, $this->format, $feature, $this->path());
-        $key = "\0approximated\0" . $report->path . "\0" . $feature;
+        $this->report($report, "\0approximated\0" . $report->path . "\0" . $feature);
+    }
+
+    private function report(FidelityReport $report, string $key): void
+    {
         if ($this->muted || $this->onWarning === null || isset($this->warned[$key])) {
             return;
         }
