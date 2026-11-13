@@ -6,7 +6,6 @@ namespace Papercut\Layout;
 
 use Papercut\{Equation, Node};
 use Papercut\Math\Layout\Box;
-use Papercut\Math\Math;
 use Papercut\Style\{ComputedStyle, TextAlign};
 
 /**
@@ -18,14 +17,6 @@ use Papercut\Style\{ComputedStyle, TextAlign};
  */
 final class EquationLayouter implements Layouter
 {
-    /** @var \SplObjectStorage<Equation, array{string, Box}> the last size and font each formula was laid out at, and the result */
-    private \SplObjectStorage $boxes;
-
-    public function __construct()
-    {
-        $this->boxes = new \SplObjectStorage();
-    }
-
     public function layout(Node $node, ComputedStyle $style, Constraints $c, ?BreakToken $token, LayoutEngine $engine): LayoutResult
     {
         if (!$node instanceof Equation) {
@@ -66,22 +57,6 @@ final class EquationLayouter implements Layouter
 
     private function box(Equation $node, ComputedStyle $style, LayoutEngine $engine): Box
     {
-        $key = $style->fontSize . '|' . $style->fontFamily . '|' . $style->fontWeight . '|' . ($style->italic ? 'i' : 'n');
-        $cached = $this->boxes[$node] ?? null;
-        if ($cached !== null && $cached[0] === $key) {
-            return $cached[1];
-        }
-        $itemizer = $engine->context()->itemizer();
-        // A character the math font lacks is drawn in the face a paragraph would use (see MathPainter), so it takes that face's width.
-        $fallbackAdvance = static function (string $char, float $size) use ($itemizer, $style): ?float {
-            foreach ($itemizer->runsFor($char, $style) as [$text, $face]) {
-                return $face->covers($text) ? $face->advance($text, $size) : null;
-            }
-            return null;
-        };
-        $box = Math::layout($node->math(), $style->fontSize, true, $engine->context()->fonts->mathFont()['font'], false, $fallbackAdvance);
-        $this->boxes[$node] = [$key, $box];
-
-        return $box;
+        return $engine->context()->itemizer()->mathBox($node->math(), $style, true);
     }
 }

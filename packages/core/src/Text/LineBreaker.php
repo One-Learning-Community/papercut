@@ -159,6 +159,15 @@ final class LineBreaker
             $breakAfter,
         );
         foreach ($chunk as $item) {
+            if ($item->math !== null) {
+                // An equation is never split: it takes a line of its own when it comes after anything else, and overflows when it is too wide.
+                if ($cur !== []) {
+                    $lines[] = [$cur, $w];
+                }
+                $cur = [$item];
+                $w = $item->width;
+                continue;
+            }
             // An inline box split like a word keeps its padding and border on every piece.
             $edges = $item->box ? $item->boxEdges() : 0.0;
             $buf = '';
