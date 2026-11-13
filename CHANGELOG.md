@@ -7,7 +7,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Inline badges: a small rounded pill in a line of text. `Span::badge($text, $tone, $variant)` in PHP, `<badge type="tip" variant="outline">201</badge>` in inline markup, and `<x-doc::badge>` inside a text tag in Blade (anywhere else it is still the block badge). They use the theme's `badge`, `badge.<tone>` and `badge.<variant>` styles. The label is plain text, and an empty one is an error. The PDF never splits a pill across lines. HTML export writes `<span class="pc-badge">`. Word shows shaded text with padding, without rounded corners.
+- Inline badges: a small rounded pill in a line of text. `Span::badge($text, $tone, $variant)` in PHP, `<badge type="tip" variant="outline">201</badge>` in inline markup, and `<x-doc::badge>` inside a text tag in Blade (anywhere else it is still the block badge). They use the theme's `badge`, `badge.<tone>` and `badge.<variant>` styles. The label is plain text, and an empty one is an error. The PDF doesn't split a pill across lines unless it is wider than the line. HTML export writes `<span class="pc-badge">`. Word shows shaded text with padding, without rounded corners.
 
 ### Changed
 

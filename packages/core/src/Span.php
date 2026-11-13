@@ -36,7 +36,7 @@ final readonly class Span
     /**
      * A small rounded label inside running text, in the theme's `badge` and `badge.<tone>` styles (and `badge.<word>`
      * for each space-separated $variant word the theme defines): the block Badge's look, on the line. The label is
-     * plain text and never breaks across lines. `badge.<tone>` must exist in the theme.
+     * plain text and doesn't break across lines unless it is wider than the whole line. `badge.<tone>` must exist in the theme.
      */
     public static function badge(string $text, string $tone = 'neutral', ?string $variant = null): self
     {

@@ -277,7 +277,7 @@ The tones are `neutral` (the default), `note`, `tip`, `warning` and `danger`, ma
 
 ### Inline badges
 
-To put a badge in the middle of a line of text, use it inside a text tag. In Blade, `<x-doc::badge>` inside `<x-doc::text>`, a heading, a list item or a table cell is an inline badge, and anywhere else it is the block badge above. In inline markup it is `<badge>`, with the same `type` and `variant` attributes.
+To put a badge in the middle of a line of text, use it inside a text tag. In Blade, `<x-doc::badge>` inside a text tag (`<x-doc::text>`, `<x-doc::p>`, a heading `<x-doc::h1>` to `<x-doc::h4>`, or the value of a stat) is an inline badge, and anywhere else it is the block badge above. A list item or table cell holds blocks, so a badge tag there is a block badge: write it as markup in the cell's text (`<badge type="tip">New</badge>`) or wrap the line in `<x-doc::p>`. In inline markup it is `<badge>`, with the same `type` and `variant` attributes.
 
 ::: code-tabs#style
 @tab Blade
@@ -300,7 +300,7 @@ Text::make('The call returns ')->append(Span::badge('201', 'tip'), ' and the new
 ```
 :::
 
-The label is plain text: a tag inside `<badge>` is an error, and so is an empty label. A badge inside `<a>` is part of the link. The PDF draws a rounded pill on the line and never splits it across lines; one that doesn't fit moves whole to the next line. HTML export writes `<span class="pc-badge">`. Inline badges use the same theme styles as block badges (`badge`, `badge.<tone>`, `badge.<variant>`). In Word the badge is shaded text with a little padding, without rounded corners, and Google Docs shows the shading only. A block badge with a plain-text label is written the same way in Word.
+The label is plain text: a tag inside `<badge>` is an error, and so is an empty label. A badge inside `<a>` is part of the link. The PDF draws a rounded pill on the line and doesn't split it across lines unless it is wider than the line; one that doesn't fit moves whole to the next line. HTML export writes `<span class="pc-badge">`. Inline badges use the same theme styles as block badges (`badge`, `badge.<tone>`, `badge.<variant>`). In Word the badge is shaded text with a little padding, without rounded corners, and Google Docs shows the shading only. A block badge with a plain-text label is written the same way in Word.
 
 ## Stat
 
