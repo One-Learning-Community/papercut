@@ -85,7 +85,7 @@ Preview routes render each document with sample data at a fixed URL while you wo
 - PDF templates and placed content: draw a page of an existing PDF behind yours and place text at a point on it, for certificates and letterheads.
 - AES-256 encryption with permissions.
 - HTML export from the same template, and Word export with `papercut/docx`, which writes real Word headings, lists, tables and a table of contents field.
-- Decorators: ready-made card, callout, blockquote, section, field, choice list, key-value list and badge, restyled from the theme (`<x-doc::callout type="warning">`).
+- Decorators: ready-made card, callout, blockquote, section, field, choice list, key-value list, badge (also inline in a line of text), stat, totals and signature, restyled from the theme (`<x-doc::callout type="warning">`).
 - Composition: your own Blade components can contain `<x-doc::*>` tags (see `examples/laravel/views/components`).
 - Strict, readable errors for unknown attributes, bad values and invalid structure.
 

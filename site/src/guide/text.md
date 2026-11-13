@@ -12,6 +12,8 @@ Papercut measures text using the actual metrics of the embedded font, so line br
 
 Headings keep with the next block by default, so a heading isn't left alone at the bottom of a page. Turn that off with `->keepWithNext(false)` in PHP, or `:keep-with-next="false"` in Blade. In Word the heading paragraph gets keep-with-next, and in HTML it gets `break-after: avoid`. If a heading and the block after it can't fit on one page together, the heading still ends up alone.
 
+To make text a heading without the `h1` to `h4` look, use `Text::make('…')->asHeading(2)` (PHP only). It gets a bookmark and a [table of contents](./pages.md#tables-of-contents) entry, an `h2` tag in HTML and a Heading 2 style in Word, but keeps its own style. Unlike the presets, it doesn't keep with the next block unless you add `->keepWithNext()`. `headingLevel()` returns a text's level, 1 to 4, or `null` when it isn't a heading.
+
 Font, size, weight, colour and alignment are inherited, so you can set them on a box and the text inside will follow:
 
 ::: code-tabs#style
@@ -241,6 +243,8 @@ $document = Document::make(Page::letter()->body(
 :::
 
 `<mark>` gives its text a `yellow-200` background. `<code>` sets it in the monospace font with the `code` style. In PHP, `Span::code($text)` does the same for literal text, without markup.
+
+A span whose style has horizontal padding or a border, such as a `code` style you've given padding in your theme, is drawn as a small box in the line, with its background and border around the padded text.
 
 `<badge>` draws a small pill in the line. It takes `type` (`neutral`, `note`, `tip`, `warning`, `danger` or a tone you define) and `variant`, and its label is plain text with no tags inside. In PHP, `Span::badge($text, $tone, $variant)` builds one without markup. See [Inline badges](./decorators.md#inline-badges).
 

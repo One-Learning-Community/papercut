@@ -60,6 +60,14 @@
           "variants": []
         },
         {
+          "id": "equations",
+          "title": "Equations",
+          "api": "/guide/equations.html",
+          "alt": "Two centred equations, the quadratic formula and compound interest, and a paragraph with small formulas in its text",
+          "pages": 1,
+          "variants": []
+        },
+        {
           "id": "code-blocks",
           "title": "Code blocks",
           "api": "/guide/text.html#code-blocks",
@@ -263,6 +271,11 @@
               "id": "outline",
               "label": "variant=\"outline\"",
               "alt": "The same badges outlined in their colour, with no fill"
+            },
+            {
+              "id": "inline",
+              "label": "in a line of text",
+              "alt": "Two paragraphs with small badges inside their text: Paid, 2 days, 201 and 409"
             }
           ]
         },

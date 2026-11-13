@@ -51,6 +51,8 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | Fixed heights, flexible spacers in a column, wrapping rows | ≈ |
 | `min-lines` above 2 | ≈ Word keeps 2 lines together |
 | Table cell `justify` other than start, center or end | ≈ top |
+| Table cell `height` or `min-height` | the row's minimum height, so Word grows the row if its text needs more room; a fixed `height` is reported as ≈ |
+| `height` or `min-height` on a cell that spans rows | ≈ shared evenly among its rows |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
 | Corner radius on a box | ✗ left out |
 | Corner radius on a badge in a line of text | ≈ square corners |
@@ -60,6 +62,7 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | Anything else in a background or overlay layer, a border or background on a layer picture, PDF page templates, embedded PDF pages | ✗ left out |
 | Styled QR codes without Imagick | ≈ plain squares |
 | SVG text | ≈ in the system's fonts |
+| Equations | in Cambria Math, whatever the PDF's math font; LibreOffice ignores their colour and size ([below](#equations-in-word)) |
 | Pictures without the PHP extension they need (below) | ✗ left out |
 
 ### Columns

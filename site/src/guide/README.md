@@ -48,3 +48,6 @@ Kerning and ligatures do work. Signing and merging aren't built in, but php-pdf 
 - [Installation](./installation.md) gets the packages into your project.
 - [Your first document](./first-document.md) builds and saves a PDF, in Blade and in PHP.
 - [Decorators](./decorators.md) covers the ready-made cards, callouts and form fields.
+- [Layout](./layout.md#column-flow) covers rows, columns and text set in several columns.
+- [Equations](./equations.md) covers formulas, on their own line and inside text.
+- [Word export](./word-export.md) turns the same document into an editable Word file.

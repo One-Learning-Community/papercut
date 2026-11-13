@@ -65,7 +65,7 @@ Length columns (`1in`) keep the width you gave them. If they, or the narrowest w
 
 ## Cells
 
-A cell can hold any content, not just text: a column with two lines, an image or a badge, for example. Use `colspan` to make a cell span several columns and `rowspan` to make it span several rows. `<x-doc::th>` is a header cell, and its text is bold.
+A cell can hold any content, not just text: a column with two lines, an image or a badge, for example. Use `colspan` to make a cell span several columns and `rowspan` to make it span several rows. `<x-doc::th>` is a header cell, and its text is bold. A cell's `height` or `min-height` sets the least height of its row, which is how you leave blank rows to write in; a cell spanning rows shares it among them.
 
 In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single header row, or `<x-doc::tr>` rows if you need more than one. In PHP, `headerRow()` adds a header row, and `bodyRow()` or `rows()` add body rows.
 
