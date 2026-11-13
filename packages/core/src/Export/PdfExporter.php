@@ -24,7 +24,15 @@ final class PdfExporter implements Exporter
     {
         $options = PdfOptions::from($options);
         $backend = $options->backend();
-        $tagged = $options->tagged() && self::requireTaggable($doc, $options, $backend);
+        $pdfA = $options->pdfA();
+        if ($pdfA !== null && $options->encryption() !== null) {
+            throw new \InvalidArgumentException('PDF/A cannot be combined with encryption: set either PdfOptions pdfA or encryption, not both.');
+        }
+        $wantsTags = $options->tagged() || ($pdfA?->requiresTagging() ?? false);
+        $tagged = $wantsTags && self::requireTaggable($doc, $options, $backend);
+        if ($wantsTags && !$tagged && $pdfA?->requiresTagging()) {
+            throw new InvalidStructure(sprintf('PDF/A level "%s" needs a tagged PDF, which this backend cannot write.', $pdfA->value));
+        }
         $fonts = $options->fonts();
         $themes = PageThemes::for($options->theme(), $doc);
         NoteReporter::report($doc, $themes, new Fidelity('pdf', $options));
@@ -49,7 +57,7 @@ final class PdfExporter implements Exporter
 
         $meta = $doc->meta()->withEncryption($options->encryption());
 
-        $bytes = $backend->render($meta, $pages, $tagged);
+        $bytes = $backend->render($meta, $pages, $tagged, $pdfA);
         if ($tagged && $backend instanceof TaggingCapability) {
             self::checkHeadings($backend->headings(), $options);
             self::checkContent($backend->structureHasContent(), $options);

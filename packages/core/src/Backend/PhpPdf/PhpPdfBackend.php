@@ -7,6 +7,7 @@ namespace Papercut\Backend\PhpPdf;
 use Dskripchenko\PhpPdf\Image\PdfImage;
 use Dskripchenko\PhpPdf\Pdf\Document as PdfDocument;
 use Dskripchenko\PhpPdf\Pdf\Merge\{PageImporter, PdfSource};
+use Dskripchenko\PhpPdf\Pdf\PdfAConfig;
 use Dskripchenko\PhpPdf\Pdf\PdfFormXObject;
 use Dskripchenko\PhpPdf\Pdf\{Encryption as PdfEncryption, EncryptionAlgorithm};
 use Dskripchenko\PhpPdf\Pdf\Page as PdfPage;
@@ -20,7 +21,7 @@ use Papercut\Backend\{PdfPageHandle, PdfPageLoader, TaggingCapability};
 use Papercut\Exception\FontNotFound;
 use Papercut\Exception\ImageUnreadable;
 use Papercut\Exception\PdfUnreadable;
-use Papercut\Export\Encryption;
+use Papercut\Export\{Encryption, PdfA};
 use Papercut\Paint\{Anchor, Bookmark, Clip, DocumentMeta, DrawImage, DrawPdfPage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, Tag, Tagged, TextRun};
 use Papercut\Text\CachedFont;
 use Papercut\Value\Color;
@@ -141,7 +142,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         return new PhpPdfPage($document, $page - 1, $w, $h, sha1($bytes) . ':' . $page);
     }
 
-    public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string
+    public function render(DocumentMeta $meta, array $pages, bool $tagged = false, ?PdfA $pdfA = null): string
     {
         if ($pages === []) {
             throw new \InvalidArgumentException('Cannot render a document with no pages.');
@@ -172,9 +173,25 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         $this->root = null;
         $this->headings = [];
         $this->pageNumber = 0;
+        if ($pdfA !== null) {
+            if ($meta->encryption !== null) {
+                throw new \InvalidArgumentException('PDF/A cannot be combined with encryption.');
+            }
+            $doc->enablePdfA(new PdfAConfig(
+                iccProfilePath: dirname(__DIR__, 3) . '/resources/icc/sRGB2014.icc',
+                iccProfileName: 'sRGB2014',
+                lang: $meta->lang ?? 'en',
+                title: $meta->title ?? '',
+                author: $meta->author ?? '',
+                part: $pdfA->part(),
+                conformance: $pdfA->conformance(),
+            ));
+        }
         if ($tagged) {
             $doc->enablePdfUa();
-            $doc->useObjectStreams();
+            if ($pdfA?->part() !== 1) {
+                $doc->useObjectStreams();
+            }
         }
         if ($meta->encryption !== null) {
             $e = $meta->encryption;

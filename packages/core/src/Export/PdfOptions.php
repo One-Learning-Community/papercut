@@ -24,6 +24,8 @@ final readonly class PdfOptions extends ExportOptions
      * @param bool $tagged writes an accessible PDF: a structure tree (headings, paragraphs, lists, tables, figures,
      *        links) and PDF/UA-1 identification. Needs a document title and language (`Document::title()`, `->lang()`).
      *        Encrypted files keep the permission screen readers need.
+     * @param PdfA|null $pdfA writes an archival PDF/A file at that level (null = a regular PDF). The "a" levels
+     *        also tag the PDF and need a title and language, like `$tagged`. Cannot be combined with `$encryption`.
      */
     public function __construct(
         ?Theme $theme = null,
@@ -36,6 +38,7 @@ final readonly class PdfOptions extends ExportOptions
         private bool $bookmarks = true,
         private ?Encryption $encryption = null,
         private bool $tagged = false,
+        private ?PdfA $pdfA = null,
     ) {
         parent::__construct($theme, $fonts, $onWarning, $strict);
         $this->backend = $backend;
@@ -60,13 +63,19 @@ final readonly class PdfOptions extends ExportOptions
     /** A copy that encrypts with $encryption, or writes an unencrypted PDF for null. */
     public function withEncryption(?Encryption $encryption): self
     {
-        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->backend, $this->overflow, $this->cacheDir, $this->bookmarks, $encryption, $this->tagged);
+        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->backend, $this->overflow, $this->cacheDir, $this->bookmarks, $encryption, $this->tagged, $this->pdfA);
     }
 
     /** A copy that writes a tagged PDF (or not), keeping every other option. */
     public function withTagged(bool $tagged): self
     {
-        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->backend, $this->overflow, $this->cacheDir, $this->bookmarks, $this->encryption, $tagged);
+        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->backend, $this->overflow, $this->cacheDir, $this->bookmarks, $this->encryption, $tagged, $this->pdfA);
+    }
+
+    /** A copy that writes PDF/A at $pdfA (or a regular PDF for null), keeping every other option. */
+    public function withPdfA(?PdfA $pdfA): self
+    {
+        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->backend, $this->overflow, $this->cacheDir, $this->bookmarks, $this->encryption, $this->tagged, $pdfA);
     }
 
     public function encryption(): ?Encryption
@@ -77,6 +86,11 @@ final readonly class PdfOptions extends ExportOptions
     public function tagged(): bool
     {
         return $this->tagged;
+    }
+
+    public function pdfA(): ?PdfA
+    {
+        return $this->pdfA;
     }
 
     public function bookmarks(): bool

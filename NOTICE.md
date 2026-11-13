@@ -28,6 +28,15 @@ Tailwind CSS v3.4.17 default palette by `packages/core/tools/generate-palette.ph
 - License: MIT, Copyright (c) Tailwind Labs, Inc.
 - Full text: `packages/core/resources/TAILWIND-LICENSE.txt`
 
+## sRGB color profile
+
+Bundled in `packages/core/resources/icc/sRGB2014.icc` (copied unmodified from php-pdf) and embedded in PDF/A files
+as the output intent's destination profile.
+
+- License: the sRGB v2 profile published by the International Color Consortium
+  (https://www.color.org/srgbprofiles.xalter), which may be used, copied and distributed provided it is not altered
+- Project: https://www.color.org/
+
 ## dskripchenko/php-pdf
 
 `papercut/core` depends on [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf) (`^1.26`) for PDF

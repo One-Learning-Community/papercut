@@ -563,7 +563,7 @@ final class HtmlTablesImagesTest extends TestCase
                 return $this->inner->loadImageBytes($bytes);
             }
 
-            public function render(DocumentMeta $meta, array $pages, bool $tagged = false): string
+            public function render(DocumentMeta $meta, array $pages, bool $tagged = false, ?\Papercut\Export\PdfA $pdfA = null): string
             {
                 return $this->inner->render($meta, $pages, $tagged);
             }
