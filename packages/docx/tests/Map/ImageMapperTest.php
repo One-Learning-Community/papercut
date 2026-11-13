@@ -170,6 +170,14 @@ final class ImageMapperTest extends TestCase
         self::assertSame([Raster::pixels(30), Raster::pixels(15)], self::dims(self::media($d)));
     }
 
+    public function test_docx_options_send_svg_through_rsvg_convert(): void
+    {
+        $doc = \Papercut\Document::make(\Papercut\Page::a4()->body(Svg::fromString('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><rect width="40" height="20" fill="#0a0"/></svg>')));
+        $options = new \Papercut\Docx\DocxOptions(rsvgConvert: \Papercut\Docx\Tests\Support\RsvgConvert::require());
+        $d = DocxInspector::of($doc->export(new \Papercut\Docx\DocxExporter(), $options)->bytes());
+        self::assertSame([Raster::pixels(30), Raster::pixels(15)], self::dims(self::media($d)));
+    }
+
     public function test_svg_without_imagick_is_left_out(): void
     {
         $svg = Svg::fromString('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4"/></svg>');

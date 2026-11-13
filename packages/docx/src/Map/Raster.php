@@ -7,6 +7,7 @@ namespace Papercut\Docx\Map;
 use Dskripchenko\PhpDocx\Element\ImageFormat;
 use Papercut\Backend\PhpPdf\GdImageConverter;
 use Papercut\Barcode\Bacon\BaconQrSvg;
+use Papercut\Exception\InvalidValue;
 use Papercut\QrCode;
 use Papercut\Value\Color;
 use Papercut\Vector\SvgDocument;
@@ -14,7 +15,8 @@ use Papercut\Vector\SvgDocument;
 /**
  * Pictures for Word, which takes only PNG, JPEG, GIF and BMP and draws them as they are: other formats are
  * converted, and what the PDF does to an image (cropping, opacity), along with QR codes
- * and SVG, is baked into the pixels. GD does the bitmap work; Imagick draws styled QR codes and SVG.
+ * and SVG, is baked into the pixels. GD does the bitmap work; Imagick draws styled QR codes, and SVG unless
+ * rsvg-convert is configured: that draws SVG the same wherever it runs, which Imagick, depending on its build, doesn't.
  *
  * @internal Part of Papercut's engine, not its public API. It may change in any release.
  */
@@ -28,14 +30,27 @@ final readonly class Raster
         public bool $imagick,
         /** Whether this Imagick build can read SVG. */
         public bool $imagickSvg,
+        /** The rsvg-convert executable that draws SVG ahead of Imagick; null for Imagick alone. */
+        public ?string $rsvgConvert = null,
+        /** Seconds rsvg-convert gets for one SVG before it is stopped and Imagick tried instead. */
+        public float $rsvgTimeout = 30.0,
     ) {
     }
 
-    public static function detect(): self
+    /** @throws InvalidValue when $rsvgConvert is given but isn't an executable file, or PHP can't start processes */
+    public static function detect(?string $rsvgConvert = null): self
     {
         $imagick = extension_loaded('imagick');
+        if ($rsvgConvert !== null) {
+            if (!is_file($rsvgConvert) || !is_executable($rsvgConvert)) {
+                throw InvalidValue::for('rsvg-convert path', $rsvgConvert)->because('it is not an executable file');
+            }
+            if (!function_exists('proc_open')) {
+                throw InvalidValue::for('rsvg-convert path', $rsvgConvert)->because('proc_open() is disabled, so PHP cannot run it');
+            }
+        }
 
-        return new self(extension_loaded('gd'), $imagick, $imagick && \Imagick::queryFormats('SVG') !== []);
+        return new self(extension_loaded('gd'), $imagick, $imagick && \Imagick::queryFormats('SVG') !== [], $rsvgConvert);
     }
 
     /**
@@ -157,19 +172,27 @@ final readonly class Raster
     }
 
     /**
-     * The SVG as a PNG of $width x $height pixels, through Imagick. Anything that could reach outside the
-     * document (images, links to files, external url()s) is removed first: the PDF draws none of it either.
+     * The SVG as a PNG of $width x $height pixels, through rsvg-convert when it is configured and succeeds, else
+     * Imagick. Anything that could reach outside the document (images, links to files, external url()s) is
+     * removed first: the PDF draws none of it either.
      *
      * @param positive-int $width
      * @param positive-int $height
      */
     public function svg(SvgDocument $doc, int $width, int $height): ?string
     {
-        if (!$this->imagickSvg) {
+        if (!$this->imagickSvg && $this->rsvgConvert === null) {
             return null;
         }
         $xml = self::contained($doc->xml, $width, $height);
         if ($xml === null) {
+            return null;
+        }
+        $png = $this->rsvgConvert === null ? null : $this->rsvg($this->rsvgConvert, $xml, $width, $height);
+        if ($png !== null) {
+            return PngTimestamps::strip($png);
+        }
+        if (!$this->imagickSvg) {
             return null;
         }
         try {
@@ -193,6 +216,86 @@ final readonly class Raster
         }
 
         return $png === '' ? null : PngTimestamps::strip($png);
+    }
+
+    /**
+     * The contained SVG drawn by rsvg-convert, read from stdin so it has no directory to resolve anything
+     * against. Null when it fails, runs past the timeout, or draws something other than a $width x $height PNG.
+     *
+     * @param positive-int $width
+     * @param positive-int $height
+     */
+    private function rsvg(string $binary, string $xml, int $width, int $height): ?string
+    {
+        $pipes = [];
+        $proc = @proc_open(
+            [$binary, '-f', 'png', '-w', (string) $width, '-h', (string) $height],
+            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes,
+        );
+        if (!is_resource($proc)) {
+            return null;
+        }
+        foreach ($pipes as $pipe) {
+            stream_set_blocking($pipe, false);
+        }
+        // Write and read together: a large SVG and a large PNG would otherwise wait on each other.
+        $in = $xml;
+        $stdin = $pipes[0];
+        $reading = [1 => $pipes[1], 2 => $pipes[2]];
+        $out = '';
+        $deadline = microtime(true) + $this->rsvgTimeout;
+        while ($reading !== []) {
+            $left = $deadline - microtime(true);
+            if ($left <= 0.0) {
+                break;
+            }
+            $read = array_values($reading);
+            $write = $stdin === null ? [] : [$stdin];
+            $except = null;
+            if (@stream_select($read, $write, $except, (int) $left, (int) (fmod($left, 1.0) * 1e6)) === false) {
+                break;
+            }
+            if ($stdin !== null && $write !== []) {
+                $n = @fwrite($stdin, $in);
+                $in = $n === false ? '' : substr($in, $n);
+                if ($in === '') {
+                    fclose($stdin);
+                    $stdin = null;
+                }
+            }
+            foreach ($read as $stream) {
+                $chunk = fread($stream, 65536);
+                if ($chunk !== false && $chunk !== '') {
+                    if ($stream === $pipes[1]) {
+                        $out .= $chunk;
+                    }
+                } elseif (feof($stream)) {
+                    $key = array_search($stream, $reading, true);
+                    if ($key !== false) {
+                        unset($reading[$key]);
+                    }
+                    fclose($stream);
+                }
+            }
+        }
+        $finished = $reading === [];
+        if ($stdin !== null) {
+            fclose($stdin);
+        }
+        foreach ($reading as $stream) {
+            fclose($stream);
+        }
+        if (!$finished) {
+            proc_terminate($proc, 9);
+        }
+        $status = proc_close($proc);
+        if (!$finished || $status !== 0 || strlen($out) < 24 || !str_starts_with($out, "\x89PNG\r\n\x1a\n")) {
+            return null;
+        }
+        $size = unpack('Nw/Nh', substr($out, 16, 8));
+
+        return $size !== false && $size['w'] === $width && $size['h'] === $height ? $out : null;
     }
 
     /** The SVG with nothing external left in it, sized $width x $height px around its view box. */

@@ -3,6 +3,12 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Word export can draw SVG with librsvg's `rsvg-convert` instead of Imagick: `DocxOptions(rsvgConvert: '/usr/bin/rsvg-convert')`, or `papercut.docx.rsvg_convert` (`PAPERCUT_RSVG_CONVERT`) in Laravel. Imagick's SVG support depends on how ImageMagick was built, and many builds paint gradients and patterns black and leave out clip paths and dashed strokes; `rsvg-convert` draws them the same everywhere. It gets the same cleaned SVG on standard input, and Imagick takes over for any SVG it fails on or that takes over 30 seconds. See [SVG with rsvg-convert](https://one-learning-community.github.io/papercut/guide/word-export.html#svg-with-rsvg-convert).
+
 ## [0.11.2] - 2026-11-13
 
 ### Fixed

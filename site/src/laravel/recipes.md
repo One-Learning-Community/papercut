@@ -134,4 +134,4 @@ For simple charts, a Blade component can write the SVG itself. This one draws a 
 <x-bar-chart :data="['Jan' => 42, 'Feb' => 51, 'Mar' => 38, 'Apr' => 64]" />
 ```
 
-`{{ }}` escapes the labels, so a label with `&` or `<` in it can't break the markup. Text in the SVG is set in your document's fonts. [SVG](/guide/images-and-links.md#svg) lists what's drawn. Word export turns an SVG into a picture, which needs `ext-imagick` (see [Word export](/guide/word-export.md)).
+`{{ }}` escapes the labels, so a label with `&` or `<` in it can't break the markup. Text in the SVG is set in your document's fonts. [SVG](/guide/images-and-links.md#svg) lists what's drawn. Word export turns an SVG into a picture, which needs `rsvg-convert` or `ext-imagick` (see [Word export](/guide/word-export.md#svg-with-rsvg-convert)).

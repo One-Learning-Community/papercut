@@ -6,6 +6,8 @@ namespace Papercut\Docx\Tests\Map;
 
 use Dskripchenko\PhpDocx\Element\ImageFormat;
 use Papercut\Docx\Map\Raster;
+use Papercut\Docx\Tests\Support\RsvgConvert;
+use Papercut\Exception\InvalidValue;
 use Papercut\QrCode;
 use Papercut\Value\Color;
 use Papercut\Vector\SvgDocument;
@@ -160,6 +162,111 @@ final class RasterTest extends TestCase
         } finally {
             unlink($secret);
         }
+    }
+
+    /** rsvg-convert alone, so a passing test can't be Imagick's work. */
+    private static function rsvgOnly(?string $binary = null, float $timeout = 30.0): Raster
+    {
+        return new Raster(gd: true, imagick: false, imagickSvg: false, rsvgConvert: $binary ?? RsvgConvert::require(), rsvgTimeout: $timeout);
+    }
+
+    /** A shell script standing in for rsvg-convert, deleted after the test. */
+    private function script(string $body): string
+    {
+        $file = tempnam(sys_get_temp_dir(), 'rsvg');
+        self::assertNotFalse($file);
+        file_put_contents($file, "#!/bin/sh\n" . $body . "\n");
+        chmod($file, 0755);
+        $this->scripts[] = $file;
+
+        return $file;
+    }
+
+    /** @var list<string> */
+    private array $scripts = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->scripts as $file) {
+            @unlink($file);
+        }
+    }
+
+    public function test_rsvg_convert_draws_svg_at_the_requested_size(): void
+    {
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="10" height="10" fill="#ff0000"/></svg>');
+        $png = self::rsvgOnly()->svg($doc, 200, 100);
+        self::assertNotNull($png);
+        self::assertSame([200, 100], self::dims($png));
+        self::assertSame(6, ord($png[25]), 'PNG colour type');
+        self::assertSame([255, 0, 0, 0], self::pixel($png, 50, 50));
+        self::assertSame(127, self::pixel($png, 150, 50)[3]);
+        self::assertStringNotContainsString('tIME', $png);
+    }
+
+    public function test_rsvg_convert_never_loads_outside_files(): void
+    {
+        $secret = tempnam(sys_get_temp_dir(), 'leak');
+        file_put_contents($secret, self::picture('png', 20, 20));
+        try {
+            $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20" height="20">'
+                . '<image href="file://' . $secret . '" width="20" height="20"/><image xlink:href="' . $secret . '" width="20" height="20"/>'
+                . '<rect width="20" height="20" fill="url(file://' . $secret . '#x)"/></svg>');
+            $png = self::rsvgOnly()->svg($doc, 20, 20);
+            self::assertNotNull($png);
+            self::assertSame(127, self::pixel($png, 10, 10)[3]);
+        } finally {
+            unlink($secret);
+        }
+    }
+
+    public function test_a_large_svg_and_picture_do_not_stall_the_pipes(): void
+    {
+        $rects = str_repeat('<rect x="1" y="1" width="2" height="2" fill="#00f"/>', 20000);
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">' . $rects . '</svg>');
+        $png = self::rsvgOnly()->svg($doc, 2000, 2000);
+        self::assertNotNull($png);
+        self::assertSame([2000, 2000], self::dims($png));
+    }
+
+    public function test_a_failing_rsvg_convert_gives_way_to_imagick(): void
+    {
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="#f00"/></svg>');
+        $failing = $this->script('cat > /dev/null; exit 1');
+        self::assertNull(self::rsvgOnly($failing)->svg($doc, 4, 4));
+
+        $imagick = Raster::detect();
+        if (!$imagick->imagickSvg) {
+            return;
+        }
+        $png = (new Raster(gd: true, imagick: true, imagickSvg: true, rsvgConvert: $failing))->svg($doc, 4, 4);
+        self::assertNotNull($png);
+        self::assertSame([255, 0, 0, 0], self::pixel($png, 2, 2));
+    }
+
+    public function test_output_that_is_not_a_png_of_the_size_asked_is_refused(): void
+    {
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>');
+        self::assertNull(self::rsvgOnly($this->script('cat > /dev/null; echo not a png'))->svg($doc, 4, 4));
+        $wrongSize = $this->script('cat > /dev/null; exec "' . RsvgConvert::require() . '" -f png -w 3 -h 3 <<EOF
+<svg xmlns="http://www.w3.org/2000/svg" width="3" height="3"/>
+EOF');
+        self::assertNull(self::rsvgOnly($wrongSize)->svg($doc, 4, 4));
+    }
+
+    public function test_rsvg_convert_is_stopped_at_the_timeout(): void
+    {
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>');
+        $start = microtime(true);
+        self::assertNull(self::rsvgOnly($this->script('exec sleep 10'), 0.3)->svg($doc, 4, 4));
+        self::assertLessThan(3.0, microtime(true) - $start);
+    }
+
+    public function test_a_path_that_is_not_an_executable_is_refused(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('/nowhere/rsvg-convert');
+        Raster::detect('/nowhere/rsvg-convert');
     }
 
     public function test_svg_without_imagick_is_null(): void

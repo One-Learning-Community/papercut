@@ -41,8 +41,8 @@ jobs:
           extensions: mbstring, zlib, dom, gd, zip, imagick
           coverage: none
           tools: composer:v2
-      - name: Install poppler and LibreOffice Writer
-        run: sudo apt-get update && sudo apt-get install -y poppler-utils libreoffice-writer
+      - name: Install poppler, LibreOffice Writer and rsvg-convert
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils libreoffice-writer librsvg2-bin
       - name: Cache Composer downloads
         uses: actions/cache@v6
         with:

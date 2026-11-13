@@ -96,7 +96,7 @@ $document->export(new DocxExporter(), new DocxOptions(tocPageNumbers: false))->s
 ```
 :::
 
-`DocxOptions` takes the same `theme`, `fonts`, `onWarning` and `strict` as `ExportOptions`.
+`DocxOptions` takes the same `theme`, `fonts`, `onWarning` and `strict` as `ExportOptions`. Its `rsvgConvert` draws SVG with `rsvg-convert` ([below](#svg-with-rsvg-convert)).
 
 ### Fonts in Word
 
@@ -149,6 +149,28 @@ Word shows PNG, JPEG, GIF and BMP as they are. Everything else is drawn into a p
 | Opacity on an image, QR code or SVG | faded in the picture | `ext-gd` |
 | QR codes | sharp squares at 300 dpi | `ext-gd` |
 | Styled QR codes (shapes, eyes, colours, gradients) | drawn as in the PDF at 300 dpi | `ext-imagick` and `bacon/bacon-qr-code` |
-| SVG | drawn at 300 dpi; nothing outside the file is loaded | `ext-imagick` that reads SVG |
+| SVG | drawn at 300 dpi; nothing outside the file is loaded | `rsvg-convert`, or `ext-imagick` that reads SVG |
 
 Imagick is only needed for Word export; PDF and HTML don't use it.
+
+#### SVG with rsvg-convert
+
+How well Imagick draws SVG depends on how ImageMagick was built. Many builds use its own basic renderer, which paints gradients and patterns solid black and leaves out clip paths and dashed strokes. librsvg's `rsvg-convert` draws them properly and the same on every server. Install it (`apt install librsvg2-bin`, `apk add rsvg-convert`, `brew install librsvg`) and give Papercut its path:
+
+::: code-tabs#style
+@tab Laravel
+```php
+// config/papercut.php, or PAPERCUT_RSVG_CONVERT in .env
+'docx' => [
+    'rsvg_convert' => '/usr/bin/rsvg-convert',
+],
+```
+@tab PHP
+```php
+use Papercut\Docx\{DocxExporter, DocxOptions};
+
+$document->export(new DocxExporter(), new DocxOptions(rsvgConvert: '/usr/bin/rsvg-convert'))->save('report.docx');
+```
+:::
+
+Papercut runs it through `proc_open()`, so that must be enabled. A path that isn't an executable file throws when you export. Each SVG gets the same cleaned-up copy Imagick would, with nothing outside the file left in it, passed on standard input. If `rsvg-convert` fails on one, or takes longer than 30 seconds, Imagick draws that one instead, when it can.
