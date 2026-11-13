@@ -3,6 +3,12 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Word export keeps a heading with the table after it. The spacer paragraph that carries a box's or table's vertical margin now keeps with what follows whenever the block before it does, so a `Section` heading, or a heading followed by a table with a top margin, no longer strands at the foot of a page. The PDF already kept them together.
+
 ## [0.11.1] - 2026-11-13
 
 ### Fixed
