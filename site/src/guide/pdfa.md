@@ -72,7 +72,7 @@ verapdf --flavour 2u contract.pdf
 
 The flavour is the level (`1b`, `2b`, `2u`, `2a`, `3b`, `3u` or `3a`). For a file that is also PDF/UA, add `--flavour ua1` in a second run, as in [Accessible PDFs](./accessibility.md#checking-your-output).
 
-Papercut's own examples are validated this way in its tests, as PDF/A-2u and as PDF/A-2a with PDF/UA-1. A validator checks the file's structure. It can't judge content: whether the fonts are the ones you meant, whether the text is legible, or whether the file is what your archive will accept. Check your archive's requirements for the level and any extra rules it adds.
+Papercut's own examples are validated this way in CI, as PDF/A-2u and as PDF/A-2a with PDF/UA-1. A validator checks the file's structure. It can't judge content: whether the fonts are the ones you meant, whether the text is legible, or whether the file is what your archive will accept. Check your archive's requirements for the level and any extra rules it adds.
 
 ## Limits
 
