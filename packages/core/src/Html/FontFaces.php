@@ -31,7 +31,7 @@ final class FontFaces
             if (!in_array(strtolower($face->family), $used, true)) {
                 continue;
             }
-            $src = $mode === FontMode::Embed ? self::dataUri($face) : self::link($face, $fontUrl);
+            $src = $mode === FontMode::Embed || $mode === FontMode::Sources ? self::dataUri($face) : self::link($face, $fontUrl);
             if ($src === null) {
                 continue;
             }
@@ -59,5 +59,21 @@ final class FontFaces
         $url = $fontUrl === null ? null : $fontUrl($face);
 
         return $url === null ? null : Css::string($url);
+    }
+
+    /**
+     * The @font-face rule for the math font; empty for FontMode::None. Sources embeds it like Embed: no third-party source serves this file.
+     *
+     * @param (\Closure(FontFace): ?string)|null $fontUrl
+     */
+    public static function mathCss(FontSet $set, FontMode $mode, ?\Closure $fontUrl): string
+    {
+        if ($mode === FontMode::None) {
+            return '';
+        }
+        $face = new FontFace(FontSet::MATH_FAMILY, $set->mathFontPath());
+        $src = $mode === FontMode::Embed || $mode === FontMode::Sources ? self::dataUri($face) : self::link($face, $fontUrl);
+
+        return $src === null ? '' : '@font-face{font-family:' . Css::string($face->family) . ';src:url(' . $src . ') format("truetype");font-weight:400;font-style:normal}' . "\n";
     }
 }
