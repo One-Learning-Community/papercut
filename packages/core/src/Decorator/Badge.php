@@ -85,6 +85,7 @@ final class Badge implements Decorator
     {
         return View::make($this->content)
             ->apply(trim($this->part('badge', $this->tone) . ' ' . ($this->styleName() ?? '')))
-            ->apply($this->style());
+            ->apply($this->style())
+            ->badgeHint();
     }
 }
