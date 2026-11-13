@@ -9,6 +9,8 @@ use Papercut\Math\Font\TrueTypeFont;
 /**
  * Picks a vertical size variant, or builds a GlyphAssembly, for a stretchy glyph.
  * Result is in font units, y up, with the glyph/assembly un-shifted; callers place it.
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final class Stretcher
 {

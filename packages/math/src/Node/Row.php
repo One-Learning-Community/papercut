@@ -15,12 +15,17 @@ final class Row extends Node
     {
     }
 
-    /** @return list<?string> operator form of each child (prefix, infix, postfix) or null for non-operators */
+    /**
+     * @return list<?string> operator form of each child (prefix, infix, postfix) or null for non-operators
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public function forms(): array
     {
         return Forms::of($this->children);
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
         $out = new Box();
@@ -36,7 +41,8 @@ final class Row extends Node
                 }
             }
             $form = $forms[$i];
-            $b = $child instanceof Operator && $form !== null ? $child->layoutAs($c, $form) : $child->layout($c);
+            // Forms::of gives every operator a form and no one else.
+            $b = $child instanceof Operator ? $child->layoutAs($c, $form ?? throw new \LogicException('Forms::of gave an operator no form')) : $child->layout($c);
             $out->place($b, $x, 0.0);
             $x += $b->width;
             $out->ascent = max($out->ascent, $b->ascent);
@@ -51,6 +57,8 @@ final class Row extends Node
         if ($last !== null) {
             $out->italic = $last->italic;
             $out->lastGid = $last->lastGid;
+            $out->lastAscent = $last->lastAscent ?? $last->ascent;
+            $out->lastDescent = $last->lastDescent ?? $last->descent;
             $out->simple = count($this->children) === 1 && $last->simple;
         }
 

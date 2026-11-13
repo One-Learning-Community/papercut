@@ -7,6 +7,8 @@ namespace Papercut\Math\Font;
 /**
  * The part of GSUB that math layout needs: the `ssty` (script style) feature, read from single (type 1)
  * and alternate (type 3) substitution lookups, including ones wrapped in extension lookups (type 7).
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final class Gsub
 {
@@ -84,8 +86,17 @@ final class Gsub
 
             return;
         }
+        $count = $b->u16($o + 4);
+        $size = strlen($b->d);
         foreach ($cov as $i => $g) {
+            if ($i >= $count) {
+                break;
+            }
             $set = $o + $b->u16($o + 6 + $i * 2);
+            // A set whose header or glyph list runs past the table is damaged: skip it.
+            if ($set + 2 > $size || $set + 2 + 2 * $b->u16($set) > $size) {
+                continue;
+            }
             $n = $b->u16($set);
             $alts = [];
             for ($k = 0; $k < $n; $k++) {

@@ -12,7 +12,7 @@ use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
 use Papercut\Layout\{GridCell, TableGrid, WidthResolver};
-use Papercut\Style\{ComputedStyle, Justify, ListMarker, StyleName};
+use Papercut\Style\{ComputedStyle, Justify, ListMarker, StyleName, TextAlign};
 use Papercut\Math\Render\MathmlWriter;
 use Papercut\Text\FontStyle;
 use Papercut\Value\{Auto, Fr, Length, Percent};
@@ -671,8 +671,8 @@ final class HtmlWriter implements TreeVisitor
         $decls = [...$decls, ...$this->textCss($s, $parent, $at->path())];
         // The math box shrinks to its content (see Stylesheet), so margins place it: a browser would centre it otherwise.
         $place = match ($s->textAlign) {
-            \Papercut\Style\TextAlign::Center => 'margin-inline:auto',
-            \Papercut\Style\TextAlign::Right => 'margin-left:auto',
+            TextAlign::Center => 'margin-inline:auto',
+            TextAlign::Right => 'margin-left:auto',
             default => null,
         };
         $math = (new MathmlWriter())->write($n->math(), true);

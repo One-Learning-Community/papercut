@@ -20,6 +20,7 @@ final class Identifier extends Node
         $this->upright = $italic === null ? mb_strlen($name) > 1 : ! $italic;
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
         $italic = ! $this->upright;

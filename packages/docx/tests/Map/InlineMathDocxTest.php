@@ -8,6 +8,8 @@ use Papercut\{Column, Document, Equation, Page, Span, Table, Text};
 use Papercut\Docx\DocxExporter;
 use Papercut\Docx\Tests\Support\DocxInspector;
 use Papercut\Math\Math;
+use Papercut\Style\Style;
+use Papercut\Value\Color;
 use PHPUnit\Framework\TestCase;
 
 final class InlineMathDocxTest extends TestCase
@@ -68,5 +70,46 @@ final class InlineMathDocxTest extends TestCase
         $xp = self::export(Text::spans(Span::math('x'))->size(\Papercut\pt(20))->color('#b91c1c'));
         self::assertSame(1, self::n($xp, '//m:oMath//w:rPr/w:color[@w:val="b91c1c"]'));
         self::assertSame(1, self::n($xp, '//m:oMath//w:rPr/w:sz[@w:val="40"]'));
+    }
+
+    public function test_own_colour_fades_with_the_text_opacity(): void
+    {
+        $xp = self::export(Text::spans(new Span('', Style::make(color: Color::hex('#ff0000')), math: Math::row('x')))->opacity(0.5));
+        self::assertSame(1, self::n($xp, '//m:oMath//w:rPr/w:color[@w:val="ff8080"]'));
+    }
+
+    public function test_own_size_and_colour_win_over_the_paragraphs(): void
+    {
+        $xp = self::export(Text::spans(new Span('', Style::make(color: Color::hex('#ff0000'), fontSize: \Papercut\pt(20)), math: Math::row('x')))
+            ->size(\Papercut\pt(10))->color('#0000ff'));
+        self::assertSame(1, self::n($xp, '//m:oMath//w:rPr/w:color[@w:val="ff0000"]'));
+        self::assertSame(1, self::n($xp, '//m:oMath//w:rPr/w:sz[@w:val="40"]'));
+    }
+
+    public function test_math_inside_a_link_is_replaced_and_the_document_parses(): void
+    {
+        $xp = self::export(Text::spans(Span::text('see '), new Span('', href: 'https://example.test', math: Math::frac('a', 'b'))));
+        self::assertSame(1, self::n($xp, '//w:hyperlink//m:oMath//m:f'));
+    }
+
+    public function test_the_spans_background_shades_the_equation_runs(): void
+    {
+        $xp = self::export(Text::spans(new Span('', Style::make(background: Color::hex('#ffee00')), math: Math::row('x'))));
+        self::assertSame(1, self::n($xp, '//m:oMath//m:r/w:rPr/w:shd[@w:val="clear"][@w:fill="ffee00"]'));
+        $order = [];
+        foreach ($xp->query('//m:oMath//m:r/w:rPr/*') ?: [] as $n) {
+            $order[] = $n->nodeName;
+        }
+        self::assertSame(['w:rFonts', 'w:color', 'w:sz', 'w:szCs', 'w:shd'], array_slice($order, 0, 5));
+    }
+
+    public function test_a_control_character_in_an_equation_does_not_break_the_document(): void
+    {
+        $bytes = Document::make(Page::a4()->body(Column::make(Equation::of(Math::text("a\x01b")), Text::spans(Span::math(Math::text("c\x02d"))))))
+            ->export(new DocxExporter())->bytes();
+        $xml = DocxInspector::of($bytes)->part('word/document.xml');
+        \Dom\XMLDocument::createFromString($xml);
+        self::assertStringContainsString('>ab</m:t>', $xml);
+        self::assertStringContainsString('>cd</m:t>', $xml);
     }
 }

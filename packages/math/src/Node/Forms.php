@@ -14,6 +14,8 @@ use Papercut\Math\OperatorDictionary;
  * The bars `|` and `‖` are the same character on both sides, so within a row they pair up: the 1st, 3rd, ...
  * of a kind opens (prefix) and the 2nd, 4th, ... closes (postfix, an operand for what follows). A last bar
  * with no partner ("a | b") is a relation: infix.
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final class Forms
 {

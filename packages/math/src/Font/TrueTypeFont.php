@@ -71,16 +71,39 @@ final class TrueTypeFont
         $this->readCmap();
     }
 
+    /** Fonts opened by fromFile(), by real path, so a font checked once (a config check, then the render) is parsed once. */
+    private const int CACHED_FONTS = 4;
+
+    /** @var array<string, array{int, int, self}> real path => modification time, size and font */
+    private static array $opened = [];
+
+    /**
+     * Opens a font file. The same unchanged file gives the same instance within a process (the newest few are kept).
+     *
+     * @throws UnsupportedFont for a CFF font, a collection, a font without a MATH table, or a file that is no font
+     */
     public static function fromFile(string $path): self
     {
+        $real = realpath($path);
+        $stat = $real === false ? false : @stat($real);
+        if ($real !== false && $stat !== false && isset(self::$opened[$real]) && self::$opened[$real][0] === $stat['mtime'] && self::$opened[$real][1] === $stat['size']) {
+            return self::$opened[$real][2];
+        }
         $d = @file_get_contents($path);
         if ($d === false) {
             throw new \RuntimeException("Cannot read font $path");
         }
+        $font = new self($d, $path);
+        if ($real !== false && $stat !== false) {
+            unset(self::$opened[$real]);
+            self::$opened[$real] = [$stat['mtime'], $stat['size'], $font];
+            self::$opened = array_slice(self::$opened, -self::CACHED_FONTS, null, true);
+        }
 
-        return new self($d, $path);
+        return $font;
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function math(): MathTable
     {
         if ($this->math === null) {
@@ -90,12 +113,17 @@ final class TrueTypeFont
         return $this->math;
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function hasScriptAlternates(): bool
     {
         return isset($this->tables['GSUB']);
     }
 
-    /** The `ssty` alternate of a glyph for script level 1 or 2 (smaller, sturdier forms); the glyph itself otherwise. */
+    /**
+     * The `ssty` alternate of a glyph for script level 1 or 2 (smaller, sturdier forms); the glyph itself otherwise.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public function scriptVariant(int $gid, int $level): int
     {
         if ($level < 1 || ! isset($this->tables['GSUB'])) {
@@ -106,6 +134,7 @@ final class TrueTypeFont
         return $this->gsub->variant($gid, $level);
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function advance(int $gid): int
     {
         $hm = $this->tables['hmtx'][0];
@@ -218,7 +247,11 @@ final class TrueTypeFont
         return [$this->tables['glyf'][0] + $a, $z - $a];
     }
 
-    /** @return array{int,int,int,int} xMin, yMin, xMax, yMax in font units (zeros for empty glyphs) */
+    /**
+     * @return array{int,int,int,int} xMin, yMin, xMax, yMax in font units (zeros for empty glyphs)
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public function bbox(int $gid): array
     {
         if (isset($this->bboxCache[$gid])) {
@@ -238,6 +271,8 @@ final class TrueTypeFont
      * Outline as contours of [x, y, onCurve] points (quadratic TrueType semantics), font units, y up.
      *
      * @return list<list<array{float,float,bool}>>
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
      */
     public function contours(int $gid, int $depth = 0): array
     {

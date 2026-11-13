@@ -74,6 +74,16 @@ final class EquationLayouterTest extends TestCase
         $this->assertEqualsWithDelta(2 * ($box->ascent + $box->descent) + 12.0, $column->height, 0.01);
     }
 
+    public function test_max_and_min_width_bound_the_box(): void
+    {
+        $h = new LayoutHarness();
+        $eq = Equation::of('x = 1');
+
+        $this->assertEqualsWithDelta(150.0, $h->layout($eq->maxWidth(pt(150)), 400)->fragment?->width, 0.01);
+        $this->assertEqualsWithDelta(200.0, $h->layout($eq->minWidth(pt(200))->width(pt(100)), 400)->fragment?->width, 0.01);
+        $this->assertEqualsWithDelta(100.0, $h->layout($eq->maxWidth(\Papercut\Value\Percent::of(25)), 400)->fragment?->width, 0.01);
+    }
+
     public function test_alignment(): void
     {
         $h = new LayoutHarness();

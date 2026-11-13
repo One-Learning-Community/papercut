@@ -16,6 +16,7 @@ use Papercut\TableCell;
 use Papercut\TableRow;
 use Papercut\Markup\Markup;
 use Papercut\Equation;
+use Papercut\Exception\InvalidValue;
 use Papercut\Span;
 use Papercut\Text;
 use Papercut\Style\Style;
@@ -95,7 +96,16 @@ final class Segments
                     $seg = rtrim($seg);
                 }
                 if ($seg !== '') {
-                    $out = $out->append(Text::markup($seg));
+                    try {
+                        $out = $out->append(Text::markup($seg));
+                    } catch (InvalidValue $e) {
+                        // An inline tag opened around a component leaves its text in two pieces, each with half a tag.
+                        $names = self::inlineComponentNames($segs);
+                        if ($names === []) {
+                            throw $e;
+                        }
+                        throw new InvalidStructure(implode(' and ', array_map(Tag::of(...), $names)) . " can't sit inside inline HTML tags such as <b> or <a>; put it beside them in " . Tag::of($tag) . ' and style the surrounding text instead. ' . $e->getMessage(), 0, $e);
+                    }
                 }
             } elseif ($seg instanceof Badge) {
                 // Inside a text tag a badge is an inline badge, not the block one.
@@ -122,5 +132,23 @@ final class Segments
         }
 
         return $out;
+    }
+
+    /**
+     * @param list<object|string> $segs
+     * @return list<string> the inline component tags (math, badge) the slot holds
+     */
+    private static function inlineComponentNames(array $segs): array
+    {
+        $names = [];
+        foreach ($segs as $seg) {
+            if ($seg instanceof Equation && app(NodeRegistry::class)->isInline($seg)) {
+                $names['math'] = 'math';
+            } elseif ($seg instanceof Badge) {
+                $names['badge'] = 'badge';
+            }
+        }
+
+        return array_values($names);
     }
 }

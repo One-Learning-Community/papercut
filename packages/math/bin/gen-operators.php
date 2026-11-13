@@ -8,15 +8,16 @@ declare(strict_types=1);
  * "Operator Dictionary (human-readable)". Usage:
  *
  *   curl -sL https://www.w3.org/TR/mathml-core/ -o mathml-core.html
- *   php bin/gen-operators.php mathml-core.html
+ *   php bin/gen-operators.php mathml-core.html [output.php]
  *
+ * The output goes to resources/operators.php unless a second argument names another path.
  * The output is keyed by "char|form". Spaces are converted from em to 1/18 em. The spec text is
  * W3C document-licensed; only the table of facts is extracted.
  */
 
 $source = $argv[1] ?? null;
 if ($source === null || ! is_file($source)) {
-    fwrite(STDERR, "usage: php bin/gen-operators.php <mathml-core.html>\n");
+    fwrite(STDERR, "usage: php bin/gen-operators.php <mathml-core.html> [output.php]\n");
     exit(1);
 }
 
@@ -72,5 +73,9 @@ foreach ($entries as $key => $e) {
 }
 $out .= "];\n";
 
-file_put_contents(__DIR__ . '/../resources/operators.php', $out);
-fwrite(STDOUT, count($entries) . " operators written\n");
+$target = $argv[2] ?? __DIR__ . '/../resources/operators.php';
+if (file_put_contents($target, $out) === false) {
+    fwrite(STDERR, "cannot write {$target}\n");
+    exit(1);
+}
+fwrite(STDOUT, count($entries) . " operators written to {$target}\n");

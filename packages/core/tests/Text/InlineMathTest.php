@@ -112,6 +112,30 @@ final class InlineMathTest extends TestCase
         self::assertGreaterThan($width, max(0.0, ...array_map(static fn (TextRun $r): float => $r->x, $math)), 'it overflows the line');
     }
 
+    /**
+     * "(formula)." has no space in it, so it is one chunk; when the formula is wider than the line the chunk is split and the
+     * formula, which never splits, takes a line of its own. An opening bracket stays with it, and the closing text follows it.
+     */
+    public function test_overlong_formula_in_brackets_keeps_its_open_bracket(): void
+    {
+        $h = new LayoutHarness();
+        $m = Math::row('a + b + c + d + e + f + g + h');
+        $width = self::mathWidth($h, $m) / 2;
+        $f = self::fragment($h, Text::spans(Span::text('ab '), Span::text('('), Span::math($m), Span::text(').'), Span::text(' cd')), $width);
+        $runs = self::runs($f);
+        $by = static fn (string $needle): TextRun => array_values(array_filter($runs, static fn (TextRun $r): bool => str_contains($r->text, $needle)))[0];
+        $open = $by('(');
+        $close = $by(').');
+        $formula = array_values(array_filter($runs, static fn (TextRun $r): bool => !in_array($r, [$by('ab'), $open, $close], true)));
+
+        self::assertNotSame([], $formula);
+        self::assertCount(1, array_unique(array_map(static fn (TextRun $r): float => round($r->baseline, 4), $formula)), 'the formula stays whole');
+        self::assertGreaterThan($by('ab')->baseline, $open->baseline);
+        self::assertEqualsWithDelta($open->baseline, $formula[0]->baseline, 1e-6, 'the bracket is on the formula\'s line');
+        self::assertLessThan($formula[0]->x, $open->x, 'and just before it');
+        self::assertGreaterThan($formula[0]->baseline, $close->baseline, 'the closing text goes on after it, on the next line here');
+    }
+
     public function test_justified_line_with_math(): void
     {
         $h = new LayoutHarness();

@@ -70,6 +70,16 @@ final class OperatorDictionaryTest extends TestCase
         $this->assertTrue(OperatorDictionary::lookup('∑', 'infix')['largeop']);
     }
 
+    public function test_relations_and_binary_operators_drop_spacing_in_scripts(): void
+    {
+        foreach (['=', '≤', '+', '−', '×', '∈', '→', '⊥'] as $ch) {
+            $this->assertTrue(OperatorDictionary::dropsSpacingInScripts($ch), $ch);
+        }
+        foreach (['(', ')', ',', ';', '∑', '∫', '!', '/'] as $ch) {
+            $this->assertFalse(OperatorDictionary::dropsSpacingInScripts($ch), $ch);
+        }
+    }
+
     /**
      * @param array{lspace: int, rspace: int, stretchy: bool, symmetric: bool, largeop: bool, movablelimits: bool} $e
      * @return array{int, int}

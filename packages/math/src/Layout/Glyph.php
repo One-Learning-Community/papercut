@@ -21,6 +21,7 @@ final readonly class Glyph implements DisplayItem
     ) {
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function translated(float $dx, float $dy): static
     {
         return new self($this->gid, $this->text, $this->x + $dx, $this->y + $dy, $this->size);

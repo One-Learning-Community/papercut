@@ -15,12 +15,17 @@ final class Fraction extends Node
     {
     }
 
-    /** Horizontal padding on each side of the fraction, in points. */
+    /**
+     * Horizontal padding on each side of the fraction, in points.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public static function padding(Context $c): float
     {
         return $c->mu(1);
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
         $fc = $c->fractionChild();

@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Font;
 
-/** OpenType Coverage tables (format 1 glyph lists, format 2 ranges). */
+/**
+ * OpenType Coverage tables (format 1 glyph lists, format 2 ranges).
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ */
 final class Coverage
 {
     /** @return list<int> glyph ids in coverage order (coverage index = list index) */

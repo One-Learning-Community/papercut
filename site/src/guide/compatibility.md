@@ -10,9 +10,9 @@ Papercut is at 0.10. Until 1.0, a minor version (0.10 to 0.11) may change the AP
 
 A breaking change to the public API waits for the next major version (2.0). Minor versions add features, and patch versions fix bugs.
 
-## The three packages move together
+## The four packages move together
 
-`papercut/math`, `papercut/math`, `papercut/core`, `papercut/laravel` and `papercut/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: core requires the matching papercut/math, and the other packages require the matching core (`^0.10`).
+`papercut/math`, `papercut/core`, `papercut/laravel` and `papercut/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: core requires the matching papercut/math, and the other packages require the matching core (`^0.10`).
 
 ## What the promise covers
 

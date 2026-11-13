@@ -6,6 +6,7 @@ on:
     paths: &paths
       - 'packages/laravel/**'
       - 'packages/core/**'
+      - 'packages/math/**'
       - 'packages/docx/**'
       - 'examples/laravel/**'
       - '.github/workflows/laravel.yml'

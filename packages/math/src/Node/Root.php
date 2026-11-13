@@ -17,6 +17,7 @@ final class Root extends Node
     {
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
         $f = $c->font;

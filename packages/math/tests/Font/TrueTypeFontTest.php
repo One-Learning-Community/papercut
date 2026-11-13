@@ -27,6 +27,42 @@ final class TrueTypeFontTest extends TestCase
         }
     }
 
+    public function test_the_same_unchanged_file_is_opened_once(): void
+    {
+        $path = Math::stixTwoMathPath();
+        self::assertSame(TrueTypeFont::fromFile($path), TrueTypeFont::fromFile(dirname($path) . '/../fonts/' . basename($path)));
+    }
+
+    public function test_a_changed_file_is_read_again(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'chg') ?: self::fail('no temp file');
+        copy(Math::stixTwoMathPath(), $path);
+        try {
+            TrueTypeFont::fromFile($path);
+            file_put_contents($path, 'no longer a font');
+            clearstatcache();
+            $this->expectException(UnsupportedFont::class);
+            TrueTypeFont::fromFile($path);
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function test_rejects_font_collection(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'ttc') ?: self::fail('no temp file');
+        file_put_contents($path, 'ttcf' . pack('NN', 0x00010000, 2) . str_repeat("\0", 16));
+        try {
+            TrueTypeFont::fromFile($path);
+            self::fail('Expected UnsupportedFont');
+        } catch (UnsupportedFont $e) {
+            self::assertStringContainsString('font collection', $e->getMessage());
+            self::assertSame($path, $e->path);
+        } finally {
+            unlink($path);
+        }
+    }
+
     public function test_rejects_font_without_math_table(): void
     {
         $path = __DIR__ . '/../fixtures/Inter-Regular.ttf';

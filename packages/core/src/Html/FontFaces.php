@@ -31,7 +31,7 @@ final class FontFaces
             if (!in_array(strtolower($face->family), $used, true)) {
                 continue;
             }
-            $src = $mode === FontMode::Embed || $mode === FontMode::Sources ? self::dataUri($face) : self::link($face, $fontUrl);
+            $src = $mode === FontMode::Embed ? self::dataUri($face) : self::link($face, $fontUrl);
             if ($src === null) {
                 continue;
             }

@@ -33,23 +33,22 @@ final class OmmlWriter
             throw new \InvalidArgumentException('Unsupported equation alignment "' . $jc . '"');
         }
 
-        return '<m:oMathPara><m:oMathParaPr><m:jc m:val="' . self::esc($jc) . '"/></m:oMathParaPr>'
+        return '<m:oMathPara><m:oMathParaPr><m:jc m:val="' . Xml::text($jc) . '"/></m:oMathParaPr>'
             . self::oMath($root, $format) . '</m:oMathPara>';
-    }
-
-    private static function esc(string $s): string
-    {
-        return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     private static function rPr(?RunFormat $f): string
     {
         $out = '<w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math" w:cs="Cambria Math"/>';
         if ($f?->colorHex !== null) {
-            $out .= '<w:color w:val="' . self::esc($f->colorHex) . '"/>';
+            $out .= '<w:color w:val="' . Xml::text($f->colorHex) . '"/>';
         }
         if ($f?->sizeHalfPoints !== null) {
             $out .= '<w:sz w:val="' . $f->sizeHalfPoints . '"/><w:szCs w:val="' . $f->sizeHalfPoints . '"/>';
+        }
+
+        if ($f?->shadingHex !== null) {
+            $out .= '<w:shd w:val="clear" w:color="auto" w:fill="' . Xml::text($f->shadingHex) . '"/>';
         }
 
         return $out . '</w:rPr>';
@@ -65,7 +64,7 @@ final class OmmlWriter
         };
 
         return '<m:r>' . $mPr . $rPr
-            . '<m:t xml:space="preserve">' . self::esc($text) . '</m:t></m:r>';
+            . '<m:t xml:space="preserve">' . Xml::text($text) . '</m:t></m:r>';
     }
 
     private static function node(Node $n, string $rPr): string
@@ -78,7 +77,7 @@ final class OmmlWriter
             $n instanceof Fraction => '<m:f><m:num>' . self::node($n->numerator, $rPr) . '</m:num><m:den>' . self::node($n->denominator, $rPr) . '</m:den></m:f>',
             $n instanceof Root => self::root($n, $rPr),
             $n instanceof Scripts => self::scripts($n, $rPr),
-            $n instanceof Fenced => '<m:d><m:dPr><m:begChr m:val="' . self::esc($n->open) . '"/><m:endChr m:val="' . self::esc($n->close) . '"/></m:dPr><m:e>'
+            $n instanceof Fenced => '<m:d><m:dPr><m:begChr m:val="' . Xml::text($n->open) . '"/><m:endChr m:val="' . Xml::text($n->close) . '"/></m:dPr><m:e>'
                 . self::node($n->content, $rPr) . '</m:e></m:d>',
             $n instanceof Row => implode('', array_map(fn (Node $c) => self::node($c, $rPr), $n->children)),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),

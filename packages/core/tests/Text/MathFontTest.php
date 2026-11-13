@@ -51,6 +51,17 @@ final class MathFontTest extends TestCase
         $this->assertSame($math['font'], $registry->mathFont()['font']);
     }
 
+    public function test_the_bundled_math_font_is_not_custom_however_its_path_is_spelled(): void
+    {
+        $bundled = Math::stixTwoMathPath();
+        $roundabout = dirname($bundled) . '/../fonts/' . basename($bundled);
+
+        $this->assertFalse((new FontSet())->withMathFont($bundled)->hasCustomMathFont());
+        $this->assertFalse((new FontSet())->withMathFont($roundabout)->hasCustomMathFont());
+        $this->assertSame($bundled, (new FontSet())->withMathFont($roundabout)->mathFontPath());
+        $this->assertTrue((new FontSet())->withMathFont($this->copyOfStix())->hasCustomMathFont());
+    }
+
     public function test_math_font_survives_other_with_calls(): void
     {
         $path = $this->copyOfStix();

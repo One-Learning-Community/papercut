@@ -24,7 +24,9 @@
         "papercut"
     ],
     "require": {
-        "php": "^8.4"
+        "php": "^8.4",
+        "ext-ctype": "*",
+        "ext-mbstring": "*"
     },
     "require-dev": {
         "phpstan/phpstan": "^2.3",

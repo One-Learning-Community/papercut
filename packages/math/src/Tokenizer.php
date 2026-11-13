@@ -17,6 +17,8 @@ use Papercut\Math\Node\Operator;
  * Unicode super/subscript digits become Number tokens drawn as the ordinary characters they are,
  * so "b²" stays an italic identifier "b" followed by a Number "²" with no space between them
  * (a single identifier "b²" would be drawn upright).
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final class Tokenizer
 {

@@ -17,6 +17,7 @@ final class Scripts extends Node
         }
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
         $b = $this->base->layout($c);
@@ -89,12 +90,13 @@ final class Scripts extends Node
         $us = $sc->unit();
         [$baseCorner, $scriptCorner] = $super ? ['topRight', 'bottomLeft'] : ['bottomRight', 'topLeft'];
         // Heights above the base baseline (h1: script's near edge), and above the script baseline (h2: base's near edge).
+        // Only the base's last glyph is kerned, so a row base counts by its last token, not its tallest.
         if ($super) {
             $h1 = $shift - $script->descent;
-            $h2 = $base->ascent - $shift;
+            $h2 = ($base->lastAscent ?? $base->ascent) - $shift;
         } else {
             $h1 = $script->ascent - $shift;
-            $h2 = $shift - $base->descent;
+            $h2 = $shift - ($base->lastDescent ?? $base->descent);
         }
         $sums = [];
         foreach ([$h1, $h2] as $h) {

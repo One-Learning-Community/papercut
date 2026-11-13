@@ -46,10 +46,10 @@ final class EquationMapper
     }
 
     /** An inline equation: a marker run that DocxPatcher swaps for an `m:oMath` between the paragraph's runs. */
-    public function run(\Papercut\Math\Node\Node $math, ComputedStyle $s): Run
+    public function run(\Papercut\Math\Node\Node $math, ComputedStyle $s, ?string $shadingHex = null): Run
     {
         $id = count($this->maths) + 1;
-        $this->maths[$id] = OmmlWriter::oMath($math, new RunFormat(Units::hex($s->color), (int) round($s->fontSize * 2)));
+        $this->maths[$id] = OmmlWriter::oMath($math, new RunFormat(Units::hex($s->color), (int) round($s->fontSize * 2), $shadingHex));
         $this->inline[$id] = true;
 
         return new Run(DocxPatcher::MATH . $id);

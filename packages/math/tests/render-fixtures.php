@@ -34,6 +34,7 @@ foreach (Fixtures::all() as $name => $node) {
     $svg = $renderer->render($box, 2.0);
     file_put_contents("$out/$name.svg", $svg);
     if ($rsvg !== '') {
+        $log = [];
         exec(sprintf('%s -z 4 -b white %s -o %s 2>&1', escapeshellarg($rsvg), escapeshellarg("$out/$name.svg"), escapeshellarg("$out/$name.png")), $log, $code);
         if ($code !== 0) {
             fwrite(STDERR, "rsvg-convert failed for $name (exit $code): " . implode(' ', $log) . "\n");

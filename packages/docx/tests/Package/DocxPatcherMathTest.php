@@ -45,6 +45,13 @@ final class DocxPatcherMathTest extends TestCase
         DocxPatcher::patch(self::bytes(DocxPatcher::MATH . '7'), self::spec()->withMath(1, self::OMML));
     }
 
+    public function test_a_marker_mangled_inside_longer_text_throws(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Marker-like text was left in');
+        DocxPatcher::patch(self::bytes(DocxPatcher::MATH . '1', 'see ' . DocxPatcher::MATH . '1 here'), self::spec()->withMath(1, self::OMML));
+    }
+
     public function test_text_that_looks_like_a_marker_is_left_alone_without_equations(): void
     {
         $d = DocxInspector::of(DocxPatcher::patch(self::bytes(DocxPatcher::MATH . '3'), self::spec()));

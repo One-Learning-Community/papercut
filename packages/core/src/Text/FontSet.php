@@ -76,7 +76,11 @@ final readonly class FontSet
     /** The font equations are set in (PDF and HTML; Word always uses Cambria Math). It must be a TrueType math font. */
     public function withMathFont(string $path): self
     {
-        return new self($this->faces, $this->fallbacks, $this->wordNames, $path);
+        // The bundled font by another spelling of its path is still the bundled font.
+        $bundled = realpath(Math::stixTwoMathPath());
+        $custom = $bundled !== false && realpath($path) === $bundled ? null : $path;
+
+        return new self($this->faces, $this->fallbacks, $this->wordNames, $custom);
     }
 
     public function mathFontPath(): string
@@ -84,7 +88,11 @@ final readonly class FontSet
         return $this->mathFont ?? Math::stixTwoMathPath();
     }
 
-    /** True when a font other than the bundled one was chosen. */
+    /**
+     * True when a font other than the bundled one was chosen.
+     *
+     * @internal Part of Papercut's engine, not its public API. It may change in any release.
+     */
     public function hasCustomMathFont(): bool
     {
         return $this->mathFont !== null;

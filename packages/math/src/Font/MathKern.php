@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Font;
 
-/** One MathKern table: kern values stepped by correction height, all in font units. */
+/**
+ * One MathKern table: kern values stepped by correction height, all in font units.
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ */
 final readonly class MathKern
 {
     /**

@@ -121,8 +121,9 @@ Never commit to the split repos directly; they are overwritten on every split.
 2. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (`release.yml` refuses a missing or
    still-unreleased section), and add a fresh `## [Unreleased]` above it.
 3. If the minor version changed, bump the `extra.branch-alias` of `packages/math` and of core, the `versions` pin in
-   the path repos (core's for `papercut/math`, Laravel's and DOCX's for core), and the requirements: core's
-   `papercut/math` and the Laravel and DOCX packages' `papercut/core` and `papercut/docx` (`^X.Y`).
+   the path repos (core's, Laravel's and DOCX's for `papercut/math`, Laravel's and DOCX's for core, and Laravel's
+   for `papercut/docx`), and the requirements: core's, Laravel's and DOCX's `papercut/math`, the Laravel and DOCX
+   packages' `papercut/core`, and Laravel's `papercut/docx` (`^X.Y`). Only math and core carry a branch-alias.
 4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Papercut X.Y.Z" && git push origin main vX.Y.Z`.
 5. Verify in a scratch project: `composer require papercut/core papercut/laravel papercut/docx`, then render one
    document with each.

@@ -15,6 +15,7 @@ final readonly class Rule implements DisplayItem
     ) {
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function translated(float $dx, float $dy): static
     {
         return new self($this->x + $dx, $this->y + $dy, $this->w, $this->h);

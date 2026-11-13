@@ -17,17 +17,37 @@ final class ScriptsTest extends TestCase
         return array_values(array_filter($b->items, fn ($i) => $i instanceof Glyph));
     }
 
+    private static function glyphWithText(Box $b, string $text): Glyph
+    {
+        foreach (self::glyphs($b) as $g) {
+            if ($g->text === $text) {
+                return $g;
+            }
+        }
+        self::fail('No glyph with text ' . $text);
+    }
+
     public function test_cramped_superscript_lower(): void
     {
         // The same superscript: at top level, then in a fraction's denominator (cramped).
         $top = Math::layout(Math::sup('x', '2'));
         $den = Math::layout(Math::frac('1', Math::sup('x', '2')));
 
-        $t = self::glyphs($top);
-        $d = self::glyphs($den);
-        $n = count($d);
-        // How far the superscript sits above its base: less when cramped.
-        self::assertGreaterThan($t[1]->y - $t[0]->y, $d[$n - 1]->y - $d[$n - 2]->y);
+        // The superscript's offset from its base (y points down, so a smaller rise is a larger offset): less rise when cramped.
+        $topOffset = self::glyphWithText($top, '2')->y - self::glyphWithText($top, '𝑥')->y;
+        $denOffset = self::glyphWithText($den, '2')->y - self::glyphWithText($den, '𝑥')->y;
+        self::assertGreaterThan($topOffset, $denOffset);
+    }
+
+    public function test_a_row_base_reports_its_last_token_for_kerning(): void
+    {
+        // MathKern only reads the base's last glyph, so a tall token earlier in the row must not set the heights it is read at.
+        $v = Math::layout(Math::row('V'));
+        $row = Math::layout(Math::row(Math::frac('1', '2'), 'V'));
+
+        self::assertGreaterThan($v->ascent + 1.0, $row->ascent);
+        self::assertEqualsWithDelta($v->ascent, $row->lastAscent, 1e-9);
+        self::assertEqualsWithDelta($v->descent, $row->lastDescent, 1e-9);
     }
 
     public function test_script_glyphs_use_ssty(): void

@@ -196,8 +196,9 @@ final class ContentParityTest extends TestCase
     }
 
     /**
-     * The nodes without any Equation: the PDF sets an equation's letters as mathematical italics and the other formats hold them as math,
-     * so their words are not comparable.
+     * The nodes without any equation: a block Equation is dropped and an inline one's span is cut out of its text (the text around it
+     * stays). The PDF sets a formula's letters as mathematical italics and the other formats hold them as math, so formula words
+     * are not comparable. This helper exists in the core package's tests too: the two packages share no test code.
      *
      * @param list<\Papercut\Node|\Papercut\Component> $nodes
      * @return list<\Papercut\Node|\Papercut\Component>
@@ -209,40 +210,53 @@ final class ContentParityTest extends TestCase
             if ($n instanceof \Papercut\Equation) {
                 continue;
             }
-            // A paragraph (or table) with an inline formula: its formula words differ the same way, so it is left out whole.
-            if (!($n instanceof \Papercut\View) && self::hasInlineMath($n)) {
-                continue;
-            }
-            $out[] = $n instanceof \Papercut\View ? $n->withChildren(...self::withoutEquations($n->children())) : $n;
+            $out[] = self::withoutInlineMath($n);
         }
 
         return $out;
     }
 
-    private static function hasInlineMath(\Papercut\Node|\Papercut\Component $n): bool
+    private static function withoutInlineMath(\Papercut\Node|\Papercut\Component $n): \Papercut\Node|\Papercut\Component
     {
         if ($n instanceof \Papercut\Text) {
-            return array_filter($n->spanList(), static fn (\Papercut\Span $s): bool => $s->math !== null) !== [];
+            $spans = array_values(array_filter($n->spanList(), static fn (\Papercut\Span $s): bool => $s->math === null));
+
+            return count($spans) === count($n->spanList()) ? $n : self::with($n, 'spans', $spans);
         }
         if ($n instanceof \Papercut\Table) {
-            foreach ($n->bodyRows() as $row) {
-                foreach ($row->cells() as $cell) {
-                    foreach ($cell->children() as $child) {
-                        if (self::hasInlineMath($child)) {
-                            return true;
-                        }
-                    }
-                }
-            }
+            $n = self::with($n, 'headerRows', array_map(self::row(...), $n->headerRows()));
+
+            return self::with($n, 'bodyRows', array_map(self::row(...), $n->bodyRows()));
         }
         if ($n instanceof \Papercut\View) {
-            foreach ($n->children() as $child) {
-                if (self::hasInlineMath($child)) {
-                    return true;
-                }
-            }
+            return $n->withChildren(...self::withoutEquations($n->children()));
         }
 
-        return false;
+        return $n;
+    }
+
+    private static function row(\Papercut\TableRow $row): \Papercut\TableRow
+    {
+        return self::with($row, 'cells', array_map(
+            static fn (\Papercut\TableCell $c): \Papercut\TableCell => self::with($c, 'children', self::withoutEquations($c->children())),
+            $row->cells(),
+        ));
+    }
+
+    /**
+     * A copy of $o with its private property $prop set (these nodes have no setter for their own children).
+     *
+     * @template T of object
+     * @param T $o
+     * @return T
+     */
+    private static function with(object $o, string $prop, mixed $value): object
+    {
+        $clone = clone $o;
+        \Closure::bind(function () use ($prop, $value): void {
+            $this->$prop = $value;
+        }, $clone, $o::class)();
+
+        return $clone;
     }
 }

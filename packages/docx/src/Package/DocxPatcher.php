@@ -241,8 +241,8 @@ final class DocxPatcher
                 }
                 $parts[$name] = $xml;
             }
-            if (preg_match('~<w:t(?: xml:space="preserve")?>' . self::MATH . '\d+</w:t>~', $xml) === 1) {
-                throw new \LogicException('php-docx output changed: equation marker in ' . $name . ' not found');
+            if (preg_match('~<w:t(?: xml:space="preserve")?>[^<]*' . self::MATH . '\d+~', $xml) === 1) {
+                throw new \LogicException('Marker-like text was left in ' . $name . ': either an equation marker was mangled (php-docx output changed) or the document text contains "' . self::MATH . 'N"');
             }
         }
         foreach ($maths as $id => $_) {

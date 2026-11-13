@@ -180,4 +180,19 @@ final class OmmlWriterTest extends TestCase
         $xml = OmmlWriter::oMath(new \Papercut\Math\Node\Identifier("\u{1D465}"));
         self::assertStringContainsString('>x</m:t>', $xml);
     }
+
+    public function test_strips_characters_xml_cannot_hold(): void
+    {
+        $xml = OmmlWriter::oMath(Math::text("a\x01b\x00c\u{FFFE}d\u{FFFF}e\x0Bf"));
+        self::assertStringContainsString('>abcdef</m:t>', $xml);
+        \Dom\XMLDocument::createFromString('<w:root ' . self::NS . '>' . $xml . '</w:root>');
+    }
+
+    public function test_shading_goes_last_in_the_run_properties(): void
+    {
+        $xml = OmmlWriter::oMath(Math::row('x'), new RunFormat('ff0000', 24, 'ffee00'));
+        self::assertStringContainsString('<w:sz w:val="24"/><w:szCs w:val="24"/><w:shd w:val="clear" w:color="auto" w:fill="ffee00"/></w:rPr>', $xml);
+        $this->expectException(\InvalidArgumentException::class);
+        new RunFormat(null, null, 'yellow');
+    }
 }

@@ -20,7 +20,7 @@ use Papercut\Math\Tokenizer;
 
 final class MathTest extends TestCase
 {
-    public function testMathConstantsOfStixTwoMath(): void
+    public function test_math_constants_of_stix_two_math(): void
     {
         $m = Math::stixTwoMath()->math();
         self::assertSame(1000, Math::stixTwoMath()->unitsPerEm);
@@ -31,7 +31,7 @@ final class MathTest extends TestCase
         self::assertSame(55, $m->constant('radicalDegreeBottomRaisePercent'));
     }
 
-    public function testRadicalVariantsAndAssembly(): void
+    public function test_radical_variants_and_assembly(): void
     {
         $f = Math::stixTwoMath();
         $con = $f->math()->vertical($f->gid(0x221A));
@@ -45,7 +45,7 @@ final class MathTest extends TestCase
         self::assertSame($sorted, $adv);
     }
 
-    public function testCmapAndItalicMapping(): void
+    public function test_cmap_and_italic_mapping(): void
     {
         $f = Math::stixTwoMath();
         self::assertGreaterThan(0, $f->gid(0x1D465)); // italic x
@@ -55,7 +55,7 @@ final class MathTest extends TestCase
         self::assertGreaterThan(0, $f->gid(0x210E));
     }
 
-    public function testTokenizerClassifications(): void
+    public function test_tokenizer_classifications(): void
     {
         $t = Tokenizer::tokenize('3.14x + 2 = y');
         self::assertInstanceOf(Number::class, $t[0]);
@@ -70,7 +70,7 @@ final class MathTest extends TestCase
         self::assertSame('−', $minus->char);
     }
 
-    public function testUnicodeScriptDigitsStayAttached(): void
+    public function test_unicode_script_digits_stay_attached(): void
     {
         $t = Tokenizer::tokenize('b² + x₂');
         self::assertSame(['b', '²', '+', 'x', '₂'], array_map(fn ($n) => $n instanceof Identifier ? $n->name : ($n instanceof Number ? $n->text : ($n instanceof Operator ? $n->char : '')), $t));
@@ -82,7 +82,7 @@ final class MathTest extends TestCase
         self::assertSame('²', $glyph->text);
     }
 
-    public function testPrefixMinusHasNoSpacing(): void
+    public function test_prefix_minus_has_no_spacing(): void
     {
         $c = new Context(Math::stixTwoMath(), 10);
         $m = new Operator('−');
@@ -92,7 +92,7 @@ final class MathTest extends TestCase
         self::assertEqualsWithDelta(2 * 4 / 18 * 10, $w2 - $w1, 1e-6);
     }
 
-    public function testFractionWidthIsWiderPartPlusPadding(): void
+    public function test_fraction_width_is_wider_part_plus_padding(): void
     {
         $c = new Context(Math::stixTwoMath(), 20, 0, true);
         $frac = Math::frac('abc', 'd');
@@ -106,7 +106,7 @@ final class MathTest extends TestCase
         self::assertEqualsWithDelta(max($numW, $denW), array_values($rules)[0]->w, 1e-6);
     }
 
-    public function testInlineFractionIsSmallerThanDisplay(): void
+    public function test_inline_fraction_is_smaller_than_display(): void
     {
         $d = Math::layout(Math::frac('a', 'b'), 12, true);
         $i = Math::layout(Math::frac('a', 'b'), 12, false);
@@ -115,7 +115,7 @@ final class MathTest extends TestCase
         self::assertEqualsWithDelta(8.4, max([0.0, ...$sizes]), 1e-6); // 70% script scale of STIX Two Math
     }
 
-    public function testSuperscriptIsRaisedAndSmaller(): void
+    public function test_superscript_is_raised_and_smaller(): void
     {
         $box = Math::layout(Math::sup('x', '2'), 20);
         $g = array_values(array_filter($box->items, fn ($i) => $i instanceof Glyph));
@@ -126,7 +126,7 @@ final class MathTest extends TestCase
         self::assertGreaterThan($g[0]->x, $g[1]->x);
     }
 
-    public function testStretchyFenceGrowsAndUsesAssembly(): void
+    public function test_stretchy_fence_grows_and_uses_assembly(): void
     {
         $small = Math::layout(Math::fenced('(', ')', 'x'), 20);
         $tall = Math::layout(Math::fenced('(', ')', Math::frac('1', Math::frac('1', Math::frac('1', 'x')))), 20);
@@ -136,7 +136,7 @@ final class MathTest extends TestCase
         self::assertGreaterThan(2, count($nullText), 'assembly pieces carry no text');
     }
 
-    public function testSvgOutput(): void
+    public function test_svg_output(): void
     {
         $box = Math::layout(Math::row('x =', Math::frac('a', 'b')), 12);
         $svg = (new SvgRenderer(Math::stixTwoMath()))->render($box, 1);

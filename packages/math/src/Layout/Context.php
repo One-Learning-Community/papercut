@@ -11,6 +11,8 @@ use Papercut\Math\Font\TrueTypeFont;
  * $cramped is TeX's cramped style (denominators, radicands, subscripts): superscripts sit lower in it.
  * $scriptAlternates turns the font's `ssty` script-size glyph forms on or off.
  * $fallbackAdvance, when set, is asked for the advance of a character the font has no glyph for.
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final readonly class Context
 {

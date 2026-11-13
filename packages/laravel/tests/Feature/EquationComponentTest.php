@@ -64,13 +64,18 @@ final class EquationComponentTest extends TestCase
     {
         self::assertFalse(Papercut::pdfOptions()->fonts()->hasCustomMathFont());
 
-        $path = \Papercut\Math\Math::stixTwoMathPath();
-        config(['papercut.math_font' => $path]);
-        $this->fresh();
+        $path = sys_get_temp_dir() . '/papercut-math-font-' . uniqid() . '.ttf';
+        copy(\Papercut\Math\Math::stixTwoMathPath(), $path);
+        try {
+            config(['papercut.math_font' => $path]);
+            $this->fresh();
 
-        $fonts = Papercut::pdfOptions()->fonts();
-        self::assertTrue($fonts->hasCustomMathFont());
-        self::assertSame($path, $fonts->mathFontPath());
+            $fonts = Papercut::pdfOptions()->fonts();
+            self::assertTrue($fonts->hasCustomMathFont());
+            self::assertSame($path, $fonts->mathFontPath());
+        } finally {
+            unlink($path);
+        }
     }
 
     public function test_bad_math_font_config_message(): void
@@ -117,6 +122,48 @@ final class EquationComponentTest extends TestCase
             Papercut::pdfOptions();
         } finally {
             unlink($file);
+        }
+    }
+
+    public function test_inline_math_inside_inline_html_names_math_in_the_error(): void
+    {
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('<x-doc::math> can\'t sit inside inline HTML tags');
+        $this->nodeFrom('<x-doc::p>Area is <b>about <x-doc::math math="x" /></b> here.</x-doc::p>');
+    }
+
+    public function test_inline_math_inside_a_link_is_rejected_the_same_way(): void
+    {
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('<x-doc::math> can\'t sit inside inline HTML tags');
+        $this->nodeFrom('<x-doc::p><a href="https://example.test"><x-doc::math math="x" /></a></x-doc::p>');
+    }
+
+    public function test_an_unclosed_tag_with_no_math_keeps_its_own_message(): void
+    {
+        $this->expectException(\Papercut\Exception\InvalidValue::class);
+        $this->expectExceptionMessage('is not closed');
+        $this->nodeFrom('<x-doc::p>Area <b>is here.</x-doc::p>');
+    }
+
+    public function test_math_attribute_with_specials_builds_the_same_node_as_equation_of(): void
+    {
+        self::assertEquals(Equation::of('a < b & c')->math(), $this->nodeFrom('<x-doc::equation math="a < b & c" />')->math());
+        self::assertEquals(Equation::of('a < b & c')->math(), $this->nodeFrom('<x-doc::equation :math="\'a < b & c\'" />')->math());
+    }
+
+    public function test_relative_math_font_resolves_against_base_path(): void
+    {
+        $dir = base_path('papercut-math-font-test-' . uniqid());
+        mkdir($dir);
+        copy(\Papercut\Math\Math::stixTwoMathPath(), $dir . '/m.ttf');
+        try {
+            config(['papercut.math_font' => basename($dir) . '/m.ttf']);
+            $this->fresh();
+            self::assertSame($dir . '/m.ttf', Papercut::pdfOptions()->fonts()->mathFontPath());
+        } finally {
+            unlink($dir . '/m.ttf');
+            rmdir($dir);
         }
     }
 }

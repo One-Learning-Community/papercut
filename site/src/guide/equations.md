@@ -38,7 +38,7 @@ The builder lives in the `papercut/math` package, which `papercut/core` installs
 Math::subSup('x', 'i', '2');                            // x with i below and 2 above
 Math::fenced('(', ')', Math::frac('a', 'b'));           // a tall pair of brackets
 Math::row('f', Math::fenced('(', ')', 'x'), '=', Math::root('x', '3'));
-Math::row('speed', '=', Math::text('distance'), '/', Math::text('time'));
+Math::row(Math::text('speed'), '=', Math::text('distance'), '/', Math::text('time'));
 ```
 
 ## A block equation
@@ -80,7 +80,7 @@ In Blade, `<x-doc::math>` inside a text tag is the inline form:
 </x-doc::p>
 ```
 
-Outside a text tag, `<x-doc::math>` is the same as `<x-doc::equation>`, a block equation. The other way round is an error: a block `<x-doc::equation>` inside a text tag throws. An inline `<x-doc::math>` takes no style attributes. Set the size and colour on the surrounding text.
+Outside a text tag, `<x-doc::math>` is the same as `<x-doc::equation>`, a block equation. The other way round is an error: a block `<x-doc::equation>` inside a text tag throws. An inline `<x-doc::math>` takes no style attributes. Set the size and colour on the surrounding text. It can't sit inside a raw inline HTML tag such as `<b>` or `<a>`: Blade hands the tag's two halves to the markup parser separately, so it throws an error naming `<x-doc::math>`. Put the equation beside the tag, not inside it.
 
 ## How text becomes math
 

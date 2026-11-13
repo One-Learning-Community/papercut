@@ -24,6 +24,14 @@ final class EquationLayouter implements Layouter
         }
         $box = $this->box($node, $style, $engine);
         $width = BoxGeometry::resolve($style->width, $c->width) ?? $c->width;
+        $min = BoxGeometry::resolve($style->minWidth, $c->width);
+        $max = BoxGeometry::resolve($style->maxWidth, $c->width);
+        if ($min !== null) {
+            $width = max($width, $min);
+        }
+        if ($max !== null) {
+            $width = min($width, $max);
+        }
         $height = $box->ascent + $box->descent + BoxGeometry::topEdge($style) + BoxGeometry::bottomEdge($style);
         if ($c->height !== null && $height > $c->height + 1e-9) {
             return LayoutResult::doesNotFit();

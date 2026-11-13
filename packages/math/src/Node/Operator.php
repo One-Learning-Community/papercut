@@ -20,12 +20,17 @@ final class Operator extends Node
     {
     }
 
-    /** On its own (not inside a Row) an operator is first in its row, so prefix. */
+    /**
+     * On its own (not inside a Row) an operator is first in its row, so prefix.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public function layout(Context $c): Box
     {
         return $this->layoutAs($c, OperatorDictionary::FORM_PREFIX);
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function layoutAs(Context $c, string $form): Box
     {
         $entry = OperatorDictionary::lookup($this->char, $form);

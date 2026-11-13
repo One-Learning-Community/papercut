@@ -98,4 +98,11 @@ final class MathmlWriterTest extends TestCase
         self::assertStringNotContainsString('stretchy="true"', $xml);
         self::assertStringContainsString('<mo stretchy="true">(</mo>', MathmlWriter::write(Math::fenced('(', ')', 'a')));
     }
+
+    public function test_strips_characters_xml_cannot_hold(): void
+    {
+        $xml = MathmlWriter::write(Math::text("a\x01b\x00c\u{FFFE}d\u{FFFF}e\x0Bf"));
+        self::assertStringContainsString('<mtext>abcdef</mtext>', $xml);
+        \Dom\XMLDocument::createFromString($xml);
+    }
 }

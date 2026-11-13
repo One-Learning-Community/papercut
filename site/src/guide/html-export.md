@@ -55,7 +55,7 @@ A PDF carries its fonts inside the file, but a browser has to load them from som
 
 ## Equations
 
-[Equations](./equations.md) are written as MathML Core: `<math display="block">` for a block equation and `<math display="inline">` inside a line. The browser lays them out, so spacing can differ a little from the PDF. What font the browser uses depends on the [font mode](./web-fonts.md). With the default, `none`, the page names no math font and the browser uses its own. `embed` embeds STIX Two Math (or your math font) in the page, `link` links to it, and `sources` embeds it as a `data:` URI, since no outside source serves it. A block equation is placed with margins.
+[Equations](./equations.md) are written as MathML Core: `<math display="block">` for a block equation and `<math display="inline">` inside a line. The browser lays them out, so spacing can differ a little from the PDF. What font the browser uses depends on the [font mode](./web-fonts.md). With the default, `none`, the stylesheet still names "Papercut Math" first but defines no face for it, so the browser falls back to its own `math` font. `embed` embeds STIX Two Math (or your math font) in the page, `link` links to it, and `sources` embeds it as a `data:` URI, since no outside source serves it. A block equation is placed with margins.
 
 ## Image URLs
 

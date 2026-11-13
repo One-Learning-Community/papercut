@@ -9,5 +9,6 @@ use Papercut\Math\Layout\Context;
 
 abstract class Node
 {
+    /** @internal Engine detail, not part of papercut/math's public API. */
     abstract public function layout(Context $c): Box;
 }

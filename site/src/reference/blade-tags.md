@@ -68,7 +68,7 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 | `<x-doc::svg>` | `src` or `data`, or SVG markup inside the tag | Style. Sized like an image. Relative `src` stays inside `papercut.image_path`. |
 | `<x-doc::qr-code>` | `value`, `level`, `quiet-zone`, `shape`, `eyes`, `eye-color`, `gradient`, `gradient-type` | Style. `level` is `L`, `M`, `Q` or `H`. Square: size it with `width`. `shape` is `square`, `rounded` or `dots` (the last two raise `level` to at least `Q`); `eyes` is `square`, `dot` or `pointy`; `gradient` is two colors. Styling needs `bacon/bacon-qr-code`; see [Styled QR codes](/guide/images-and-links.md#styled-qr-codes). No content. |
 | `<x-doc::equation>` | `math` | Style. A block equation. `math` is a string or a node built with `Papercut\Math\Math`. No content. Inside a text tag it is an error; use `<x-doc::math>`. See [Equations](/guide/equations.md). |
-| `<x-doc::math>` | `math` | Inside a text tag, an inline equation (`Span::math()`), with no style attributes. Anywhere else it is a block equation, like `<x-doc::equation>`. No content. |
+| `<x-doc::math>` | `math` | Inside a text tag, an inline equation (`Span::math()`), with no style attributes. Anywhere else it is a block equation, like `<x-doc::equation>`. No content. It can't sit inside a raw inline HTML tag (`<b>`, `<a>`); that throws. |
 | `<x-doc::node>` | `node` | Embeds a `Node` or `Component` built in PHP. |
 
 ## Decorators

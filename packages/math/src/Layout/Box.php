@@ -14,9 +14,23 @@ final class Box
     /** @var list<DisplayItem> */
     public array $items = [];
 
-    /** Glyph ids of the first and last glyph as drawn (an `ssty` alternate carries its own MathKernInfo), for MathKern; null when not a plain run. */
+    /**
+     * Glyph ids of the first and last glyph as drawn (an `ssty` alternate carries its own MathKernInfo), for MathKern; null when not a plain run.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public ?int $firstGid = null;
+    /** @internal Engine detail, see $firstGid. */
     public ?int $lastGid = null;
+
+    /**
+     * Ascent and descent of the last token of a row (null elsewhere), which is all MathKern reads of a script's base.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public ?float $lastAscent = null;
+    /** @internal Engine detail, see $lastAscent. */
+    public ?float $lastDescent = null;
 
     /**
      * @param float $italic italics correction of the last glyph, in points (used to place superscripts)
@@ -31,7 +45,11 @@ final class Box
     ) {
     }
 
-    /** Append a child's items shifted by (dx, dy); does not touch metrics. */
+    /**
+     * Append a child's items shifted by (dx, dy); does not touch metrics.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public function place(Box $child, float $dx, float $dy): void
     {
         foreach ($child->items as $i) {
@@ -39,6 +57,7 @@ final class Box
         }
     }
 
+    /** @internal Engine detail, not part of papercut/math's public API. */
     public function add(DisplayItem $i): void
     {
         $this->items[] = $i;

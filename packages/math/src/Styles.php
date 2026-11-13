@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Math;
 
-/** Mathematical alphanumeric mapping (ziamath styles.py, italic only). */
+/**
+ * Mathematical alphanumeric mapping (ziamath styles.py, italic only).
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ */
 final class Styles
 {
     /** Map a Latin or Greek letter to its Mathematical Italic codepoint; anything else is returned unchanged. */

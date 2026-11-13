@@ -26,19 +26,14 @@ final class MathmlWriter
             . self::node($root) . '</math>';
     }
 
-    private static function esc(string $s): string
-    {
-        return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-
     private static function node(Node $n): string
     {
         return match (true) {
-            $n instanceof Identifier => '<mi' . ($n->upright ? ' mathvariant="normal"' : '') . '>' . self::esc(self::plain($n->name)) . '</mi>',
-            $n instanceof Number => '<mn>' . self::esc($n->text) . '</mn>',
+            $n instanceof Identifier => '<mi' . ($n->upright ? ' mathvariant="normal"' : '') . '>' . Xml::text(self::plain($n->name)) . '</mi>',
+            $n instanceof Number => '<mn>' . Xml::text($n->text) . '</mn>',
             // Alone, the layout treats an operator as prefix while a browser infers infix.
             $n instanceof Operator => self::operator($n, OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_INFIX),
-            $n instanceof Text => '<mtext>' . self::esc(self::keepSpaces($n->text)) . '</mtext>',
+            $n instanceof Text => '<mtext>' . Xml::text(self::keepSpaces($n->text)) . '</mtext>',
             $n instanceof Fraction => '<mfrac>' . self::node($n->numerator) . self::node($n->denominator) . '</mfrac>',
             $n instanceof Root => $n->index === null
                 ? '<msqrt>' . self::node($n->radicand) . '</msqrt>'
@@ -82,7 +77,7 @@ final class MathmlWriter
             $attrs .= ' stretchy="false"';
         }
 
-        return '<mo' . $attrs . '>' . self::esc($o->char) . '</mo>';
+        return '<mo' . $attrs . '>' . Xml::text($o->char) . '</mo>';
     }
 
     private static function row(Row $r): string

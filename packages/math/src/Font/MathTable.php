@@ -8,6 +8,8 @@ namespace Papercut\Math\Font;
  * The OpenType MATH table: MathConstants, MathItalicsCorrectionInfo and MathVariants (vertical and
  * horizontal glyph constructions with GlyphAssembly). MathKernInfo is read; top-accent attachment is
  * not.
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final class MathTable
 {
