@@ -6,6 +6,7 @@ namespace Papercut\Docx\Tests\Map;
 
 use Papercut\Decorator\Badge;
 use Papercut\Docx\Tests\Support\Styles;
+use Papercut\Style\Align;
 use Papercut\{Image, Row, Span, Table, Text, View};
 use PHPUnit\Framework\TestCase;
 
@@ -80,6 +81,46 @@ final class BadgeRunTest extends TestCase
         $d = self::export(Row::make($pill, 'tail'));
         self::assertSame(0, $d->count('//w:tbl'));
         self::assertSame(1, $d->count('//w:r[w:t="' . self::NBSP . self::NBSP . 'Pill' . self::NBSP . self::NBSP . '"][w:rPr/w:shd[@w:fill="ffeecc"]][w:rPr/w:bdr[@w:color="ffeecc"]]'));
+    }
+
+    public function test_a_centred_block_badge_keeps_its_alignment(): void
+    {
+        $d = self::export(View::make(Badge::make('Mid')->alignSelf(Align::Center), Badge::make('End')->alignSelf(Align::End)));
+        self::assertSame(0, $d->count('//w:tbl'));
+        self::assertSame('center', $d->value('//w:p[w:r[contains(w:t, "Mid")]]/w:pPr/w:jc/@w:val'));
+        self::assertSame('right', $d->value('//w:p[w:r[contains(w:t, "End")]]/w:pPr/w:jc/@w:val'));
+    }
+
+    public function test_a_top_level_block_badge_is_a_paragraph(): void
+    {
+        $d = self::export(Badge::make('Solo')->tone('danger'));
+        self::assertSame(0, $d->count('//w:tbl'));
+        self::assertSame(1, $d->count('/w:document/w:body/w:p/w:r[w:t="' . self::NBSP . self::NBSP . 'Solo' . self::NBSP . self::NBSP . '"][w:rPr/w:shd[@w:fill="fee2e2"]]'));
+    }
+
+    public function test_a_bordered_filled_inline_badge_has_a_border_in_the_border_colour(): void
+    {
+        $d = self::export(self::inline(Span::badge('Both', 'warning', 'outline')));
+        $run = '//w:r[contains(w:t, "Both")]/w:rPr/w:bdr';
+        self::assertSame('fcd34d', $d->value($run . '/@w:color'));
+        self::assertSame('6', $d->value($run . '/@w:sz'));
+        self::assertSame('single', $d->value($run . '/@w:val'));
+    }
+
+    public function test_a_plain_highlight_in_a_row_is_not_padded_or_bordered(): void
+    {
+        $d = self::export(Row::make(Text::make('Marked')->background(\Papercut\Value\Color::hex('#ffeecc')), 'tail'));
+        self::assertSame(1, $d->count('//w:r[w:t="Marked"][w:rPr/w:shd[@w:fill="ffeecc"]]'));
+        self::assertSame(0, $d->count('//w:bdr'));
+    }
+
+    public function test_a_mark_inside_a_pill_keeps_its_own_shading(): void
+    {
+        $pill = Text::make('Pill ')->append(Span::text('hot', \Papercut\Style\Style::make(background: \Papercut\Value\Color::hex('#ff0000'))))
+            ->background(\Papercut\Value\Color::hex('#ffeecc'))->padding(\Papercut\Value\Edges::of(pt(1), pt(5)));
+        $d = self::export(Row::make($pill, 'tail'));
+        self::assertSame(1, $d->count('//w:r[contains(w:t, "hot")][w:rPr/w:shd[@w:fill="ff0000"]]'));
+        self::assertSame(1, $d->count('//w:r[contains(w:t, "Pill")][w:rPr/w:shd[@w:fill="ffeecc"]]'));
     }
 
     private static function png(): string

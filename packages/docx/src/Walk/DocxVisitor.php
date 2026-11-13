@@ -269,6 +269,9 @@ final class DocxVisitor implements TreeVisitor
                 $this->fidelity->approximated('badge in a line', $at->path());
             }
             $blocks = [new Paragraph(BadgeRun::runs($paragraph->children, $style, BadgeRun::evenBorder($style)), $paragraph->style, $paragraph->headingLevel, $paragraph->styleId)];
+            if ($crossJc !== null) {
+                $blocks = [Flow::withParagraph($blocks[0], ['alignment' => $crossJc], $this->lists->settled())];
+            }
             $style = BoxMapper::undecorated($style);
         } elseif ($node instanceof View && !$parent->isRow && !$frame->isRow && StyleName::leads($node->styleName(), 'code-block')
             && BoxMapper::decorated($style) && ($shaded = $this->boxes->shadedParagraphs($blocks, $style, $this->lists->settled(), $at->path())) !== null) {

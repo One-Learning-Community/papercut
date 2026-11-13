@@ -135,6 +135,7 @@ final class InlineRow
             $this->fidelity->approximated('badge in a line', $path);
         }
 
-        return BadgeRun::runs($p->children, $i, $border);
+        // Only a badge (undecorated by now) is padded; a plain highlight stays a shaded run.
+        return BadgeRun::runs($p->children, $i, $border, $i->padding->horizontal() > 0.0);
     }
 }
