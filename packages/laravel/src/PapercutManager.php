@@ -12,7 +12,7 @@ use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Preview\PreviewRegistry;
 use Papercut\Laravel\Rendering\NodeRegistry;
 use Papercut\OverflowMode;
-use Papercut\Export\{Exporter, ExportOptions, FidelityLevel, FidelityReport, FontMode, HtmlOptions, PdfOptions};
+use Papercut\Export\{Exporter, ExportOptions, FidelityLevel, FidelityReport, FontMode, HtmlOptions, PdfA, PdfOptions};
 use Papercut\Html\FontSource;
 use Papercut\Markup\{BlankParagraphs, MarkupOptions, StyleMode};
 use Papercut\Style\{Style, Theme};
@@ -365,6 +365,15 @@ class PapercutManager
             throw new \InvalidArgumentException('Invalid papercut.tagged: ' . (is_scalar($tagged) ? var_export($tagged, true) : get_debug_type($tagged)) . '; expected true or false');
         }
 
+        $pdfA = config('papercut.pdfa');
+        if ($pdfA !== null) {
+            $level = is_string($pdfA) ? PdfA::tryFrom($pdfA) : null;
+            if ($level === null) {
+                throw new \InvalidArgumentException('Invalid papercut.pdfa: ' . (is_scalar($pdfA) ? var_export($pdfA, true) : get_debug_type($pdfA)) . '; expected null, ' . implode(', ', array_slice(array_map(static fn (PdfA $l): string => $l->value, PdfA::cases()), 0, -1)) . ' or ' . PdfA::cases()[count(PdfA::cases()) - 1]->value);
+            }
+            $pdfA = $level;
+        }
+
         $base = $this->exportOptions();
 
         return new PdfOptions(
@@ -376,6 +385,7 @@ class PapercutManager
             cacheDir: self::cacheDir(),
             bookmarks: $bookmarks,
             tagged: $tagged,
+            pdfA: $pdfA,
         );
     }
 

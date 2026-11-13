@@ -7,6 +7,7 @@ namespace Papercut\Laravel;
 use Illuminate\Support\Traits\Macroable;
 use Papercut\Document;
 use Papercut\Export\Encryption;
+use Papercut\Export\PdfA;
 
 /** A resolved document waiting to be exported; each format method returns a {@see PendingOutput}. */
 final class PendingDocument
@@ -22,6 +23,8 @@ final class PendingDocument
         private readonly PapercutManager $manager,
         private readonly ?Encryption $encryption = null,
         private readonly ?bool $tagged = null,
+        /** false = not set (use `papercut.pdfa`), null = explicitly not PDF/A */
+        private readonly PdfA|false|null $pdfA = false,
     ) {
     }
 
@@ -31,7 +34,7 @@ final class PendingDocument
      */
     public function encrypt(#[\SensitiveParameter] string|Encryption $password): self
     {
-        return new self($this->document, $this->manager, is_string($password) ? Encryption::password($password) : $password, $this->tagged);
+        return new self($this->document, $this->manager, is_string($password) ? Encryption::password($password) : $password, $this->tagged, $this->pdfA);
     }
 
     /**
@@ -45,7 +48,7 @@ final class PendingDocument
     {
         $override = ThemeConfig::override($values, 'in ->theme()', $this->manager->fontFamilies());
 
-        return new self($this->document->theme($override), $this->manager, $this->encryption, $this->tagged);
+        return new self($this->document->theme($override), $this->manager, $this->encryption, $this->tagged, $this->pdfA);
     }
 
     /**
@@ -54,7 +57,20 @@ final class PendingDocument
      */
     public function tagged(bool $on = true): self
     {
-        return new self($this->document, $this->manager, $this->encryption, $on);
+        return new self($this->document, $this->manager, $this->encryption, $on, $this->pdfA);
+    }
+
+    /**
+     * A copy whose PDF is an archival PDF/A at this level (a {@see PdfA} or its string, such as '2u'),
+     * or a regular PDF for null, whatever `papercut.pdfa` says.
+     */
+    public function pdfA(PdfA|string|null $level): self
+    {
+        if (is_string($level)) {
+            $level = PdfA::tryFrom($level) ?? throw new \InvalidArgumentException('Invalid PDF/A level ' . var_export($level, true) . '; expected ' . implode(', ', array_map(static fn (PdfA $l): string => $l->value, PdfA::cases())));
+        }
+
+        return new self($this->document, $this->manager, $this->encryption, $this->tagged, $level);
     }
 
     public function document(): Document
@@ -68,7 +84,14 @@ final class PendingDocument
             function (): \Papercut\Export\Output {
                 $options = $this->manager->pdfOptions()->withEncryption($this->encryption);
 
-                return $this->document->toPdf($this->tagged === null ? $options : $options->withTagged($this->tagged));
+                if ($this->tagged !== null) {
+                    $options = $options->withTagged($this->tagged);
+                }
+                if ($this->pdfA !== false) {
+                    $options = $options->withPdfA($this->pdfA);
+                }
+
+                return $this->document->toPdf($options);
             },
             'document',
             'pdf',

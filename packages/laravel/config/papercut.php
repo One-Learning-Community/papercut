@@ -23,6 +23,8 @@ return [
     'bookmarks' => true,
     // Write accessible (tagged, PDF/UA-1) PDFs. Needs a document title and language; ->tagged() on a document overrides this
     'tagged' => false,
+    // Archival PDF/A: null (a regular PDF) or a level: '1b', '2b', '2u' (recommended), '2a', '3b', '3u', '3a'. ->pdfA() on a document overrides this
+    'pdfa' => null,
     // Strict export: throw instead of dropping content a format cannot render. Consider true in tests.
     'strict' => false,
     // Base directory for relative <x-doc::image src>
