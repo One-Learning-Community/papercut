@@ -5,6 +5,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Word export collapses whitespace in text the way the PDF and HTML do. Any run of spaces, tabs and newlines becomes one space, even when it crosses spans, and a line doesn't start or end with one. A text tag written over several lines in Blade, or with `@if` lines inside it, used to keep all its indentation in Word. Pre-wrap text (`<x-doc::pre>`, code blocks) keeps its spaces as before.
+
 ## [0.10.0] - 2026-11-12
 
 ### Added
