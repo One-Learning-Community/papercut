@@ -28,6 +28,16 @@
         },
         {
             "type": "path",
+            "url": "../math",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "papercut/math": "0.10.x-dev"
+                }
+            }
+        },
+        {
+            "type": "path",
             "url": "../docx",
             "options": {
                 "symlink": true,

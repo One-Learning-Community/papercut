@@ -38,9 +38,9 @@ final class ScriptsTest extends TestCase
 
         self::assertContains($f->scriptVariant($prime, 1), $gids);
         self::assertNotContains($prime, $gids);
-        // The alternate is still the source character as far as text extraction goes.
+        // The alternate still reports the character, as far as text extraction goes (x is set in mathematical italic).
         $texts = array_map(fn (Glyph $g) => $g->text, self::glyphs(Math::layout(Math::sup('x', '′'))));
-        self::assertSame(['x', '′'], $texts);
+        self::assertSame(['𝑥', '′'], $texts);
     }
 
     public function test_script_alternates_can_be_disabled(): void

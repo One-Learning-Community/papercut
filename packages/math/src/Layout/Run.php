@@ -19,8 +19,11 @@ final class Run
         $scripted = $c->scriptAlternates && $c->level > 0 && $f->hasScriptAlternates();
         foreach ($glyphs as [$cp, $src]) {
             $gid = $f->gid($cp);
+            $text = $src;
             if ($gid === 0) {
                 $gid = $f->gid(mb_ord($src)); // fall back to the source character
+            } else {
+                $text = mb_chr($cp, 'UTF-8'); // the character drawn, such as a mathematical italic letter, so a backend can set it as text
             }
             if ($scripted) {
                 $gid = $f->scriptVariant($gid, min($c->level, 2));
@@ -28,10 +31,14 @@ final class Run
             $box->firstGid ??= $gid;
             $box->lastGid = $gid;
             $bb = $f->bbox($gid);
-            $box->add(new Glyph($gid, $src, $box->width, 0.0, $c->size()));
+            $box->add(new Glyph($gid, $text, $box->width, 0.0, $c->size()));
             $box->ascent = max($box->ascent, $bb[3] * $u);
             $box->descent = max($box->descent, -$bb[1] * $u);
-            $box->width += $f->advance($gid) * $u;
+            $advance = $f->advance($gid) * $u;
+            if ($gid === 0 && $c->fallbackAdvance !== null) {
+                $advance = ($c->fallbackAdvance)($src, $c->size()) ?? $advance;
+            }
+            $box->width += $advance;
             $last = $gid;
         }
         $box->italic = $last ? $f->math()->italicsCorrection($last) * $u : 0.0;

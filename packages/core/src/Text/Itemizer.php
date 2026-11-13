@@ -110,6 +110,17 @@ final class Itemizer
         return $items;
     }
 
+    /**
+     * The text split into runs by the font that draws each, as it is in a paragraph of this style: the style's own font
+     * where it covers a character, else a fallback family, else that font again with a warning naming the missing glyphs.
+     *
+     * @return list<array{string, CachedFont}>
+     */
+    public function runsFor(string $text, ComputedStyle $style): array
+    {
+        return $this->fontRuns($text, $style, $this->primary($style));
+    }
+
     private function space(ComputedStyle $style, CachedFont $font, ?string $href): InlineItem
     {
         return new InlineItem('space', ' ', $font, $style->fontSize, $font->advance(' ', $style->fontSize, $style->letterSpacing), $style, $href);

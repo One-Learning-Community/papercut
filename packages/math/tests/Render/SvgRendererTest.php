@@ -26,6 +26,7 @@ final class SvgRendererTest extends TestCase
         $root = $doc->documentElement;
         self::assertSame('http://www.w3.org/2000/svg', $root?->namespaceURI);
         self::assertSame('0 -10 20 14', $root->getAttribute('viewBox'));
+        self::assertSame('visible', $root->getAttribute('overflow'));
         self::assertSame('20', $root->getAttribute('width'));
         self::assertSame('14', $root->getAttribute('height'));
     }
@@ -37,5 +38,14 @@ final class SvgRendererTest extends TestCase
         $doc = new \DOMDocument();
         self::assertTrue($doc->loadXML($svg));
         self::assertGreaterThan(0, $doc->getElementsByTagName('path')->length);
+    }
+
+    public function testOpacityBecomesFillOpacity(): void
+    {
+        $font = Math::stixTwoMath();
+        $box = new Box(20.0, 10.0, 4.0);
+        $glyphs = [new Glyph($font->gid(0x78), 'x', 0.0, 0.0, 12.0)];
+        self::assertStringContainsString('fill="#ff0000" fill-opacity="0.5"', (new SvgRenderer($font, '#ff0000', 0.5))->glyphPaths($glyphs, $box));
+        self::assertStringNotContainsString('fill-opacity', (new SvgRenderer($font, '#ff0000'))->glyphPaths($glyphs, $box));
     }
 }

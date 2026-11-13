@@ -6,7 +6,8 @@ namespace Papercut\Math\Layout;
 
 /**
  * A glyph placed by its origin (x, y), y being the baseline position, y down.
- * $text is the source characters (for selection/ToUnicode); null for size-variant and assembly pieces
+ * $text is the character drawn, for selection and ToUnicode: for a letter set in mathematical italic it is the italic code point,
+ * not the letter typed; null for size-variant and assembly pieces
  * that stand for part of a larger symbol. $size is the font size in points.
  */
 final readonly class Glyph implements DisplayItem

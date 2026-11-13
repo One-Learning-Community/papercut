@@ -41,16 +41,20 @@ $box = Math::layout($formula, size: 12.0, display: true);
 - `$font` defaults to the bundled STIX Two Math.
 - `$scriptAlternates` false keeps scripts on the ordinary glyphs instead of the font's `ssty` script-size forms. Use it
   when your output can only draw glyphs reachable from a code point.
+- `$fallbackAdvance` is an optional `Closure(string $char, float $size): ?float`. It is asked for the advance, in points,
+  of each character the font has no glyph for (its `gid` is 0). A float replaces the font's `.notdef` advance, so a
+  backend that draws such characters in another font can space them by that font's width; `null` keeps `.notdef`.
 
 ### The display list
 
 `Box` has `width`, `ascent` (height above the baseline), `descent` (depth below it) and `items`. All numbers are
 points. The origin is the baseline at the left edge, and y points down, so items above the baseline have negative y.
 
-- `Glyph(gid, ?text, x, y, size)`: a glyph by its origin `(x, y)` and font size. `text` holds the source characters
-  (use it for selectable text). It is `null` for size variants and assembly pieces of a stretched symbol; those have
-  no code point, so draw them by `gid`. For `ssty` script alternates `text` is still the source character, but `gid`
-  differs from the font's cmap entry for it. Draw by `gid` when you need the exact shape.
+- `Glyph(gid, ?text, x, y, size)`: a glyph by its origin `(x, y)` and font size. `text` is the character drawn, for
+  selectable text: a letter set in mathematical italic is `𝑥` (U+1D465), not the `x` that was typed. It is `null` for size
+  variants and assembly pieces of a stretched symbol; those have no code point, so draw them by `gid`. For `ssty` script
+  alternates `text` is the base character, but `gid` differs from the font's cmap entry for it. So a backend may set a
+  glyph as text only when `text` is one code point and the font's cmap maps it to `gid`; draw every other glyph by `gid`.
 - `Rule(x, y, w, h)`: a filled rectangle (fraction bar, radical overbar), `(x, y)` its top-left corner.
 
 ## Writers
@@ -67,7 +71,7 @@ echo $svg->glyphPaths($glyphs, $box);           // only the given glyphs, as pat
 
 `glyphPaths(list<Glyph> $glyphs, Box $box)` returns a standalone `<svg>` whose `viewBox` is `0 -ascent width
 ascent+descent` (the box's own coordinate space, baseline at y = 0, y down) with width and height in pt. Put it at the
-box's top-left and the glyphs land where the layout put them. It is meant for glyphs without text.
+box's top-left and the glyphs land where the layout put them. It is meant for the glyphs a backend cannot set as text: those without text, and those whose text does not map to their `gid`.
 
 MathML:
 

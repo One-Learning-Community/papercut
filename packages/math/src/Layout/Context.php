@@ -10,6 +10,7 @@ use Papercut\Math\Font\TrueTypeFont;
  * Immutable layout state: font, base size, script level and math style (display or inline/text).
  * $cramped is TeX's cramped style (denominators, radicands, subscripts): superscripts sit lower in it.
  * $scriptAlternates turns the font's `ssty` script-size glyph forms on or off.
+ * $fallbackAdvance, when set, is asked for the advance of a character the font has no glyph for.
  */
 final readonly class Context
 {
@@ -21,6 +22,8 @@ final readonly class Context
         public bool $tight = false,
         public bool $cramped = false,
         public bool $scriptAlternates = true,
+        /** @var (\Closure(string, float): ?float)|null advance in points of a character the font lacks, at a size; null keeps the .notdef advance */
+        public ?\Closure $fallbackAdvance = null,
     ) {
     }
 
@@ -57,13 +60,13 @@ final readonly class Context
     /** One script level further in (or $by); $cramped forces cramped style, as subscripts do. */
     public function script(int $by = 1, bool $cramped = false): self
     {
-        return new self($this->font, $this->baseSize, $this->level + $by, false, true, $this->cramped || $cramped, $this->scriptAlternates);
+        return new self($this->font, $this->baseSize, $this->level + $by, false, true, $this->cramped || $cramped, $this->scriptAlternates, $this->fallbackAdvance);
     }
 
     /** The same context in cramped style (radicands). */
     public function cramped(): self
     {
-        return new self($this->font, $this->baseSize, $this->level, $this->display, $this->tight, true, $this->scriptAlternates);
+        return new self($this->font, $this->baseSize, $this->level, $this->display, $this->tight, true, $this->scriptAlternates, $this->fallbackAdvance);
     }
 
     /**
@@ -80,6 +83,7 @@ final readonly class Context
             $this->tight,
             $this->cramped || $denominator,
             $this->scriptAlternates,
+            $this->fallbackAdvance,
         );
     }
 }

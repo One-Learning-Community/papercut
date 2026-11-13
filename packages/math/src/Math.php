@@ -95,6 +95,9 @@ final class Math
      * @param float $size font size in points
      * @param bool $scriptAlternates false keeps scripts on the ordinary glyphs instead of the font's `ssty`
      *                               script-size forms (for backends that can only draw glyphs reachable from a code point)
+     * @param (\Closure(string, float): ?float)|null $fallbackAdvance asked for the advance, in points, of a character the font has no glyph
+     *                               for (called with the character and the size it is set at); a float replaces the .notdef
+     *                               advance, null keeps it. For backends that draw such characters in another font.
      */
     public static function layout(
         Node $root,
@@ -102,7 +105,8 @@ final class Math
         bool $display = true,
         ?TrueTypeFont $font = null,
         bool $scriptAlternates = true,
+        ?\Closure $fallbackAdvance = null,
     ): Box {
-        return $root->layout(new Context($font ?? self::stixTwoMath(), $size, 0, $display, false, false, $scriptAlternates));
+        return $root->layout(new Context($font ?? self::stixTwoMath(), $size, 0, $display, false, false, $scriptAlternates, $fallbackAdvance));
     }
 }

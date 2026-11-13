@@ -11,11 +11,11 @@ use Papercut\Math\Layout\Rule;
 
 /**
  * Standalone SVG. Units are points (1 SVG user unit = 1 pt); the SVG's width/height are the box
- * plus $pad on every side. The baseline sits $pad + ascent below the top edge, see baselineOffset().
+ * plus $pad on every side. $opacity below 1 is written as fill-opacity. The baseline sits $pad + ascent below the top edge, see baselineOffset().
  */
 final class SvgRenderer
 {
-    public function __construct(private readonly TrueTypeFont $font, private readonly string $color = '#000000')
+    public function __construct(private readonly TrueTypeFont $font, private readonly string $color = '#000000', private readonly float $opacity = 1.0)
     {
     }
 
@@ -35,7 +35,7 @@ final class SvgRenderer
             '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 0 %s %s">',
             self::n($w), self::n($h), self::n($w), self::n($h),
         );
-        $svg .= sprintf('<g fill="%s">', $this->color);
+        $svg .= $this->group();
         foreach ($box->items as $item) {
             if ($item instanceof Glyph) {
                 $d = $this->glyphPath($item, $ox, $oy);
@@ -55,6 +55,7 @@ final class SvgRenderer
      * (stretched variants, assembly pieces). The glyphs are in the coordinate space of $box: points, baseline at y = 0,
      * y down. The viewBox is that box, "0 -ascent width ascent+descent", and width/height are the box size in pt,
      * so placing the SVG with its top-left at the box's top-left reproduces the glyph positions exactly.
+     * The root has overflow="visible", so ink outside the box metrics (a deep radical, a tall accent) is not clipped.
      *
      * @param list<Glyph> $glyphs
      */
@@ -63,10 +64,10 @@ final class SvgRenderer
         $w = self::n($box->width);
         $h = self::n($box->ascent + $box->descent);
         $svg = sprintf(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 %s %s %s">',
+            '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 %s %s %s" overflow="visible">',
             $w, $h, self::n(-$box->ascent), $w, $h,
         );
-        $svg .= sprintf('<g fill="%s">', $this->color);
+        $svg .= $this->group();
         foreach ($glyphs as $g) {
             $d = $this->glyphPath($g, 0.0, 0.0);
             if ($d !== '') {
@@ -75,6 +76,13 @@ final class SvgRenderer
         }
 
         return $svg . '</g></svg>';
+    }
+
+    private function group(): string
+    {
+        return $this->opacity < 1.0
+            ? sprintf('<g fill="%s" fill-opacity="%s">', $this->color, self::n($this->opacity))
+            : sprintf('<g fill="%s">', $this->color);
     }
 
     private function glyphPath(Glyph $g, float $ox, float $oy): string

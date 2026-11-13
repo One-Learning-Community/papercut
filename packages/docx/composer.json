@@ -32,6 +32,16 @@
                     "papercut/core": "0.10.x-dev"
                 }
             }
+        },
+        {
+            "type": "path",
+            "url": "../math",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "papercut/math": "0.10.x-dev"
+                }
+            }
         }
     ],
     "require": {
