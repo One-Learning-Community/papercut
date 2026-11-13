@@ -47,7 +47,15 @@ final class InlineBadgeTest extends TestCase
     public function test_nested_markup_is_rejected(): void
     {
         $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('can only contain plain text');
         $this->nodeFrom('<x-doc::p>a <x-doc::badge>x <b>y</b></x-doc::badge></x-doc::p>');
+    }
+
+    public function test_empty_badge_in_text_is_rejected(): void
+    {
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('needs a label');
+        $this->nodeFrom('<x-doc::p>a <x-doc::badge></x-doc::badge></x-doc::p>');
     }
 
     public function test_unknown_type_names_the_style(): void

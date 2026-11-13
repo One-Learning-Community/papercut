@@ -65,7 +65,7 @@ final class Segments
         $text = '';
         foreach ($segs as $seg) {
             if (!is_string($seg)) {
-                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>)");
+                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>, <badge>)");
             }
             $text .= $seg;
         }
@@ -96,7 +96,11 @@ final class Segments
                 }
             } elseif ($seg instanceof Badge) {
                 // Inside a text tag a badge is an inline badge, not the block one.
-                $span = $seg->inlineSpan();
+                try {
+                    $span = $seg->inlineSpan();
+                } catch (\InvalidArgumentException $e) {
+                    throw new InvalidStructure(Tag::of('badge') . ' inside ' . Tag::of($tag) . ': ' . $e->getMessage());
+                }
                 if ($span === null) {
                     throw new InvalidStructure(Tag::of('badge') . ' inside ' . Tag::of($tag) . ' can only contain plain text, with no inline tags or style attributes');
                 }
@@ -104,7 +108,7 @@ final class Segments
             } elseif ($seg instanceof Text || $seg instanceof View) {
                 $out = $out->append(Markup::flatten($seg));
             } else {
-                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>)");
+                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>, <badge>)");
             }
         }
 

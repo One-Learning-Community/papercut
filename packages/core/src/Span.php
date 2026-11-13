@@ -40,6 +40,9 @@ final readonly class Span
      */
     public static function badge(string $text, string $tone = 'neutral', ?string $variant = null): self
     {
+        if (trim($text) === '') {
+            throw new \InvalidArgumentException('A badge needs a label.');
+        }
         $names = 'badge badge.' . NameRules::tone($tone);
         if ($variant !== null) {
             foreach (NameRules::variants($variant, ['badge'], Badge::TONES) as $word) {

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Papercut\Tests\Text;
 
 use Papercut\Exception\InvalidValue;
-use Papercut\Span;
+use Papercut\{Span, Text};
+use Papercut\Tests\Support\LayoutHarness;
 use Papercut\Text\InlineMarkup;
 use PHPUnit\Framework\TestCase;
 
@@ -61,6 +62,33 @@ final class InlineMarkupBadgeTest extends TestCase
     public function test_bad_tone_is_rejected(): void
     {
         $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('single word');
         InlineMarkup::parse('<badge type="two words">x</badge>');
+    }
+
+    public function test_empty_label_is_rejected(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('needs a label');
+        InlineMarkup::parse('<badge></badge>');
+    }
+
+    public function test_span_badge_rejects_empty_and_blank_labels(): void
+    {
+        foreach (['', '  '] as $label) {
+            try {
+                Span::badge($label);
+                self::fail('expected InvalidArgumentException');
+            } catch (\InvalidArgumentException $e) {
+                self::assertStringContainsString('needs a label', $e->getMessage());
+            }
+        }
+    }
+
+    public function test_unknown_type_names_the_theme_style(): void
+    {
+        $this->expectException(\Throwable::class);
+        $this->expectExceptionMessage('badge.zzz');
+        (new LayoutHarness())->layout(Text::markup('<badge type="zzz">x</badge>'), 300);
     }
 }
