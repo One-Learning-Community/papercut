@@ -131,4 +131,12 @@ final class BadgeRunTest extends TestCase
 
         return (string) ob_get_clean();
     }
+
+    public function test_badge_label_whitespace_is_collapsed(): void
+    {
+        $d = self::export(Text::markup("Status <badge>In\n   progress</badge>"));
+        $nb = self::NBSP;
+        self::assertSame(1, $d->count('//w:r[w:t="' . $nb . $nb . 'In' . $nb . 'progress' . $nb . $nb . '"]'));
+        self::assertSame(0, $d->count('//w:br'));
+    }
 }

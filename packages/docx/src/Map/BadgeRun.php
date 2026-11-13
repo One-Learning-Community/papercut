@@ -30,6 +30,7 @@ final class BadgeRun
     public static function text(string $label): string
     {
         $pad = str_repeat(self::NBSP, self::PAD);
+        $label = trim(preg_replace('/[ \t\n\r\f]+/', ' ', $label) ?? $label);
 
         return $pad . str_replace(' ', self::NBSP, $label) . $pad;
     }

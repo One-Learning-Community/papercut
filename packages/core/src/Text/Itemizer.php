@@ -49,6 +49,25 @@ final class Itemizer
                 continue;
             }
             $text = self::drawable($span->text);
+            if ($style->isInlineBox()) {
+                $label = trim(preg_replace('/[ \t\n\r\f]+/', ' ', $text) ?? $text);
+                if ($label !== '') {
+                    // Spaces just inside the box space it from its neighbours, as in HTML; the label itself is trimmed.
+                    if ($pending === null && !$atStart && preg_match('/^[ \t\n\r\f]/', $text) === 1) {
+                        $pending = $this->space($paragraph, $this->primary($paragraph), $span->href);
+                    }
+                    if ($pending !== null) {
+                        $items[] = $pending;
+                        $pending = null;
+                    }
+                    $items[] = $this->box($label, $style, $font, $span->href);
+                    $atStart = false;
+                    if (preg_match('/[ \t\n\r\f]$/', $text) === 1) {
+                        $pending = $this->space($paragraph, $this->primary($paragraph), $span->href);
+                    }
+                }
+                continue;
+            }
             if ($style->whiteSpace === WhiteSpace::PreWrap) {
                 $own = $this->preWrap($span, $text, $style, $font);
                 if ($own !== []) {
@@ -59,18 +78,6 @@ final class Itemizer
                     }
                     array_push($items, ...$own);
                     $atStart = $own[count($own) - 1]->kind === 'break';
-                }
-                continue;
-            }
-            if ($style->isInlineBox()) {
-                $label = trim(preg_replace('/[ \t\n\r\f]+/', ' ', $text) ?? $text);
-                if ($label !== '') {
-                    if ($pending !== null) {
-                        $items[] = $pending;
-                        $pending = null;
-                    }
-                    $items[] = $this->box($label, $style, $font, $span->href);
-                    $atStart = false;
                 }
                 continue;
             }
@@ -101,6 +108,11 @@ final class Itemizer
             }
         }
         return $items;
+    }
+
+    private function space(ComputedStyle $style, CachedFont $font, ?string $href): InlineItem
+    {
+        return new InlineItem('space', ' ', $font, $style->fontSize, $font->advance(' ', $style->fontSize, $style->letterSpacing), $style, $href);
     }
 
     /** An inline box's label as one unbreakable item as wide as its text plus its padding and border. */

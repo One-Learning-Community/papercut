@@ -10,7 +10,8 @@ use Papercut\Decorator\Badge;
 use Papercut\Exception\UnknownAttribute;
 use Papercut\Layout\Fragment;
 use Papercut\Paint\{Link as LinkOp, Rect, TextRun};
-use Papercut\Style\{Style, Theme};
+use Papercut\Style\{Style, Theme, WhiteSpace};
+use Papercut\Value\Edges;
 use Papercut\Tests\Support\LayoutHarness;
 use Papercut\Value\Color;
 use PHPUnit\Framework\TestCase;
@@ -205,5 +206,35 @@ final class InlineBadgeTest extends TestCase
         $rects = self::rects(self::ops(Text::spans(Span::text('a '), Span::code('x')), 300));
         self::assertCount(1, $rects);
         self::assertSame(14.0, $rects[0]->height);
+    }
+
+    public function test_a_badge_in_pre_wrap_text_is_still_a_padded_pill(): void
+    {
+        $text = Text::spans(Span::text('Returns '), Span::badge('201', 'tip'), Span::text(' ok'))->apply(new Style(whiteSpace: WhiteSpace::PreWrap));
+        $rects = self::rects(self::ops($text, 300));
+        self::assertCount(1, $rects);
+        self::assertSame(8.0, $rects[0]->radius);
+        self::assertSame(25.5, $rects[0]->width);
+    }
+
+    public function test_a_bottom_border_alone_is_not_an_inline_box_and_wraps(): void
+    {
+        $style = Style::make(borderWidth: Edges::parse('0 0 1pt 0'));
+        $text = Text::spans(Span::text('alpha '), Span::text('beta gamma', $style));
+        $runs = self::runs(self::ops($text, 60));
+        self::assertGreaterThan($runs[0]->baseline, $runs[1]->baseline);
+        self::assertSame(['alpha beta', 'gamma'], array_map(static fn (TextRun $r): string => $r->text, $runs));
+    }
+
+    public function test_spaces_inside_a_padded_span_still_space_it_from_its_neighbours(): void
+    {
+        $style = Style::make(padding: Edges::parse('0 4pt'));
+        $glued = self::runs(self::ops(Text::spans(Span::text('run'), Span::text('npm', $style), Span::text('now')), 300));
+        $spaced = self::runs(self::ops(Text::spans(Span::text('run'), Span::text(' npm ', $style), Span::text('now')), 300));
+        $x = static fn (array $runs, string $t): float => array_values(array_filter($runs, static fn (TextRun $r): bool => $r->text === $t))[0]->x;
+        // The test font is 0.5em per character: a 10pt space is 5pt.
+        self::assertSame($x($glued, 'npm') + 5.0, $x($spaced, 'npm'));
+        // The trailing space joins the text after the box: it starts one space later than the glued one.
+        self::assertSame($x($glued, 'now') + 5.0, $x($spaced, ' now'));
     }
 }
