@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Renders every Fixtures::all() entry to tests/out/<name>.svg (and .png when rsvg-convert is installed),
  * plus tests/out/index.html showing them all. Run from packages/math: php tests/render-fixtures.php
+ * A fixture whose name ends in "-inline" is laid out in text style, every other one in display style.
  */
 
 use Papercut\Math\Math;
@@ -33,7 +34,10 @@ foreach (Fixtures::all() as $name => $node) {
     $svg = $renderer->render($box, 2.0);
     file_put_contents("$out/$name.svg", $svg);
     if ($rsvg !== '') {
-        exec(sprintf('%s -z 4 -b white %s -o %s', escapeshellarg($rsvg), escapeshellarg("$out/$name.svg"), escapeshellarg("$out/$name.png")));
+        exec(sprintf('%s -z 4 -b white %s -o %s 2>&1', escapeshellarg($rsvg), escapeshellarg("$out/$name.svg"), escapeshellarg("$out/$name.png")), $log, $code);
+        if ($code !== 0) {
+            fwrite(STDERR, "rsvg-convert failed for $name (exit $code): " . implode(' ', $log) . "\n");
+        }
     }
     $html .= sprintf(
         '<div class="row"><div class="n">%s (%s)<br>w %.1f, asc %.1f, desc %.1f pt</div>%s</div>',

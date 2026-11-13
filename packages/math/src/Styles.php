@@ -28,4 +28,17 @@ final class Styles
 
         return $cp;
     }
+
+    /** The inverse of italic(): a Mathematical Italic codepoint back to the plain letter; anything else is returned unchanged. */
+    public static function plain(int $cp): int
+    {
+        return match (true) {
+            $cp === 0x210E => 0x68,
+            $cp >= 0x1D434 && $cp <= 0x1D44D => 0x41 + $cp - 0x1D434,
+            $cp >= 0x1D44E && $cp <= 0x1D467 => 0x61 + $cp - 0x1D44E,
+            $cp >= 0x1D6E2 && $cp <= 0x1D6FA && $cp !== 0x1D6F3 => 0x391 + $cp - 0x1D6E2,
+            $cp >= 0x1D6FC && $cp <= 0x1D714 => 0x3B1 + $cp - 0x1D6FC,
+            default => $cp,
+        };
+    }
 }

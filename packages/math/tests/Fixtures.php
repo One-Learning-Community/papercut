@@ -7,7 +7,12 @@ namespace Papercut\Math\Tests;
 use Papercut\Math\Math;
 use Papercut\Math\Node\Node;
 
-/** Sample formulas for tests and visual checks. A name ending in "-inline" is meant for text style, the rest for display. */
+/**
+ * Sample formulas for tests and visual checks (tests/render-fixtures.php renders them).
+ *
+ * Naming convention: a fixture name ending in "-inline" is laid out in text (inline) style; every other name is laid
+ * out in display style. The same formula may appear under both names.
+ */
 final class Fixtures
 {
     /** @return array<string, Node> */

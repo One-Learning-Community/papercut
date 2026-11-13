@@ -50,6 +50,33 @@ final class SvgRenderer
         return $svg . '</g></svg>';
     }
 
+    /**
+     * A standalone SVG holding only $glyphs, one <path> each, for glyphs a backend cannot draw as text
+     * (stretched variants, assembly pieces). The glyphs are in the coordinate space of $box: points, baseline at y = 0,
+     * y down. The viewBox is that box, "0 -ascent width ascent+descent", and width/height are the box size in pt,
+     * so placing the SVG with its top-left at the box's top-left reproduces the glyph positions exactly.
+     *
+     * @param list<Glyph> $glyphs
+     */
+    public function glyphPaths(array $glyphs, Box $box): string
+    {
+        $w = self::n($box->width);
+        $h = self::n($box->ascent + $box->descent);
+        $svg = sprintf(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 %s %s %s">',
+            $w, $h, self::n(-$box->ascent), $w, $h,
+        );
+        $svg .= sprintf('<g fill="%s">', $this->color);
+        foreach ($glyphs as $g) {
+            $d = $this->glyphPath($g, 0.0, 0.0);
+            if ($d !== '') {
+                $svg .= '<path d="' . $d . '"/>';
+            }
+        }
+
+        return $svg . '</g></svg>';
+    }
+
     private function glyphPath(Glyph $g, float $ox, float $oy): string
     {
         $s = $g->size / $this->font->unitsPerEm;
