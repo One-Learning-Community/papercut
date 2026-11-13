@@ -20,6 +20,14 @@ generated PDFs that use it.
 - Full text: `packages/core/resources/fonts/Cousine/OFL.txt`
 - Project: https://github.com/googlefonts/cousine
 
+## STIX Two Math typeface
+
+Bundled in `packages/math/resources/fonts/` (Regular), and embedded (subset) in generated PDFs that use it.
+
+- License: SIL Open Font License 1.1
+- Full text: `packages/math/resources/fonts/OFL.txt`
+- Project: https://github.com/stipub/stixfonts
+
 ## Tailwind CSS color palette
 
 The named colors (`slate-500`, `indigo-600`, ...) in `packages/core/resources/palette.php` are generated from the

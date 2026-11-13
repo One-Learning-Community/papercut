@@ -1,4 +1,4 @@
-# Reusable: pushes packages/core, packages/laravel and packages/docx to their split repositories,
+# Reusable: pushes packages/core, packages/laravel, packages/docx and packages/math to their split repositories,
 # optionally tagging them. Called by split.yml (main) and release.yml (tags).
 name: split-packages
 
@@ -30,6 +30,7 @@ jobs:
           - { dir: core, repo: papercut-core }
           - { dir: laravel, repo: papercut-laravel }
           - { dir: docx, repo: papercut-docx }
+          - { dir: math, repo: papercut-math }
     env:
       HAS_TOKEN: ${{ secrets.SPLIT_TOKEN != '' }}
     steps:
