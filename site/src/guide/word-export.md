@@ -96,7 +96,7 @@ $document->export(new DocxExporter(), new DocxOptions(tocPageNumbers: false))->s
 ```
 :::
 
-`DocxOptions` takes the same `theme`, `fonts`, `onWarning` and `strict` as `ExportOptions`. Its `rsvgConvert` draws SVG with `rsvg-convert` ([below](#svg-with-rsvg-convert)).
+`DocxOptions` takes the same `theme`, `fonts`, `onWarning` and `strict` as `ExportOptions`. Its `rsvgConvert` draws SVG with `rsvg-convert` ([below](#svg-in-word)).
 
 ### Fonts in Word
 
@@ -149,21 +149,33 @@ Word shows PNG, JPEG, GIF and BMP as they are. Everything else is drawn into a p
 | Opacity on an image, QR code or SVG | faded in the picture | `ext-gd` |
 | QR codes | sharp squares at 300 dpi | `ext-gd` |
 | Styled QR codes (shapes, eyes, colours, gradients) | drawn as in the PDF at 300 dpi | `ext-imagick` and `bacon/bacon-qr-code` |
-| SVG | drawn at 300 dpi; nothing outside the file is loaded | `rsvg-convert`, or `ext-imagick` that reads SVG |
+| SVG | drawn at 300 dpi; nothing outside the file is loaded | `rsvg-convert` (recommended) or `ext-imagick` that reads SVG ([below](#svg-in-word)) |
 
-Imagick is only needed for Word export; PDF and HTML don't use it.
+Imagick is only needed for Word export, for styled QR codes and for SVG when you don't use `rsvg-convert`. PDF and HTML don't use it.
 
-#### SVG with rsvg-convert
+#### SVG in Word
 
-How well Imagick draws SVG depends on how ImageMagick was built. Many builds use its own basic renderer, which paints gradients and patterns solid black and leaves out clip paths and dashed strokes. librsvg's `rsvg-convert` draws them properly, whatever ImageMagick build the server has. Install it (`apt install librsvg2-bin`, `apk add rsvg-convert`, `brew install librsvg`) and give Papercut its path:
+<a id="svg-with-rsvg-convert"></a>
+
+Word can't take an SVG as it is, so Papercut draws each one into a picture. Two programs can do that, and without either, SVGs are left out of the Word file and reported:
+
+- **librsvg's `rsvg-convert`** (recommended). It's a small command-line program, not a PHP extension, so you don't need Imagick at all. It draws SVG properly: gradients, patterns, clip paths, masks, filters and dashed strokes.
+- **Imagick**, when its ImageMagick build reads SVG. How well it draws them depends on how ImageMagick was built. Many builds use ImageMagick's own basic renderer, which paints gradients and patterns solid black and leaves out clip paths and dashed strokes.
+
+To use `rsvg-convert`, install it and give Papercut its path:
+
+```bash
+apt install librsvg2-bin    # Debian, Ubuntu
+apk add rsvg-convert        # Alpine
+brew install librsvg        # macOS
+which rsvg-convert          # the path to give Papercut
+```
 
 ::: code-tabs#style
 @tab Laravel
-```php
-// config/papercut.php, or PAPERCUT_RSVG_CONVERT in .env
-'docx' => [
-    'rsvg_convert' => '/usr/bin/rsvg-convert',
-],
+```ini
+# .env
+PAPERCUT_RSVG_CONVERT=/usr/bin/rsvg-convert
 ```
 @tab PHP
 ```php
@@ -173,4 +185,14 @@ $document->export(new DocxExporter(), new DocxOptions(rsvgConvert: '/usr/bin/rsv
 ```
 :::
 
-Papercut runs it through `proc_open()`, so that must be enabled. The path must be absolute, and the export throws when it isn't an executable file or `rsvg-convert --version` doesn't answer as rsvg-convert. Each SVG gets the same cleaned-up copy Imagick would, with nothing outside the file left in it, passed on standard input. If `rsvg-convert` fails on one, or takes longer than 30 seconds, Imagick draws that one instead, when it can. On Windows, PHP can't read the pipes as they fill, so a large picture can wait out the 30 seconds and fall back to Imagick.
+In Laravel, the config key is `docx.rsvg_convert`, which reads `PAPERCUT_RSVG_CONVERT` by default. Leave it unset or empty to use Imagick.
+
+A few things to know:
+
+- Papercut runs `rsvg-convert` through `proc_open()`, so that function must be enabled.
+- The path must be absolute. The export throws when it isn't an executable file, or when `rsvg-convert --version` doesn't answer as rsvg-convert, so a wrong setting shows up on the first export.
+- Each SVG is cleaned first, as it is for Imagick: images, links to files and outside `url()`s are taken out. The rest is passed on standard input, so nothing outside the file can be loaded.
+- If `rsvg-convert` fails on an SVG, or takes longer than 30 seconds, Imagick draws that one instead, when it can.
+- `rsvg-convert` draws some things the PDF doesn't draw yet ([what's drawn](./images-and-links.md#what-s-drawn)), such as clip paths, patterns and filters, so the Word picture can show more than the PDF.
+- Text in an SVG is set in the server's system fonts, not your document's fonts, with either program.
+- On Windows, PHP can't read the program's output as it comes, so a large picture can wait out the 30 seconds and fall back to Imagick.

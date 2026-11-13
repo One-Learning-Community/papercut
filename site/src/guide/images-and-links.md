@@ -84,6 +84,10 @@ Papercut draws paths (including arcs and curves), rectangles with rounded corner
 
 A few things aren't drawn yet: `<clipPath>`, `<mask>`, `<filter>`, `<pattern>`, `<image>`, `<marker>`, `<symbol>`, `<textPath>`, `<tspan>`, links and nested `<svg>` elements. When an SVG uses any of them, you'll get a warning that names them, and the rest of the drawing still appears.
 
+### In Word
+
+Word export draws each SVG into a picture with `rsvg-convert` or Imagick. See [SVG in Word](./word-export.md#svg-in-word).
+
 ### Text
 
 Text in an SVG is set in your document's fonts and embedded like the rest of the PDF, so it prints the same everywhere. If the SVG's `font-family` names a family you've [registered](./fonts.md), that family is used; otherwise the text uses the font family of the `<x-doc::svg>` element itself. Bold and italic pick the matching faces, and your fallback families cover any characters the font is missing.

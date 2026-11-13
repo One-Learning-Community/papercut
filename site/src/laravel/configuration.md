@@ -35,7 +35,7 @@ php artisan vendor:publish --tag=papercut-config
 | Key | Default | Description |
 |---|---|---|
 | `docx.toc_page_numbers` | `true` | Lays out the pages to fill in a [table of contents](/guide/word-export.md#table-of-contents)' page numbers, which costs about as much as a PDF export. `false` skips it: entries show without numbers until the reader updates the field in Word. |
-| `docx.rsvg_convert` | `env('PAPERCUT_RSVG_CONVERT')` | Path to `rsvg-convert`, which then draws SVG in Word export instead of Imagick. `null` or empty uses Imagick. See [SVG with rsvg-convert](/guide/word-export.md#svg-with-rsvg-convert). |
+| `docx.rsvg_convert` | `env('PAPERCUT_RSVG_CONVERT')` | Absolute path to `rsvg-convert`, which then draws SVG in Word export, so Imagick isn't needed for it. Set `PAPERCUT_RSVG_CONVERT=/usr/bin/rsvg-convert` in `.env`. `null` or empty uses Imagick. See [SVG in Word](/guide/word-export.md#svg-in-word). |
 
 ## HTML
 
