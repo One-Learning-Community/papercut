@@ -53,6 +53,10 @@ A [column flow](./layout.md#column-flow) exports as an element with CSS columns 
 
 A PDF carries its fonts inside the file, but a browser has to load them from somewhere. By default the HTML only names the fonts and the browser uses whatever it has. To embed your fonts, link to files you host, or load them from Google Fonts, see [Fonts in HTML](./web-fonts.md).
 
+## Equations
+
+[Equations](./equations.md) are written as MathML Core: `<math display="block">` for a block equation and `<math display="inline">` inside a line. The browser lays them out, so spacing can differ a little from the PDF. What font the browser uses depends on the [font mode](./web-fonts.md). With the default, `none`, the page names no math font and the browser uses its own. `embed` embeds STIX Two Math (or your math font) in the page, `link` links to it, and `sources` embeds it as a `data:` URI, since no outside source serves it. A block equation is placed with margins.
+
 ## Image URLs
 
 Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` for any image you'd still like embedded. SVGs are always embedded as `data:` URIs, so `imageUrl` doesn't apply to them.

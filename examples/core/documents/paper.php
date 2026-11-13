@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 // Builds the academic paper Document: a full-width title block and abstract, a two-column body that ends level, and a full-width
 // closing note. examples/core/paper.php saves it as PDF, examples/html/render.php as HTML and examples/docx/render.php as Word.
-use Papercut\{Column, ColumnFlow, Document, Page, PageNumber, Row, Spacer, Svg, Table, TableCell, TableRow, Text};
+use Papercut\{Column, ColumnFlow, Document, Equation, Page, PageNumber, Row, Span, Spacer, Svg, Table, TableCell, TableRow, Text};
+use Papercut\Math\Math;
 use Papercut\Value\Edges;
 
 use function Papercut\{mm, pt};
@@ -21,6 +22,20 @@ $abstract = 'We tracked 96 honey bee colonies through two winters to ask whether
     . 'Colonies kept 30 cm or more from their neighbours lost fewer bees to drift and robbing, and nearly all of them reached spring. '
     . 'Closer spacing cost colonies little in mild weather but a great deal after a cold snap. The effect held across both sites.';
 
+// A displayed formula and an inline one, built with the math builder.
+$logit = Equation::of(Math::row('ln', Math::fenced('(', ')', Math::frac('p', '1 - p')), '=', Math::sub('β', '0'), '+', Math::sub('β', '1'), 'd'))
+    ->center()->margin(Edges::of(pt(2), pt(0), pt(6), pt(0)));
+$logitIntro = Text::spans(
+    Span::text('We compared survival with a logistic model that included site and year, and the weight lost with a linear model. For a colony at spacing '),
+    Span::math('d'),
+    Span::text(', the model gives the log odds of survival as'),
+)->justify();
+$weightLoss = Text::spans(
+    Span::text('The weight lost over winter fell with spacing too: the fitted slope was '),
+    Span::math(Math::sub('β', '1'), '=', '−0.04'),
+    Span::text(' kg per cm, or about 0.4 kg for each further 10 cm. Colonies at wide spacing also began spring with more frames of bees. Figure 1 plots survival against spacing for both years together.'),
+)->justify();
+
 // Each section is a title and its paragraphs. The invented data in this paper is for illustration only.
 $sections = [
     ['1. Introduction', [
@@ -32,11 +47,13 @@ $sections = [
     ['2. Methods', [
         'We placed 96 colonies of similar size at two sites, 48 at each, in rows of twelve. Hives in a row stood 10, 20, 30 or 40 cm apart, and every spacing had one row at each site. Rows were assigned a spacing by lot, and the same colonies kept their positions for both winters.',
         'Each colony began autumn with a young, marked queen and at least eight frames of bees. We weighed the hives in October and again in March, counted frames of bees on a mild day in April, and recorded every colony that had died by then. Treatment against mites followed one schedule at both sites.',
-        'We compared survival with a logistic model that included site and year, and the weight lost with a linear model. Throughout, we report differences with their intervals and give p-values only where they help the reader.',
+        $logitIntro,
+        $logit,
+        'Throughout, we report differences with their intervals and give p-values only where they help the reader.',
     ]],
     ['3. Results', [
         'Survival rose with spacing, as Table 1 shows. Of the colonies kept 10 cm apart, 75 percent reached spring; at 40 cm, every one did. The gain came mostly from the second winter, which brought a week of hard frost in January.',
-        'The weight lost over winter fell with spacing too, by about 0.4 kg for each further 10 cm. Colonies at wide spacing also began spring with more frames of bees. Figure 1 plots survival against spacing for both years together.',
+        $weightLoss,
     ]],
     ['4. Discussion', [
         'Our results favour wide spacing, but not by a wide margin in mild years. In the first winter all four spacings did about equally well, and the differences appeared only after the cold snap. A beekeeper who loses one hive in ten may reasonably choose to save the ground.',
@@ -67,7 +84,7 @@ $body = [];
 foreach ($sections as $i => [$title, $paragraphs]) {
     $body[] = Text::h3($title)->margin(Edges::of($i === 0 ? pt(0) : pt(8), pt(0), pt(0), pt(0)));
     foreach ($paragraphs as $p) {
-        $body[] = Text::p($p)->justify();
+        $body[] = is_string($p) ? Text::p($p)->justify() : $p;
     }
     if ($title === '3. Results') {
         $body[] = Column::make(

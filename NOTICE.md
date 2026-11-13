@@ -22,7 +22,7 @@ generated PDFs that use it.
 
 ## STIX Two Math typeface
 
-Bundled in `packages/math/resources/fonts/` (Regular), and embedded (subset) in generated PDFs that use it.
+Bundled in `packages/math/resources/fonts/` (Regular), and embedded (subset) in generated PDFs, and in HTML when fonts are embedded, that use it.
 
 - License: SIL Open Font License 1.1
 - Full text: `packages/math/resources/fonts/OFL.txt`

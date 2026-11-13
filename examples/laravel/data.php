@@ -208,11 +208,12 @@ $paperSections = [
     ['2. Methods', [
         'We placed 96 colonies of similar size at two sites, 48 at each, in rows of twelve. Hives in a row stood 10, 20, 30 or 40 cm apart, and every spacing had one row at each site. Rows were assigned a spacing by lot, and the same colonies kept their positions for both winters.',
         'Each colony began autumn with a young, marked queen and at least eight frames of bees. We weighed the hives in October and again in March, counted frames of bees on a mild day in April, and recorded every colony that had died by then. Treatment against mites followed one schedule at both sites.',
-        'We compared survival with a logistic model that included site and year, and the weight lost with a linear model. Throughout, we report differences with their intervals and give p-values only where they help the reader.',
+        '@logit',
+        'Throughout, we report differences with their intervals and give p-values only where they help the reader.',
     ]],
     ['3. Results', [
         'Survival rose with spacing, as Table 1 shows. Of the colonies kept 10 cm apart, 75 percent reached spring; at 40 cm, every one did. The gain came mostly from the second winter, which brought a week of hard frost in January.',
-        'The weight lost over winter fell with spacing too, by about 0.4 kg for each further 10 cm. Colonies at wide spacing also began spring with more frames of bees. Figure 1 plots survival against spacing for both years together.',
+        '@weight-loss',
     ]],
     ['4. Discussion', [
         'Our results favour wide spacing, but not by a wide margin in mild years. In the first winter all four spacings did about equally well, and the differences appeared only after the cold snap. A beekeeper who loses one hive in ten may reasonably choose to save the ground.',
@@ -223,6 +224,9 @@ $paperSections = [
         'Moving hives from 10 to 30 cm apart improved winter survival in two winters at two sites. We recommend at least 30 cm where ground allows, and we encourage trials that separate the causes.',
     ]],
 ];
+// Nodes for the formulas the paper's view places with <x-doc::equation> and <x-doc::math>.
+$paperLogit = \Papercut\Math\Math::row('ln', \Papercut\Math\Math::fenced('(', ')', \Papercut\Math\Math::frac('p', '1 - p')), '=', \Papercut\Math\Math::sub('β', '0'), '+', \Papercut\Math\Math::sub('β', '1'), 'd');
+$paperSlope = \Papercut\Math\Math::row(\Papercut\Math\Math::sub('β', '1'), '=', '−0.04');
 $paperSurvival = [['10 cm', '24', '75%'], ['20 cm', '24', '88%'], ['30 cm', '24', '96%'], ['40 cm', '24', '100%']];
 
 return [
@@ -270,6 +274,8 @@ return [
         'authors' => $paperAuthors,
         'abstract' => $paperAbstract,
         'sections' => $paperSections,
+        'logit' => $paperLogit,
+        'slope' => $paperSlope,
         'survival' => $paperSurvival,
     ],
     'certificate' => [

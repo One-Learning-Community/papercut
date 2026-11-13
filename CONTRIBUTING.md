@@ -1,8 +1,9 @@
 # Contributing to Papercut
 
-Papercut is a monorepo with two Composer packages:
+Papercut is a monorepo with these Composer packages:
 
 - `packages/core` (`papercut/core`): the layout engine and plain-PHP API.
+- `packages/math` (`papercut/math`): the equation builder, layout and renderers. It depends on nothing else; core requires it.
 - `packages/laravel` (`papercut/laravel`): Blade components on top of core. It requires core through a path
   repository (`../core`, symlinked), so a change in core is visible in the Laravel package immediately.
 
@@ -93,34 +94,35 @@ The docs gallery's images come from the small documents in `site/gallery/sources
 ## Releasing
 
 Releases are tag-driven. Packagist reads one `composer.json` per repository, so each package is mirrored into its own
-read-only split repository: `One-Learning-Community/papercut-core`, `One-Learning-Community/papercut-laravel` and
-`One-Learning-Community/papercut-docx`.
+read-only split repository: `One-Learning-Community/papercut-math`, `One-Learning-Community/papercut-core`,
+`One-Learning-Community/papercut-laravel` and `One-Learning-Community/papercut-docx`.
 Never commit to the split repos directly; they are overwritten on every split.
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `core.yml`, `laravel.yml`, `docx.yml` | push to `main`, pull requests | tests, PHPStan, benchmark gate (core), OOXML schema check and LibreOffice renders (docx) |
+| `math.yml`, `core.yml`, `laravel.yml`, `docx.yml` | push to `main`, pull requests | tests, PHPStan, benchmark gate (core), OOXML schema check and LibreOffice renders (docx) |
 | `split.yml` | push to `main` | mirrors `packages/*` to the split repos (their `dev-main`) |
 | `release.yml` | tag `vX.Y.Z` | every suite, CHANGELOG check, split + tag every package, GitHub release |
 
 ### One-time setup
 
 1. Create a fine-grained personal access token (resource owner `One-Learning-Community`) with
-   **Contents: read and write** on `papercut-core`, `papercut-laravel` and `papercut-docx` only, and save it as the
+   **Contents: read and write** on `papercut-math`, `papercut-core`, `papercut-laravel` and `papercut-docx` only, and save it as the
    `SPLIT_TOKEN` Actions secret on `One-Learning-Community/papercut`. Without it `split.yml` skips with a notice
    and `release.yml` fails at the split step.
 2. Each split repo must exist with at least one commit (a README is enough) before the first split: the split
    action can't push to an empty repository.
-3. Once the split repos have content, submit them at https://packagist.org/packages/submit (`papercut-core`
-   first, then `papercut-laravel` and `papercut-docx`). Packagist's GitHub integration keeps them updated on new pushes and tags.
+3. Once the split repos have content, submit them at https://packagist.org/packages/submit (`papercut-math`
+   first, since core requires it, then `papercut-core`, `papercut-laravel` and `papercut-docx`). Packagist's GitHub integration keeps them updated on new pushes and tags.
 
 ### Each release
 
 1. Make sure `main` is green.
 2. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (`release.yml` refuses a missing or
    still-unreleased section), and add a fresh `## [Unreleased]` above it.
-3. If the minor version changed, bump core's `extra.branch-alias`, the `versions` pin in the Laravel and DOCX
-   path repos, and their `papercut/core` and `papercut/docx` requirements (`^X.Y`).
+3. If the minor version changed, bump the `extra.branch-alias` of `packages/math` and of core, the `versions` pin in
+   the path repos (core's for `papercut/math`, Laravel's and DOCX's for core), and the requirements: core's
+   `papercut/math` and the Laravel and DOCX packages' `papercut/core` and `papercut/docx` (`^X.Y`).
 4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Papercut X.Y.Z" && git push origin main vX.Y.Z`.
 5. Verify in a scratch project: `composer require papercut/core papercut/laravel papercut/docx`, then render one
    document with each.

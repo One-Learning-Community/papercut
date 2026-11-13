@@ -128,6 +128,16 @@ The bundled Cousine is written as Courier New without any setting. These pairs a
 
 A family the font set does not know is written as it is, with an unspecified family class.
 
+### Equations in Word
+
+[Equations](./equations.md) are written as live Word equations (OMML), always in Cambria Math, whatever math font the PDF uses. A block equation is a paragraph of its own with an explicit alignment. An inline equation sits among the runs of its line. They stay editable in Word's equation editor.
+
+How other editors treat them differs:
+
+- Word and Google Docs open and show them.
+- LibreOffice shows them but ignores the colour and size set on math runs.
+- Apple Pages can't open a Word file that has equations. It fails to load, so send such documents as PDF to Pages users.
+
 ### Pictures
 
 Word shows PNG, JPEG, GIF and BMP as they are. Everything else is drawn into a picture at the size the PDF gives it, so it looks the same in Word, LibreOffice and Google Docs:

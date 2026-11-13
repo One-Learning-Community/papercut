@@ -5,6 +5,15 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Equations. `Equation::of(...)` sets a displayed equation on a line of its own, and `Span::math(...)` sets one inside a line of text. They are built from strings and from the nodes of the new `papercut/math` package (`Math::frac()`, `sqrt()`, `root()`, `sup()`, `sub()`, `subSup()`, `fenced()`, `row()` and `text()`). Letters become math italic, function names such as `sin` and `log` stay upright, and spacing follows the MathML Core operator dictionary. The PDF draws letters and digits as text in a math font, with stretched delimiters and radicals built from glyph pieces. HTML export writes MathML Core. Word export writes live Word equations in Cambria Math. See [Equations](https://one-learning-community.github.io/papercut/guide/equations.html).
+- STIX Two Math is bundled as the math font. `FontSet::withMathFont($path)` and the Laravel `papercut.math_font` setting choose another TrueType math font; one with CFF outlines throws `UnsupportedFont`. The setting affects PDF and HTML only.
+- Blade tags `<x-doc::equation>` and `<x-doc::math>`. `<x-doc::math>` inside a text tag is an inline equation, and anywhere else it is a block one.
+- `papercut/math` joins the packages released together. Core requires it.
+
+Not yet supported: big operators with limits, accents, matrices, MathML input and CFF math fonts. Apple Pages can't open a Word file with equations; Word and Google Docs can, and LibreOffice ignores the colour and size of math runs.
+
 ## [0.10.1] - 2026-11-12
 
 ### Fixed

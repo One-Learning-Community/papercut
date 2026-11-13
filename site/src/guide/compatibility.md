@@ -12,7 +12,7 @@ A breaking change to the public API waits for the next major version (2.0). Mino
 
 ## The three packages move together
 
-`papercut/core`, `papercut/laravel` and `papercut/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: each package requires the matching minor version of the core (`^0.10`).
+`papercut/math`, `papercut/math`, `papercut/core`, `papercut/laravel` and `papercut/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: core requires the matching papercut/math, and the other packages require the matching core (`^0.10`).
 
 ## What the promise covers
 

@@ -29,7 +29,14 @@
             @foreach ($sections as $i => [$title, $paragraphs])
                 <x-doc::h3 margin="{{ $i === 0 ? '0' : '8pt 0 0 0' }}">{{ $title }}</x-doc::h3>
                 @foreach ($paragraphs as $paragraph)
-                    <x-doc::p align="justify">{{ $paragraph }}</x-doc::p>
+                    @if ($paragraph === '@logit')
+                        <x-doc::p align="justify">We compared survival with a logistic model that included site and year, and the weight lost with a linear model. For a colony at spacing <x-doc::math math="d" />, the model gives the log odds of survival as</x-doc::p>
+                        <x-doc::equation :math="$logit" text-align="center" margin="2pt 0 6pt 0" />
+                    @elseif ($paragraph === '@weight-loss')
+                        <x-doc::p align="justify">The weight lost over winter fell with spacing too: the fitted slope was <x-doc::math :math="$slope" /> kg per cm, or about 0.4 kg for each further 10 cm. Colonies at wide spacing also began spring with more frames of bees. Figure 1 plots survival against spacing for both years together.</x-doc::p>
+                    @else
+                        <x-doc::p align="justify">{{ $paragraph }}</x-doc::p>
+                    @endif
                 @endforeach
                 @if ($title === '3. Results')
                     <x-doc::column gap="4pt" margin="4pt 0 8pt 0" keep-together>

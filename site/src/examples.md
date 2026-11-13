@@ -15,7 +15,7 @@ The repository includes eight example documents, each written twice: once as a B
 | Integration guide | portrait, landscape and portrait pages in one document, highlighted code blocks, method badges, a QR code, a checklist | [guide.blade.php][gd-b] | [guide.php][gd-p] |
 | Certificate | a [page template](/guide/pages.md#filling-in-an-existing-pdf): a name, course and date placed on a blank PDF, and a signature image on the signature line. PDF only | [certificate.blade.php][ce-b] | [certificate.php][ce-p] |
 | Knowledge base article | HTML from a rich text editor, converted by [Markup](/guide/rich-text.md): headings, a nested list, a table, a highlighted code block, a quotation | [article.blade.php][ar-b] | [article.php][ar-p] |
-| Academic paper | a full-width title, authors and abstract, then a body in two columns with a table and a figure that ends level, and a full-width closing note | [paper.blade.php][pa-b] | [paper.php][pa-p] |
+| Academic paper | a full-width title, authors and abstract, then a body in two columns with a table, a figure and equations (one displayed, one inside a line) that ends level, and a full-width closing note | [paper.blade.php][pa-b] | [paper.php][pa-p] |
 
 [inv-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/invoice.blade.php
 [inv-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/invoice.php

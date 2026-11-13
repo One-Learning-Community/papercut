@@ -79,6 +79,7 @@ Preview routes render each document with sample data at a fixed URL while you wo
 - Page numbers with a page count (`Page {page} of {total}`), bookmarks built from headings, and a table of contents with page numbers, dot leaders and links.
 - Real fonts: every document embeds its fonts (Inter is bundled; register your own families; in Laravel, one command installs a Google Fonts family), with subsetting and fallback families. The 14 standard PDF fonts are not used.
 - Lists, links, images (PNG and JPEG; WebP, GIF, BMP and AVIF with `ext-gd`), SVG drawn as vectors, and QR codes, plain or styled.
+- Equations, in a block or inside a line of text, in the PDF, HTML (MathML) and Word (live Word equations), built with the `papercut/math` package.
 - Code blocks, with syntax highlighting through the optional `phiki/phiki` package.
 - Rich text from your data: `<x-doc::markup>` turns an HTML fragment or plain text (say, from a rich text editor) into Papercut nodes, and reports anything it couldn't convert.
 - PDF templates and placed content: draw a page of an existing PDF behind yours and place text at a point on it, for certificates and letterheads.
@@ -138,7 +139,7 @@ Render the Blade examples with `php examples/laravel/render.php` (after `cd pack
 
 ## Documentation
 
-The guide lives at [one-learning-community.github.io/papercut](https://one-learning-community.github.io/papercut/) (source in [`site/`](site)). Package READMEs: [`packages/core`](packages/core/README.md), [`packages/laravel`](packages/laravel/README.md) and [`packages/docx`](packages/docx/README.md).
+The guide lives at [one-learning-community.github.io/papercut](https://one-learning-community.github.io/papercut/) (source in [`site/`](site)). Package READMEs: [`packages/math`](packages/math/README.md), [`packages/core`](packages/core/README.md), [`packages/laravel`](packages/laravel/README.md) and [`packages/docx`](packages/docx/README.md).
 
 ## Status
 

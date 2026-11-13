@@ -128,6 +128,18 @@ $options = new PdfOptions(fonts: $fonts);
 
 A short right-to-left run, such as an Arabic or Hebrew name in an English document, is shaped and ordered correctly. Whole right-to-left paragraphs aren't supported yet: they lay out left to right.
 
+## The math font
+
+[Equations](./equations.md) are set in a math font, STIX Two Math, which Papercut bundles. To use another, call `withMathFont()` on the font set:
+
+```php
+$fonts = (new FontSet())->withMathFont('/fonts/MyMath-Regular.ttf');
+```
+
+In Laravel, set `math_font` in `config/papercut.php`. The font must be a TrueType math font; a CFF one is rejected with `UnsupportedFont`. It applies to PDF and HTML. Word equations always use Cambria Math.
+
+In plain PHP, `withMathFont()` only stores the path. A path that doesn't exist throws `FontNotFound`, and a font that isn't a TrueType math font throws `UnsupportedFont`, both when a document is exported. In Laravel, either failure is reported as an error about the `papercut.math_font` config key.
+
 ## Kerning and ligatures
 
 Kerning and ligatures are applied within each run of text. Complex shaping (HarfBuzz) and right-to-left paragraphs aren't supported yet.
