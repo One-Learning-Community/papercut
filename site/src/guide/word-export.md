@@ -155,7 +155,7 @@ Imagick is only needed for Word export; PDF and HTML don't use it.
 
 #### SVG with rsvg-convert
 
-How well Imagick draws SVG depends on how ImageMagick was built. Many builds use its own basic renderer, which paints gradients and patterns solid black and leaves out clip paths and dashed strokes. librsvg's `rsvg-convert` draws them properly and the same on every server. Install it (`apt install librsvg2-bin`, `apk add rsvg-convert`, `brew install librsvg`) and give Papercut its path:
+How well Imagick draws SVG depends on how ImageMagick was built. Many builds use its own basic renderer, which paints gradients and patterns solid black and leaves out clip paths and dashed strokes. librsvg's `rsvg-convert` draws them properly, whatever ImageMagick build the server has. Install it (`apt install librsvg2-bin`, `apk add rsvg-convert`, `brew install librsvg`) and give Papercut its path:
 
 ::: code-tabs#style
 @tab Laravel
@@ -173,4 +173,4 @@ $document->export(new DocxExporter(), new DocxOptions(rsvgConvert: '/usr/bin/rsv
 ```
 :::
 
-Papercut runs it through `proc_open()`, so that must be enabled. A path that isn't an executable file throws when you export. Each SVG gets the same cleaned-up copy Imagick would, with nothing outside the file left in it, passed on standard input. If `rsvg-convert` fails on one, or takes longer than 30 seconds, Imagick draws that one instead, when it can.
+Papercut runs it through `proc_open()`, so that must be enabled. The path must be absolute, and the export throws when it isn't an executable file or `rsvg-convert --version` doesn't answer as rsvg-convert. Each SVG gets the same cleaned-up copy Imagick would, with nothing outside the file left in it, passed on standard input. If `rsvg-convert` fails on one, or takes longer than 30 seconds, Imagick draws that one instead, when it can. On Windows, PHP can't read the pipes as they fill, so a large picture can wait out the 30 seconds and fall back to Imagick.

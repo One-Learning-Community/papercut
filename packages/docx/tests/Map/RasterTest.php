@@ -222,11 +222,13 @@ final class RasterTest extends TestCase
 
     public function test_a_large_svg_and_picture_do_not_stall_the_pipes(): void
     {
-        $rects = str_repeat('<rect x="1" y="1" width="2" height="2" fill="#00f"/>', 20000);
-        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">' . $rects . '</svg>');
-        $png = self::rsvgOnly()->svg($doc, 2000, 2000);
+        // Noise, so the PNG is far bigger than a pipe's buffer and rsvg-convert blocks writing it unless it is read as it comes.
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><filter id="n"><feTurbulence baseFrequency="0.9" numOctaves="3"/></filter>'
+            . '<rect width="100" height="100" filter="url(#n)"/>' . str_repeat('<!-- padding the input past a pipe buffer too -->', 4000) . '</svg>');
+        $png = self::rsvgOnly()->svg($doc, 1000, 1000);
         self::assertNotNull($png);
-        self::assertSame([2000, 2000], self::dims($png));
+        self::assertSame([1000, 1000], self::dims($png));
+        self::assertGreaterThan(1_000_000, strlen($png));
     }
 
     public function test_a_failing_rsvg_convert_gives_way_to_imagick(): void
@@ -259,7 +261,50 @@ EOF');
         $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>');
         $start = microtime(true);
         self::assertNull(self::rsvgOnly($this->script('exec sleep 10'), 0.3)->svg($doc, 4, 4));
+        // At least the timeout: the script really ran (a noexec temp dir would fail it at once).
+        self::assertGreaterThanOrEqual(0.29, microtime(true) - $start);
         self::assertLessThan(3.0, microtime(true) - $start);
+    }
+
+    public function test_a_process_that_closes_its_output_but_lives_on_is_stopped_at_the_timeout(): void
+    {
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>');
+        $start = microtime(true);
+        self::assertNull(self::rsvgOnly($this->script('cat > /dev/null; exec > /dev/null 2>&1; sleep 10'), 0.3)->svg($doc, 4, 4));
+        self::assertLessThan(3.0, microtime(true) - $start);
+    }
+
+    public function test_css_escapes_never_reach_the_renderer(): void
+    {
+        $capture = tempnam(sys_get_temp_dir(), 'svg');
+        self::assertNotFalse($capture);
+        $this->scripts[] = $capture;
+        $doc = SvgDocument::parse('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><style>rect { fill: \\75 rl(file:///etc/x) }</style>'
+            . '<rect width="4" height="4" style="fill:\\75 rl(file:///etc/x)"/><circle r="1" fill="#f00"/></svg>');
+        self::assertNull(self::rsvgOnly($this->script('cat > "' . $capture . '"; exit 1'))->svg($doc, 4, 4));
+        $sent = (string) file_get_contents($capture);
+        self::assertStringContainsString('<circle', $sent);
+        self::assertStringNotContainsString('\\', $sent);
+    }
+
+    public function test_detect_accepts_rsvg_convert(): void
+    {
+        $path = RsvgConvert::require();
+        self::assertSame($path, Raster::detect($path)->rsvgConvert);
+    }
+
+    public function test_a_relative_path_is_refused(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('absolute path');
+        Raster::detect('rsvg-convert');
+    }
+
+    public function test_a_program_that_is_not_rsvg_convert_is_refused(): void
+    {
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('does not run as rsvg-convert');
+        Raster::detect($this->script('echo hello'));
     }
 
     public function test_a_path_that_is_not_an_executable_is_refused(): void
