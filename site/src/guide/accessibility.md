@@ -95,6 +95,10 @@ A custom [decorator](./decorators.md) keeps the roles of what it contains. A [ch
 
 Overlay text, such as a name placed on a certificate template, is real content, so a screen reader reads it. Overlay content is read once, from the first page of each run of pages; its repeats on later pages are page furniture. If nothing in the document ends up in the structure (all headers, backgrounds, a template page and images without alt text), Papercut warns, and strict mode throws `InvalidStructure`: the file would pass a validator and still read as empty.
 
+## PDF/A
+
+A tagged PDF can also be an archival one. `PdfA::A2a` (or `A3a`) writes a tagged PDF/A file, and `tagged: true` with `PdfA::A2u` gives PDF/A and PDF/UA-1 together. See [Archival PDFs](./pdfa.md).
+
 ## Encryption
 
 An [encrypted](./passwords-and-signatures.md) tagged PDF still lets screen readers extract its text, whatever permissions you set. PDF/UA requires that, and Papercut doesn't let you turn it off.

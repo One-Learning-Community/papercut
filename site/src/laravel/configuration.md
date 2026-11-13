@@ -20,6 +20,7 @@ php artisan vendor:publish --tag=papercut-config
 | `font_word_names` | `[]` | The name Word uses for a family, as `'Family' => 'Word name'`. The family must be bundled or in `fonts`, and the match ignores case. Cousine is `Courier New` unless set here. See [Word font names](/guide/fonts.md#word-font-names). |
 | `bookmarks` | `true` | Builds the PDF's [bookmarks panel](/guide/pages.md#bookmarks) from headings. `false` leaves it empty. |
 | `tagged` | `false` | Writes [accessible (tagged) PDFs](/guide/accessibility.md). They need a document title and language. `->tagged()` or `->tagged(false)` on a document overrides it. |
+| `pdfa` | `null` | Writes [archival PDF/A files](/guide/pdfa.md) at a level: `null` (a regular PDF), `'1b'`, `'2b'`, `'2u'` (the usual choice), `'2a'`, `'3b'`, `'3u'` or `'3a'`. The "a" levels also tag the PDF. It can't be combined with `encrypt()`. `->pdfA()` on a document overrides it, and `->pdfA(null)` opts out. |
 | `image_path` | `null` | The base directory for relative `<x-doc::image src>` paths. `null` means `public_path()`. |
 | `cache_dir` | `null` | Where to cache parsed fonts. `null` uses `storage/framework/cache/papercut`, and `false` turns the disk cache off. |
 
