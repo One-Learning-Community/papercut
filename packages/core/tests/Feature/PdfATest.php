@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Feature;
 
-use Papercut\{Column, Document, Page, Text};
+use Papercut\{Column, Document, Image, Page, Svg, Text};
+use Papercut\Node;
 use Papercut\Exception\InvalidStructure;
 use Papercut\Export\{Encryption, PdfA, PdfOptions};
-use Papercut\Tests\Support\PdfInspector;
+use Papercut\Tests\Support\{PdfInspector, TestImages};
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -138,6 +139,57 @@ final class PdfATest extends TestCase
             self::assertStringContainsString('pdfA', $e->getMessage());
             self::assertStringContainsString('encryption', $e->getMessage());
         }
+    }
+
+    /** @return iterable<string, array{Node, string}> */
+    public static function transparentContent(): iterable
+    {
+        $svg = static fn (string $body): Svg => Svg::fromString('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">' . $body . '</svg>')->alt('x');
+        yield 'opacity on a box' => [Column::make(Text::make('x'))->opacity(0.5), 'opacity'];
+        yield 'a colour with alpha' => [Text::make('x')->color('#ff000080'), 'alpha'];
+        yield 'a background with alpha' => [Column::make(Text::make('x'))->background('#00ff0080'), 'alpha'];
+        yield 'an image with an alpha channel' => [Image::bytes(TestImages::png(alpha: true))->alt('x'), 'an image with an alpha channel'];
+        yield 'svg opacity' => [$svg('<rect width="5" height="5" opacity="0.5"/>'), 'SVG'];
+        yield 'svg fill-opacity' => [$svg('<rect width="5" height="5" fill-opacity="0.4"/>'), 'fill-opacity'];
+        yield 'svg stroke-opacity in style' => [$svg('<rect width="5" height="5" style="stroke:red;stroke-opacity:.3"/>'), 'stroke-opacity'];
+    }
+
+    #[DataProvider('transparentContent')]
+    public function test_part_1_refuses_transparency_naming_it_and_suggesting_a2b(Node $content, string $named): void
+    {
+        $doc = Document::make(Page::a4()->body(Column::make($content)))->title('T')->lang('en');
+        foreach ([false, true] as $tagged) {
+            try {
+                $this->pdf(PdfA::A1b, $doc, $tagged);
+                self::fail('expected an exception');
+            } catch (InvalidStructure $e) {
+                self::assertStringContainsString('PDF/A-1', $e->getMessage());
+                self::assertStringContainsString('transparency', $e->getMessage());
+                self::assertStringContainsString($named, $e->getMessage());
+                self::assertStringContainsString('PdfA::A2b', $e->getMessage());
+            }
+        }
+    }
+
+    #[DataProvider('transparentContent')]
+    public function test_parts_2_and_3_allow_the_same_documents(Node $content, string $named): void
+    {
+        $doc = Document::make(Page::a4()->body(Column::make($content)))->title('T')->lang('en');
+        foreach ([PdfA::A2b, PdfA::A2u, PdfA::A3b, PdfA::A3u] as $level) {
+            self::assertStringStartsWith('%PDF-', $this->pdf($level, $doc));
+        }
+    }
+
+    public function test_part_1_allows_opaque_content_and_harmless_opacity(): void
+    {
+        $svg = Svg::fromString('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="5" height="5" opacity="1" fill-opacity="1"/></svg>')->alt('x');
+        $doc = Document::make(Page::a4()->body(Column::make(
+            Text::make('x')->opacity(1.0),
+            Image::bytes(TestImages::png())->alt('x'),
+            Image::bytes(TestImages::jpeg())->alt('x'),
+            $svg,
+        )->background('#00ff00ff')))->title('T')->lang('en');
+        self::assertStringStartsWith('%PDF-1.4', $this->pdf(PdfA::A1b, $doc));
     }
 
     public function test_non_pdfa_output_is_unchanged_by_the_option_default(): void

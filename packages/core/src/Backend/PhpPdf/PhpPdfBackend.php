@@ -19,7 +19,7 @@ use Papercut\Backend\ImageHandle;
 use Papercut\Backend\ImageFormat;
 use Papercut\Backend\{PdfPageHandle, PdfPageLoader, TaggingCapability};
 use Papercut\Exception\FontNotFound;
-use Papercut\Exception\ImageUnreadable;
+use Papercut\Exception\{ImageUnreadable, InvalidStructure};
 use Papercut\Exception\PdfUnreadable;
 use Papercut\Export\{Encryption, PdfA};
 use Papercut\Paint\{Anchor, Bookmark, Clip, DocumentMeta, DrawImage, DrawPdfPage, DrawSvg, Line, Link, Op, Opacity, PageDisplayList, Rect, Tag, Tagged, TextRun};
@@ -36,6 +36,8 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
     /** The document being rendered, for outline entries. */
     private ?PdfDocument $doc = null;
     private int $outlineLevel = 0;
+    /** The PDF/A part being written, or null when the output is not PDF/A. */
+    private ?int $pdfAPart = null;
     /** @var array<string, bool> anchors in the document being rendered; true once registered */
     private array $destinations = [];
     /** @var array<string, PdfFormXObject> pages of other PDFs imported into the document being rendered, by handle id */
@@ -153,6 +155,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         $doc = PdfDocument::new();
         $this->doc = $doc;
         $this->outlineLevel = 0;
+        $this->pdfAPart = $pdfA?->part();
         $this->forms = [];
         $this->destinations = [];
         foreach ($pages as $page) {
@@ -218,6 +221,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             return $doc->toBytes();
         } finally {
             $this->doc = null;
+            $this->pdfAPart = null;
             $this->root = null;
             $this->forms = [];
             $this->destinations = [];
@@ -527,6 +531,9 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
      */
     private function drawSvg(PdfPage $p, float $h, DrawSvg $op): void
     {
+        if ($this->pdfAPart === 1 && ($found = self::svgOpacity($op->svg->xml)) !== null) {
+            $this->refuseTransparency('an SVG with ' . $found);
+        }
         SvgRenderer::render(
             $op->svg->xml,
             $p,
@@ -575,6 +582,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         }
         // PDF /ca replaces rather than multiplies, so compose nested alphas ourselves.
         $effective = $inherited * $op->alpha;
+        $this->refuseTransparency(sprintf('opacity %s', round($op->alpha, 4)));
         $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, fn () => $draw($op->ops, $effective)));
     }
 
@@ -585,7 +593,30 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             $draw();
             return;
         }
+        $this->refuseTransparency(sprintf('a colour with alpha %s', round($c->alpha, 4)));
         $this->wrapped($p, fn () => $p->withOpacity($effective, $effective, $draw));
+    }
+
+    /** PDF/A-1 has no transparency: any ExtGState alpha or soft mask fails it. */
+    private function refuseTransparency(string $what): void
+    {
+        if ($this->pdfAPart === 1) {
+            throw new InvalidStructure(sprintf('PDF/A-1 does not allow transparency, and this document uses %s. Use PdfA::A2b (or another part 2 or 3 level), or remove the transparency.', $what));
+        }
+    }
+
+    /** The first opacity below 1 an SVG sets as an attribute or in CSS, like "opacity 0.5", or null when it has none. */
+    private static function svgOpacity(string $xml): ?string
+    {
+        if (preg_match_all('/(?<![\w-])((?:fill-|stroke-)?opacity)\s*[=:]\s*["\']?\s*([-+]?[0-9.]+(?:[eE][-+]?\d+)?)/', $xml, $m, PREG_SET_ORDER) < 1) {
+            return null;
+        }
+        foreach ($m as [, $name, $value]) {
+            if ((float) $value < 1.0) {
+                return $name . ' ' . $value;
+            }
+        }
+        return null;
     }
 
     private function wrapped(PdfPage $p, \Closure $wrapper): void
@@ -650,6 +681,10 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         if (!$op->image instanceof PhpPdfImage) {
             throw new \LogicException('PhpPdfBackend can only draw images it loaded; got ' . $op->image::class);
         }
-        return $op->image->pdfImage();
+        $image = $op->image->pdfImage();
+        if ($image->alphaData !== null && $image->alphaData !== '') {
+            $this->refuseTransparency('an image with an alpha channel');
+        }
+        return $image;
     }
 }
