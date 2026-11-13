@@ -43,7 +43,7 @@ A level is a part (1, 2 or 3) and a conformance letter (b, u or a).
 
 | Level | Pick it when |
 |---|---|
-| `PdfA::A2u` | The default choice. PDF/A-2 allows transparency, compression and everything Papercut draws. The "u" means all text maps to Unicode, so it can be searched and copied. |
+| `PdfA::A2u` | The default choice. PDF/A-2 allows transparency and compression, so it takes nearly everything Papercut draws (CMYK JPEGs are the exception at every level). The "u" means all text maps to Unicode, so it can be searched and copied. |
 | `PdfA::A2a` | The archive wants accessible files. It writes a [tagged PDF](./accessibility.md) too. |
 | `PdfA::A2b` | The archive asks for "basic" conformance. "b" only promises that the page looks the same; Papercut's "u" files meet it too, so 2u is rarely a worse choice. |
 | `PdfA::A1b` | Only when an archive demands PDF/A-1. It is the oldest part and refuses transparency (below). |
@@ -57,6 +57,8 @@ Levels "b" and "u" don't need a language unless `tagged` is on. If the document 
 
 - **No encryption.** PDF/A forbids it. Combining `pdfA` with `encryption` throws `InvalidArgumentException` before anything is rendered.
 - **No transparency in PDF/A-1.** With `PdfA::A1b`, Papercut throws `InvalidStructure` for an element that is partly transparent, naming it where it can: an opacity below 1, a colour with an alpha value, an image with an alpha channel, and SVG `opacity`, `fill-opacity` or `stroke-opacity`. Remove the transparency or use `PdfA::A2b` or later. A PNG saved with an alpha channel counts even when every pixel is opaque, because the channel is kept; save it again without alpha. Parts 2 and 3 have no such limit.
+- **No CMYK JPEGs, at any level.** Papercut's output intent is sRGB, and a file can't mix that with a CMYK image. Papercut throws `InvalidStructure` for a CMYK JPEG; convert it to RGB first.
+- **No 16-bit images in PDF/A-1.** With `PdfA::A1b`, a PNG with 16 bits per channel throws `InvalidStructure`. Save it with 8 bits per channel or use `PdfA::A2b`. Parts 2 and 3 allow it.
 - **Imported PDF pages must comply themselves.** A [page template](./pages.md#filling-in-an-existing-pdf) or `PdfPage` is copied into the file as it is. Papercut doesn't inspect it, so a template with unembedded fonts or transparency (in part 1) makes the result fail validation.
 - **Signing keeps conformance, with two catches.** php-pdf's signer appends an incremental update to the rendered file, so [signing](./passwords-and-signatures.md#digital-signatures) it leaves a PDF/A file PDF/A. A visible signature stamp needs an embedded font under PDF/A, and php-pdf throws a `LogicException` unless you set `SignatureAppearance::$font`. Anything that rewrites the file afterwards, such as filling form fields without `incremental: true`, breaks both conformance and the signature.
 - **Merging breaks conformance.** Combining PDFs, as in [Merging and stamping](./passwords-and-signatures.md#merging-and-stamping), writes a new file whose metadata and structure the merger decides. Validate the result. To include another PDF's pages in a PDF/A file, use a [page template](./pages.md#filling-in-an-existing-pdf) or `PdfPage`; those pages must comply themselves.

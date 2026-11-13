@@ -171,8 +171,16 @@ final class PdfATest extends TestCase
         }
     }
 
-    #[DataProvider('transparentContent')]
-    public function test_parts_2_and_3_allow_the_same_documents(Node $content, string $named): void
+    /** @return iterable<string, array{Node}> */
+    public static function transparentNodes(): iterable
+    {
+        foreach (self::transparentContent() as $name => [$node]) {
+            yield $name => [$node];
+        }
+    }
+
+    #[DataProvider('transparentNodes')]
+    public function test_parts_2_and_3_allow_the_same_documents(Node $content): void
     {
         $doc = Document::make(Page::a4()->body(Column::make($content)))->title('T')->lang('en');
         foreach ([PdfA::A2b, PdfA::A2u, PdfA::A3b, PdfA::A3u] as $level) {
@@ -190,6 +198,58 @@ final class PdfATest extends TestCase
             $svg,
         )->background('#00ff00ff')))->title('T')->lang('en');
         self::assertStringStartsWith('%PDF-1.4', $this->pdf(PdfA::A1b, $doc));
+    }
+
+    private static function cmykJpeg(): string
+    {
+        $im = new \Imagick();
+        $im->newImage(16, 16, new \ImagickPixel('red'));
+        $im->transformImageColorspace(\Imagick::COLORSPACE_CMYK);
+        $im->setImageFormat('jpeg');
+        return $im->getImageBlob();
+    }
+
+    /** A solid 16-bit-per-channel RGB PNG, built by hand. */
+    private static function png16(): string
+    {
+        $chunk = static fn (string $type, string $data): string => pack('N', strlen($data)) . $type . $data . pack('N', crc32($type . $data));
+        $row = "\0" . str_repeat("\xff\xff\x00\x00\x00\x00", 4);
+        return "\x89PNG\r\n\x1a\n" . $chunk('IHDR', pack('NNCCCCC', 4, 4, 16, 2, 0, 0, 0))
+            . $chunk('IDAT', (string) gzcompress(str_repeat($row, 4))) . $chunk('IEND', '');
+    }
+
+    private function docWith(Node $image): Document
+    {
+        return Document::make(Page::a4()->body(Column::make($image)))->title('T')->lang('en');
+    }
+
+    public function test_cmyk_jpegs_are_refused_at_every_pdfa_level_but_not_otherwise(): void
+    {
+        $doc = $this->docWith(Image::bytes(self::cmykJpeg())->alt('x'));
+        foreach ([PdfA::A1b, PdfA::A2u, PdfA::A3b] as $level) {
+            try {
+                $this->pdf($level, $doc);
+                self::fail('expected an exception for ' . $level->name);
+            } catch (InvalidStructure $e) {
+                self::assertStringContainsString('CMYK', $e->getMessage());
+                self::assertStringContainsString('Convert it to RGB', $e->getMessage());
+            }
+        }
+        self::assertStringContainsString('/DeviceCMYK', $doc->toPdf(new PdfOptions())->bytes());
+    }
+
+    public function test_sixteen_bit_images_are_refused_in_part_1_only(): void
+    {
+        $doc = $this->docWith(Image::bytes(self::png16())->alt('x'));
+        try {
+            $this->pdf(PdfA::A1b, $doc);
+            self::fail('expected an exception');
+        } catch (InvalidStructure $e) {
+            self::assertStringContainsString('16-bit', $e->getMessage());
+            self::assertStringContainsString('PdfA::A2b', $e->getMessage());
+        }
+        self::assertStringStartsWith('%PDF-', $this->pdf(PdfA::A2b, $doc));
+        self::assertStringStartsWith('%PDF-', $doc->toPdf(new PdfOptions())->bytes());
     }
 
     public function test_non_pdfa_output_is_unchanged_by_the_option_default(): void

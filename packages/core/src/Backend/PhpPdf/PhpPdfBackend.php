@@ -605,7 +605,10 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         }
     }
 
-    /** The first opacity below 1 an SVG sets as an attribute or in CSS, like "opacity 0.5", or null when it has none. */
+    /**
+     * The first opacity below 1 an SVG sets as an attribute or in CSS, like "opacity 0.5", or null when it has none.
+     * A text-level check that errs toward refusing: it can match text content, unused CSS and <g opacity>, which php-pdf doesn't apply.
+     */
     private static function svgOpacity(string $xml): ?string
     {
         if (preg_match_all('/(?<![\w-])((?:fill-|stroke-)?opacity)\s*[=:]\s*["\']?\s*([-+]?[0-9.]+(?:[eE][-+]?\d+)?)/', $xml, $m, PREG_SET_ORDER) < 1) {
@@ -684,6 +687,12 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
         $image = $op->image->pdfImage();
         if ($image->alphaData !== null && $image->alphaData !== '') {
             $this->refuseTransparency('an image with an alpha channel');
+        }
+        if ($this->pdfAPart !== null && $image->colorSpace === '/DeviceCMYK') {
+            throw new InvalidStructure('PDF/A does not allow CMYK images with an sRGB output intent, and this document uses a CMYK JPEG. Convert it to RGB.');
+        }
+        if ($this->pdfAPart === 1 && $image->bitsPerComponent === 16) {
+            throw new InvalidStructure('PDF/A-1 does not allow 16-bit images, and this document uses a 16-bit image; save it with 8 bits per channel or use PdfA::A2b.');
         }
         return $image;
     }
