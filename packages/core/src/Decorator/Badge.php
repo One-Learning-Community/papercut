@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Decorator;
 
-use InvalidArgumentException;
 use Papercut\{Component, Node, Text, View};
-use Papercut\Concerns\{HasStyle, HasVariants};
+use Papercut\Concerns\{HasStyle, HasVariants, NameRules};
 
 /**
  * A small rounded label in a tone; block-level, sized to its text.
@@ -15,6 +14,9 @@ final class Badge implements Decorator
 {
     use HasStyle;
     use HasVariants;
+
+    /** @internal */
+    public const array TONES = ['neutral', 'note', 'tip', 'warning', 'danger'];
 
     private Node|Component $content;
     private string $tone = 'neutral';
@@ -33,16 +35,7 @@ final class Badge implements Decorator
     /** Tones are free strings; `badge.<tone>` must exist in the theme. */
     public function tone(string $tone): self
     {
-        $tone = trim($tone);
-        if ($tone === '') {
-            throw new InvalidArgumentException('Badge tone must not be empty.');
-        }
-        if (preg_match('/\s/', $tone) === 1) {
-            throw new InvalidArgumentException("Badge tone must be a single word, got '$tone'.");
-        }
-        if (str_contains($tone, '?')) {
-            throw new InvalidArgumentException("Badge tone must not contain '?', got '$tone'.");
-        }
+        $tone = NameRules::tone($tone);
         $clone = clone $this;
         $clone->tone = $tone;
         return $clone;
@@ -56,7 +49,7 @@ final class Badge implements Decorator
     /** @return list<string> */
     protected function toneNames(): array
     {
-        return ['neutral', 'note', 'tip', 'warning', 'danger'];
+        return self::TONES;
     }
 
     /** @return list<string> */

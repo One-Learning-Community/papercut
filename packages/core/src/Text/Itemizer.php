@@ -62,6 +62,18 @@ final class Itemizer
                 }
                 continue;
             }
+            if ($style->isInlineBox()) {
+                $label = trim(preg_replace('/[ \t\n\r\f]+/', ' ', $text) ?? $text);
+                if ($label !== '') {
+                    if ($pending !== null) {
+                        $items[] = $pending;
+                        $pending = null;
+                    }
+                    $items[] = $this->box($label, $style, $font, $span->href);
+                    $atStart = false;
+                }
+                continue;
+            }
             $parts = preg_split('/([ \t\n\r\f]+)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
             foreach ($parts === false ? [] : $parts as $part) {
                 if (preg_match('/^[ \t\n\r\f]+$/', $part) === 1) {
@@ -89,6 +101,23 @@ final class Itemizer
             }
         }
         return $items;
+    }
+
+    /** An inline box's label as one unbreakable item as wide as its text plus its padding and border. */
+    private function box(string $label, ComputedStyle $style, CachedFont $primary, ?string $href): InlineItem
+    {
+        $font = $primary->covers($label) ? $primary : $this->fallback($label, $style, $primary);
+        return new InlineItem(
+            'word',
+            $label,
+            $font,
+            $style->fontSize,
+            $font->advance($label, $style->fontSize, $style->letterSpacing) + $style->padding->horizontal() + $style->borderWidth->horizontal(),
+            $style,
+            $href,
+            false,
+            true,
+        );
     }
 
     /**

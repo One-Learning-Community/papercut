@@ -190,6 +190,15 @@ final readonly class ComputedStyle
         return new self(...[...get_object_vars($this), 'margin' => $margin]);
     }
 
+    /**
+     * Whether a span in this style is an inline box (a badge): it has horizontal padding or a border, so it is laid out
+     * as one unbreakable item that is wider than its text and painted as a pill behind it.
+     */
+    public function isInlineBox(): bool
+    {
+        return $this->padding->horizontal() > 0.0 || $this->borderWidth->horizontal() > 0.0 || $this->borderWidth->vertical() > 0.0;
+    }
+
     public function lineHeightPoints(): float
     {
         return $this->lineHeight * $this->fontSize;
