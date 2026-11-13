@@ -7,6 +7,7 @@ namespace Papercut\Laravel\Rendering;
 use Papercut\Laravel\Tag;
 use Papercut\Laravel\Exception\InvalidStructure;
 use Papercut\Laravel\Components\HeaderRows;
+use Papercut\Decorator\Badge;
 use Papercut\Decorator\ChoiceOption;
 use Papercut\Decorator\KeyValuePair;
 use Papercut\ListItem;
@@ -93,6 +94,13 @@ final class Segments
                 if ($seg !== '') {
                     $out = $out->append(Text::markup($seg));
                 }
+            } elseif ($seg instanceof Badge) {
+                // Inside a text tag a badge is an inline badge, not the block one.
+                $span = $seg->inlineSpan();
+                if ($span === null) {
+                    throw new InvalidStructure(Tag::of('badge') . ' inside ' . Tag::of($tag) . ' can only contain plain text, with no inline tags or style attributes');
+                }
+                $out = $out->append(Text::spans($span));
             } elseif ($seg instanceof Text || $seg instanceof View) {
                 $out = $out->append(Markup::flatten($seg));
             } else {

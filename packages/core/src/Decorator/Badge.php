@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Papercut\Decorator;
 
-use Papercut\{Component, Node, Text, View};
+use Papercut\{Component, Node, Span, Text, View};
 use Papercut\Concerns\{HasStyle, HasVariants, NameRules};
+use Papercut\Style\Style;
 
 /**
  * A small rounded label in a tone; block-level, sized to its text.
@@ -56,6 +57,28 @@ final class Badge implements Decorator
     public function partNames(): array
     {
         return ['badge'];
+    }
+
+    /**
+     * This badge as an inline span (what `<x-doc::badge>` becomes inside a text tag), or null when its content is not
+     * one plain run of text or it carries a style of its own that a span cannot hold.
+     *
+     * @internal
+     */
+    public function inlineSpan(): ?Span
+    {
+        $content = $this->content;
+        if (!$content instanceof Text || $this->styleName() !== null || $this->style() != Style::none()) {
+            return null;
+        }
+        $text = '';
+        foreach ($content->spanList() as $span) {
+            if ($span->lineBreak || $span->href !== null || $span->styleName !== null || $span->base !== null || $span->style != Style::none()) {
+                return null;
+            }
+            $text .= $span->text;
+        }
+        return Span::badge($text, $this->tone, $this->variants === [] ? null : implode(' ', $this->variants));
     }
 
     public function render(): View
