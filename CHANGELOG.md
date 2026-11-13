@@ -8,6 +8,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - Word export keeps a table cell's `min-height` and `height`. The cell's row gets an "at least" height of the tallest one, so empty rows no longer collapse to a single line. Word clips whatever overflows an exact row height, so a fixed height also becomes a floor and is reported as approximated. A cell spanning several rows shares its height evenly among them, also reported as approximated.
+- Word export writes rasterised SVGs as RGBA PNGs. ImageMagick 7.1.2 wrote an SVG that draws nothing as a 1-bit grey PNG whose transparency some readers ignore, so it could show as a black box.
 
 ## [0.11.0] - 2026-11-13
 
