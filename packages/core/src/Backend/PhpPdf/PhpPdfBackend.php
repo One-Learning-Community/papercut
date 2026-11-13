@@ -180,7 +180,7 @@ final class PhpPdfBackend implements Backend, PdfPageLoader, TaggingCapability
             $doc->enablePdfA(new PdfAConfig(
                 iccProfilePath: dirname(__DIR__, 3) . '/resources/icc/sRGB2014.icc',
                 iccProfileName: 'sRGB2014',
-                lang: $meta->lang ?? 'en',
+                lang: $meta->lang ?? '',
                 title: $meta->title ?? '',
                 author: $meta->author ?? '',
                 part: $pdfA->part(),

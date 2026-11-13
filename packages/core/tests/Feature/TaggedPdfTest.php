@@ -418,7 +418,7 @@ final class TaggedPdfTest extends TestCase
 
             public function render(DocumentMeta $meta, array $pages, bool $tagged = false, ?\Papercut\Export\PdfA $pdfA = null): string
             {
-                return $this->inner->render($meta, $pages, $tagged);
+                return $this->inner->render($meta, $pages, $tagged, $pdfA);
             }
 
             public function headings(): array
@@ -990,7 +990,7 @@ final class TaggedPdfTest extends TestCase
 
             public function render(DocumentMeta $meta, array $pages, bool $tagged = false, ?\Papercut\Export\PdfA $pdfA = null): string
             {
-                return $this->inner->render($meta, $pages, $tagged);
+                return $this->inner->render($meta, $pages, $tagged, $pdfA);
             }
         };
         $warnings = [];
@@ -1000,6 +1000,46 @@ final class TaggedPdfTest extends TestCase
         self::assertCount(1, $warnings);
         self::assertStringContainsString('cannot write a structure tree', $warnings[0]);
         self::assertSame([], StructTree::of($pdf));
+    }
+
+    public function test_a_pdfa_a_level_with_a_backend_that_cannot_tag_throws_without_a_warning(): void
+    {
+        $backend = new class (new PhpPdfBackend()) implements Backend {
+            public function __construct(private readonly PhpPdfBackend $inner)
+            {
+            }
+
+            public function loadFont(string $path): FontHandle
+            {
+                return $this->inner->loadFont($path);
+            }
+
+            public function loadImageFile(string $path): ImageHandle
+            {
+                return $this->inner->loadImageFile($path);
+            }
+
+            public function loadImageBytes(string $bytes): ImageHandle
+            {
+                return $this->inner->loadImageBytes($bytes);
+            }
+
+            public function render(DocumentMeta $meta, array $pages, bool $tagged = false, ?\Papercut\Export\PdfA $pdfA = null): string
+            {
+                return $this->inner->render($meta, $pages, $tagged, $pdfA);
+            }
+        };
+        $warnings = [];
+        try {
+            $this->document()->toPdf(new PdfOptions(onWarning: function (string $m) use (&$warnings): void {
+                $warnings[] = $m;
+            }, backend: $backend, pdfA: \Papercut\Export\PdfA::A2a));
+            self::fail('expected InvalidStructure');
+        } catch (InvalidStructure $e) {
+            self::assertStringContainsString('"2a"', $e->getMessage());
+            self::assertStringContainsString('cannot write a structure tree', $e->getMessage());
+        }
+        self::assertSame([], $warnings);
     }
 
     public function test_headings_are_checked_in_structure_order_when_a_section_continues_over_pages(): void

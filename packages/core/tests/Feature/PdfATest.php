@@ -115,6 +115,13 @@ final class PdfATest extends TestCase
         $this->pdf(PdfA::A3a, Document::make(Page::a4()->body(Text::make('x')))->lang('en'));
     }
 
+    public function test_a_document_without_a_language_is_not_declared_english(): void
+    {
+        $qdf = PdfInspector::qdf($this->pdf(PdfA::A2u, $this->doc(lang: false)));
+        self::assertStringNotContainsString('/Lang (en)', $qdf);
+        self::assertStringContainsString('/Lang (en-US)', PdfInspector::qdf($this->pdf(PdfA::A2u)));
+    }
+
     public function test_b_level_does_not_need_title_or_language(): void
     {
         $pdf = $this->pdf(PdfA::A2b, Document::make(Page::a4()->body(Text::make('x'))));

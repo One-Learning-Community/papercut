@@ -29,10 +29,7 @@ final class PdfExporter implements Exporter
             throw new \InvalidArgumentException('PDF/A cannot be combined with encryption: set either PdfOptions pdfA or encryption, not both.');
         }
         $wantsTags = $options->tagged() || ($pdfA?->requiresTagging() ?? false);
-        $tagged = $wantsTags && self::requireTaggable($doc, $options, $backend);
-        if ($wantsTags && !$tagged && $pdfA?->requiresTagging()) {
-            throw new InvalidStructure(sprintf('PDF/A level "%s" needs a tagged PDF, which this backend cannot write.', $pdfA->value));
-        }
+        $tagged = $wantsTags && self::requireTaggable($doc, $options, $backend, $pdfA?->requiresTagging() === true ? $pdfA : null);
         $fonts = $options->fonts();
         $themes = PageThemes::for($options->theme(), $doc);
         NoteReporter::report($doc, $themes, new Fidelity('pdf', $options));
@@ -70,10 +67,11 @@ final class PdfExporter implements Exporter
      * Whether a tagged PDF can be written: the document needs a title and a language, and the backend what
      * tagging uses. Without that, warns and writes an untagged PDF.
      *
-     * @throws InvalidStructure for a missing title or language
+     * @param PdfA|null $needs a PDF/A level that cannot do without tags: the cases that would warn and go untagged throw instead
+     * @throws InvalidStructure for a missing title or language, or when $needs is set and the backend cannot tag
      * @throws UnsupportedFeature in strict mode when the backend cannot tag
      */
-    private static function requireTaggable(Document $doc, PdfOptions $options, Backend $backend): bool
+    private static function requireTaggable(Document $doc, PdfOptions $options, Backend $backend, ?PdfA $needs = null): bool
     {
         $meta = $doc->meta();
         if ($meta->title === null || trim($meta->title) === '') {
@@ -83,12 +81,18 @@ final class PdfExporter implements Exporter
             throw new InvalidStructure('A tagged PDF needs a document language: set one with Document::lang(), for example lang(\'en-US\').');
         }
         if (!$backend instanceof TaggingCapability) {
+            if ($needs !== null) {
+                throw new InvalidStructure(sprintf('PDF/A level "%s" needs a tagged PDF, but this backend cannot write a structure tree.', $needs->value));
+            }
             (new Fidelity('pdf', $options))->dropped('tagged output (this backend cannot write a structure tree), writing an untagged PDF', 'document');
             return false;
         }
         $missing = $backend->taggingMissing();
         if ($missing === []) {
             return true;
+        }
+        if ($needs !== null) {
+            throw new InvalidStructure(sprintf('PDF/A level "%s" needs a tagged PDF, but the installed php-pdf lacks %s; update php-pdf.', $needs->value, implode(', ', $missing)));
         }
         (new Fidelity('pdf', $options))->dropped(
             sprintf('tagged output (the installed php-pdf lacks %s; update php-pdf), writing an untagged PDF', implode(', ', $missing)),
