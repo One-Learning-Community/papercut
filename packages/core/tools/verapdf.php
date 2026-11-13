@@ -2,17 +2,19 @@
 
 declare(strict_types=1);
 
-// Validates every PDF in a directory against PDF/UA-1 with veraPDF, and fails on any that is not compliant,
-// printing the failed rules.
-// Usage: php packages/core/tools/verapdf-ua1.php <pdf-dir> [report.json]
+// Validates every PDF in a directory against one veraPDF flavour (ua1, 1b, 2b, 2u, 2a, 3b, 3u, 3a, ...),
+// and fails on any that is not compliant, printing the failed rules. One flavour per run; run it twice
+// to check two (e.g. 2a and ua1).
+// Usage: php packages/core/tools/verapdf.php <flavour> <pdf-dir> [report.json]
 // Runs veraPDF from the pinned verapdf/cli Docker image. To use a local install instead, set
-// VERAPDF to its command, e.g. VERAPDF=/opt/verapdf/verapdf php packages/core/tools/verapdf-ua1.php out
+// VERAPDF to its command, e.g. VERAPDF=/opt/verapdf/verapdf php packages/core/tools/verapdf.php ua1 out
 
 const VERAPDF_IMAGE = 'verapdf/cli:v1.30.3';
 
-$dir = $argv[1] ?? null;
-if ($dir === null || !is_dir($dir)) {
-    fwrite(STDERR, "Usage: php verapdf-ua1.php <pdf-dir> [report.json]\n");
+$flavour = $argv[1] ?? '';
+$dir = $argv[2] ?? null;
+if (preg_match('/^[a-z0-9]+$/', $flavour) !== 1 || $dir === null || !is_dir($dir)) {
+    fwrite(STDERR, "Usage: php verapdf.php <flavour> <pdf-dir> [report.json]\n");
     exit(2);
 }
 $dir = realpath($dir);
@@ -25,15 +27,15 @@ sort($pdfs);
 
 $local = getenv('VERAPDF');
 if ($local !== false && $local !== '') {
-    $command = escapeshellcmd($local) . ' --flavour ua1 --format json ' . implode(' ', array_map('escapeshellarg', $pdfs));
+    $command = escapeshellcmd($local) . ' --flavour ' . $flavour . ' --format json ' . implode(' ', array_map('escapeshellarg', $pdfs));
 } else {
     $command = 'docker run --rm --platform linux/amd64 -v ' . escapeshellarg($dir) . ':/data:ro ' . VERAPDF_IMAGE
-        . ' --flavour ua1 --format json ' . implode(' ', array_map(static fn (string $p): string => escapeshellarg('/data/' . basename($p)), $pdfs));
+        . ' --flavour ' . $flavour . ' --format json ' . implode(' ', array_map(static fn (string $p): string => escapeshellarg('/data/' . basename($p)), $pdfs));
 }
 
 $json = shell_exec($command . ' 2>/dev/null');
-if (isset($argv[2]) && is_string($json)) {
-    file_put_contents($argv[2], $json);
+if (isset($argv[3]) && is_string($json)) {
+    file_put_contents($argv[3], $json);
 }
 $report = is_string($json) ? json_decode($json, true) : null;
 $jobs = is_array($report) ? ($report['report']['jobs'] ?? null) : null;
@@ -67,5 +69,5 @@ foreach ($jobs as $job) {
         ));
     }
 }
-echo count($jobs) - $bad . '/' . count($jobs) . " compliant with PDF/UA-1\n";
+echo count($jobs) - $bad . '/' . count($jobs) . " compliant with flavour $flavour\n";
 exit($bad === 0 ? 0 : 1);
