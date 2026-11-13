@@ -3,6 +3,12 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Word export keeps a table cell's `min-height` and `height`. The cell's row gets an "at least" height of the tallest one, so empty rows no longer collapse to a single line. Word clips whatever overflows an exact row height, so a fixed height also becomes a floor and is reported as approximated. A cell spanning several rows shares its height evenly among them, also reported as approximated.
+
 ## [0.11.0] - 2026-11-13
 
 ### Added
