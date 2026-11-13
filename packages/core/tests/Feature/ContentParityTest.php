@@ -46,7 +46,7 @@ final class ContentParityTest extends TestCase
         }
         $source = require $file;
         self::assertInstanceOf(Document::class, $source);
-        $pages = array_map(static fn (Page $p): Page => Page::size(pt($p->width()), pt($p->height()))->margin($p->margins())->body(...$p->bodyNodes()), $source->pages());
+        $pages = array_map(static fn (Page $p): Page => Page::size(pt($p->width()), pt($p->height()))->margin($p->margins())->body(...self::withoutEquations($p->bodyNodes())), $source->pages());
         $document = Document::make(...$pages);
 
         $headerWords = $this->headerWords($document);
@@ -224,5 +224,25 @@ final class ContentParityTest extends TestCase
         ksort($counts, SORT_STRING);
 
         return $counts;
+    }
+
+    /**
+     * The nodes without any Equation: the PDF sets an equation's letters as mathematical italics and the other formats hold them as math,
+     * so their words are not comparable.
+     *
+     * @param list<\Papercut\Node|\Papercut\Component> $nodes
+     * @return list<\Papercut\Node|\Papercut\Component>
+     */
+    private static function withoutEquations(array $nodes): array
+    {
+        $out = [];
+        foreach ($nodes as $n) {
+            if ($n instanceof \Papercut\Equation) {
+                continue;
+            }
+            $out[] = $n instanceof \Papercut\View ? $n->withChildren(...self::withoutEquations($n->children())) : $n;
+        }
+
+        return $out;
     }
 }

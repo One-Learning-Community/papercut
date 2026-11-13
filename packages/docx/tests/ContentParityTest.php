@@ -20,6 +20,7 @@ use function Papercut\pt;
  * Table header rows repeat on every PDF page and once in Word, so their words are left out of both sides.
  * Checkbox and radio markers are drawn shapes in the PDF and characters in Word, so they are left out too.
  * A table of contents' dot leaders are dots drawn as text in the PDF and a tab leader in Word, so runs of dots are left out of both sides.
+ * Equations are dropped from both sides (the PDF sets their letters as mathematical italics, and Word holds them in `m:t`); the text around them stays compared.
  * List labels are text in the PDF and Word numbering in Word (not in the body text), so they are taken off the PDF side.
  */
 final class ContentParityTest extends TestCase
@@ -44,7 +45,8 @@ final class ContentParityTest extends TestCase
     public function test_pdf_and_docx_have_the_same_word_multisets(string $file): void
     {
         $source = Documents::load($file);
-        $pages = array_map(static fn (Page $p): Page => Page::size(pt($p->width()), pt($p->height()))->margin($p->margins())->body(...$p->bodyNodes()), $source->pages());
+        self::assertStringNotContainsString('papercut-math', DocxInspector::of($source->export(new DocxExporter())->bytes())->part('word/document.xml'));
+        $pages = array_map(static fn (Page $p): Page => Page::size(pt($p->width()), pt($p->height()))->margin($p->margins())->body(...self::withoutEquations($p->bodyNodes())), $source->pages());
         $document = Document::make(...$pages);
 
         $skip = $this->headerWords($document) + array_fill_keys(self::MARKERS, true);
@@ -191,5 +193,25 @@ final class ContentParityTest extends TestCase
         ksort($counts, SORT_STRING);
 
         return $counts;
+    }
+
+    /**
+     * The nodes without any Equation: the PDF sets an equation's letters as mathematical italics and the other formats hold them as math,
+     * so their words are not comparable.
+     *
+     * @param list<\Papercut\Node|\Papercut\Component> $nodes
+     * @return list<\Papercut\Node|\Papercut\Component>
+     */
+    private static function withoutEquations(array $nodes): array
+    {
+        $out = [];
+        foreach ($nodes as $n) {
+            if ($n instanceof \Papercut\Equation) {
+                continue;
+            }
+            $out[] = $n instanceof \Papercut\View ? $n->withChildren(...self::withoutEquations($n->children())) : $n;
+        }
+
+        return $out;
     }
 }
