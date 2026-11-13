@@ -15,7 +15,10 @@ use Papercut\Place;
 use Papercut\TableCell;
 use Papercut\TableRow;
 use Papercut\Markup\Markup;
+use Papercut\Equation;
+use Papercut\Span;
 use Papercut\Text;
+use Papercut\Style\Style;
 use Papercut\View;
 
 /** @internal Part of Papercut's engine, not its public API. It may change in any release. */
@@ -65,7 +68,7 @@ final class Segments
         $text = '';
         foreach ($segs as $seg) {
             if (!is_string($seg)) {
-                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>, <badge>)");
+                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>, <badge>, <math>)");
             }
             $text .= $seg;
         }
@@ -105,10 +108,16 @@ final class Segments
                     throw new InvalidStructure(Tag::of('badge') . ' inside ' . Tag::of($tag) . ' can only contain plain text, with no inline tags or style attributes');
                 }
                 $out = $out->append(Text::spans($span));
+            } elseif ($seg instanceof Equation && app(NodeRegistry::class)->isInline($seg)) {
+                // Inside a text tag an equation (<x-doc::math>) is an inline one.
+                if ($seg->style() != Style::none() || $seg->styleName() !== null && $seg->styleName() !== 'equation') {
+                    throw new InvalidStructure(Tag::of('math') . ' inside ' . Tag::of($tag) . ' takes no style attributes; style the surrounding text');
+                }
+                $out = $out->append(Text::spans(Span::math($seg->math())));
             } elseif ($seg instanceof Text || $seg instanceof View) {
                 $out = $out->append(Markup::flatten($seg));
             } else {
-                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>, <badge>)");
+                throw new InvalidStructure(Tag::of($tag) . " can only contain text and inline tags (<b>, <i>, <u>, <s>, <a>, <br>, <span>, <mark>, <code>, <badge>, <math>)");
             }
         }
 
