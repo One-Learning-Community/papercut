@@ -51,15 +51,15 @@ A level is a part (1, 2 or 3) and a conformance letter (b, u or a).
 
 Levels ending in "a" turn tagging on. They follow the rules of a tagged PDF: a document title and a language, or Papercut throws `InvalidStructure`. They also identify the file as PDF/UA-1. You can get PDF/A-2u plus PDF/UA-1 without the "a" level by setting both options: `new PdfOptions(pdfA: PdfA::A2u, tagged: true)`. See [Accessible PDFs](./accessibility.md) for what Papercut tags and what it can't judge.
 
-Levels "b" and "u" don't need a language. If the document has none, Papercut writes an empty language entry rather than claiming one. Set `->lang()` anyway when you know it.
+Levels "b" and "u" don't need a language unless `tagged` is on. If the document has none, Papercut writes an empty language entry rather than claiming one. Set `->lang()` anyway when you know it.
 
 ## Rules
 
 - **No encryption.** PDF/A forbids it. Combining `pdfA` with `encryption` throws `InvalidArgumentException` before anything is rendered.
 - **No transparency in PDF/A-1.** With `PdfA::A1b`, Papercut throws `InvalidStructure` for an element that is partly transparent, naming it where it can: an opacity below 1, a colour with an alpha value, an image with an alpha channel, and SVG `opacity`, `fill-opacity` or `stroke-opacity`. Remove the transparency or use `PdfA::A2b` or later. A PNG saved with an alpha channel counts even when every pixel is opaque, because the channel is kept; save it again without alpha. Parts 2 and 3 have no such limit.
 - **Imported PDF pages must comply themselves.** A [page template](./pages.md#filling-in-an-existing-pdf) or `PdfPage` is copied into the file as it is. Papercut doesn't inspect it, so a template with unembedded fonts or transparency (in part 1) makes the result fail validation.
-- **Sign after rendering with an incremental update.** A [signature](./passwords-and-signatures.md#digital-signatures) added as an incremental update leaves the original bytes alone. Anything that rewrites the file can break conformance, and signing options that rewrite it do.
-- **Merging breaks conformance.** Combining PDFs, as in [Merging and stamping](./passwords-and-signatures.md#merging-and-stamping), writes a new file whose metadata and structure the merger decides. Validate the result, and expect to merge before rendering or not at all.
+- **Signing keeps conformance, with two catches.** php-pdf's signer appends an incremental update to the rendered file, so [signing](./passwords-and-signatures.md#digital-signatures) it leaves a PDF/A file PDF/A. A visible signature stamp needs an embedded font under PDF/A, and php-pdf throws a `LogicException` unless you set `SignatureAppearance::$font`. Anything that rewrites the file afterwards, such as filling form fields without `incremental: true`, breaks both conformance and the signature.
+- **Merging breaks conformance.** Combining PDFs, as in [Merging and stamping](./passwords-and-signatures.md#merging-and-stamping), writes a new file whose metadata and structure the merger decides. Validate the result. To include another PDF's pages in a PDF/A file, use a [page template](./pages.md#filling-in-an-existing-pdf) or `PdfPage`; those pages must comply themselves.
 - **PDF export only.** Word and HTML exports ignore the option.
 
 ## Checking your output
