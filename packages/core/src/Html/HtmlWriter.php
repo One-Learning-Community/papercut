@@ -570,6 +570,11 @@ final class HtmlWriter implements TreeVisitor
             $diff['background-color'] = Css::color($own->background);
         }
         $body = self::esc($span->text);
+        if ($span->math !== null) {
+            // An inline equation: MathML inherits the paragraph's size and colour; a span's own are on a wrapper.
+            $this->hasEquation = true;
+            $body = (new MathmlWriter())->write($span->math, false);
+        }
         $code = StyleName::leads($span->styleName, 'code');
         if ($code) {
             $diff = [...$this->fontCss($style), ...$diff];
@@ -664,7 +669,17 @@ final class HtmlWriter implements TreeVisitor
             $decls += Css::flexItem($s);
         }
         $decls = [...$decls, ...$this->textCss($s, $parent, $at->path())];
-        $this->out .= '<div' . self::styleAttr($decls) . '>' . (new MathmlWriter())->write($n->math(), true) . '</div>';
+        // The math box shrinks to its content (see Stylesheet), so margins place it: a browser would centre it otherwise.
+        $place = match ($s->textAlign) {
+            \Papercut\Style\TextAlign::Center => 'margin-inline:auto',
+            \Papercut\Style\TextAlign::Right => 'margin-left:auto',
+            default => null,
+        };
+        $math = (new MathmlWriter())->write($n->math(), true);
+        if ($place !== null) {
+            $math = '<math style="' . $place . '" ' . substr($math, strlen('<math '));
+        }
+        $this->out .= '<div' . self::styleAttr($decls) . '>' . $math . '</div>';
 
         return '';
     }

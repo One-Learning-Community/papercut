@@ -80,11 +80,11 @@ final class DocxExporter implements Exporter
         $root = $styles->root();
         $fonts = new WordFonts($options->fonts());
         $fonts->name($root->fontFamily);
-        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts, $themes->document());
+        $equations = new EquationMapper();
+        $text = new TextMapper(new LineMetrics($options->fonts()), $fidelity, $fonts, $themes->document(), $equations);
         $index = TocIndex::collect($doc, $themes);
         $widths = WidthResolver::for($options, 'docx', $index, $themes);
         $toc = $index->hasToc() ? new TocMapper($index, $options->tocPageNumbers ? self::anchorPages($doc, $options, $index, $themes) : [], $styles, $text, $fonts) : null;
-        $equations = new EquationMapper();
         $visitor = new DocxVisitor(
             $fidelity,
             $widths,
@@ -121,8 +121,9 @@ final class DocxExporter implements Exporter
         }
 
         $spec = new PatchSpec($fonts->name($root->fontFamily), (int) round($root->fontSize * 2), $meta->lang, $date, $mirror, $numbering, $fonts->written(), $toc?->fields() ?? [], $columns, $visitor->columnBreaks());
+        $inlineMaths = $equations->inlineIds();
         foreach ($visitor->maths() as $id => $omml) {
-            $spec = $spec->withMath($id, $omml);
+            $spec = $spec->withMath($id, $omml, isset($inlineMaths[$id]));
         }
         $bytes = DocxPatcher::patch((new Word2007Writer($registry))->write($docx), $spec, $fidelity);
 

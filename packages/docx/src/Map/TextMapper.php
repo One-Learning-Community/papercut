@@ -30,6 +30,7 @@ final class TextMapper
         private readonly Fidelity $fidelity,
         private readonly WordFonts $fonts,
         private ?Theme $theme = null,
+        private readonly EquationMapper $equations = new EquationMapper(),
     ) {
     }
 
@@ -65,6 +66,13 @@ final class TextMapper
             if ($bg !== null) {
                 // php-docx writes no run shading, but writes a highlight as given: DocxPatcher turns this one into w:shd.
                 $rs = new RunStyle(...[...get_object_vars($rs), 'highlight' => DocxPatcher::shading($bg)]);
+            }
+            if ($span->math !== null) {
+                // An inline equation: a marker run for DocxPatcher, in the span's size and colour, with no whitespace of its own.
+                $runs[] = [$this->equations->run($span->math, $cs), $span->href ?? $blockHref, false, false];
+                $atStart = false;
+                $endsSpace = false;
+                continue;
             }
             if ($cs->isInlineBox() && !$span->lineBreak) {
                 // An inline badge: Word has no inline box, so it is a shaded run with padding spaces.

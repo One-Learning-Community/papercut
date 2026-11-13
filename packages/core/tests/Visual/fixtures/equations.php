@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Papercut\Math\Math;
 use Papercut\Style\TextAlign;
-use Papercut\{Column, Document, Equation, Page, Text};
+use Papercut\{Column, Document, Equation, Page, Span, Table, Text};
 
 use function Papercut\{mm, pt};
 
@@ -44,6 +44,18 @@ $items = [
     Equation::of($quad)->textAlign(TextAlign::Right),
     Text::make('Large and coloured')->size(pt(8))->color('#64748b'),
     Equation::of($quad)->size(pt(20))->color('#b91c1c'),
+    Text::make('Inline')->size(pt(8))->color('#64748b'),
+    Text::spans(
+        Span::text('The roots are '),
+        Span::math($quad),
+        Span::text(', where b² − 4ac is the discriminant, and the area is '),
+        Span::math(Math::row('A =', Math::sup('πr', '2'))),
+        Span::text('.'),
+    ),
+    Table::make()->columns('auto auto')->row(
+        Text::spans(Span::text('Area '), Span::math(Math::row('A =', Math::sup('πr', '2')))),
+        Text::spans(Span::text('Slope '), Span::math(Math::row('m =', Math::frac(Math::row('Δy'), Math::row('Δx'))))),
+    ),
 ];
 
 return Document::make(

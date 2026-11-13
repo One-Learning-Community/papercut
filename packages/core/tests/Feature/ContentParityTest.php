@@ -240,9 +240,40 @@ final class ContentParityTest extends TestCase
             if ($n instanceof \Papercut\Equation) {
                 continue;
             }
+            // A paragraph (or table) with an inline formula: its formula words differ the same way, so it is left out whole.
+            if (!($n instanceof \Papercut\View) && self::hasInlineMath($n)) {
+                continue;
+            }
             $out[] = $n instanceof \Papercut\View ? $n->withChildren(...self::withoutEquations($n->children())) : $n;
         }
 
         return $out;
+    }
+
+    private static function hasInlineMath(\Papercut\Node|\Papercut\Component $n): bool
+    {
+        if ($n instanceof \Papercut\Text) {
+            return array_filter($n->spanList(), static fn (\Papercut\Span $s): bool => $s->math !== null) !== [];
+        }
+        if ($n instanceof \Papercut\Table) {
+            foreach ($n->bodyRows() as $row) {
+                foreach ($row->cells() as $cell) {
+                    foreach ($cell->children() as $child) {
+                        if (self::hasInlineMath($child)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        if ($n instanceof \Papercut\View) {
+            foreach ($n->children() as $child) {
+                if (self::hasInlineMath($child)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

@@ -32,9 +32,9 @@ final class EquationHtmlTest extends TestCase
 
     public function test_block_equation_is_mathml(): void
     {
-        $html = $this->html(Equation::of('x = 1')->textAlign('center'));
+        $html = $this->html(Equation::of('x = 1'));
         self::assertStringContainsString('<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"', $html);
-        self::assertMatchesRegularExpression('/<div style="margin:0pt 0pt 6pt 0pt;[^"]*text-align:center[^"]*"><math /', $html);
+        self::assertMatchesRegularExpression('/<div style="margin:0pt 0pt 6pt 0pt"><math[ >]/', $html);
     }
 
     public function test_math_font_rule(): void
@@ -60,6 +60,22 @@ final class EquationHtmlTest extends TestCase
         self::assertStringContainsString(self::RULE, $html);
     }
 
+    public function test_block_math_is_shrunk_and_placed_by_margins(): void
+    {
+        // A browser centres the content of a full-width display:block math; a fit-content box placed by margins follows the alignment.
+        $rule = '.papercut math[display=block]{width:fit-content;max-width:100%}';
+        $default = $this->html(Equation::of('x'));
+        self::assertStringContainsString($rule, $default);
+        self::assertStringContainsString('<math xmlns=', $default);
+        self::assertStringNotContainsString('<math style=', $default);
+
+        self::assertStringContainsString('<math style="margin-inline:auto" xmlns=', $this->html(Equation::of('x')->textAlign('center')));
+        self::assertStringContainsString('<math style="margin-left:auto" xmlns=', $this->html(Equation::of('x')->textAlign('right')));
+        self::assertStringNotContainsString('<math style=', $this->html(Equation::of('x')->textAlign('left')));
+
+        self::assertStringNotContainsString('math[display=block]', Document::make(Page::a4()->body(Text::make('Hi')))->toHtml()->bytes());
+    }
+
     public function test_no_equation_no_math_output(): void
     {
         $html = Document::make(Page::a4()->body(Text::make('Hi')))->toHtml(new HtmlOptions(fontMode: FontMode::Embed))->bytes();
@@ -70,8 +86,8 @@ final class EquationHtmlTest extends TestCase
     public function test_colour_inherits(): void
     {
         $html = $this->html(Equation::of('x')->color(Color::hex('#ff0000'))->size(Length::points(30)));
-        self::assertMatchesRegularExpression('/<div style="[^"]*font-size:30pt[^"]*"><math /', $html);
-        self::assertMatchesRegularExpression('/<div style="[^"]*color:#ff0000[^"]*"><math /', $html);
+        self::assertMatchesRegularExpression('/<div style="[^"]*font-size:30pt[^"]*"><math[ >]/', $html);
+        self::assertMatchesRegularExpression('/<div style="[^"]*color:#ff0000[^"]*"><math[ >]/', $html);
         // The MathML itself sets no colour or size: it inherits them from the wrapper.
         $m = $this->mathml($html);
         self::assertStringNotContainsString('color', $m);

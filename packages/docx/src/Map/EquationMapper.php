@@ -36,6 +36,25 @@ final class EquationMapper
         return $run instanceof Run && str_starts_with($run->text, DocxPatcher::MATH);
     }
 
+    /** @var array<int, true> ids of the equations that sit among runs */
+    private array $inline = [];
+
+    /** @return array<int, true> ids of the inline equations in maths() */
+    public function inlineIds(): array
+    {
+        return $this->inline;
+    }
+
+    /** An inline equation: a marker run that DocxPatcher swaps for an `m:oMath` between the paragraph's runs. */
+    public function run(\Papercut\Math\Node\Node $math, ComputedStyle $s): Run
+    {
+        $id = count($this->maths) + 1;
+        $this->maths[$id] = OmmlWriter::oMath($math, new RunFormat(Units::hex($s->color), (int) round($s->fontSize * 2)));
+        $this->inline[$id] = true;
+
+        return new Run(DocxPatcher::MATH . $id);
+    }
+
     public function paragraph(Equation $n, ComputedStyle $s): Paragraph
     {
         $id = count($this->maths) + 1;
