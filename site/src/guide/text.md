@@ -221,7 +221,7 @@ Word can't round corners, so the default look's `radius` is reported as dropped 
 
 ## Inline formatting
 
-Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline tags: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<span>` with style attributes, `<a href>`, `<br>` and `<code>`. Any other tag throws an error.
+Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline tags: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<span>` with style attributes, `<a href>`, `<br>`, `<code>` and `<badge>`. Any other tag throws an error.
 
 ::: code-tabs#style
 @tab Blade
@@ -241,6 +241,8 @@ $document = Document::make(Page::letter()->body(
 :::
 
 `<mark>` gives its text a `yellow-200` background. `<code>` sets it in the monospace font with the `code` style. In PHP, `Span::code($text)` does the same for literal text, without markup.
+
+`<badge>` draws a small pill in the line. It takes `type` (`neutral`, `note`, `tip`, `warning`, `danger` or a tone you define) and `variant`, and its label is plain text with no tags inside. In PHP, `Span::badge($text, $tone, $variant)` builds one without markup. See [Inline badges](./decorators.md#inline-badges).
 
 In PHP you can also build the runs of text yourself:
 

@@ -114,6 +114,7 @@ $first = Column::make(
     )->gap(pt(4)),
     Column::make(
         Text::h3('Create a shipment')->keepWithNext(),
+        Text::markup('A successful call returns <badge type="tip">201</badge> and the new shipment as JSON.'),
         CodeBlock::make($curl)->language('bash')->label('Request')->variant('caption'),
         CodeBlock::make($json)->language('json')->label('Response: 201 Created')->variant('strip'),
     )->gap(pt(8)),

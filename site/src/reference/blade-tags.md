@@ -30,7 +30,7 @@ On boxes, `align` is short for `align-items`.
 
 | Tag | Own attributes | Notes |
 |---|---|---|
-| `<x-doc::text>` | `align`, `size` | Style. Inline markup: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<code>`, `<span>`, `<a href>`, `<br>`. |
+| `<x-doc::text>` | `align`, `size` | Style. Inline markup: `<b>`, `<i>`, `<u>`, `<s>`, `<mark>`, `<code>`, `<span>`, `<a href>`, `<br>`, `<badge type variant>`. |
 | `<x-doc::p>` | `align`, `size` | Style. The paragraph preset. |
 | `<x-doc::h1>` to `<x-doc::h4>` | `align`, `size` | Style. Heading presets. |
 | `<x-doc::markup>` | `html` or `text`, `styles`, `blank-paragraphs`, `images`, `toc` | Converts stored HTML or plain text, or plain HTML written in the slot (one of the three). Papercut tags in the slot are an error; components that render HTML are fine. `images` is an `ImageResolver` class name for this tag instead of `papercut.markup.images`, or `none` (lower case only) to show each image's alt text. `toc="false"` keeps every heading it converts out of tables of contents. See [Rich text](/guide/rich-text.md). |
@@ -85,6 +85,6 @@ On text tags, `align` is `text-align` and `size` is `font-size`.
 | `<x-doc::totals>` | `variant` | Style. Holds only `<x-doc::kv>` rows: labels on the left, amounts right-aligned. 45% wide at the right by default. |
 | `<x-doc::stat>` | `label`, `note`, `variant` | Style. The content is the value, with inline tags. `label` and `note` also work as slots. |
 | `<x-doc::signature>` | `name`, `role`, `date`, `variant` | Style. The content sits on the line (an image, a typed name, or nothing). `name`, `role` and `date` also work as slots. |
-| `<x-doc::badge>` | `type`, `variant` | Style. `type`: `neutral`, `note`, `tip`, `warning`, `danger`, or a tone you define. |
+| `<x-doc::badge>` | `type`, `variant` | Style. `type`: `neutral`, `note`, `tip`, `warning`, `danger`, or a tone you define. Inside a text tag it is an inline badge, see [Inline badges](/guide/decorators.md#inline-badges). |
 
 `variant` makes a decorator also apply `<name>.<variant>` for each part it styles; see [Decorators](/guide/decorators.md).

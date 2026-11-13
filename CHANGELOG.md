@@ -5,6 +5,15 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Inline badges: a small rounded pill in a line of text. `Span::badge($text, $tone, $variant)` in PHP, `<badge type="tip" variant="outline">201</badge>` in inline markup, and `<x-doc::badge>` inside a text tag in Blade (anywhere else it is still the block badge). They use the theme's `badge`, `badge.<tone>` and `badge.<variant>` styles. The label is plain text, and an empty one is an error. The PDF never splits a pill across lines. HTML export writes `<span class="pc-badge">`. Word shows shaded text with padding, without rounded corners.
+
+### Changed
+
+- Any inline span whose style has horizontal padding or a border (a custom `code` style in a theme, for example) now draws as an inline box in the PDF. The padding used to be ignored.
+- Word export writes a block badge whose content is plain text as shaded text, keeping its alignment, instead of a small nested table.
+
 ## [0.9.2] - 2026-11-11
 
 ### Changed

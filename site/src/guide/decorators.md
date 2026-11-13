@@ -273,7 +273,34 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The tones are `neutral` (the default), `note`, `tip`, `warning` and `danger`, matching the callout colours. A badge is a block that's only as wide as its text. It can't be placed in the middle of a line of text. For a lighter look, `variant="outline"` draws a border in the tone's colour instead of filling the badge.
+The tones are `neutral` (the default), `note`, `tip`, `warning` and `danger`, matching the callout colours. A badge is a block that's only as wide as its text. For a lighter look, `variant="outline"` draws a border in the tone's colour instead of filling the badge.
+
+### Inline badges
+
+To put a badge in the middle of a line of text, use it inside a text tag. In Blade, `<x-doc::badge>` inside `<x-doc::text>`, a heading, a list item or a table cell is an inline badge, and anywhere else it is the block badge above. In inline markup it is `<badge>`, with the same `type` and `variant` attributes.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::text>
+  The call returns <x-doc::badge type="tip">201</x-doc::badge> and the new record.
+</x-doc::text>
+```
+@tab Markup
+```php
+use Papercut\Text;
+
+Text::markup('The call returns <badge type="tip">201</badge> and the new record.');
+```
+@tab PHP
+```php
+use Papercut\{Span, Text};
+
+Text::make('The call returns ')->append(Span::badge('201', 'tip'), ' and the new record.');
+```
+:::
+
+The label is plain text: a tag inside `<badge>` is an error, and so is an empty label. A badge inside `<a>` is part of the link. The PDF draws a rounded pill on the line and never splits it across lines; one that doesn't fit moves whole to the next line. HTML export writes `<span class="pc-badge">`. Inline badges use the same theme styles as block badges (`badge`, `badge.<tone>`, `badge.<variant>`). In Word the badge is shaded text with a little padding, without rounded corners, and Google Docs shows the shading only. A block badge with a plain-text label is written the same way in Word.
 
 ## Stat
 
