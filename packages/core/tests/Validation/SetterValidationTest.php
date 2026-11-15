@@ -60,8 +60,8 @@ final class SetterValidationTest extends TestCase
         yield 'radius -5pt' => [static fn () => Column::make()->radius(pt(-5)), 'View::radius()', '"-5pt"'];
         yield 'negative em width' => [static fn () => Column::make()->width(Length::em(-2)), 'View::width()', '"-2em"'];
         yield 'spacer size' => [static fn () => Spacer::fixed(pt(-4)), 'Spacer::size()', 'negative'];
-        yield 'track pt' => [static fn () => Table::make()->columns(pt(-10), pt(20)), 'column width', '"-10pt"'];
-        yield 'track percent' => [static fn () => Table::make()->columns(percent(-10)), 'column width', '"-10%"'];
+        yield 'track pt' => [static fn () => Table::make()->columns(pt(-10), pt(20)), 'Table::columns()', '"-10pt"'];
+        yield 'track percent' => [static fn () => Table::make()->columns(percent(-10)), 'Table::columns()', '"-10%"'];
         yield 'track string' => [static fn () => Table::make()->columns('10pt -20pt'), 'column list', 'negative'];
         yield 'labelWidth' => [static fn () => KeyValueList::make()->labelWidth(pt(-5)), 'KeyValueList::labelWidth()', '"-5pt"'];
         yield 'image width 0' => [static fn () => Image::bytes('x')->width(pt(0)), 'Image::width()', 'more than 0'];
@@ -131,23 +131,21 @@ final class SetterValidationTest extends TestCase
     public function test_legitimate_value_builds_and_exports(\Closure $make): void
     {
         $node = $make();
-        if ($node instanceof Place) {
-            $body = Column::make(Text::make('x'));
-            $doc = Document::make(Page::a4()->body($body)->overlay($node));
-        } else {
-            $doc = Document::make(Page::a4()->body($node));
-        }
-        if ($node instanceof QrCode || $node instanceof KeyValueList) {
-            $doc = Document::make(Page::a4()->body($node instanceof KeyValueList ? $node->row('a', 'b') : $node));
-        }
+        $doc = match (true) {
+            $node instanceof Place => Document::make(Page::a4()->body(Column::make(Text::make('x')))->overlay($node)),
+            $node instanceof KeyValueList => Document::make(Page::a4()->body($node->row('a', 'b'))),
+            default => Document::make(Page::a4()->body($node)),
+        };
         self::assertStringStartsWith('%PDF', $doc->toPdf(new PdfOptions(cacheDir: false))->bytes());
-        self::assertStringContainsString('<', $doc->toHtml(new HtmlOptions())->bytes());
+        $html = $doc->toHtml(new HtmlOptions())->bytes();
+        self::assertStringContainsString('class="papercut"', $html);
+        self::assertMatchesRegularExpression('/<(div|table|svg|img|p|span)[ >]/', $html);
     }
 
     /** Every kind the export allow-list accepts is still accepted when the link is built. */
     public function test_link_kinds_the_export_accepts_are_accepted(): void
     {
-        foreach (['https://a.test/x?y=1#z', 'HTTP://A.TEST', '  https://a.test', 'mailto:a@b.test', 'tel:+15551234', '#section-2', '#'] as $uri) {
+        foreach (['https://a.test/x?y=1#z', 'HTTP://A.TEST', 'mailto:a@b.test', 'tel:+15551234', '#section-2', '#'] as $uri) {
             self::assertSame($uri, Link::to($uri, 'x')->uri());
             $doc = Document::make(Page::a4()->body(Link::to($uri, Text::make('x'))));
             self::assertStringStartsWith('%PDF', $doc->toPdf(new PdfOptions(cacheDir: false))->bytes());
@@ -192,7 +190,13 @@ final class SetterValidationTest extends TestCase
         self::assertCount(1, $messages, implode("\n", $messages));
         self::assertStringContainsString('colspan runs past column 1000; clamped', $messages[0]);
 
-        $html = $doc->toHtml(new HtmlOptions())->bytes();
+        $htmlNotes = [];
+        $html = $doc->toHtml(new HtmlOptions(onWarning: function (string $m) use (&$htmlNotes): void {
+            $htmlNotes[] = $m;
+        }))->bytes();
+        $clamps = array_values(array_filter($htmlNotes, static fn (string $m): bool => str_contains($m, 'colspan runs past column 1000')));
+        self::assertCount(1, $clamps, implode("\n", $htmlNotes));
+        self::assertStringContainsString('approximated', $clamps[0]);
         self::assertSame(1000, preg_match_all('/<col[ >]/', $html));
         self::assertStringContainsString('colspan="1000"', $html);
         self::assertStringNotContainsString('99999999999', $html);

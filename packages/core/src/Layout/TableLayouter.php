@@ -128,9 +128,6 @@ final class TableLayouter implements Layouter
             if ($tableGrid->clampedRowspans !== []) {
                 $engine->context()->warn('Table cell rowspan runs past the last row; clamped');
             }
-            if ($tableGrid->clampedWide !== []) {
-                $engine->context()->warn('Table cell colspan runs past column ' . TableGrid::MAX_COLUMNS . '; clamped');
-            }
             if ($tableGrid->clampedColspans !== []) {
                 $engine->context()->warn('Table cell colspan runs into a rowspan from above; clamped');
             }
@@ -196,7 +193,9 @@ final class TableLayouter implements Layouter
                 $room = $available === null ? null : max(0.0, $available - $cursor);
                 $slice = $this->layoutGroup($table, $group->index, $offset + $k, $group->parallel, $grid, $style, $room, $c->fresh, $engine);
                 if ($slice === null) {
-                    return LayoutResult::doesNotFit();
+                    return $c->fresh && $this->forcedBelowHeader(\INF, $room, $cursor, $rowsOnPage)
+                        ? $this->headerAlone($table, $style, $c, $token, $engine, $k, $first, $placed, $cursor, $borderWidth)
+                        : LayoutResult::doesNotFit();
                 }
                 if ($this->forcedBelowHeader($slice['reach'], $room, $cursor, $rowsOnPage)) {
                     return $this->headerAlone($table, $style, $c, $token, $engine, $k, $first, $placed, $cursor, $borderWidth);
@@ -216,7 +215,9 @@ final class TableLayouter implements Layouter
             $room = $available === null ? null : max(0.0, $available - $cursor);
             $split = $this->splitRow($table, $body[$k], $offset + $k, $grid, $style, $room, $c->fresh, $resuming ? $token->parallel : null, $engine);
             if ($split === null) {
-                return LayoutResult::doesNotFit();
+                return $c->fresh && $this->forcedBelowHeader(\INF, $room, $cursor, $rowsOnPage)
+                    ? $this->headerAlone($table, $style, $c, $token, $engine, $k, $first, $placed, $cursor, $borderWidth)
+                    : LayoutResult::doesNotFit();
             }
             if ($this->forcedBelowHeader($split['height'], $room, $cursor, $rowsOnPage)) {
                 return $this->headerAlone($table, $style, $c, $token, $engine, $k, $first, $placed, $cursor, $borderWidth);
@@ -481,8 +482,8 @@ final class TableLayouter implements Layouter
             if ($ctx->quiet) {
                 $held = true;
             } elseif ($table->fitsColumns()) {
-                // Converted markup: unbreakable content (a wide formula) overflows like an overlong word.
-                $ctx->approximated(sprintf('table content wider than the page (%.2fpt of %.2fpt; it runs past the edge)', $total, $width));
+                // A table from markup (fitsColumns()): unbreakable content (a wide formula) overflows like an overlong word.
+                $ctx->approximated(sprintf('table content wider than its box (%.2fpt of %.2fpt; it runs past the edge)', $total, $width));
             } elseif ($ctx->overflow === OverflowMode::Throw) {
                 throw LayoutOverflow::tooWide($ctx->path(), $message);
             } else {

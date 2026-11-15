@@ -153,10 +153,6 @@ final class ImageMapper
         return new DocxImage($done[0] ?? $png, ImageFormat::Png, Units::emu($w), Units::emu($h), $alt);
     }
 
-    /**
-     * Word draws a picture square. A picture with a border, padding or background sits in a box that reports its
-     * own radius, so only a bare one is reported here.
-     */
     /** True when a picture has no padding, border or background to wrap it in a box. */
     public static function bare(ComputedStyle $s): bool
     {
@@ -164,6 +160,10 @@ final class ImageMapper
             && $s->background === null;
     }
 
+    /**
+     * Word draws a picture square. A picture with a border, padding or background sits in a box that reports its
+     * own radius, so only a bare one is reported here.
+     */
     private function roundedCorners(ComputedStyle $s, string $path): void
     {
         if ($s->radius > 0.0 && self::bare($s)) {

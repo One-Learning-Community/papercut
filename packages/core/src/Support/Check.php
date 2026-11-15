@@ -48,9 +48,12 @@ final class Check
     /** From $min to $max, both included. */
     public static function range(float $v, float $min, float $max, string $what): float
     {
-        self::finite($v, $what);
+        $reason = sprintf('between %s and %s', InvalidValue::number($min), InvalidValue::number($max));
+        if (!is_finite($v)) {
+            throw self::fail('number', $v, $what, 'must be a finite number ' . $reason);
+        }
         if ($v < $min || $v > $max) {
-            throw self::fail('number', $v, $what, sprintf('must be between %s and %s', InvalidValue::number($min), InvalidValue::number($max)));
+            throw self::fail('number', $v, $what, 'must be ' . $reason);
         }
         return $v;
     }

@@ -233,11 +233,15 @@ final class BlockLayouter implements Layouter
             }
         }
 
+        $cutByMax = false;
         if ($fixed === null && $first && $last) {
+            $uncapped = $contentHeight;
             $contentHeight = BoxGeometry::capContent($style, $c, $contentHeight);
+            $cutByMax = $contentHeight < $uncapped - self::EPSILON;
         }
-        // The height the box allows its content: its fixed height, or its max-height. A cut to the page comes later.
-        $allowed = $fixed !== null || ($first && $last) ? $contentHeight : null;
+        // The height the box allows its content: its fixed height, or its max-height. A box that sizes itself to its
+        // content cannot overflow itself, and a cut to the page comes later.
+        $allowed = $fixed !== null || $cutByMax ? $contentHeight : null;
         if ($capped) {
             $fit = BoxGeometry::fitContent($style, $c, $contentHeight);
             if ($fit === null) {
@@ -250,13 +254,10 @@ final class BlockLayouter implements Layouter
         if ($allowed !== null) {
             // The bottom of the content itself: a last child's bottom margin is space, not content.
             $bottom = 0.0;
-            $pull = 0.0;
             foreach ($placed as $p) {
                 $bottom = max($bottom, $p['y'] + $p['fragment']->height);
-                // a negative margin pulls the box's end up into its content: that much overlap is not overflow
-                $pull += -min(0.0, $p['style']->margin->top->points) - min(0.0, $p['style']->margin->bottom->points);
             }
-            BoxGeometry::contain($f, $bottom, $allowed + $pull, $engine);
+            BoxGeometry::contain($f, $bottom, $allowed, $engine);
         }
         $ox = $style->borderWidth->left->points + $style->padding->left->points;
         $oy = $first ? BoxGeometry::topEdge($style) : 0.0;

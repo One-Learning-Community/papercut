@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Papercut\Export;
 
-use Papercut\{Annotated, Document, Equation, Node, Page, PageBreak, Text, View};
+use Papercut\{Annotated, Document, Equation, Node, Page, PageBreak, Table, Text, View};
+use Papercut\Layout\TableGrid;
 use Papercut\Markup\{MathNotes, Note};
-use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver};
+use Papercut\Style\{ComputedStyle, Direction, PageThemes, StyleResolver};
 use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
 
 /**
@@ -16,6 +17,9 @@ use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
  */
 final class NoteReporter implements TreeVisitor
 {
+    /** A colspan the grid cut at its last column: in every format, since each lays the columns out from the same grid. */
+    public const string COLSPAN_CLAMPED = 'table cell colspan runs past column ' . TableGrid::MAX_COLUMNS . '; clamped';
+
     private function __construct(private readonly Fidelity $fidelity)
     {
     }
@@ -32,6 +36,9 @@ final class NoteReporter implements TreeVisitor
         }
         if ($node instanceof PageBreak && self::inRow($at)) {
             $this->fidelity->approximated('page break inside a row', $at->path());
+        }
+        if ($node instanceof Table && TableGrid::of($node)->clampedWide !== []) {
+            $this->fidelity->approximated(self::COLSPAN_CLAMPED, $at->path());
         }
         if ($node instanceof Equation) {
             $this->reportAll(MathNotes::of($node->math()), $at);
@@ -54,7 +61,7 @@ final class NoteReporter implements TreeVisitor
     {
         $parent = $at->ancestors()[count($at->ancestors()) - 1] ?? null;
 
-        return $parent !== null && $parent['node'] instanceof View && $parent['style']->direction === \Papercut\Style\Direction::Row;
+        return $parent !== null && $parent['node'] instanceof View && $parent['style']->direction === Direction::Row;
     }
 
     /** @param iterable<Note> $notes */

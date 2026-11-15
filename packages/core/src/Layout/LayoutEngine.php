@@ -349,15 +349,17 @@ final class LayoutEngine
     /** The error for a node that sits where it cannot be laid out, such as a table row in a column. */
     public static function misplaced(Node $node, string $path): InvalidStructure
     {
+        $reflection = new \ReflectionClass($node);
+
         return new InvalidStructure(sprintf(
             '%s cannot go here, at "%s": %s',
-            (new \ReflectionClass($node))->isAnonymous() ? 'A custom node' : (new \ReflectionClass($node))->getShortName(),
+            $reflection->isAnonymous() ? 'A custom node' : $reflection->getShortName(),
             $path,
             match (true) {
                 $node instanceof ListItem => 'a list item belongs inside ListNode::ordered() or ListNode::unordered()',
                 $node instanceof TableRow, $node instanceof TableCell => 'table rows and cells belong inside a Table',
                 $node instanceof Page => 'a page belongs directly inside Document::make()',
-                !(new \ReflectionClass($node))->isAnonymous() && str_starts_with($node::class, 'Papercut\\') => 'it cannot be laid out inside other content',
+                !$reflection->isAnonymous() && str_starts_with($node::class, 'Papercut\\') => 'it cannot be laid out inside other content',
                 default => 'no layouter is registered for ' . (strstr($node::class, "\0", true) ?: $node::class),
             },
         ));

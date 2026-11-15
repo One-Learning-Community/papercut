@@ -63,6 +63,9 @@ final class TextMapper
             $spanBg = Fade::over($own->background, $s->opacity, $backdrop);
             $faded = $own->color === null ? $cs : new ComputedStyle(...[...get_object_vars($cs), 'color' => Fade::over($cs->color, $s->opacity, $spanBg ?? $backdrop) ?? $cs->color]);
             $rs = $this->runStyle($faded);
+            if ($cs->fontSize > Units::MAX_HALF_POINTS / 2) {
+                $this->fidelity->approximated(Units::FONT_SIZE_CLAMPED, $at->path());
+            }
             $bg = Units::fill($spanBg);
             if ($bg !== null) {
                 // php-docx writes no run shading, but writes a highlight as given: DocxPatcher turns this one into w:shd.

@@ -25,13 +25,7 @@ final class Link implements Styled
     /** @throws InvalidValue for a link with a control character, or a scheme other than http, https, mailto, tel or a #fragment */
     public static function to(string $uri, Node|Component|string ...$children): self
     {
-        if (PaintLink::hasControlCharacter($uri)) {
-            throw InvalidValue::for('link', addcslashes($uri, "\x00..\x1f"))->withContext('Link::to()')->because('a link cannot contain NUL, CR or LF');
-        }
-        if (!PaintLink::allowed($uri)) {
-            throw InvalidValue::for('link', $uri)->withContext('Link::to()')->because('only http, https, mailto, tel and #fragment links are allowed');
-        }
-        return new self($uri, View::normalize($children));
+        return new self(PaintLink::checked($uri, 'Link::to()'), View::normalize($children));
     }
 
     public function uri(): string

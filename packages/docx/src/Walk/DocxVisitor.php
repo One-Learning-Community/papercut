@@ -134,12 +134,25 @@ final class DocxVisitor implements TreeVisitor
         $this->regions[$region->value] = $blocks;
     }
 
+    /** What the backstop clamps (Units) and Word would draw differently: a border or a font size past what the schema takes. */
+    private function noteClamps(ComputedStyle $s, ?ComputedStyle $parent, string $path): void
+    {
+        if ($s->fontSize > Units::MAX_HALF_POINTS / 2 && ($parent === null || $parent->fontSize !== $s->fontSize)) {
+            $this->fidelity->approximated(Units::FONT_SIZE_CLAMPED, $path);
+        }
+        $widest = max($s->borderWidth->top->points, $s->borderWidth->right->points, $s->borderWidth->bottom->points, $s->borderWidth->left->points);
+        if ($widest > Units::MAX_BORDER_EIGHTHS / 8) {
+            $this->fidelity->approximated(Units::BORDER_CLAMPED, $path);
+        }
+    }
+
     public function enter(Node $node, ComputedStyle $style, Visit $at): bool
     {
         if ($this->skipping) {
             return $this->layerNode($node, $style, $at);
         }
         $parent = $this->top();
+        $this->noteClamps($style, $parent->style, $at->path());
         // The opacity in effect here: this node's times its ancestors' (a faded style carries the product).
         $opacity = ($parent->style->opacity ?? 1.0) * $style->opacity;
         if ($opacity < 1.0) {
@@ -167,7 +180,7 @@ final class DocxVisitor implements TreeVisitor
             $this->lists->enterCell();
         }
         if ($node instanceof View && $isRow) {
-            $frame->lines = $this->widths->flexLines($node, $style, $width);
+            $frame->lines = $this->widths->flexLines($node, $style, $width, $at->path());
             foreach ($frame->lines as $line) {
                 foreach ($line as $slot) {
                     $frame->slots[$slot->index] = $slot;
@@ -176,6 +189,9 @@ final class DocxVisitor implements TreeVisitor
         } elseif ($node instanceof Table) {
             $frame->grid = TableGrid::of($node);
             $frame->columns = TableMapper::settle($this->widths->tableColumns($node, $style, $width, $at->path()), WidthResolver::tracks($node));
+            if (count($frame->columns) > Units::MAX_TABLE_COLUMNS) {
+                $this->fidelity->approximated('table with more columns than Word shows (Word shows at most ' . Units::MAX_TABLE_COLUMNS . ' columns)', $at->path());
+            }
         } elseif ($node instanceof TableRow) {
             $frame->rowIndex = $parent->rowsSeen++;
             $frame->header = $at->inHeader() && $at->parent() instanceof Table && $at->parent()->repeatsHeader();

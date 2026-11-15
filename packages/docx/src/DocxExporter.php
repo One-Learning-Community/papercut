@@ -12,6 +12,7 @@ use Dskripchenko\PhpDocx\Section;
 use Dskripchenko\PhpDocx\Writer\Word2007Writer;
 use Papercut\Backend\DefaultBackend;
 use Papercut\Document;
+use Papercut\Exception\InvalidStructure;
 use Papercut\Docx\Map\{BoxMapper, ColumnsMark, EquationMapper, Flow, ImageMapper, LineMetrics, InlineRow, ListMapper, Raster, RowMapper, TableMapper, TextMapper, TocMapper, Units, WordFonts};
 use Papercut\Docx\Package\{DocxPatcher, Numbering, PageSetupMapper, PatchSpec};
 use Papercut\Docx\Walk\DocxVisitor;
@@ -211,7 +212,7 @@ final class DocxExporter implements Exporter
             }
         }
         if ($groups === []) {
-            throw new \Papercut\Exception\InvalidStructure('A document needs at least one page.');
+            throw new InvalidStructure('A document needs at least one page.');
         }
 
         $anyEven = false;

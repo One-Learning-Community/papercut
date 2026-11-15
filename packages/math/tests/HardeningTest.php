@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Papercut\Math\Tests;
 
 use Papercut\Math\Math;
-use Papercut\Math\Node\Space;
 use Papercut\Math\Render\MathmlWriter;
 use Papercut\Math\Render\OmmlWriter;
 use PHPUnit\Framework\TestCase;
@@ -73,11 +72,6 @@ final class HardeningTest extends TestCase
         $node = Math::mathml('<math><mtable><mlabeledtr><mtd><mtext>LBL1</mtext></mtd><mtd><mtext>BODY1</mtext></mtd></mlabeledtr></mtable></math>');
         $reasons = array_map(static fn ($n) => $n->element . ': ' . $n->reason, Math::notes($node));
         self::assertContains('mlabeledtr: row label not drawn', $reasons);
-    }
-
-    public function test_space_class_exposes_the_limit(): void
-    {
-        self::assertSame(100.0, Space::MAX_EM);
     }
 
     public function test_nested_stretchy_fences_lay_out_quickly(): void

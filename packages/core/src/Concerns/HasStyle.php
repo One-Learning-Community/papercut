@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Concerns;
 
+use Papercut\Exception\InvalidValue;
 use Papercut\Style\{Align, BorderStyle, Style, TextAlign};
 use Papercut\Support\{Check, EnumValue};
 use Papercut\Value\{Auto, Color, Edges, Length, Percent};
@@ -183,6 +184,7 @@ trait HasStyle
 
     public function size(Length $v): static
     {
+        Check::size($v, self::setterName('size'), true);
         return $this->withStyle(new Style(fontSize: $v));
     }
 
@@ -208,6 +210,7 @@ trait HasStyle
 
     public function lineHeight(float $v): static
     {
+        Check::positive($v, self::setterName('lineHeight'));
         return $this->withStyle(new Style(lineHeight: $v));
     }
 
@@ -295,6 +298,7 @@ trait HasStyle
 
     public function minLines(int $n): static
     {
+        Check::intRange($n, 0, PHP_INT_MAX, self::setterName('minLines'));
         return $this->withStyle(new Style(minLines: $n));
     }
 
@@ -316,7 +320,19 @@ trait HasStyle
      */
     public function attributes(array $attrs): static
     {
-        return $this->withStyle(Style::fromAttributes($attrs));
+        $style = Style::fromAttributes($attrs);
+        if ($this->sizesNeedArea()) {
+            foreach (['width', 'height'] as $name) {
+                if ($style->$name !== null) {
+                    try {
+                        Check::size($style->$name, $name, true);
+                    } catch (InvalidValue $e) {
+                        throw $e->withContext($name);
+                    }
+                }
+            }
+        }
+        return $this->withStyle($style);
     }
 
     private static function toColor(Color|string $c): Color

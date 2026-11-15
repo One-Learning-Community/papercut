@@ -55,13 +55,13 @@ These work the same way as their flexbox namesakes:
 
 `Spacer::flex()` grows to fill the available space, and `Spacer::fixed(in(0.4))` adds a fixed gap. In Blade, both are `<x-doc::spacer>`: add a `size` for a fixed gap, or leave it off for a flexible one.
 
-When the children of a row need more room than the line has, even at their narrowest, they share the line instead of running past the page edge: text breaks inside words, pictures scale down and tables narrow, each with a note. In a wrapping row each child only has to fit a line of its own. The exact way the line is shared may change.
+When the children of a row need more room than the line has, even at their narrowest, they share the line instead of running past the page edge: a child whose narrowest width fits an equal share keeps it, and the others narrow in proportion. Text breaks inside words and pictures scale down, with no note; tables narrow with theirs. A child with an explicit `min-width`, or a picture with `shrink(0)`, is not shrunk, so a row of those can still run past the edge; PDF and Word export report that once as `row content wider than the row`. In a wrapping row each child only has to fit a line of its own. The exact way the line is shared may change.
 
 ## Sizing boxes
 
 Every component accepts `width`, `height` and their `min-` and `max-` versions, plus `padding`, `margin`, `border`, `radius`, `background` and `opacity`. Padding and margin take one to four lengths in the same order as CSS: top, right, bottom, left.
 
-The setters check what you give them. NaN or infinity, and a negative width, height, minimum, maximum, basis, padding, gap, border width, radius or table column width, an `opacity` outside 0 to 1, and a negative `grow`, `shrink` or `Spacer::flex()` throw `InvalidValue` straight away, naming the method, the value and what is allowed. Zero is fine, and so are negative margins. In Blade the same checks apply to the attributes, and an attribute bound to `null` (`:width="$maybeNull"`) counts as not set.
+The setters check what you give them. NaN or infinity, and a negative width, height, minimum, maximum, basis, padding, gap, border width, radius or table column width, an `opacity` outside 0 to 1, and a negative `grow`, `shrink` or `Spacer::flex()`, an image or QR code size of 0 or less, a `lineHeight` or font `size` that is not above 0, and a negative `minLines` throw `InvalidValue` straight away, naming the method, the value and what is allowed. Zero is fine (except for an image or QR code size), and so are negative margins. In Blade the same checks apply to the attributes, and an attribute bound to `null` (`:width="$maybeNull"`) counts as not set.
 
 ```php
 use Papercut\{Column, Document, Page, Text};

@@ -133,7 +133,7 @@ In `original` style mode, a `div` (or a block tag that would otherwise be droppe
 </div>
 ```
 
-- `column-count` sets the number of columns. `columns` sets it too: only its count is read, and a width in it is ignored. A count above 45 is clamped to 45, with a note, and a count that would make the columns narrower than 72pt on the page is reduced until they are at least that wide, also with a note. PDF, HTML and Word all use the reduced count.
+- `column-count` sets the number of columns. `columns` sets it too: only its count is read, and a width in it is ignored. A count that would make the columns narrower than 72pt on the page is reduced until they are at least that wide, with one note. PDF, HTML and Word all use the reduced count.
 - `column-gap` sets the gap and `column-rule` the width and colour of the rule, but only beside a count: without `column-count` or `columns`, they're dropped with a note and the content stays in one column.
 - `column-span`, `column-width` and `column-fill` are dropped, with a note. The flow has no way to span columns, work out a count from a width, or leave columns unbalanced.
 - On `p`, headings, lists and tables the column properties are dropped, with a note.
@@ -167,7 +167,7 @@ Your resolver decides which files can be read. Don't pass `src` straight to the 
 
 Everything Markup couldn't convert exactly is recorded, and those notes are passed to the warning callback and the fidelity report of each export. There are two kinds:
 
-- **Approximated:** the content is there, but looks different from the original. For example, an iframe shown as a link, a missing image shown as its alt text, or an unknown tag removed with its content kept.
+- **Approximated:** the content is there, but looks different from the original. For example, an iframe shown as a link, a missing image shown as its alt text, an unknown tag removed with its content kept, or invalid UTF-8 replaced with U+FFFD.
 - **Dropped:** the content is gone. For example, a missing image with no alt text, a link with an unsupported URL, or an unsupported CSS property.
 
 `onWarning` gets the message. If the callback takes a second parameter, it also gets a `FidelityReport` with `level` (`FidelityLevel::Approximated` or `Dropped`), `format`, `feature` and `path`.

@@ -19,14 +19,21 @@ final class Units
     /** The largest `w:sz` Word takes, in half points (1638 pt). */
     public const int MAX_HALF_POINTS = 3276;
 
+    /** The widest border `w:sz` takes, in eighths of a point (12 pt). */
+    public const int MAX_BORDER_EIGHTHS = 96;
+
+    /** The most columns Word shows in a table. */
+    public const int MAX_TABLE_COLUMNS = 63;
+
+    /** Fidelity notes for a value the clamps above cut: reported where the style is set. */
+    public const string FONT_SIZE_CLAMPED = 'font size larger than Word allows (1638pt), clamped';
+    public const string BORDER_CLAMPED = 'border wider than Word allows (12pt), clamped';
+
     /** Twentieths of a point, clamped to what OOXML allows. */
     public static function tw(float $points): int
     {
         return max(-self::MAX_TWIPS, min(self::MAX_TWIPS, (int) round(max(-1e6, min(1e6, $points)) * 20)));
     }
-
-    /** The widest border `w:sz` takes, in eighths of a point (12 pt). */
-    public const int MAX_BORDER_EIGHTHS = 96;
 
     /** A twip total (a sum of clamped values) clamped again to what OOXML allows. */
     public static function clamp(int $twips): int

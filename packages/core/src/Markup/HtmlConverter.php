@@ -26,6 +26,7 @@ use Papercut\Style\ListMarker;
 use Papercut\Style\Style;
 use Papercut\Style\StyleName;
 use Papercut\Styled;
+use Papercut\Support\Utf8;
 use Papercut\Table;
 use Papercut\TableCell;
 use Papercut\TableRow;
@@ -126,12 +127,17 @@ final class HtmlConverter
 
     public static function convert(?string $html, MarkupOptions $options): View|Text
     {
-        $html = mb_scrub($html ?? '', 'UTF-8');
+        $bad = false;
+        $html = Utf8::scrub($html ?? '', $bad);
         if (trim($html) === '') {
             return View::make();
         }
+        $converter = new self($options);
+        if ($bad) {
+            $converter->notes[] = new Note(FidelityLevel::Approximated, Utf8::NOTE, '');
+        }
 
-        return new self($options)->run($html);
+        return $converter->run($html);
     }
 
     private function run(string $html): View|Text
@@ -1145,7 +1151,7 @@ final class HtmlConverter
     {
         $tag = $el->localName;
         $src = trim($el->getAttribute('src') ?? '', " \t\n\r\f");
-        if ($src === '' || !LinkPolicy::allowed($src)) {
+        if ($src === '' || !LinkPolicy::allowed($src) || LinkPolicy::hasControlCharacter($src)) {
             $this->note(FidelityLevel::Dropped, 'markup <' . $tag . '> (no usable src; removed)');
             return;
         }
@@ -1309,7 +1315,8 @@ final class HtmlConverter
     /** A src or href as shown in a note: at most 100 characters, so a data: URI does not fill the report. */
     private static function shortened(string $src): string
     {
-        return mb_strlen($src) > 100 ? mb_substr($src, 0, 100) . '…' : $src;
+        $src = mb_strlen($src) > 100 ? mb_substr($src, 0, 100) . '…' : $src;
+        return addcslashes($src, "\x00..\x1f");
     }
 
     /**

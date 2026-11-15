@@ -13,6 +13,40 @@ use PHPUnit\Framework\Attributes\DataProvider;
 /** Blade attributes get the same checks as the builder setters (D3, D10). */
 final class AttributeValidationTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        set_error_handler(static function (int $no, string $msg, string $file, int $line): never {
+            throw new \ErrorException($msg, 0, $no, $file, $line);
+        });
+    }
+
+    protected function tearDown(): void
+    {
+        restore_error_handler();
+        parent::tearDown();
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function zeroSizes(): iterable
+    {
+        yield 'image width' => ['<x-doc::image :data="$b" width="0pt" />', 'width'];
+        yield 'image height' => ['<x-doc::image :data="$b" height="0" />', 'height'];
+        yield 'qr width' => ['<x-doc::qr-code value="a" width="0pt" />', 'width'];
+    }
+
+    #[DataProvider('zeroSizes')]
+    public function test_zero_image_or_qr_size_throws_naming_it(string $blade, string $attribute): void
+    {
+        try {
+            $this->nodeFrom($blade, ['b' => 'raw']);
+            self::fail('expected InvalidValue');
+        } catch (InvalidValue $e) {
+            self::assertStringContainsString($attribute, $e->getMessage());
+            self::assertStringContainsString('more than 0', $e->getMessage());
+        }
+    }
+
     public function test_huge_colspan_is_clamped_like_the_builder(): void
     {
         $table = $this->nodeFrom('<x-doc::table><x-doc::tr><x-doc::td colspan="99999999999">x</x-doc::td></x-doc::tr></x-doc::table>');

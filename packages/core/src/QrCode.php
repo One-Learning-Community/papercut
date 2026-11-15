@@ -8,8 +8,8 @@ use Papercut\Backend\PhpPdf\PhpPdfQrEncoder;
 use Papercut\Barcode\Bacon\BaconQrSvg;
 use Papercut\Barcode\{ErrorCorrection, QrDesign, QrEncoder, QrEyes, QrGradient, QrShape};
 use Papercut\Concerns\HasStyle;
-use Papercut\Exception\{InvalidValue, MissingPackage};
-use Papercut\Support\EnumValue;
+use Papercut\Exception\{InvalidStructure, InvalidValue, MissingPackage};
+use Papercut\Support\{Check, EnumValue};
 use Papercut\Value\Color;
 
 /**
@@ -66,18 +66,18 @@ final class QrCode implements Styled
     {
         $size = count($modules);
         if ($size === 0) {
-            throw InvalidValue::for('QR modules', '[]')->because('the grid is empty');
+            throw InvalidValue::for('QR modules', '[]')->withContext('QrCode::fromModules()')->because('the grid is empty');
         }
         if (!array_is_list($modules)) {
-            throw InvalidValue::for('QR modules', 'keyed array')->because('rows must be a list, top to bottom');
+            throw InvalidValue::for('QR modules', 'keyed array')->withContext('QrCode::fromModules()')->because('rows must be a list, top to bottom');
         }
         foreach ($modules as $i => $row) {
             if (!is_array($row) || count($row) !== $size || !array_is_list($row)) {
-                throw InvalidValue::for('QR modules', "row $i")->because("each row needs $size modules, to make a square");
+                throw InvalidValue::for('QR modules', "row $i")->withContext('QrCode::fromModules()')->because("each row needs $size modules, to make a square");
             }
             foreach ($row as $j => $module) {
                 if (!is_bool($module) && $module !== 0 && $module !== 1) {
-                    throw InvalidValue::for('QR module', get_debug_type($module))->withContext("row $i, column $j")->because('each module must be true or false (or 1 or 0)');
+                    throw InvalidValue::for('QR module', get_debug_type($module))->withContext('QrCode::fromModules()')->within("(row $i, column $j)")->because('each module must be true or false (or 1 or 0)');
                 }
             }
         }
@@ -89,13 +89,13 @@ final class QrCode implements Styled
      * Encodes the same text again at another level. A code with dots or rounded modules stays at
      * Quartile or above. The level is a case or a string: L, M, Q or H, or low, medium, quartile or high.
      *
-     * @throws \LogicException for a code made from modules, which has no text to encode again
+     * @throws InvalidStructure for a code made from modules, which has no text to encode again
      * @throws InvalidValue for a string that is not a level
      */
     public function errorCorrection(ErrorCorrection|string $level): self
     {
         if ($this->value === null || $this->encoder === null) {
-            throw new \LogicException('A QR code made from modules has no text to encode again.');
+            throw new InvalidStructure('QrCode::errorCorrection() needs a code made with QrCode::make(); one made from modules has no text to encode again.');
         }
         $level = EnumValue::from(ErrorCorrection::class, $level, 'QrCode::errorCorrection()');
         if ($this->design !== null && self::needsQuartile($this->design->shape) && self::rank($level) < self::rank(ErrorCorrection::Quartile)) {
@@ -116,9 +116,7 @@ final class QrCode implements Styled
 
     public function quietZone(int $modules): self
     {
-        if ($modules < 0 || $modules > self::MAX_QUIET_ZONE) {
-            throw InvalidValue::for('quiet zone', (string) $modules)->withContext('QrCode::quietZone()')->because('must be between 0 and ' . self::MAX_QUIET_ZONE . ' modules');
-        }
+        Check::intRange($modules, 0, self::MAX_QUIET_ZONE, 'QrCode::quietZone()');
         $clone = clone $this;
         $clone->quietZone = $modules;
 

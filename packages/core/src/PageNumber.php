@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut;
 
-use Papercut\Concerns\{HasStyle};
+use Papercut\Concerns\HasStyle;
 use Papercut\Support\Utf8;
 
 final class PageNumber implements Styled

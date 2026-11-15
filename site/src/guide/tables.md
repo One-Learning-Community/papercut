@@ -73,7 +73,7 @@ In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single
 
 ## Spanning rows
 
-`rowspan` makes a cell reach down into the rows below it. Those rows leave a gap in the spanned column, so write only the cells that remain, just as in HTML. `colspan` and `rowspan` can be combined on one cell. A `rowspan` that runs past the end of its section, or a `colspan` that runs into a `rowspan` from above, is clamped, and the table warns once. A `colspan` is also clamped at column 1000, with one note, so a mistyped value can't make a table with millions of cells. In PHP, `TableCell::colsSpanned()` and `rowsSpanned()` return the spans.
+`rowspan` makes a cell reach down into the rows below it. Those rows leave a gap in the spanned column, so write only the cells that remain, just as in HTML. `colspan` and `rowspan` can be combined on one cell. A `rowspan` that runs past the end of its section, or a `colspan` that runs into a `rowspan` from above, is clamped, and the table warns once. A `colspan` is also clamped at column 1000, with one note in PDF, HTML and Word, so a mistyped value can't make a table with millions of cells. Word shows at most 63 columns in a table, so a table with more is noted in Word export. In PHP, `TableCell::colsSpanned()` and `rowsSpanned()` return the spans.
 
 ::: code-tabs#style
 @tab Blade

@@ -54,6 +54,9 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | Table cell `height` or `min-height` | the row's minimum height, so Word grows the row if its text needs more room; a fixed `height` is reported as ≈ |
 | `height` or `min-height` on a cell that spans rows | ≈ shared evenly among its rows |
 | A block link around several paragraphs | ≈ a link on each paragraph's text |
+| A border wider than 12pt, a font size above 1638pt | ≈ clamped to what Word takes |
+| A table with more than 63 columns, or a `colspan` past column 1000 | ≈ Word shows 63 columns at most; the span is clamped |
+| A row whose items cannot shrink and run past its box | ≈ the content runs past the edge, as in the PDF |
 | Corner radius on a box | ✗ left out |
 | Corner radius on a badge in a line of text | ≈ square corners |
 | List numbers below 1, or roman numerals above 3999 | ≈ typed as text, which Word does not renumber |

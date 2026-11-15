@@ -33,19 +33,23 @@ final class Table implements Styled
     public function columns(TrackList|string|Length|Percent|Fr|Auto ...$tracks): self
     {
         $clone = clone $this;
-        if (count($tracks) === 1 && $tracks[0] instanceof TrackList) {
-            $clone->trackList = $tracks[0];
-        } elseif (count($tracks) === 1 && is_string($tracks[0])) {
-            $clone->trackList = TrackList::parse($tracks[0]);
-        } else {
-            $typed = [];
-            foreach ($tracks as $t) {
-                if ($t instanceof TrackList || is_string($t)) {
-                    throw new \InvalidArgumentException('Pass one string/TrackList, or typed tracks.');
+        try {
+            if (count($tracks) === 1 && $tracks[0] instanceof TrackList) {
+                $clone->trackList = $tracks[0];
+            } elseif (count($tracks) === 1 && is_string($tracks[0])) {
+                $clone->trackList = TrackList::parse($tracks[0]);
+            } else {
+                $typed = [];
+                foreach ($tracks as $t) {
+                    if ($t instanceof TrackList || is_string($t)) {
+                        throw new \InvalidArgumentException('Pass one string/TrackList, or typed tracks.');
+                    }
+                    $typed[] = $t;
                 }
-                $typed[] = $t;
+                $clone->trackList = TrackList::of(...$typed);
             }
-            $clone->trackList = TrackList::of(...$typed);
+        } catch (InvalidValue $e) {
+            throw $e->withContext('Table::columns()');
         }
         return $clone;
     }

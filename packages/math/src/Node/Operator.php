@@ -19,15 +19,16 @@ use Papercut\Math\Utf8;
  */
 final class Operator extends Node
 {
+    public readonly string $char;
+
     /**
+     * Invalid UTF-8 in $char is replaced silently here; the Math builders also record a note.
+     *
      * @param ?bool $stretchy null reads the operator dictionary; false never stretches; true stretches
      * @param ?bool $largeop null reads the operator dictionary
      * @param ?bool $movablelimits null reads the operator dictionary
      * @param ?string $form prefix, infix or postfix when the source fixes it (mo form=); null infers it from the position
      */
-    public readonly string $char;
-
-    /** Invalid UTF-8 in $char is replaced silently here; the Math builders also record a note. */
     public function __construct(
         string $char,
         public readonly ?bool $stretchy = null,

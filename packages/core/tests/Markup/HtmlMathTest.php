@@ -254,10 +254,24 @@ final class HtmlMathTest extends TestCase
 
     public function test_wide_inline_formula_in_a_table_cell_overflows_instead_of_throwing(): void
     {
-        $wide = '<math><mrow>' . str_repeat('<mi>x</mi><mo>+</mo>', 60) . '<mi>y</mi></mrow></math>';
-        foreach (['<table><tr><td>' . $wide . '</td></tr></table>', '<table><tr><td>a <math><mi>x</mi> ' . str_repeat('<mi>q</mi>', 5) . '</td></tr></table>'] as $html) {
-            $pdf = Document::make(Page::a4()->body(Markup::html($html)))->toPdf(new PdfOptions(backend: new FakeBackend()));
-            self::assertNotSame('', $pdf);
+        set_error_handler(static function (int $no, string $msg, string $file, int $line): never {
+            throw new \ErrorException($msg, 0, $no, $file, $line);
+        });
+        try {
+            $wide = '<math><mrow>' . str_repeat('<mi>x</mi><mo>+</mo>', 60) . '<mi>y</mi></mrow></math>';
+            $unclosed = '<math><mrow>' . str_repeat('<mi>x</mi><mo>+</mo>', 60) . '<mi>y</mi>';
+            foreach (['closed' => $wide, 'unclosed' => $unclosed] as $name => $math) {
+                $notes = [];
+                $pdf = Document::make(Page::a4()->body(Markup::html('<table><tr><td>a ' . $math . '</td></tr></table>')))
+                    ->toPdf(new PdfOptions(backend: new FakeBackend(), onWarning: static function (string $m) use (&$notes): void {
+                        $notes[] = $m;
+                    }));
+                self::assertNotSame('', $pdf->bytes());
+                $wider = array_values(array_filter($notes, static fn (string $n): bool => str_contains($n, 'table content wider than its box')));
+                self::assertCount(1, $wider, $name . ': ' . implode("\n", $notes));
+            }
+        } finally {
+            restore_error_handler();
         }
     }
 }

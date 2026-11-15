@@ -11,7 +11,7 @@ use Papercut\Barcode\Bacon\BaconQrSvg;
 use Papercut\Barcode\ModuleRects;
 use Papercut\Exception\InvalidValue;
 use Papercut\Export\{Fidelity, HtmlOptions};
-use Papercut\Layout\{GridCell, TableGrid, WidthResolver};
+use Papercut\Layout\{GridCell, LayoutEngine, TableGrid, WidthResolver};
 use Papercut\Style\{ComputedStyle, Justify, ListMarker, StyleName, TextAlign};
 use Papercut\Math\Render\MathmlWriter;
 use Papercut\Text\FontStyle;
@@ -286,7 +286,7 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof ListNode => $this->list($node, $style, $parent, $at),
             $node instanceof ListItem => $this->listItem($node, $style, $parent, $at),
             $node instanceof Toc => $this->tocNav($node, $style, $parent, $at),
-            default => throw \Papercut\Layout\LayoutEngine::misplaced($node, $at->path()),
+            default => throw LayoutEngine::misplaced($node, $at->path()),
         };
         if ($inFlow) {
             $this->spaceInFlow($style, $start);
@@ -870,7 +870,7 @@ final class HtmlWriter implements TreeVisitor
     private function tableRow(TableRow $n, ComputedStyle $s, Visit $at): string
     {
         if (!$at->parent() instanceof Table) {
-            throw \Papercut\Layout\LayoutEngine::misplaced($n, $at->path());
+            throw LayoutEngine::misplaced($n, $at->path());
         }
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);

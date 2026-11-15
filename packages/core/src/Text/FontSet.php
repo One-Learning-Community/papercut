@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Text;
 
+use Papercut\Exception\FontNotFound;
 use Papercut\Math\Math;
 
 /** Format-neutral font configuration: extra faces on top of the bundled Inter and Cousine, and glyph fallback families. */
@@ -141,7 +142,7 @@ final readonly class FontSet
             return null;
         }
         if ($chosen->path === '' || !is_file($chosen->path) || !is_readable($chosen->path)) {
-            throw new \Papercut\Exception\FontNotFound('Font file not found: ' . $chosen->path);
+            throw new FontNotFound('Font file not found: ' . $chosen->path);
         }
 
         return FontInfo::read($chosen->path);

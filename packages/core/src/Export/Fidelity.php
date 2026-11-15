@@ -31,11 +31,6 @@ final class Fidelity
         $this->messageOnly = $reflection !== null && $reflection->getNumberOfParameters() === 1 && !$reflection->isVariadic();
     }
 
-    public function format(): string
-    {
-        return $this->format;
-    }
-
     public function approximated(string $feature, string $path): void
     {
         $this->record(new FidelityReport(FidelityLevel::Approximated, $this->format, $feature, $path));

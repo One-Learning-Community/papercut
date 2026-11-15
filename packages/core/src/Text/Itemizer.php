@@ -325,7 +325,9 @@ final class Itemizer
                 return $candidate;
             }
         }
-        if (str_contains($run, "\u{FFFD}")) { // a whole label (a badge) can arrive here with letters around it
+        // A whole label (a badge) can arrive here with letters around it. A badge is one run, so its whole label then
+        // draws in STIX Two Math, not just the replacement character; accepted (ruling R1).
+        if (str_contains($run, "\u{FFFD}")) {
             $replacement = $this->fonts->replacementFont();
             if ($replacement->covers($run)) {
                 return $replacement;

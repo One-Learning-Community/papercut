@@ -267,25 +267,11 @@ final class HtmlExporterTest extends TestCase
         self::assertSame('https://a.test/"><script>x</script>', $this->attr($this->one($html, '//a'), 'href'));
     }
 
-    public function test_disallowed_href_throws_like_pdf(): void
+    public function test_disallowed_span_href_throws_at_construction(): void
     {
-        foreach ([
-            Text::spans(new Span('x', href: 'javascript:alert(1)')),
-        ] as $node) {
-            $doc = Document::make(Page::a4()->body($node));
-            try {
-                $doc->toPdf();
-                self::fail('expected InvalidValue');
-            } catch (InvalidValue $pdfError) {
-                $pdf = $pdfError->getMessage();
-            }
-            try {
-                $doc->toHtml();
-                self::fail('expected InvalidValue');
-            } catch (InvalidValue $htmlError) {
-                self::assertSame($pdf, $htmlError->getMessage());
-            }
-        }
+        $this->expectException(InvalidValue::class);
+        $this->expectExceptionMessage('for Span');
+        new Span('x', href: 'javascript:alert(1)');
     }
 
     public function test_disallowed_block_link_throws_at_construction(): void
