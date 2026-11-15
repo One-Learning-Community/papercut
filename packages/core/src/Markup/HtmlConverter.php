@@ -1189,7 +1189,7 @@ final class HtmlConverter
             return $href;
         }
         $target = trim($target, " \t\n\r\f");
-        if (LinkPolicy::allowed($target)) {
+        if (LinkPolicy::allowed($target) && !LinkPolicy::hasControlCharacter($target)) {
             return $target;
         }
         $this->note(FidelityLevel::Dropped, 'markup link "' . self::shortened($target) . '" (unsupported link; link removed, content kept)');

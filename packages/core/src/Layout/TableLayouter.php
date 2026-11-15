@@ -128,6 +128,9 @@ final class TableLayouter implements Layouter
             if ($tableGrid->clampedRowspans !== []) {
                 $engine->context()->warn('Table cell rowspan runs past the last row; clamped');
             }
+            if ($tableGrid->clampedWide !== []) {
+                $engine->context()->warn('Table cell colspan runs past column ' . TableGrid::MAX_COLUMNS . '; clamped');
+            }
             if ($tableGrid->clampedColspans !== []) {
                 $engine->context()->warn('Table cell colspan runs into a rowspan from above; clamped');
             }

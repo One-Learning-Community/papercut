@@ -7,7 +7,7 @@ namespace Papercut;
 use Papercut\Concerns\{HasNotes, HasStyle};
 use Papercut\Exception\InvalidValue;
 use Papercut\Style\{Align, Direction, Justify, Style};
-use Papercut\Support\{EnumValue, Suggest};
+use Papercut\Support\{Check, EnumValue, Suggest};
 use Papercut\Value\{Color, ColumnRule, ColumnSpec, Length};
 
 final class View implements Styled, Annotated
@@ -234,6 +234,7 @@ final class View implements Styled, Annotated
 
     public function gap(Length $g): self
     {
+        Check::size($g, 'View::gap()');
         return $this->withStyle(new Style(gap: $g));
     }
 

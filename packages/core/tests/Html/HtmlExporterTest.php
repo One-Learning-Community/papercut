@@ -271,7 +271,6 @@ final class HtmlExporterTest extends TestCase
     {
         foreach ([
             Text::spans(new Span('x', href: 'javascript:alert(1)')),
-            Link::to('javascript:alert(1)', Text::make('x')),
         ] as $node) {
             $doc = Document::make(Page::a4()->body($node));
             try {
@@ -286,6 +285,17 @@ final class HtmlExporterTest extends TestCase
             } catch (InvalidValue $htmlError) {
                 self::assertSame($pdf, $htmlError->getMessage());
             }
+        }
+    }
+
+    public function test_disallowed_block_link_throws_at_construction(): void
+    {
+        try {
+            Link::to('javascript:alert(1)', Text::make('x'));
+            self::fail('expected InvalidValue');
+        } catch (InvalidValue $e) {
+            self::assertStringContainsString('javascript:alert(1)', $e->getMessage());
+            self::assertStringContainsString('only http, https, mailto, tel and #fragment', $e->getMessage());
         }
     }
 

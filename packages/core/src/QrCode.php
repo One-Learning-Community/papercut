@@ -27,6 +27,9 @@ final class QrCode implements Styled
     /** Modules of blank margin a scanner needs around the code. */
     public const int DEFAULT_QUIET_ZONE = 4;
 
+    /** The widest quiet zone accepted, in modules; the standard asks for 4. */
+    public const int MAX_QUIET_ZONE = 100;
+
     private ?QrDesign $design = null;
 
     /**
@@ -54,10 +57,10 @@ final class QrCode implements Styled
     }
 
     /**
-     * A grid you encoded yourself, rows top to bottom, truthy for dark modules.
+     * A grid you encoded yourself, rows top to bottom, true (or 1) for dark modules, false (or 0) for light ones.
      *
      * @param array<mixed> $modules checked here, since it usually comes from another library
-     * @throws InvalidValue when the grid is empty or not square
+     * @throws InvalidValue when the grid is empty or not square, or a module is not a bool, 0 or 1
      */
     public static function fromModules(array $modules): self
     {
@@ -71,6 +74,11 @@ final class QrCode implements Styled
         foreach ($modules as $i => $row) {
             if (!is_array($row) || count($row) !== $size || !array_is_list($row)) {
                 throw InvalidValue::for('QR modules', "row $i")->because("each row needs $size modules, to make a square");
+            }
+            foreach ($row as $j => $module) {
+                if (!is_bool($module) && $module !== 0 && $module !== 1) {
+                    throw InvalidValue::for('QR module', get_debug_type($module))->withContext("row $i, column $j")->because('each module must be true or false (or 1 or 0)');
+                }
             }
         }
         /** @var non-empty-list<non-empty-list<bool>> $modules */
@@ -101,10 +109,15 @@ final class QrCode implements Styled
         return $clone;
     }
 
+    protected function sizesNeedArea(): bool
+    {
+        return true;
+    }
+
     public function quietZone(int $modules): self
     {
-        if ($modules < 0) {
-            throw InvalidValue::for('quiet zone', (string) $modules)->because('it cannot be negative');
+        if ($modules < 0 || $modules > self::MAX_QUIET_ZONE) {
+            throw InvalidValue::for('quiet zone', (string) $modules)->withContext('QrCode::quietZone()')->because('must be between 0 and ' . self::MAX_QUIET_ZONE . ' modules');
         }
         $clone = clone $this;
         $clone->quietZone = $modules;

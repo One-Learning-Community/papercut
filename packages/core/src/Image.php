@@ -54,6 +54,11 @@ final class Image implements Styled
         return ['kind' => $kind, 'value' => $this->value];
     }
 
+    protected function sizesNeedArea(): bool
+    {
+        return true;
+    }
+
     public function debugName(): string
     {
         return 'image';

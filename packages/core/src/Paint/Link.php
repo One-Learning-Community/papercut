@@ -28,6 +28,12 @@ final readonly class Link implements Op
         $this->uri = ltrim($uri);
     }
 
+    /** Whether the URI has a control character (NUL, CR or LF), which no link can carry. */
+    public static function hasControlCharacter(string $uri): bool
+    {
+        return preg_match('/[\x00\r\n]/', $uri) === 1;
+    }
+
     /** http, https, mailto, tel or a #fragment, case-insensitive, ignoring leading whitespace. */
     public static function allowed(string $uri): bool
     {

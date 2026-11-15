@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut;
 
 use Papercut\Style\{Anchor, Style};
-use Papercut\Support\EnumValue;
+use Papercut\Support\{Check, EnumValue};
 use Papercut\Value\{Length, Percent};
 
 /**
@@ -46,7 +46,7 @@ final class Place implements Node
     public function width(Length|Percent|string $width): self
     {
         $clone = clone $this;
-        $clone->width = self::parse($width);
+        $clone->width = Check::size(self::parse($width, 'Place::width()'), 'Place::width()');
         return $clone;
     }
 
@@ -87,11 +87,14 @@ final class Place implements Node
         return 'place';
     }
 
-    private static function parse(Length|Percent|string $value): Length|Percent
+    private static function parse(Length|Percent|string $value, string $what = 'Place::at()'): Length|Percent
     {
-        if (!is_string($value)) {
-            return $value;
+        if (is_string($value)) {
+            $value = str_ends_with(trim($value), '%') ? Percent::parse($value) : Length::parse($value, relative: true);
         }
-        return str_ends_with(trim($value), '%') ? Percent::parse($value) : Length::parse($value);
+        if ($value instanceof Length) {
+            $value->absolute($what);
+        }
+        return $value;
     }
 }
