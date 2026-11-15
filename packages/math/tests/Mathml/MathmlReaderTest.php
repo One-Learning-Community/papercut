@@ -96,6 +96,15 @@ final class MathmlReaderTest extends TestCase
         self::assertInstanceOf(Identifier::class, $node);
     }
 
+    public function test_mfenced_less_than_greater_than_are_angle_brackets(): void
+    {
+        // MathType writes angle brackets as <mfenced open="&lt;" close="&gt;">.
+        $node = self::read('<math><mfenced open="&lt;" close="&gt;"><mi>x</mi></mfenced></math>');
+        self::assertInstanceOf(Fenced::class, $node);
+        self::assertSame('⟨', $node->open);
+        self::assertSame('⟩', $node->close);
+    }
+
     public function test_mfenced_with_separators(): void
     {
         $node = self::read('<math><mfenced open="[" close="]" separators="; ,"><mi>a</mi><mi>b</mi><mi>c</mi><mi>d</mi></mfenced></math>');
@@ -193,6 +202,15 @@ final class MathmlReaderTest extends TestCase
             $f = self::read('<math><mfrac linethickness="' . $t . '"><mi>a</mi><mi>b</mi></mfrac></math>');
             self::assertInstanceOf(Fraction::class, $f);
             self::assertTrue($f->bar, $t);
+        }
+    }
+
+    public function test_arrows_and_harpoons_are_accents(): void
+    {
+        foreach (['⇀', '↼', '←', '↔', "\u{20D1}", "\u{20D0}", "\u{20D6}", "\u{20E1}"] as $mark) {
+            $n = self::read('<math><mover><mrow><mi>A</mi><mi>B</mi></mrow><mo>' . $mark . '</mo></mover></math>');
+            self::assertInstanceOf(UnderOver::class, $n, $mark);
+            self::assertTrue($n->accent, $mark);
         }
     }
 
@@ -297,7 +315,7 @@ final class MathmlReaderTest extends TestCase
     #[DataProvider('selfClosing')]
     public function test_prefixed_self_closing_elements_keep_their_siblings(string $markup, bool $forceHtml): void
     {
-        // An &nbsp; entity is not XML, which sends the input down the HTML5 path; the mo it sits in is dropped.
+        // An &nbsp; entity is not XML, which sends the input down the HTML5 path; it becomes a Space in both forms.
         $tail = static fn (string $p): string => $forceHtml ? '<' . $p . 'mo>&nbsp;</' . $p . 'mo>' : '';
         $prefixed = '<mml:math xmlns:mml="http://www.w3.org/1998/Math/MathML">' . str_replace('P:', 'mml:', $markup) . $tail('mml:') . '</mml:math>';
         $plain = '<math>' . str_replace('P:', '', $markup) . $tail('') . '</math>';
@@ -356,8 +374,21 @@ final class MathmlReaderTest extends TestCase
 
     public function test_whitespace_only_mo_is_dropped(): void
     {
-        $node = self::read('<math><mi>a</mi><mo>&nbsp;</mo><mi>b</mi></math>');
+        foreach (['<mo> </mo>', '<mo></mo>', '<mo>&#x2062;</mo>', '<mo>&#x2061;</mo>'] as $mo) {
+            $node = self::read('<math><mi>a</mi>' . $mo . '<mi>b</mi></math>');
+            self::assertInstanceOf(Row::class, $node, $mo);
+            self::assertCount(2, $node->children, $mo);
+        }
+    }
+
+    public function test_no_break_space_mo_is_a_space(): void
+    {
+        $node = self::read('<math><mi>a</mi><mo>&nbsp;</mo><mi>b</mi><mo>&#xA0;&#xA0;</mo><mi>c</mi></math>');
         self::assertInstanceOf(Row::class, $node);
-        self::assertCount(2, $node->children);
+        self::assertCount(5, $node->children);
+        self::assertInstanceOf(Space::class, $node->children[1]);
+        self::assertEqualsWithDelta(0.25, $node->children[1]->em, 1e-9);
+        self::assertInstanceOf(Space::class, $node->children[3]);
+        self::assertEqualsWithDelta(0.5, $node->children[3]->em, 1e-9);
     }
 }

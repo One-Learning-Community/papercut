@@ -82,6 +82,9 @@ final class MathmlReader
         if (str_starts_with($s, "\u{FEFF}")) {
             $s = substr($s, 3);
         }
+        if (preg_match('/^\s*«/u', $s) === 1) {
+            $s = SafeXml::decode($s);
+        }
         $s = (string) preg_replace('/^\s*<\?xml[^>]*\?>/', '', $s);
         $s = (string) preg_replace('~<((?:[\w.-]+:)?annotation(?:-xml)?)\b(?:"[^"]*"|\'[^\']*\'|[^>"\'])*/>~i', '', $s);
         $s = (string) preg_replace('~<((?:[\w.-]+:)?annotation(?:-xml)?)\b[^>]*>.*?</\1\s*>~is', '', $s);
@@ -356,7 +359,12 @@ final class MathmlReader
 
     private function operator(\Dom\Element $e): ?Node
     {
-        $text = self::collapse((string) $e->textContent);
+        $raw = (string) $e->textContent;
+        $nbsp = preg_match_all('/\x{00A0}/u', $raw);
+        if ($nbsp > 0 && preg_match('/^[ \t\n\r\f\x{00A0}]*$/u', $raw) === 1) {
+            return new Space(0.25 * $nbsp);
+        }
+        $text = self::collapse($raw);
         if (preg_match('/^[\s\x{00A0}\x{2061}-\x{2064}]*$/u', $text) === 1) {
             return null;
         }
@@ -438,7 +446,10 @@ final class MathmlReader
             $nodes[] = $n;
         }
 
-        return new Fenced(trim((string) $open), trim((string) $close), self::row($nodes));
+        // MathType writes angle brackets as open="&lt;" close="&gt;".
+        $angle = static fn (string $c): string => ['<' => '⟨', '>' => '⟩'][$c] ?? $c;
+
+        return new Fenced($angle(trim((string) $open)), $angle(trim((string) $close)), self::row($nodes));
     }
 
     /**

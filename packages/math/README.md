@@ -22,12 +22,124 @@ $formula = Math::row('x =', Math::frac(
 ```
 
 Builder methods: `row`, `frac`, `sqrt`, `root(radicand, index)`, `sup`, `sub`, `subSup`, `fenced(open, close, ...)`
-and `text` (upright running text, for words such as `Math::text('mass')`).
+and `text` (upright running text, for words such as `Math::text('mass')`). The rest are listed under
+[More builder methods](#more-builder-methods).
 
 Strings are tokenized: letters are italic identifiers, digit runs are numbers, known function names (`sin`, `log`, ...)
 are upright, a leading minus is a prefix operator, whitespace is dropped (spacing comes from the operator dictionary),
 and Unicode script digits such as `²` stay attached to the letter before them. Use `−` or `-` for minus; `-` is mapped
 to U+2212.
+
+### More builder methods
+
+Large operators take their limits as optional arguments. `sum`, `product` and `bigOp(op, under, over)` put the limits
+above and below in display style (beside the symbol as scripts in text style); `integral` always keeps them beside it.
+
+```php
+$series = Math::row(Math::sum('n = 1', '∞'), Math::frac('1', Math::sup('n', '2')));
+$area = Math::row(Math::integral('0', '1'), 'x dx');
+```
+
+Parts above and below a base: `under`, `over` and `underOver(base, under, over)`. Accents are `accent(base, mark)` (the
+mark is a combining character such as U+0302), with `hat`, `tilde`, `vec` and `dot` for the common ones.
+
+```php
+$mean = Math::row(Math::overline('x'), '=', Math::frac(Math::sum('i', 'n'), 'n'));
+$unit = Math::hat('v');
+$arrow = Math::vec('F');
+```
+
+`overline` and `underline` draw a rule as wide as the base. `overbrace` and `underbrace` stretch a brace over or under
+the base, with an optional label on the far side of the brace.
+
+```php
+$total = Math::underbrace(Math::row('a + b + c'), 'three terms');
+```
+
+`binom(top, bottom)` is a binomial coefficient and `stack(top, bottom)` a fraction without a rule.
+
+```php
+$choose = Math::row(Math::binom('n', 'k'), '=', Math::frac('n!', Math::row('k!', Math::fenced('(', ')', 'n − k'), '!')));
+```
+
+`styled(text, variant)` sets text in a MathML `mathvariant`: `normal`, `bold`, `italic`, `bold-italic`,
+`double-struck`, `script`, `bold-script`, `fraktur`, `bold-fraktur`, `sans-serif`, `bold-sans-serif`,
+`sans-serif-italic`, `sans-serif-bold-italic` or `monospace`. An unknown variant or empty text throws
+`InvalidArgumentException`.
+
+```php
+$field = Math::row(Math::styled('R', 'double-struck'), '∋', Math::styled('x', 'bold'));
+```
+
+`space(em)` adds horizontal space of that many ems (negative pulls the next item back). `phantom(...)` takes the size of
+its content and draws nothing.
+
+```php
+$spaced = Math::row('a', Math::space(1.0), 'b', Math::phantom('c'));
+```
+
+## Reading MathML
+
+Formulas often arrive as MathML: from an equation editor, a Word export or a hand-written page. `Math::mathml()`
+reads it into the same node tree the builder makes, so it lays out and writes like any other formula.
+
+```php
+$formula = Math::mathml('<math display="block"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>');
+$box = Math::layout($formula);
+```
+
+`Math::mathml(string|\Dom\Element $input): Node` takes a string, or a `math` element from a document you have already
+parsed. When you also need to know whether the source asked for display style, or what was lost, use the reader
+directly:
+
+```php
+use Papercut\Math\Mathml\MathmlReader;
+
+$result = MathmlReader::read('<math display="block"><msqrt><mi>x</mi></msqrt></math>');
+$result->node;      // the formula
+$result->display;   // true for display="block", false otherwise
+$result->notes();   // list<MathNote>, see below
+```
+
+What a string may look like:
+
+- Well-formed XML is read as XML. Anything else is read with the HTML5 rules, so entities such as `&nbsp;` and
+  `&ApplyFunction;` work and the `math` element may sit inside other markup.
+- The `mml:` prefix that Word writes works, and so does no prefix.
+- Annotations, such as a TeX copy of the formula, are ignored.
+- The safeXml form that Wiris and MathType produce (`«math…«/math»`, with `«`, `»`, `¨`, `§` and a backtick standing
+  in for `<`, `>`, `"`, `&` and `'`) is accepted. Apps that find such text in their own content can use
+  `Papercut\Math\Mathml\SafeXml::decode($text)` to turn it into MathML and `SafeXml::find($text)` to locate each
+  `«math…«/math»` run (byte offset and length) in a larger text.
+
+A bare fragment without a `math` element (`<mi>x</mi><mo>+</mo><mn>1</mn>`) is read as if wrapped in one, and empty input gives an empty formula. The reader never throws.
+
+### What is approximated or dropped
+
+Not everything in MathML has a counterpart yet. The reader draws what it can and records a note for each kind of
+element it changed, once per element name in a formula (three `menclose` give one note). `Math::notes(Node $root): list<MathNote>` returns them in reading order (the same as
+`$result->notes()`).
+
+```php
+use Papercut\Math\Math;
+use Papercut\Math\NoteLevel;
+
+$formula = Math::mathml('<math><menclose notation="box"><mi>x</mi></menclose><mi>y</mi></math>');
+
+foreach (Math::notes($formula) as $note) {
+    echo $note->level === NoteLevel::Dropped ? 'dropped' : 'approximated', ': ', $note->element, ' - ', $note->reason, "\n";
+}
+```
+
+A `MathNote` has `level`, `element` (the MathML element name), `reason` (plain words) and `where` (the path to it in the
+formula).
+
+- `NoteLevel::Approximated`: the content is drawn, but not the way the source meant. This covers `mtable` (tables are
+  drawn as rows of cells for now, without alignment or lines), `menclose`, `mmultiscripts`, `maction` (its first
+  choice is drawn) and elements the reader does not know.
+- `NoteLevel::Dropped`: the content is not drawn. This covers images and other media inside the math (`img`, `svg`,
+  `video`, `mglyph` and the like), and content that an HTML tag pushed out of the `math` element: in HTML5 parsing a
+  stray tag such as `<p>` inside math ends it, and what follows is lost.
 
 ## Lay it out
 
