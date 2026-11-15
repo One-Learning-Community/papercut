@@ -41,6 +41,9 @@ final class MathTable
     /** @var array<int, int> glyph id => italics correction in font units */
     private array $italics = [];
 
+    /** @var array<int, int> glyph id => top accent attachment x in font units */
+    private array $topAccents = [];
+
     public int $minConnectorOverlap = 0;
 
     /** @var array<int, array{topRight: ?MathKern, topLeft: ?MathKern, bottomRight: ?MathKern, bottomLeft: ?MathKern}> */
@@ -87,6 +90,18 @@ final class MathTable
             }
         }
 
+        $accOff = $infoOff !== 0 ? $b->u16($infoOff + 2) : 0;
+        if ($accOff !== 0) {
+            $o = $infoOff + $accOff;
+            $covered = Coverage::read($b, $o + $b->u16($o));
+            $n = $b->u16($o + 2);
+            foreach ($covered as $i => $gid) {
+                if ($i < $n) {
+                    $this->topAccents[$gid] = $b->i16($o + 4 + $i * 4);
+                }
+            }
+        }
+
         $kernOff = $infoOff !== 0 ? $b->u16($infoOff + 6) : 0;
         if ($kernOff !== 0) {
             $k = $infoOff + $kernOff;
@@ -129,6 +144,12 @@ final class MathTable
     public function constant(string $name): int
     {
         return $this->constants[$name] ?? throw new \InvalidArgumentException("Unknown MATH constant $name");
+    }
+
+    /** Top accent attachment x in font units, or null when the glyph has none. */
+    public function topAccentAttachment(int $gid): ?int
+    {
+        return $this->topAccents[$gid] ?? null;
     }
 
     /** Italics correction in font units (0 when the glyph has none). */

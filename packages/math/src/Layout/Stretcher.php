@@ -7,8 +7,9 @@ namespace Papercut\Math\Layout;
 use Papercut\Math\Font\TrueTypeFont;
 
 /**
- * Picks a vertical size variant, or builds a GlyphAssembly, for a stretchy glyph.
- * Result is in font units, y up, with the glyph/assembly un-shifted; callers place it.
+ * Picks a size variant, or builds a GlyphAssembly, for a stretchy glyph, vertically (fences, radicals) or
+ * horizontally (accents, arrows, braces).
+ * Results are in font units, y up, with the glyph/assembly un-shifted; callers place them.
  *
  * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
@@ -47,12 +48,82 @@ final class Stretcher
     }
 
     /**
+     * @return array{pieces: list<array{int,float}>, xmin: float, xmax: float, ascent: float, descent: float}
+     *         pieces: [gid, x origin offset in font units], left to right. xmin/xmax are always the ink extent of the
+     *         result along x, relative to the first piece's origin (a glyph's bbox x-range, or the min/max of the
+     *         pieces' bbox x-ranges at their offsets); ascent and descent are the ink extent above and below the
+     *         baseline. An assembly can come out wider than requested when the parts cannot overlap enough to shrink
+     *         to it, and shorter when the extenders add no length or the repetition ceiling is hit.
+     */
+    public static function horizontal(TrueTypeFont $font, int $gid, float $requiredUnits): array
+    {
+        $con = $font->math()->horizontal($gid);
+        $single = static function (int $g) use ($font): array {
+            $b = $font->bbox($g);
+
+            return ['pieces' => [[$g, 0.0]], 'xmin' => (float) $b[0], 'xmax' => (float) $b[2], 'ascent' => (float) $b[3], 'descent' => (float) -$b[1]];
+        };
+        // A combining accent has no advance of its own: its construction's first variant is the natural width.
+        $naturalWidth = $con !== null && $con->variants !== [] ? $con->variants[0][1] : $font->advance($gid);
+        if ($con === null || $naturalWidth >= $requiredUnits) {
+            return $single($gid);
+        }
+        foreach ($con->variants as [$vg, $adv]) {
+            if ($adv >= $requiredUnits) {
+                return $single($vg);
+            }
+        }
+        if ($con->parts === null || $con->parts === []) {
+            return $single($con->variants[count($con->variants) - 1][0] ?? $gid);
+        }
+        [$placed, $size] = self::solveParts($con->parts, $requiredUnits, $font->math()->minConnectorOverlap);
+        $pieces = [];
+        $ascent = 0.0;
+        $descent = 0.0;
+        $xmin = INF;
+        $xmax = -INF;
+        foreach ($placed as [$p, $x]) {
+            $gb = $font->bbox($p->gid);
+            $pieces[] = [$p->gid, $x];
+            $xmin = min($xmin, $x + $gb[0]);
+            $xmax = max($xmax, $x + $gb[2]);
+            $ascent = max($ascent, (float) $gb[3]);
+            $descent = max($descent, (float) -$gb[1]);
+        }
+
+        return ['pieces' => $pieces, 'xmin' => $xmin, 'xmax' => $xmax, 'ascent' => $ascent, 'descent' => $descent];
+    }
+
+    /**
      * @param list<\Papercut\Math\Font\AssemblyPart> $parts bottom to top
      * @return array{pieces: list<array{int,float}>, ymin: float, ymax: float, advance: float}
      */
     private static function assemble(TrueTypeFont $font, array $parts, float $required): array
     {
-        $overlap = (float) $font->math()->minConnectorOverlap;
+        [$placed, $size] = self::solveParts($parts, $required, $font->math()->minConnectorOverlap);
+        $pieces = [];
+        $adv = 0.0;
+        foreach ($placed as [$p, $y]) {
+            $gb = $font->bbox($p->gid);
+            $pieces[] = [$p->gid, $y - $gb[1]];
+            $adv = max($adv, (float) $font->advance($p->gid));
+        }
+
+        return ['pieces' => $pieces, 'ymin' => 0.0, 'ymax' => $size, 'advance' => $adv];
+    }
+
+    /**
+     * Axis-independent part-size solver: repeats extenders until the run is long enough, then spreads the surplus
+     * over the joints within each joint's connector limits. The total matches the requested size when the limits allow;
+     * it is longer when every joint is at its cap, and shorter when extenders add no length or the ceiling is hit.
+     *
+     * @param list<\Papercut\Math\Font\AssemblyPart> $parts in reading order along the axis
+     * @return array{0: list<array{0: \Papercut\Math\Font\AssemblyPart, 1: float}>, 1: float} parts with their start
+     *         positions along the axis, and the total size
+     */
+    private static function solveParts(array $parts, float $required, int $minOverlap): array
+    {
+        $overlap = (float) $minOverlap;
         $extCount = count(array_filter($parts, fn ($p) => $p->extender));
         $baseSum = 0.0;
         $extSum = 0.0;
@@ -65,11 +136,15 @@ final class Stretcher
                 $fixed++;
             }
         }
+        // Fewest extender repetitions whose fully stretched (minimum overlap) run reaches the requested size. The
+        // ceiling only guards absurd requests; a stretch needing more repetitions comes out shorter than required. So
+        // does one whose extenders add no length (fullAdvance <= minimum overlap, gain <= 0): n stays 1, silently.
         $n = 1;
-        do {
-            $count = $fixed + $n * $extCount;
-            $total = $baseSum + $n * $extSum - ($count - 1) * $overlap;
-        } while ($total < $required && $extCount > 0 && ++$n < 200);
+        $gain = $extSum - $extCount * $overlap;
+        $base = $baseSum - ($fixed + $extCount - 1) * $overlap;
+        if ($extCount > 0 && $gain > 0 && $base + $gain < $required) {
+            $n = min(10000, (int) ceil(($required - $base) / $gain));
+        }
 
         $seq = [];
         foreach ($parts as $p) {
@@ -79,22 +154,39 @@ final class Stretcher
         }
         $count = count($seq);
         $sum = $baseSum + $n * $extSum;
-        // Spread the surplus over the joints so the result is exactly the requested size.
-        $o = $count > 1 ? ($sum - $required) / ($count - 1) : 0.0;
-        $o = max($o, $overlap);
-        $pieces = [];
-        $y = 0.0;
-        $adv = 0.0;
+        // Each joint may overlap by at most the smaller of the two connectors that meet there (and at least the
+        // font's minimum). Spread the surplus evenly over the joints within those limits, so the result matches the
+        // requested size; if every joint is at its limit and the run is still too long, it stays longer than required.
+        $caps = [];
+        for ($i = 1; $i < $count; $i++) {
+            $caps[$i] = max($overlap, (float) min($seq[$i - 1]->endConnector, $seq[$i]->startConnector));
+        }
+        $target = $sum - $required;
+        $lo = $overlap;
+        $hi = $caps === [] ? $overlap : max($caps);
+        for ($it = 0; $it < 60; $it++) {
+            $mid = ($lo + $hi) / 2;
+            $tot = 0.0;
+            foreach ($caps as $cap) {
+                $tot += min($mid, $cap);
+            }
+            if ($tot < $target) {
+                $lo = $mid;
+            } else {
+                $hi = $mid;
+            }
+        }
+        $o = $hi;
+        $placed = [];
+        $pos = 0.0;
         foreach ($seq as $i => $p) {
             if ($i > 0) {
-                $y -= $o;
+                $pos -= min($o, $caps[$i]);
             }
-            $gb = $font->bbox($p->gid);
-            $pieces[] = [$p->gid, $y - $gb[1]];
-            $y += $p->fullAdvance;
-            $adv = max($adv, (float) $font->advance($p->gid));
+            $placed[] = [$p, $pos];
+            $pos += $p->fullAdvance;
         }
 
-        return ['pieces' => $pieces, 'ymin' => 0.0, 'ymax' => $y, 'advance' => $adv];
+        return [$placed, $pos];
     }
 }
