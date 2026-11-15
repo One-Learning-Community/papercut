@@ -18,6 +18,7 @@ use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
 use Papercut\Math\Node\UnderOver;
+use Papercut\Math\OperatorDictionary;
 use Papercut\Math\Styles;
 
 /**
@@ -86,7 +87,7 @@ final class OmmlWriter
             $n instanceof UnderOver => self::underOver($n, $rPr),
             $n instanceof Fenced => '<m:d><m:dPr><m:begChr m:val="' . Xml::text($n->open) . '"/><m:endChr m:val="' . Xml::text($n->close) . '"/></m:dPr><m:e>'
                 . self::node($n->content, $rPr) . '</m:e></m:d>',
-            $n instanceof Row => implode('', array_map(fn (Node $c) => self::node($c, $rPr), $n->children)),
+            $n instanceof Row => self::sequence($n->children, $rPr),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content, $rPr),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
@@ -133,6 +134,10 @@ final class OmmlWriter
 
     private static function scripts(Scripts $s, string $rPr): string
     {
+        $nary = self::nary($s);
+        if ($nary !== null) {
+            return self::naryXml($nary, null, $rPr);
+        }
         $e = '<m:e>' . self::node($s->base, $rPr) . '</m:e>';
         $sub = $s->sub === null ? '' : '<m:sub>' . self::node($s->sub, $rPr) . '</m:sub>';
         $sup = $s->sup === null ? '' : '<m:sup>' . self::node($s->sup, $rPr) . '</m:sup>';
@@ -146,18 +151,117 @@ final class OmmlWriter
         return '<' . $tag . '>' . $e . $sub . $sup . '</' . $tag . '>';
     }
 
-    /** A plain limit stack; Word's accent, bar and brace structures are not used yet. */
-    private static function underOver(UnderOver $u, string $rPr): string
+    /**
+     * Children side by side. A large operator with limits takes the next child as its body, as Word's n-ary does
+     * (skipping spaces, which stay in the body ahead of it), unless that child is an operator (then the body is empty).
+     * A body that is itself an n-ary takes its own body in turn.
+     *
+     * @param list<Node> $children
+     */
+    private static function sequence(array $children, string $rPr): string
     {
-        $out = self::node($u->base, $rPr);
-        if ($u->over !== null) {
-            $out = '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . self::node($u->over, $rPr) . '</m:lim></m:limUpp>';
-        }
-        if ($u->under !== null) {
-            $out = '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . self::node($u->under, $rPr) . '</m:lim></m:limLow>';
+        $out = '';
+        $i = 0;
+        $count = count($children);
+        while ($i < $count) {
+            $out .= self::item($children, $i, $rPr);
         }
 
         return $out;
+    }
+
+    /** @param list<Node> $children */
+    private static function item(array $children, int &$i, string $rPr): string
+    {
+        $child = $children[$i++];
+        $nary = self::nary($child);
+        if ($nary === null) {
+            return self::node($child, $rPr);
+        }
+        $spaces = '';
+        $j = $i;
+        while (($children[$j] ?? null) instanceof Space) {
+            $spaces .= self::node($children[$j], $rPr);
+            $j++;
+        }
+        $next = $children[$j] ?? null;
+        if ($next === null || $next instanceof Operator) {
+            return self::naryXml($nary, null, $rPr);
+        }
+        $i = $j;
+
+        return self::naryXml($nary, $spaces . self::item($children, $i, $rPr), $rPr);
+    }
+
+    /**
+     * The parts of a large operator with limits: an UnderOver (limits above and below) or Scripts (beside it).
+     *
+     * @return ?array{Operator, ?Node, ?Node, bool} operator, lower limit, upper limit, whether they sit above and below
+     */
+    private static function nary(Node $n): ?array
+    {
+        if (! ($n instanceof UnderOver || $n instanceof Scripts)) {
+            return null;
+        }
+        $op = UnderOver::operatorOf($n->base);
+        if ($op === null || ! $op->isLargeop(OperatorDictionary::FORM_PREFIX)) {
+            return null;
+        }
+
+        return $n instanceof UnderOver ? [$op, $n->under, $n->over, true] : [$op, $n->sub, $n->sup, false];
+    }
+
+    /** @param array{Operator, ?Node, ?Node, bool} $nary */
+    private static function naryXml(array $nary, ?string $body, string $rPr): string
+    {
+        [$op, $sub, $sup, $stacked] = $nary;
+
+        return '<m:nary><m:naryPr><m:chr m:val="' . Xml::text($op->char) . '"/><m:limLoc m:val="' . ($stacked ? 'undOvr' : 'subSup') . '"/>'
+            . ($sub === null ? '<m:subHide m:val="1"/>' : '') . ($sup === null ? '<m:supHide m:val="1"/>' : '') . '</m:naryPr>'
+            . ($sub === null ? '<m:sub/>' : '<m:sub>' . self::node($sub, $rPr) . '</m:sub>')
+            . ($sup === null ? '<m:sup/>' : '<m:sup>' . self::node($sup, $rPr) . '</m:sup>')
+            . ($body === null ? '<m:e/>' : '<m:e>' . $body . '</m:e>')
+            . '</m:nary>';
+    }
+
+    /** Limits, accents, bars and braces: Word's own structures where it has one, a plain limit stack otherwise. */
+    private static function underOver(UnderOver $u, string $rPr): string
+    {
+        $nary = self::nary($u);
+        if ($nary !== null) {
+            return self::naryXml($nary, null, $rPr);
+        }
+        $out = self::node($u->base, $rPr);
+        if ($u->under !== null) {
+            $op = UnderOver::operatorOf($u->under);
+            $out = match (true) {
+                $op !== null && in_array($op->char, UnderOver::BARS, true) => self::bar($out, 'bot'),
+                $op !== null && UnderOver::isBrace($op, false) => self::groupChr($out, $op->char, 'bot', 'top'),
+                $op !== null && $u->accentUnder => self::groupChr($out, Styles::accentMark($op->char) ?? $op->char, 'bot', 'top'),
+                default => '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . self::node($u->under, $rPr) . '</m:lim></m:limLow>',
+            };
+        }
+        if ($u->over !== null) {
+            $op = UnderOver::operatorOf($u->over);
+            $out = match (true) {
+                $op !== null && in_array($op->char, UnderOver::BARS, true) => self::bar($out, 'top'),
+                $op !== null && $u->accent => '<m:acc><m:accPr><m:chr m:val="' . Xml::text(Styles::accentMark($op->char) ?? $op->char) . '"/></m:accPr><m:e>' . $out . '</m:e></m:acc>',
+                $op !== null && UnderOver::isBrace($op, true) => self::groupChr($out, $op->char, 'top', 'bot'),
+                default => '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . self::node($u->over, $rPr) . '</m:lim></m:limUpp>',
+            };
+        }
+
+        return $out;
+    }
+
+    private static function bar(string $e, string $pos): string
+    {
+        return '<m:bar><m:barPr><m:pos m:val="' . $pos . '"/></m:barPr><m:e>' . $e . '</m:e></m:bar>';
+    }
+
+    private static function groupChr(string $e, string $char, string $pos, string $vertJc): string
+    {
+        return '<m:groupChr><m:groupChrPr><m:chr m:val="' . Xml::text($char) . '"/><m:pos m:val="' . $pos . '"/><m:vertJc m:val="' . $vertJc . '"/></m:groupChrPr><m:e>' . $e . '</m:e></m:groupChr>';
     }
 
     /** Math italic code points back to the plain letter: Word italicises letters itself. */

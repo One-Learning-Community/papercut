@@ -82,15 +82,24 @@ final class MathmlWriter
     /**
      * @param string $form the form the layout used
      * @param string $inferred the form a browser infers from the position
+     * @param bool $stretched the layout stretches this operator (part of a stack), so it is not told to stay put
      */
-    private static function operator(Operator $o, string $form, string $inferred, bool $fence = false): string
+    private static function operator(Operator $o, string $form, string $inferred, bool $fence = false, bool $stretched = false): string
     {
         $attrs = $form !== $inferred ? ' form="' . $form . '"' : '';
         if ($fence) {
             $attrs .= ' stretchy="true"';
-        } elseif (OperatorDictionary::lookup($o->char, $form)['stretchy']) {
+        } elseif ($o->stretchy !== null) {
+            $attrs .= ' stretchy="' . ($o->stretchy ? 'true' : 'false') . '"';
+        } elseif (! $stretched && OperatorDictionary::lookup($o->char, $form)['stretchy']) {
             // Only Fenced delimiters stretch in the PDF, so keep the browser from stretching the others.
             $attrs .= ' stretchy="false"';
+        }
+        if ($o->largeop !== null) {
+            $attrs .= ' largeop="' . ($o->largeop ? 'true' : 'false') . '"';
+        }
+        if ($o->movablelimits !== null) {
+            $attrs .= ' movablelimits="' . ($o->movablelimits ? 'true' : 'false') . '"';
         }
 
         return '<mo' . $attrs . '>' . Xml::text($o->char) . '</mo>';
@@ -129,8 +138,23 @@ final class MathmlWriter
 
     private static function underOver(UnderOver $u): string
     {
-        $part = static fn (Node $n): string => $n instanceof Operator ? '<mo>' . Xml::text($n->char) . '</mo>' : self::node($n);
-        $base = self::node($u->base);
+        $part = static function (Node $n): string {
+            $op = UnderOver::operatorOf($n);
+
+            return $op !== null ? self::operator($op, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX, false, true) : self::node($n);
+        };
+        $baseOp = UnderOver::operatorOf($u->base);
+        if (UnderOver::isLimitName($u->base)) {
+            // Marked as an operator so a browser sets its limit beside it in inline style, as the PDF does.
+            $name = $u->base instanceof Row ? $u->base->children[0] : $u->base;
+            $base = '<mo movablelimits="true">' . Xml::text($name instanceof Identifier ? $name->name : '') . '</mo>';
+        } elseif ($baseOp !== null) {
+            $stretches = $baseOp->stretchy ?? OperatorDictionary::lookup($baseOp->char, OperatorDictionary::FORM_POSTFIX)['stretchy'];
+            $form = $baseOp->isLargeop(OperatorDictionary::FORM_PREFIX) ? OperatorDictionary::FORM_PREFIX : OperatorDictionary::FORM_INFIX;
+            $base = self::operator($baseOp, $form, OperatorDictionary::FORM_INFIX, false, $stretches);
+        } else {
+            $base = self::node($u->base);
+        }
         if ($u->under !== null && $u->over !== null) {
             return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under) . $part($u->over) . '</munderover>';
         }

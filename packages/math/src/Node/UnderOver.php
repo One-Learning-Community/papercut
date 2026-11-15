@@ -18,7 +18,12 @@ use Papercut\Math\OperatorDictionary;
  */
 final class UnderOver extends Node
 {
-    private const BARS = ['¯', '‾', '_'];
+    /** @internal The operators drawn as a rule rather than a glyph. */
+    public const BARS = ['¯', '‾', '_'];
+    /** @internal Braces drawn above their base. */
+    public const BRACES_OVER = ['⏞', '⎴'];
+    /** @internal Braces drawn below their base. */
+    public const BRACES_UNDER = ['⏟', '⎵'];
     private const LIMIT_NAMES = ['lim', 'max', 'min', 'sup', 'inf', 'det', 'gcd', 'Pr', 'liminf', 'limsup'];
 
     public function __construct(
@@ -62,8 +67,22 @@ final class UnderOver extends Node
         return $this->stack($c, $op);
     }
 
-    /** An upright function name whose limits move like a sum's: lim, max, min, ... */
-    private static function isLimitName(Node $n): bool
+    /**
+     * Whether a part is a stretched brace: a brace glyph (above or below) that is not told to stay unstretched.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function isBrace(?Operator $op, bool $over): bool
+    {
+        return $op !== null && $op->stretchy !== false && in_array($op->char, $over ? self::BRACES_OVER : self::BRACES_UNDER, true);
+    }
+
+    /**
+     * An upright function name whose limits move like a sum's: lim, max, min, ...
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function isLimitName(Node $n): bool
     {
         if ($n instanceof Row && count($n->children) === 1) {
             $n = $n->children[0];
@@ -72,8 +91,12 @@ final class UnderOver extends Node
         return $n instanceof Identifier && $n->upright && in_array($n->name, self::LIMIT_NAMES, true);
     }
 
-    /** The operator a node is: itself, or the only child of a Row. */
-    private static function operatorOf(?Node $n): ?Operator
+    /**
+     * The operator a node is: itself, or the only child of a Row.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function operatorOf(?Node $n): ?Operator
     {
         if ($n instanceof Row && count($n->children) === 1) {
             $n = $n->children[0];

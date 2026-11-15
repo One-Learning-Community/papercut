@@ -106,4 +106,23 @@ final class Styles
             default => $cp,
         };
     }
+
+    /** Accent marks (spacing, combining and arrow forms) and the combining character each stands for. */
+    private const ACCENTS = [
+        '^' => "\u{0302}", "\u{02C6}" => "\u{0302}", "\u{0302}" => "\u{0302}",
+        '~' => "\u{0303}", "\u{02DC}" => "\u{0303}", "\u{0303}" => "\u{0303}",
+        "\u{2192}" => "\u{20D7}", "\u{20D7}" => "\u{20D7}",
+        "\u{02D9}" => "\u{0307}", "\u{0307}" => "\u{0307}",
+        "\u{00A8}" => "\u{0308}", "\u{0308}" => "\u{0308}",
+        "\u{02C7}" => "\u{030C}", "\u{030C}" => "\u{030C}",
+        "\u{00B4}" => "\u{0301}", "\u{0301}" => "\u{0301}",
+        '`' => "\u{0300}", "\u{0300}" => "\u{0300}",
+        "\u{02D8}" => "\u{0306}", "\u{0306}" => "\u{0306}",
+    ];
+
+    /** The combining form of an accent mark (^ to U+0302, an arrow to U+20D7), or null for a mark that is not an accent. */
+    public static function accentMark(string $char): ?string
+    {
+        return self::ACCENTS[$char] ?? null;
+    }
 }

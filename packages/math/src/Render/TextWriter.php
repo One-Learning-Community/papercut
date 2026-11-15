@@ -93,8 +93,8 @@ final class TextWriter
                     default => $child->char,
                 };
             } else {
-                // A function name set apart from its operand: "sin x", not "sinx".
-                if ($prev instanceof Identifier && mb_strlen($prev->name) > 1) {
+                // A function name set apart from its operand: "sin x", not "sinx"; so is a body after limits.
+                if (($prev instanceof Identifier && mb_strlen($prev->name) > 1) || ($prev !== null && self::endsInLimits($prev))) {
                     $out .= ' ';
                 }
                 $out .= self::node($child);
@@ -161,14 +161,88 @@ final class TextWriter
         return $base . ($s->sub !== null ? self::script($s->sub, self::SUB, '_') : '') . ($s->sup !== null ? self::script($s->sup, self::SUP, '^') : '');
     }
 
-    /** An accent or bar follows its base; limits read like scripts. */
+    /**
+     * An accent or bar follows its base as a combining mark, a brace is dropped (its label reads as a limit), and other
+     * parts read as limits: `∑_(i=1)^n`.
+     */
     private static function underOver(UnderOver $u): string
     {
-        if ($u->accent || $u->accentUnder) {
-            return self::node($u->base) . ($u->over !== null ? self::node($u->over) : '') . ($u->under !== null ? self::node($u->under) : '');
+        $over = UnderOver::operatorOf($u->over);
+        $under = UnderOver::operatorOf($u->under);
+        $marks = '';
+        $braced = false;
+        $overPlain = $u->over;
+        $underPlain = $u->under;
+        if ($over !== null) {
+            $isBar = in_array($over->char, UnderOver::BARS, true);
+            if ($isBar || $u->accent) {
+                $marks .= $isBar ? "\u{0304}" : (Styles::accentMark($over->char) ?? $over->char);
+                $overPlain = null;
+            } elseif (UnderOver::isBrace($over, true)) {
+                $braced = true;
+                $overPlain = null;
+            }
+        }
+        if ($under !== null) {
+            $isBar = in_array($under->char, UnderOver::BARS, true);
+            if ($isBar || $u->accentUnder) {
+                $marks .= $isBar ? "\u{0332}" : (Styles::accentMark($under->char) ?? $under->char);
+                $underPlain = null;
+            } elseif (UnderOver::isBrace($under, false)) {
+                $braced = true;
+                $underPlain = null;
+            }
         }
 
-        return self::scripts(new Scripts($u->base, $u->under, $u->over));
+        $base = $braced ? self::wrap($u->base) : trim(self::node($u->base));
+        if ($marks !== '') {
+            $base = (mb_strlen($base) === 1 ? $base : '(' . $base . ')') . $marks;
+        }
+        if ($underPlain === null && $overPlain === null) {
+            return $base;
+        }
+        if ($marks === '' && ! $braced && ! self::atom($u->base) && UnderOver::operatorOf($u->base) === null) {
+            $base = '(' . $base . ')';
+        }
+
+        return $base . ($underPlain !== null ? self::limit($underPlain, '_') : '') . ($overPlain !== null ? self::limit($overPlain, '^') : '');
+    }
+
+    /** A limit as `_(i=1)` or `^n`: always the marked form, with the spaces of math dropped. */
+    private static function limit(Node $n, string $mark): string
+    {
+        $s = trim(self::node($n));
+        if (! self::hasText($n)) {
+            $s = str_replace(' ', '', $s);
+        }
+
+        return $mark . (self::atom($n) ? $s : '(' . $s . ')');
+    }
+
+    private static function hasText(Node $n): bool
+    {
+        return $n instanceof Text || array_any($n->children(), self::hasText(...));
+    }
+
+    /** True when the node ends in limits that read as text: a body after it needs a space. */
+    private static function endsInLimits(Node $n): bool
+    {
+        if ($n instanceof Scripts) {
+            $op = UnderOver::operatorOf($n->base);
+
+            return $op !== null && $op->isLargeop(OperatorDictionary::FORM_PREFIX);
+        }
+
+        if (! ($n instanceof UnderOver)) {
+            return false;
+        }
+        $limit = static function (?Node $part, bool $accent): bool {
+            $op = UnderOver::operatorOf($part);
+
+            return $part !== null && ! ($op !== null && ($accent || in_array($op->char, UnderOver::BARS, true) || UnderOver::isBrace($op, true) || UnderOver::isBrace($op, false)));
+        };
+
+        return $limit($n->under, $n->accentUnder) || $limit($n->over, $n->accent);
     }
 
     /** @param array<int|string, string> $map */

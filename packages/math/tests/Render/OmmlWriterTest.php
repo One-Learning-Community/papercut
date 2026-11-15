@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Papercut\Math\Tests\Render;
 
 use Papercut\Math\Math;
+use Papercut\Math\Node\Identifier;
+use Papercut\Math\Node\Node;
+use Papercut\Math\Node\Operator;
+use Papercut\Math\Node\UnderOver;
+use Papercut\Math\Styles;
 use Papercut\Math\Render\OmmlWriter;
 use Papercut\Math\Render\RunFormat;
 use Papercut\Math\Tests\Fixtures;
@@ -177,7 +182,7 @@ final class OmmlWriterTest extends TestCase
 
     public function test_math_italic_written_plain(): void
     {
-        $xml = OmmlWriter::oMath(new \Papercut\Math\Node\Identifier("\u{1D465}"));
+        $xml = OmmlWriter::oMath(new Identifier("\u{1D465}"));
         self::assertStringContainsString('>x</m:t>', $xml);
     }
 
@@ -212,5 +217,125 @@ final class OmmlWriterTest extends TestCase
         self::assertStringContainsString('<m:f><m:fPr><m:type m:val="noBar"/></m:fPr><m:num>', $w(Math::stack('n', 'k')));
         self::assertStringContainsString('<m:r><m:rPr><m:sty m:val="p"/></m:rPr>', $w(Math::styled('R', 'double-struck')));
         self::assertStringContainsString('<m:t xml:space="preserve">ℝ</m:t>', $w(Math::styled('R', 'double-struck')));
+    }
+
+    private static function oMath(Node $n): string
+    {
+        return preg_replace('/<w:rPr>.*?<\/w:rPr>/', '', OmmlWriter::oMath($n)) ?? '';
+    }
+
+    private static function mr(string $t, string $pr = ''): string
+    {
+        return '<m:r>' . $pr . '<m:t xml:space="preserve">' . $t . '</m:t></m:r>';
+    }
+
+    public function test_sum_takes_the_next_sibling_as_its_body(): void
+    {
+        $xml = self::oMath(Math::row(Math::sum('i', 'n'), Math::sup('i', '2')));
+        $expected = '<m:oMath><m:nary><m:naryPr><m:chr m:val="∑"/><m:limLoc m:val="undOvr"/></m:naryPr>'
+            . '<m:sub>' . self::mr('i') . '</m:sub><m:sup>' . self::mr('n') . '</m:sup>'
+            . '<m:e><m:sSup><m:e>' . self::mr('i') . '</m:e><m:sup>' . self::mr('2') . '</m:sup></m:sSup></m:e></m:nary></m:oMath>';
+        self::assertSame($expected, $xml);
+        self::assertSame(1, substr_count($xml, '<m:sSup>'));
+    }
+
+    public function test_sum_before_an_operator_has_an_empty_body(): void
+    {
+        $xml = self::oMath(Math::row(Math::sum('i', 'n'), '+', 'x'));
+        self::assertStringContainsString('</m:sup><m:e/></m:nary>' . self::mr('+') . self::mr('x'), $xml);
+        self::assertStringContainsString('<m:e/></m:nary>', self::oMath(Math::row('x', Math::sum('i', 'n'))));
+    }
+
+    public function test_integral_puts_limits_beside_it(): void
+    {
+        $xml = self::oMath(Math::row(Math::integral('0', '1'), 'x'));
+        self::assertStringContainsString('<m:naryPr><m:chr m:val="∫"/><m:limLoc m:val="subSup"/></m:naryPr><m:sub>' . self::mr('0') . '</m:sub><m:sup>' . self::mr('1') . '</m:sup><m:e>' . self::mr('x') . '</m:e>', $xml);
+    }
+
+    public function test_missing_limit_is_hidden(): void
+    {
+        $xml = self::oMath(Math::row(Math::sum('i = 1'), 'x'));
+        self::assertStringContainsString('<m:limLoc m:val="undOvr"/><m:supHide m:val="1"/></m:naryPr><m:sub>', $xml);
+        self::assertStringContainsString('</m:sub><m:sup/><m:e>', $xml);
+        $over = self::oMath(Math::row(Math::sum(null, 'n'), 'x'));
+        self::assertStringContainsString('<m:subHide m:val="1"/></m:naryPr><m:sub/><m:sup>', $over);
+    }
+
+    public function test_large_operator_without_limits_is_a_plain_run(): void
+    {
+        self::assertSame('<m:oMath>' . self::mr('∑') . self::mr('x') . '</m:oMath>', self::oMath(Math::row(Math::sum(), 'x')));
+    }
+
+    public function test_accents_use_the_combining_form(): void
+    {
+        self::assertSame('<m:oMath><m:acc><m:accPr><m:chr m:val="' . "\u{0302}" . '"/></m:accPr><m:e>' . self::mr('x') . '</m:e></m:acc></m:oMath>', self::oMath(Math::hat('x')));
+        self::assertStringContainsString('<m:chr m:val="' . "\u{20D7}" . '"/>', self::oMath(Math::accent('x', '→')));
+        self::assertStringContainsString('<m:chr m:val="‵"/>', self::oMath(Math::accent('x', '‵')));
+    }
+
+    public function test_bars(): void
+    {
+        self::assertSame('<m:oMath><m:bar><m:barPr><m:pos m:val="top"/></m:barPr><m:e>' . self::mr('x') . '</m:e></m:bar></m:oMath>', self::oMath(Math::overline('x')));
+        self::assertStringContainsString('<m:barPr><m:pos m:val="bot"/></m:barPr>', self::oMath(Math::underline('x')));
+    }
+
+    public function test_braces(): void
+    {
+        $xml = self::oMath(Math::underbrace('a', 'n'));
+        $expected = '<m:oMath><m:limLow><m:e><m:groupChr><m:groupChrPr><m:chr m:val="⏟"/><m:pos m:val="bot"/><m:vertJc m:val="top"/></m:groupChrPr><m:e>'
+            . self::mr('a') . '</m:e></m:groupChr></m:e><m:lim>' . self::mr('n') . '</m:lim></m:limLow></m:oMath>';
+        self::assertSame($expected, $xml);
+        self::assertStringContainsString('<m:groupChrPr><m:chr m:val="⏞"/><m:pos m:val="top"/><m:vertJc m:val="bot"/></m:groupChrPr>', self::oMath(Math::overbrace('a')));
+        self::assertStringNotContainsString('m:limUpp', self::oMath(Math::overbrace('a')));
+    }
+
+    public function test_other_stacks_are_limits(): void
+    {
+        self::assertSame('<m:oMath><m:limUpp><m:e>' . self::mr('=') . '</m:e><m:lim>' . self::mr('d') . '</m:lim></m:limUpp></m:oMath>', self::oMath(Math::over('=', 'd')));
+        self::assertSame('<m:oMath><m:limLow><m:e>' . self::mr('x') . '</m:e><m:lim>' . self::mr('y') . '</m:lim></m:limLow></m:oMath>', self::oMath(Math::under('x', 'y')));
+        self::assertStringContainsString('<m:limUpp><m:e><m:limLow>', self::oMath(Math::underOver('x', 'y', 'z')));
+    }
+
+    public function test_accent_table(): void
+    {
+        self::assertSame("\u{0302}", Styles::accentMark('^'));
+        self::assertSame("\u{0303}", Styles::accentMark("\u{02DC}"));
+        self::assertSame("\u{20D7}", Styles::accentMark('→'));
+        self::assertNull(Styles::accentMark('x'));
+        self::assertNull(Styles::accentMark("\u{00AF}"));
+    }
+
+    public function test_nested_nary_operators_nest_their_bodies(): void
+    {
+        $xml = self::oMath(Math::row(Math::sum('i', 'n'), Math::sum('j', 'm'), Math::sub('a', 'ij')));
+        self::assertSame(1, substr_count($xml, '<m:sSub>'));
+        self::assertSame(2, substr_count($xml, '<m:nary>'));
+        $inner = strpos($xml, '<m:e><m:nary>');
+        self::assertNotFalse($inner, 'the inner nary is the outer body');
+        self::assertGreaterThan(strpos($xml, '<m:sSub>'), strpos($xml, '</m:nary></m:e></m:nary>'));
+        self::assertStringContainsString('</m:sSub></m:e></m:nary></m:e></m:nary>', $xml);
+        $integrals = self::oMath(Math::row(Math::integral('0', '1'), Math::integral('0', '1'), 'f'));
+        self::assertStringContainsString(self::mr('f') . '</m:e></m:nary></m:e></m:nary>', $integrals);
+    }
+
+    public function test_space_after_an_nary_does_not_become_its_body(): void
+    {
+        $xml = self::oMath(Math::row(Math::integral('0', '1'), Math::space(1 / 6), 'f'));
+        self::assertSame(1, substr_count($xml, "\u{2009}"));
+        self::assertStringContainsString('<m:e>' . self::mr("\u{2009}") . self::mr('f') . '</m:e></m:nary>', $xml);
+        self::assertStringContainsString('<m:e/></m:nary>' . self::mr("\u{2009}"), self::oMath(Math::row(Math::integral('0', '1'), Math::space(1 / 6), '+')));
+    }
+
+    public function test_under_accent_is_a_group_character(): void
+    {
+        $xml = self::oMath(new UnderOver(Math::row('x'), new Operator("\u{0303}"), null, false, true));
+        self::assertSame('<m:oMath><m:groupChr><m:groupChrPr><m:chr m:val="' . "\u{0303}" . '"/><m:pos m:val="bot"/><m:vertJc m:val="top"/></m:groupChrPr><m:e>' . self::mr('x') . '</m:e></m:groupChr></m:oMath>', $xml);
+        self::assertStringNotContainsString('m:limLow', $xml);
+    }
+
+    public function test_unstretched_brace_is_a_plain_limit(): void
+    {
+        $xml = self::oMath(new UnderOver(Math::row('a'), null, new Operator('⏞', false)));
+        self::assertStringContainsString('<m:limUpp>', $xml);
     }
 }

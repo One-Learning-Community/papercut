@@ -6,6 +6,8 @@ namespace Papercut\Math\Tests\Render;
 
 use Papercut\Math\Math;
 use Papercut\Math\Node\Node;
+use Papercut\Math\Node\Operator;
+use Papercut\Math\Node\UnderOver;
 use Papercut\Math\Render\TextWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -42,5 +44,25 @@ final class TextWriterTest extends TestCase
     public function test_linear_text(Node $node, string $expected): void
     {
         $this->assertSame($expected, TextWriter::write($node));
+    }
+
+    public function test_limits_accents_and_bars(): void
+    {
+        self::assertSame('∑_(i=1)^n i²', TextWriter::write(Math::row(Math::sum('i = 1', 'n'), Math::sup('i', '2'))));
+        self::assertSame("x\u{0302}", TextWriter::write(Math::hat('x')));
+        self::assertSame("x\u{0304}", TextWriter::write(Math::overline('x')));
+        self::assertSame("x\u{0332}", TextWriter::write(Math::underline('x')));
+        self::assertSame("(xy)\u{0302}", TextWriter::write(Math::hat('xy')));
+        self::assertSame("a\u{20D7}", TextWriter::write(Math::vec('a')));
+        self::assertSame('lim_(x→0) sin x', TextWriter::write(Math::row(Math::under('lim', 'x → 0'), 'sin x')));
+        self::assertSame('(a + b)_n', TextWriter::write(Math::underbrace('a + b', 'n')));
+        self::assertSame('(a + b)', TextWriter::write(Math::overbrace('a + b')));
+        self::assertSame('∫₀¹ x', TextWriter::write(Math::row(Math::integral('0', '1'), 'x')));
+        self::assertSame('=_def', TextWriter::write(Math::under('=', Math::text('def'))));
+    }
+
+    public function test_unstretched_brace_reads_as_a_limit(): void
+    {
+        self::assertSame('a^(⏞)', TextWriter::write(new UnderOver(Math::row('a'), null, new Operator('⏞', false))));
     }
 }
