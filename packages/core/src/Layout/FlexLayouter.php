@@ -222,7 +222,8 @@ final class FlexLayouter implements Layouter
                 $specified === null => $intrinsic['min'],
                 default => min($specified, $engine->contentIntrinsic($child, $style, $i)['min']),
             };
-            $min = BoxGeometry::resolve($cs->minWidth, $width) ?? $auto;
+            $explicitMin = BoxGeometry::resolve($cs->minWidth, $width);
+            $min = $explicitMin ?? $auto;
             $max = BoxGeometry::resolve($cs->maxWidth, $width) ?? \INF;
             $items[] = [
                 'node' => $child,
@@ -233,7 +234,58 @@ final class FlexLayouter implements Layouter
                 'min' => $min,
                 'max' => $max,
                 'margin' => $cs->margin->horizontal(),
+                'auto' => $explicitMin === null,
             ];
+        }
+        return self::fitMinimums($items, $style, $width);
+    }
+
+    /**
+     * Content minimums that together exceed the line are shared out proportionally, so each child then meets the
+     * space it really has (a table narrows with its note, text breaks inside words, a picture scales) instead of
+     * running off the page. A wrapping row only needs each item to fit a line of its own.
+     *
+     * @param list<array{node: Node, style: ComputedStyle, index: int, base: float, hyp: float, min: float, max: float, margin: float, auto?: bool}> $items
+     * @return list<array{node: Node, style: ComputedStyle, index: int, base: float, hyp: float, min: float, max: float, margin: float}>
+     */
+    private static function fitMinimums(array $items, ComputedStyle $style, float $width): array
+    {
+        $n = count($items);
+        if ($n === 0) {
+            return $items;
+        }
+        $fixed = 0.0;
+        $autoSum = 0.0;
+        foreach ($items as $item) {
+            $fixed += $item['margin'];
+            if ($item['auto'] ?? false) {
+                $autoSum += $item['min'];
+            } else {
+                $fixed += $item['min'];
+            }
+        }
+        if ($style->wrap) {
+            foreach ($items as $k => $item) {
+                $room = max(0.0, $width - $item['margin']);
+                if (($item['auto'] ?? false) && $item['min'] > $room + self::EPSILON) {
+                    $items[$k]['min'] = $room;
+                    $items[$k]['hyp'] = max($room, min($item['max'], $item['base']));
+                }
+            }
+        } else {
+            $room = $width - $style->gap * ($n - 1) - $fixed;
+            if ($autoSum > $room + self::EPSILON && $autoSum > self::EPSILON) {
+                $factor = max(0.0, $room) / $autoSum;
+                foreach ($items as $k => $item) {
+                    if ($item['auto'] ?? false) {
+                        $items[$k]['min'] = $item['min'] * $factor;
+                        $items[$k]['hyp'] = max($items[$k]['min'], min($item['max'], $item['base']));
+                    }
+                }
+            }
+        }
+        foreach ($items as $k => $item) {
+            unset($items[$k]['auto']);
         }
         return $items;
     }
