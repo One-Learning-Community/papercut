@@ -8,10 +8,15 @@ use Papercut\Backend\ImageFormat;
 use Papercut\Code\CodeHighlighting;
 use Papercut\Component;
 use Papercut\Decorator\{Blockquote, CodeBlock};
+use Papercut\Equation;
 use Papercut\Export\FidelityLevel;
 use Papercut\Image;
 use Papercut\Layout\TableGrid;
 use Papercut\Link;
+use Papercut\Math\Mathml\MathmlReader;
+use Papercut\Math\Mathml\MathmlResult;
+use Papercut\Math\Mathml\SafeXml;
+use Papercut\Math\Node\Row;
 use Papercut\ListItem;
 use Papercut\ListNode;
 use Papercut\Node;
@@ -175,13 +180,54 @@ final class HtmlConverter
                 $this->run->text($line, $style, $href, true, null);
             }
         } elseif ($node instanceof \Dom\Text) {
-            $this->run->text($node->data, $style, $href, false, $this->code > 0 && $this->pre === 0 ? 'code' : null);
+            $this->plainText($node->data, $style, $href, $preset);
         }
+    }
+
+    /** Text outside a pre: «math…«/math» runs (MathType's storage form) become formulas, the rest is text. */
+    private function plainText(string $data, Style $style, ?string $href, ?string $preset): void
+    {
+        $name = $this->code > 0 && $this->pre === 0 ? 'code' : null;
+        $runs = $this->code === 0 && str_contains($data, '«') ? SafeXml::find($data) : [];
+        $at = 0;
+        foreach ($runs as [$offset, $length]) {
+            if ($offset > $at) {
+                $this->run->text(substr($data, $at, $offset - $at), $style, $href, false, $name);
+            }
+            $this->math(MathmlReader::read(SafeXml::decode(substr($data, $offset, $length))), $style, $href, $preset);
+            $at = $offset + $length;
+        }
+        if ($at < strlen($data)) {
+            $this->run->text($at === 0 ? $data : substr($data, $at), $style, $href, false, $name);
+        }
+    }
+
+    /** An empty formula adds nothing; a display one is a block of its own, any other sits in the run. Reader notes are reported from the tree at export. */
+    private function math(MathmlResult $result, Style $style, ?string $href, ?string $preset): void
+    {
+        if (self::emptyMath($result)) {
+            return;
+        }
+        if ($result->display) {
+            $this->flush($preset);
+            $this->blocks[] = [Equation::of($result->node), false];
+            return;
+        }
+        $this->run->math($result->node, $style, $href);
+    }
+
+    private static function emptyMath(MathmlResult $result): bool
+    {
+        return $result->node instanceof Row && $result->node->children === [];
     }
 
     private function element(\Dom\Element $el, Style $style, ?string $href, ?string $preset): void
     {
         $tag = $el->localName;
+        if ($tag === 'math' || str_ends_with($tag, ':math')) {
+            $this->math(MathmlReader::read($el), $style, $href, $preset);
+            return;
+        }
         $css = $tag === 'br' || in_array($tag, self::REMOVED, true)
             ? null
             : $this->css($el, !in_array($tag, self::BLOCKS, true) && !in_array($tag, self::UNKNOWN_BLOCKS, true), $tag === 'ol' || $tag === 'ul', match ($tag) { 'table' => 'table', 'hr' => 'rule', default => null });
@@ -1026,6 +1072,14 @@ final class HtmlConverter
      */
     private function image(\Dom\Element $el, Style $style, ?string $href, ?string $preset, Style $own): void
     {
+        $mathml = $el->getAttribute('data-mathml') ?? '';
+        if ($mathml !== '' && in_array('Wirisformula', preg_split('/\s+/', $el->getAttribute('class') ?? '') ?: [], true)) {
+            $result = MathmlReader::read(str_contains($mathml, '«') ? SafeXml::decode($mathml) : $mathml);
+            if (!self::emptyMath($result)) {
+                $this->math($result, $style, $href, $preset);
+                return;
+            }
+        }
         $src = $el->getAttribute('src') ?? '';
         $bytes = $this->resolve($src);
         $this->flush($preset);

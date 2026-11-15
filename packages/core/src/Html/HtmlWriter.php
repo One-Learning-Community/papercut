@@ -574,6 +574,7 @@ final class HtmlWriter implements TreeVisitor
             // An inline equation: MathML inherits the paragraph's size and colour; a span's own are on a wrapper.
             $this->hasEquation = true;
             $body = (new MathmlWriter())->write($span->math, false);
+            $diff = array_intersect_key($diff, array_flip(['color', 'font-size', 'background-color']));
         }
         $code = StyleName::leads($span->styleName, 'code');
         if ($code) {

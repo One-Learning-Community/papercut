@@ -246,6 +246,19 @@ final class TextLayouterTest extends TestCase
         self::assertSame(14.0, $links[0]->height);
     }
 
+    public function test_no_decoration_under_an_inline_formula(): void
+    {
+        foreach (['underline', 'strike'] as $kind) {
+            $st = Style::make(...[$kind => true]);
+            $t = Text::spans(new Span('ab ', $st), new Span('', $st, math: \Papercut\Math\Math::frac('1', '2')), new Span(' cd', $st));
+            $ops = (new LayoutHarness())->layout($t, 400)->fragment?->ops() ?? [];
+            $lines = array_values(array_filter($ops, fn ($o) => $o instanceof LineOp));
+            self::assertCount(2, $lines, $kind);
+            self::assertLessThan($lines[1]->x1, $lines[0]->x2, $kind);
+            self::assertGreaterThan($lines[0]->x2, $lines[1]->x1, $kind);
+        }
+    }
+
     public function test_strike_and_minimum_decoration_width(): void
     {
         $t = Text::make('ab')->strike()->size(pt(5));
