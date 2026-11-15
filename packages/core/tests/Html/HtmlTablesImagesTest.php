@@ -497,25 +497,20 @@ final class HtmlTablesImagesTest extends TestCase
     public function test_truncated_png_and_jpeg_throw_like_pdf(): void
     {
         // Header-only PNG: getimagesizefromstring() (the old HTML gate) accepts it, PdfImage refuses it, so HTML must too.
-        // A 60% cut of a PNG or JPEG is accepted by PdfImage (pinned below), so there HTML and PDF both succeed.
+        // A 60% cut of a PNG or JPEG is refused too: the structural check rejects it before any decoder sees it.
         $png = TestImages::png(40, 20);
         $cases = [
-            'png header only' => [substr($png, 0, 33), true],
-            'png 60%' => [substr($png, 0, (int) (strlen($png) * 0.6)), false],
-            'jpeg 60%' => [substr(TestImages::jpeg(40, 20), 0, (int) (strlen(TestImages::jpeg(40, 20)) * 0.6)), false],
+            'png header only' => [substr($png, 0, 33)],
+            'png 60%' => [substr($png, 0, (int) (strlen($png) * 0.6))],
+            'jpeg 60%' => [substr(TestImages::jpeg(40, 20), 0, (int) (strlen(TestImages::jpeg(40, 20)) * 0.6))],
         ];
-        foreach ($cases as $name => [$bytes, $refused]) {
+        foreach ($cases as $name => [$bytes]) {
             $path = tempnam(sys_get_temp_dir(), 'pc') ?: throw new \RuntimeException('tmp');
             file_put_contents($path, $bytes);
             try {
                 foreach (['bytes' => Image::bytes($bytes), 'file' => Image::file($path)] as $form => $image) {
                     $doc = $this->body($image);
                     $label = $name . ' ' . $form;
-                    if (!$refused) {
-                        $doc->toPdf();
-                        self::assertStringContainsString('<img', $doc->toHtml()->bytes(), $label);
-                        continue;
-                    }
                     try {
                         $doc->toPdf();
                         self::fail($label . ': toPdf() did not throw');

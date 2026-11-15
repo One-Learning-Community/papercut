@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Markup;
 
-use Papercut\Backend\ImageFormat;
+use Papercut\Backend\{Backend, DefaultBackend, ImageFormat};
 use Papercut\Code\CodeHighlighting;
 use Papercut\Component;
 use Papercut\Decorator\{Blockquote, CodeBlock};
@@ -116,6 +116,8 @@ final class HtmlConverter
 
     /** @var array<string, string|null> the resolver's answer per trimmed src in this conversion, nulls included */
     private array $resolved = [];
+
+    private ?Backend $backend = null;
 
     private function __construct(private readonly MarkupOptions $options)
     {
@@ -1119,7 +1121,21 @@ final class HtmlConverter
             $bytes = null;
         }
 
-        return $this->resolved[$src] = is_string($bytes) && ImageFormat::sniff($bytes) !== null ? $bytes : null;
+        if (is_string($bytes) && ImageFormat::intact($bytes)) {
+            try {
+                // GD already decoded these in intact(); the rest still go through the PDF library's reader.
+                if (!ImageFormat::gdReads((string) ImageFormat::sniff($bytes))) {
+                    $this->backend ??= DefaultBackend::make(false);
+                    $this->backend->loadImageBytes($bytes);
+                }
+            } catch (\Throwable) {
+                $bytes = null; // a format the PDF library still refuses (fill bytes in a JPEG, say) is as good as missing
+            }
+        } else {
+            $bytes = null;
+        }
+
+        return $this->resolved[$src] = is_string($bytes) ? $bytes : null;
     }
 
     /** An iframe, video or audio becomes a paragraph linking to its `src`; its own content is not shown. */
