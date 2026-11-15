@@ -79,6 +79,10 @@ final class MathmlReader
      */
     private static function parse(string $s, ?MathNote &$lost = null): ?\Dom\Element
     {
+        // UTF-16 hides "<!DOCTYPE" from the byte checks below: decode it so they see the text.
+        if (str_starts_with($s, "\xFF\xFE") || str_starts_with($s, "\xFE\xFF")) {
+            $s = mb_convert_encoding(substr($s, 2), 'UTF-8', str_starts_with($s, "\xFF\xFE") ? 'UTF-16LE' : 'UTF-16BE');
+        }
         if (str_starts_with($s, "\u{FEFF}")) {
             $s = substr($s, 3);
         }
@@ -92,7 +96,8 @@ final class MathmlReader
         if (stripos($s, '<!DOCTYPE') === false && stripos($s, '<!ENTITY') === false) {
             try {
                 $xml = \Dom\XMLDocument::createFromString($s, LIBXML_NOERROR | LIBXML_NONET);
-                if ($xml->documentElement !== null && ($found = self::findMath($xml->documentElement, true)) !== null) {
+                // libxml sniffs UTF-16/32 itself, so a DTD can arrive past the byte checks above: any doctype means HTML path.
+                if ($xml->doctype === null && $xml->documentElement !== null && ($found = self::findMath($xml->documentElement, true)) !== null) {
                     return $found;
                 }
             } catch (\Throwable) {

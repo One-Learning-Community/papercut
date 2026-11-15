@@ -90,4 +90,46 @@ final class HardeningTest extends TestCase
         Math::layout($n);
         self::assertLessThan(0.2, microtime(true) - $t);
     }
+
+    /** @return iterable<string, array{string}> */
+    public static function utf16(): iterable
+    {
+        yield 'UTF-16LE' => ["\xFF\xFE"];
+        yield 'UTF-16BE' => ["\xFE\xFF"];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('utf16')]
+    public function test_utf16_mathml_with_an_entity_doctype_does_not_expand(string $bom): void
+    {
+        $xml = '<!DOCTYPE math [<!ENTITY boom "PCEXPANDED">]><math><mi>&boom;</mi></math>';
+        $input = $bom . mb_convert_encoding($xml, $bom === "\xFF\xFE" ? 'UTF-16LE' : 'UTF-16BE', 'UTF-8');
+
+        $node = Math::mathml($input);
+
+        self::assertStringNotContainsString('PCEXPANDED', (new MathmlWriter())->write($node));
+    }
+
+    public function test_utf16_mathml_without_a_doctype_still_reads(): void
+    {
+        $input = "\xFF\xFE" . mb_convert_encoding('<math><mi>x</mi></math>', 'UTF-16LE', 'UTF-8');
+
+        self::assertStringContainsString('x', (new MathmlWriter())->write(Math::mathml($input)));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function bomless(): iterable
+    {
+        yield 'UTF-16LE' => ['UTF-16LE'];
+        yield 'UTF-16BE' => ['UTF-16BE'];
+        yield 'UTF-32LE' => ['UTF-32LE'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('bomless')]
+    public function test_bomless_wide_mathml_with_an_xml_declaration_does_not_expand(string $encoding): void
+    {
+        $xml = '<?xml version="1.0"?><!DOCTYPE math [<!ENTITY boom "PCEXPANDED">]><math><mi>&boom;</mi></math>';
+        $node = Math::mathml(mb_convert_encoding($xml, $encoding, 'UTF-8'));
+
+        self::assertStringNotContainsString('PCEXPANDED', (new MathmlWriter())->write($node));
+    }
 }
