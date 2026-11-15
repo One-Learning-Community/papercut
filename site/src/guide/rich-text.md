@@ -104,7 +104,7 @@ In PHP, `Markup::flatten()` does the same thing and merges the converted content
 | `ol`, `ul`, `li` | a list, including `start` and `type` on `ol` and `value` on `li` |
 | `img` | an image, loaded by your resolver (see below) |
 | `figure`, `figcaption` | the content with its caption underneath |
-| `iframe`, `video`, `audio` | a paragraph linking to the source |
+| `iframe`, `video`, `audio` | a paragraph linking to the source; one whose `src` is missing, not a supported link or contains a control character is left out, with a note |
 | `blockquote` | a quotation, styled by the theme's blockquote decorator. A trailing `cite` or `footer` becomes its attribution |
 | `mark` | inline text with a highlight |
 | `pre` | a block in the `pre` style: monospace, with spaces, tabs and line breaks kept. `<pre><code>` gives one block. With `class="language-x"` (or `lang-x`, on the `code` or the `pre`) it becomes a [code block](/guide/text.md#code-blocks) with syntax highlighting; turn that off with `MarkupOptions(code: false)` |
