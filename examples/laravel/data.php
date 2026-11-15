@@ -213,6 +213,7 @@ $paperSections = [
     ]],
     ['3. Results', [
         'Survival rose with spacing, as Table 1 shows. Of the colonies kept 10 cm apart, 75 percent reached spring; at 40 cm, every one did. The gain came mostly from the second winter, which brought a week of hard frost in January.',
+        '@mean',
         '@weight-loss',
     ]],
     ['4. Discussion', [
@@ -227,6 +228,9 @@ $paperSections = [
 // Nodes for the formulas the paper's view places with <x-doc::equation> and <x-doc::math>.
 $paperLogit = \Papercut\Math\Math::row('ln', \Papercut\Math\Math::fenced('(', ')', \Papercut\Math\Math::frac('p', '1 - p')), '=', \Papercut\Math\Math::sub('β', '0'), '+', \Papercut\Math\Math::sub('β', '1'), 'd');
 $paperSlope = \Papercut\Math\Math::row(\Papercut\Math\Math::sub('β', '1'), '=', '−0.04');
+$paperMean = \Papercut\Math\Math::row(\Papercut\Math\Math::overline('d'), '=', \Papercut\Math\Math::sum('i = 1', '4'), \Papercut\Math\Math::sub('w', 'i'), \Papercut\Math\Math::sub('d', 'i'));
+// A sentence with a formula in MathML, as an equation editor saves it; <x-doc::markup> reads it.
+$paperOdds = '<p style="text-align: justify">Each further 10 cm multiplied the odds of survival by <math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mi>e</mi><mrow><mn>10</mn><msub><mi>β</mi><mn>1</mn></msub></mrow></msup></math>, so the effect compounds with distance.</p>';
 $paperSurvival = [['10 cm', '24', '75%'], ['20 cm', '24', '88%'], ['30 cm', '24', '96%'], ['40 cm', '24', '100%']];
 
 return [
@@ -276,6 +280,8 @@ return [
         'sections' => $paperSections,
         'logit' => $paperLogit,
         'slope' => $paperSlope,
+        'mean' => $paperMean,
+        'odds' => $paperOdds,
         'survival' => $paperSurvival,
     ],
     'certificate' => [

@@ -3,6 +3,18 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- MathML input. `Math::mathml($string)` reads MathML into the same formula the builder makes, from a string or a `Dom\Element`, with or without the `mml:` prefix and in MathType's `«math…«/math»` text form, and never throws. `Markup::html()` finds formulas in the HTML it converts: `<math display="block">` becomes an equation on its own line and any other `<math>` an inline one, Word's `<mml:math>` works, MathType and Wiris `<img class="Wirisformula" data-mathml>` images are read as formulas (the picture is ignored), and `«math…«/math»` runs in text become formulas (they stay literal inside `code` and `pre`). In Blade, a `math` string that starts with `<math`, `<mml:math` or `«math` is MathML. A formula takes its colour, size, background and link from the surrounding text. Content with no counterpart yet is reported through `onWarning` once per element name: `mtable` (drawn as rows of cells), `menclose`, `mmultiscripts`, `maction` and unknown elements (drawn as their contents) are approximated, and images or media inside a formula are dropped, which makes strict mode fail. `Math::notes($node)` returns the same notes as a list of `MathNote`. Tested against MathType/Wiris, Word-style `mml:`, MathLive, and CKEditor and TinyMCE output. See [Equations](https://one-learning-community.github.io/papercut/guide/equations.html#mathml-input).
+- Large operators with limits, accents and bars. `Math::sum()`, `product()` and `bigOp()` put limits below and above in display style (beside the symbol as scripts inline), `integral()` keeps them beside it, and `under()`, `over()` and `underOver()` place parts around a base. `accent()` with `hat()`, `tilde()`, `vec()` and `dot()` draw marks over a base, `overline()` and `underline()` draw rules, and `overbrace()` and `underbrace()` stretch a brace with an optional label. Word export writes `m:nary`, `m:acc`, `m:bar`, `m:groupChr`, `m:limLow` and `m:limUpp`.
+- More builder methods: `binom()` and `stack()` for binomial coefficients and rule-less fractions, `space()` and `phantom()` for spacing, and `styled()` for MathML `mathvariant` text such as double-struck and bold. `lim`, `max` and `min` with a limit under them put it below in display style and as a subscript inline.
+
+### Changed
+
+- Large operators in display style (`∑`, `∫`, `∏`) now draw at display size, so a block equation's sum or integral is larger than before.
+
 ## [0.12.0] - 2026-11-13
 
 ### Added

@@ -41,6 +41,39 @@ Math::row('f', Math::fenced('(', ')', 'x'), '=', Math::root('x', '3'));
 Math::row(Math::text('speed'), '=', Math::text('distance'), '/', Math::text('time'));
 ```
 
+### Limits, accents and bars
+
+Large operators take their limits as optional arguments. `Math::sum()` and `Math::product()` take the lower and upper limit; `Math::bigOp($operator, $under, $over)` does the same for any other operator. In a block equation the limits sit below and above the symbol; in a line of text they move beside it as scripts, so the line doesn't grow. `Math::integral()` always keeps its limits beside the symbol.
+
+```php
+Math::row(Math::sum('n = 1', '∞'), Math::frac('1', Math::sup('n', '2')));
+Math::row(Math::integral('0', '1'), 'x dx');
+```
+
+| Method | Builds |
+|---|---|
+| `Math::sum($under, $over)`, `Math::product($under, $over)`, `Math::integral($under, $over)` | A large operator with limits. Both limits are optional. |
+| `Math::bigOp($operator, $under, $over)` | The same for any operator character. |
+| `Math::under($base, $under)`, `Math::over($base, $over)`, `Math::underOver($base, $under, $over)` | Something below, above, or both above and below a base. |
+| `Math::accent($base, $mark)` | A mark over a base. `$mark` is a combining character such as U+0302. |
+| `Math::hat($base)`, `Math::tilde($base)`, `Math::vec($base)`, `Math::dot($base)` | The common accents. |
+| `Math::overline($base)`, `Math::underline($base)` | A rule as wide as the base. |
+| `Math::overbrace($base, $label)`, `Math::underbrace($base, $label)` | A brace stretched across the base, with an optional label on its far side. |
+| `Math::binom($top, $bottom)` | A binomial coefficient: two lines between parentheses. |
+| `Math::stack($top, $bottom)` | Two lines like a fraction, without the rule. |
+| `Math::space($em)` | Horizontal space of that many ems. A negative value pulls the next item back. |
+| `Math::phantom(...$content)` | Takes the size of its content and draws nothing. |
+| `Math::styled($text, $variant)` | Text in a MathML `mathvariant`, such as `bold` or `double-struck`. |
+
+```php
+Math::row(Math::overline('x'), '=', Math::frac(Math::sum('i', 'n'), 'n'));
+Math::underbrace(Math::row('a + b + c'), 'three terms');
+Math::row(Math::binom('n', 'k'), '=', Math::frac('n!', Math::row('k!', '(n − k)!')));
+Math::row(Math::styled('R', 'double-struck'), '∋', Math::styled('x', 'bold'));
+```
+
+`styled()` accepts `normal`, `bold`, `italic`, `bold-italic`, `double-struck`, `script`, `bold-script`, `fraktur`, `bold-fraktur`, `sans-serif`, `bold-sans-serif`, `sans-serif-italic`, `sans-serif-bold-italic` and `monospace`. An unknown variant, or empty text, throws `InvalidArgumentException`.
+
 ## A block equation
 
 `Equation::of(...$parts)` takes strings and nodes, in the same way as `Math::row()`. It sits on a line of its own, in display style: fractions and scripts are drawn large, and the equation takes the surrounding text's size and colour.
@@ -55,7 +88,7 @@ Math::row(Math::text('speed'), '=', Math::text('distance'), '/', Math::text('tim
 <x-doc::equation :math="$node" text-align="center" />
 ```
 
-`math` takes a string, or a node you built with `Math` in PHP and passed to the view.
+`math` takes a string, or a node you built with `Math` in PHP and passed to the view. A string that starts with `<math` is read as [MathML](#mathml-input) instead.
 
 ## An equation in a line of text
 
@@ -95,6 +128,66 @@ A string is split into pieces, one per symbol:
 - Two vertical bars `|` pair up as opening and closing, so `|x|` is an absolute value.
 - Unicode superscript and subscript digits such as `²` and `₂` still work, and are drawn as the characters they are. Use `Math::sup()` and `Math::sub()` when you want real scripts, which are sized and placed correctly.
 
+## MathML input
+
+Formulas often arrive as MathML: from an equation editor, a Word equation, a question bank or a hand-written page. Papercut reads it into the same formula the builder makes, so it is set, exported and edited like any other.
+
+There are three ways in.
+
+**Rich text.** [`Markup::html()`](./rich-text.md) finds formulas in the HTML it converts. A `<math display="block">` becomes an equation on its own line, in display style. Any other `<math>` is a formula inside the line, in text style. Word's `<mml:math>` prefix works too. MathType and Wiris are read in both of the ways they store a formula:
+
+- `<img class="Wirisformula" data-mathml="…">` is read as a formula, from the MathML in the `data-mathml` attribute. The picture itself is ignored.
+- The text form, `«math…«/math»`, is read as a formula wherever it appears in a text run. Inside `<code>` or `<pre>` it stays literal text.
+
+```php
+use Papercut\Markup\Markup;
+
+Markup::html('<p>The mean is <math><mover><mi>x</mi><mo>¯</mo></mover></math>.</p>
+    <math display="block"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>');
+```
+
+The formulas in the editors' output were tested against MathType and Wiris (markup captured from its own test suite), Word-style `mml:` markup, MathLive, and the output of CKEditor and TinyMCE with MathType. The MathLive, CKEditor, TinyMCE and Word cases are reproduced from the editors' documentation and source, not captured from a running editor.
+
+**In PHP.** `Math::mathml($string)` returns a node you can use anywhere a node goes: in `Equation::of()`, `Span::math()` or `Math::row()`. It takes a string or a `Dom\Element`, never throws, and reads MathML with or without the `mml:` prefix and in the Wiris text form.
+
+```php
+use Papercut\Equation;
+use Papercut\Math\Math;
+
+Equation::of(Math::mathml('<math><msqrt><mi>x</mi></msqrt></math>'))->center();
+```
+
+**In Blade.** A `math` string that starts with `<math`, `<mml:math` or `«math` is MathML:
+
+```blade
+<x-doc::equation math='<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>' />
+<x-doc::p>Half is <x-doc::math :math="$mathml" />.</x-doc::p>
+```
+
+A literal attribute is entity-decoded by Blade before Papercut sees it, so `&lt;` in MathML arrives as a bare `<`, which can change what the formula means. A formula with entities such as `&lt;`, `&amp;` or `&nbsp;` is safer passed bound, as `:math="$mathml"`. The string then reaches Papercut untouched.
+
+### What a formula takes from its text
+
+A formula read from MathML takes its colour, size, background and link from the text around it. It is never underlined, struck through, bold or italic because the text is: letters are math italic and digits upright, as in any other equation. The colour, size and background attributes in the MathML itself (`mathcolor`, `mathsize`, `mathbackground`) are ignored.
+
+### What is approximated or dropped
+
+Not all of MathML has a counterpart yet. The reader draws what it can and records a note, once per element name in a formula, so three `<menclose>` give one note.
+
+- **Approximated.** The content is drawn, but not as the source meant. Matrices and other tables (`<mtable>`) are drawn as rows of cells for now, without alignment or lines. `<menclose>`, `<mmultiscripts>`, `<maction>` and elements the reader doesn't know are drawn as their contents.
+- **Dropped.** The content is not drawn. This covers images and other media inside a formula, and content an HTML tag pushed out of a `<math>` element when the markup isn't well-formed XML.
+
+Notes reach the [`onWarning`](./rich-text.md#conversion-warnings) callback as the document is exported. A formula with approximated parts exports normally in strict mode. One with dropped parts makes strict mode fail, like any other content an output can't draw.
+
+```php
+use Papercut\Export\PdfOptions;
+
+$document->toPdf(new PdfOptions(onWarning: fn (string $message) => error_log($message)));
+// pdf: approximated math <menclose> (drawn as its contents) at …
+```
+
+To read the notes yourself, `Math::notes($node)` returns them as a list of `MathNote`, each with a `level`, the `element` name, a `reason` and where it was found. The `papercut/math` package's README describes the reader in full.
+
 ## The math font
 
 Equations are set in a math font. Papercut bundles STIX Two Math and uses it unless you say otherwise. To use another, point the font set at the file:
@@ -125,8 +218,5 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 
 These are not supported yet:
 
-- Big operators with limits above and below, such as `∑` and `∫` with bounds set as under and over scripts.
-- Accents and decorations over a symbol, such as a hat or a bar.
-- Matrices and other grids.
-- Reading MathML as input. This is planned for soon after 1.0.
+- Matrices and other grids drawn as grids. MathML tables are read as rows of cells.
 - Math fonts with CFF outlines.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 // Builds the academic paper Document: a full-width title block and abstract, a two-column body that ends level, and a full-width
 // closing note. examples/core/paper.php saves it as PDF, examples/html/render.php as HTML and examples/docx/render.php as Word.
 use Papercut\{Column, ColumnFlow, Document, Equation, Page, PageNumber, Row, Span, Spacer, Svg, Table, TableCell, TableRow, Text};
+use Papercut\Markup\Markup;
 use Papercut\Math\Math;
 use Papercut\Value\Edges;
 
@@ -30,6 +31,11 @@ $logitIntro = Text::spans(
     Span::math('d'),
     Span::text(', the model gives the log odds of survival as'),
 )->justify();
+// A sum with limits, then a sentence whose formula arrives as MathML, the way an equation editor saves it.
+$meanIntro = Text::p('The mean spacing, weighted by the share of colonies at each, was')->justify();
+$meanSpacing = Equation::of(Math::overline('d'), '=', Math::sum('i = 1', '4'), Math::sub('w', 'i'), Math::sub('d', 'i'))
+    ->center()->margin(Edges::of(pt(2), pt(0), pt(6), pt(0)));
+$oddsNote = Column::make(Markup::html('<p style="text-align: justify">Each further 10 cm multiplied the odds of survival by <math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mi>e</mi><mrow><mn>10</mn><msub><mi>β</mi><mn>1</mn></msub></mrow></msup></math>, so the effect compounds with distance.</p>'))->margin(Edges::of(pt(0), pt(0), pt(6), pt(0)));
 $weightLoss = Text::spans(
     Span::text('The weight lost over winter fell with spacing too: the fitted slope was '),
     Span::math(Math::sub('β', '1'), '=', '−0.04'),
@@ -53,6 +59,9 @@ $sections = [
     ]],
     ['3. Results', [
         'Survival rose with spacing, as Table 1 shows. Of the colonies kept 10 cm apart, 75 percent reached spring; at 40 cm, every one did. The gain came mostly from the second winter, which brought a week of hard frost in January.',
+        $meanIntro,
+        $meanSpacing,
+        $oddsNote,
         $weightLoss,
     ]],
     ['4. Discussion', [

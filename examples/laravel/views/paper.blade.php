@@ -32,6 +32,10 @@
                     @if ($paragraph === '@logit')
                         <x-doc::p align="justify">We compared survival with a logistic model that included site and year, and the weight lost with a linear model. For a colony at spacing <x-doc::math math="d" />, the model gives the log odds of survival as</x-doc::p>
                         <x-doc::equation :math="$logit" text-align="center" margin="2pt 0 6pt 0" />
+                    @elseif ($paragraph === '@mean')
+                        <x-doc::p align="justify">The mean spacing, weighted by the share of colonies at each, was</x-doc::p>
+                        <x-doc::equation :math="$mean" text-align="center" margin="2pt 0 6pt 0" />
+                        <x-doc::column margin="0 0 6pt 0"><x-doc::markup :html="$odds" /></x-doc::column>
                     @elseif ($paragraph === '@weight-loss')
                         <x-doc::p align="justify">The weight lost over winter fell with spacing too: the fitted slope was <x-doc::math :math="$slope" /> kg per cm, or about 0.4 kg for each further 10 cm. Colonies at wide spacing also began spring with more frames of bees. Figure 1 plots survival against spacing for both years together.</x-doc::p>
                     @else
