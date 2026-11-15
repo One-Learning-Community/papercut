@@ -7,6 +7,7 @@ namespace Papercut\Math;
 use Papercut\Math\Font\TrueTypeFont;
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
+use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
 use Papercut\Math\Node\Node;
@@ -87,6 +88,24 @@ final class Math
     public static function text(string $text): Text
     {
         return new Text($text);
+    }
+
+    /**
+     * The notes of every Fallback in the tree, depth first in reading order.
+     *
+     * @return list<MathNote>
+     */
+    public static function notes(Node $root): array
+    {
+        $notes = [];
+        if ($root instanceof Fallback) {
+            $notes[] = $root->note;
+        }
+        foreach ($root->children() as $child) {
+            array_push($notes, ...self::notes($child));
+        }
+
+        return $notes;
     }
 
     /**

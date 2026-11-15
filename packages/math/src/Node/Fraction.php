@@ -16,6 +16,16 @@ final class Fraction extends Node
     }
 
     /**
+     * @return list<Node>
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function children(): array
+    {
+        return [$this->numerator, $this->denominator];
+    }
+
+    /**
      * Horizontal padding on each side of the fraction, in points.
      *
      * @internal Engine detail, not part of papercut/math's public API.

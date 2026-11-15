@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Render;
 
+use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
 use Papercut\Math\Node\Identifier;
@@ -57,6 +58,7 @@ final class TextWriter
             $n instanceof Scripts => self::scripts($n),
             $n instanceof Fenced => $n->open . self::node($n->content) . $n->close,
             $n instanceof Row => self::row($n),
+            $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
     }
@@ -103,6 +105,7 @@ final class TextWriter
         return match (true) {
             $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Root, $n instanceof Scripts => true,
             $n instanceof Text => preg_match('/\s/u', $n->text) !== 1,
+            $n instanceof Fallback => $n->content !== null && self::atom($n->content),
             $n instanceof Row => count($n->children) === 1 && self::atom($n->children[0]),
             default => false,
         };

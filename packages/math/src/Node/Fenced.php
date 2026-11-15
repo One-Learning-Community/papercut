@@ -16,6 +16,16 @@ final class Fenced extends Node
     {
     }
 
+    /**
+     * @return list<Node>
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function children(): array
+    {
+        return [$this->content];
+    }
+
     /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {

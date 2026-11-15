@@ -17,6 +17,16 @@ final class Scripts extends Node
         }
     }
 
+    /**
+     * @return list<Node>
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function children(): array
+    {
+        return array_values(array_filter([$this->base, $this->sub, $this->sup]));
+    }
+
     /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {

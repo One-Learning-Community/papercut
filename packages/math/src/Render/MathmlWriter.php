@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Render;
 
+use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
 use Papercut\Math\Node\Identifier;
@@ -41,6 +42,7 @@ final class MathmlWriter
             $n instanceof Scripts => self::scripts($n),
             $n instanceof Fenced => self::fenced($n),
             $n instanceof Row => self::row($n),
+            $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
     }

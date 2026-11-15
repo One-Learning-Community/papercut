@@ -17,6 +17,16 @@ final class Root extends Node
     {
     }
 
+    /**
+     * @return list<Node>
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function children(): array
+    {
+        return $this->index === null ? [$this->radicand] : [$this->radicand, $this->index];
+    }
+
     /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {

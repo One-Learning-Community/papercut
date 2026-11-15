@@ -16,6 +16,16 @@ final class Row extends Node
     }
 
     /**
+     * @return list<Node>
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function children(): array
+    {
+        return $this->children;
+    }
+
+    /**
      * @return list<?string> operator form of each child (prefix, infix, postfix) or null for non-operators
      *
      * @internal Engine detail, not part of papercut/math's public API.
