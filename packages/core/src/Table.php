@@ -42,7 +42,7 @@ final class Table implements Styled
                 $typed = [];
                 foreach ($tracks as $t) {
                     if ($t instanceof TrackList || is_string($t)) {
-                        throw new \InvalidArgumentException('Pass one string/TrackList, or typed tracks.');
+                        throw InvalidValue::for('columns()', get_debug_type($t), 'one string or TrackList, or typed tracks, not a mix')->withContext('Table::columns()');
                     }
                     $typed[] = $t;
                 }

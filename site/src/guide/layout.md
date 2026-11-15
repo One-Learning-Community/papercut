@@ -61,7 +61,7 @@ When the children of a row need more room than the line has, even at their narro
 
 Every component accepts `width`, `height` and their `min-` and `max-` versions, plus `padding`, `margin`, `border`, `radius`, `background` and `opacity`. Padding and margin take one to four lengths in the same order as CSS: top, right, bottom, left.
 
-The setters check what you give them. NaN or infinity, and a negative width, height, minimum, maximum, basis, padding, gap, border width, radius or table column width, an `opacity` outside 0 to 1, and a negative `grow`, `shrink` or `Spacer::flex()`, an image or QR code size of 0 or less, a `lineHeight` or font `size` that is not above 0, and a negative `minLines` throw `InvalidValue` straight away, naming the method, the value and what is allowed. Zero is fine (except for an image or QR code size), and so are negative margins. In Blade the same checks apply to the attributes, and an attribute bound to `null` (`:width="$maybeNull"`) counts as not set.
+The setters check what you give them. NaN or infinity, and a negative width, height, minimum, maximum, basis, padding, gap, border width, radius or table column width, an `opacity` outside 0 to 1, and a negative `grow`, `shrink` or `Spacer::flex()`, an image or QR code size of 0 or less, a `lineHeight` or font `size` that is not above 0, and a negative `minLines` throw `InvalidValue` straight away, naming the method, the value and what is allowed. Zero is fine (except for an image or QR code size, a line height or a font size), and so are negative margins. In Blade the same checks apply to the attributes, and an attribute bound to `null` (`:width="$maybeNull"`) counts as not set.
 
 ```php
 use Papercut\{Column, Document, Page, Text};

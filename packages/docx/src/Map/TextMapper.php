@@ -63,7 +63,8 @@ final class TextMapper
             $spanBg = Fade::over($own->background, $s->opacity, $backdrop);
             $faded = $own->color === null ? $cs : new ComputedStyle(...[...get_object_vars($cs), 'color' => Fade::over($cs->color, $s->opacity, $spanBg ?? $backdrop) ?? $cs->color]);
             $rs = $this->runStyle($faded);
-            if ($cs->fontSize > Units::MAX_HALF_POINTS / 2) {
+            // Only a size the span sets itself: the text's own, and what it inherits, is noted where the style was set.
+            if ($cs->fontSize > Units::MAX_HALF_POINTS / 2 && $cs->fontSize !== $s->fontSize) {
                 $this->fidelity->approximated(Units::FONT_SIZE_CLAMPED, $at->path());
             }
             $bg = Units::fill($spanBg);
@@ -84,6 +85,9 @@ final class TextMapper
                     continue;
                 }
                 $run = BadgeRun::run($span->text, $rs, new ComputedStyle(...[...get_object_vars($cs), 'background' => $spanBg]), BadgeRun::widestBorder($cs));
+                if (max($cs->borderWidth->top->points, $cs->borderWidth->right->points, $cs->borderWidth->bottom->points, $cs->borderWidth->left->points) > Units::MAX_BORDER_EIGHTHS / 8) {
+                    $this->fidelity->approximated(Units::BORDER_CLAMPED, $at->path());
+                }
                 if ($cs->radius > 0.0) {
                     $this->fidelity->approximated('badge in a line', $at->path());
                 }

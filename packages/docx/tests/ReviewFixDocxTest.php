@@ -93,6 +93,20 @@ final class ReviewFixDocxTest extends TestCase
         self::assertSame(0, self::noteCount($fine, 'font size larger'));
     }
 
+    public function test_a_badge_border_wider_than_word_allows_is_noted_once(): void
+    {
+        $badge = new \Papercut\Span('tag', new \Papercut\Style\Style(borderWidth: \Papercut\Value\Edges::all(pt(20)), padding: \Papercut\Value\Edges::all(pt(2))));
+        [$bytes, $notes] = self::export(Document::make(Page::a4()->body(Text::spans($badge, new \Papercut\Span(' and '), $badge))));
+        self::assertSame(1, self::noteCount($notes, 'border wider than Word allows (12pt), clamped'), implode("\n", $notes));
+        OoxmlValidator::assertValid($bytes);
+    }
+
+    public function test_an_inherited_font_size_clamp_is_noted_once_at_the_node_that_set_it(): void
+    {
+        [, $notes] = self::export(Document::make(Page::a4()->body(Column::make(Text::make('a'), Text::make('b'))->size(pt(2000)))));
+        self::assertSame(1, self::noteCount($notes, 'font size larger than Word allows'), implode("\n", $notes));
+    }
+
     public function test_a_row_that_runs_past_the_edge_is_noted_like_the_pdf(): void
     {
         $row = Row::make(Text::make('a')->minWidth(pt(400)), Text::make('b')->minWidth(pt(400)));
