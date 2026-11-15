@@ -108,6 +108,13 @@ final class ExceptionMessagesTest extends TestCase
         $this->export(Document::make(Page::a4()->body(Column::make(Page::a4()))));
     }
 
+    public function test_a_page_in_a_view_is_invalid_structure_in_html_too(): void
+    {
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('Page cannot go here');
+        Document::make(Page::a4()->body(Column::make(Page::a4())))->toHtml();
+    }
+
     public function test_an_html_font_face_with_an_empty_path_is_font_not_found(): void
     {
         $fonts = new FontSet(faces: [new FontFace('Ghost', '')]);

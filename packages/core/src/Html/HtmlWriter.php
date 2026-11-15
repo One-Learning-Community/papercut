@@ -286,7 +286,7 @@ final class HtmlWriter implements TreeVisitor
             $node instanceof ListNode => $this->list($node, $style, $parent, $at),
             $node instanceof ListItem => $this->listItem($node, $style, $parent, $at),
             $node instanceof Toc => $this->tocNav($node, $style, $parent, $at),
-            default => throw new \LogicException('HTML export of ' . $node->debugName() . ' is not supported'),
+            default => throw \Papercut\Layout\LayoutEngine::misplaced($node, $at->path()),
         };
         if ($inFlow) {
             $this->spaceInFlow($style, $start);
