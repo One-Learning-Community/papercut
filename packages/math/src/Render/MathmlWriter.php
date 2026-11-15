@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Render;
 
+use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
@@ -48,6 +49,7 @@ final class MathmlWriter
             $n instanceof UnderOver => self::underOver($n),
             $n instanceof Fenced => self::fenced($n),
             $n instanceof Row => self::row($n),
+            $n instanceof DisplayStyle => '<mstyle displaystyle="' . ($n->display ? 'true' : 'false') . '">' . self::node($n->content) . '</mstyle>',
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };

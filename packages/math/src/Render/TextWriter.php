@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Render;
 
+use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
@@ -64,6 +65,7 @@ final class TextWriter
             $n instanceof Space => $n->em >= 0.15 ? ' ' : '',
             $n instanceof Phantom => '',
             $n instanceof Row => self::row($n),
+            $n instanceof DisplayStyle => self::node($n->content),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };

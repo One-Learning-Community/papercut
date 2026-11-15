@@ -7,6 +7,7 @@ namespace Papercut\Math;
 use Papercut\Math\Font\TrueTypeFont;
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
+use Papercut\Math\Mathml\MathmlReader;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
@@ -99,6 +100,12 @@ final class Math
         }
 
         return new Identifier(implode('', array_map(static fn (string $ch): string => mb_chr(Styles::variant(mb_ord($ch), $variant)), mb_str_split($text))), false);
+    }
+
+    /** A formula read from MathML (a string, or a `math` element of a parsed document). */
+    public static function mathml(string|\Dom\Element $input): Node
+    {
+        return MathmlReader::read($input)->node;
     }
 
     public static function sqrt(string|Node ...$content): Root

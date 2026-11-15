@@ -65,6 +65,12 @@ final readonly class Context
         return new self($this->font, $this->baseSize, $this->level + $by, false, true, $this->cramped || $cramped, $this->scriptAlternates, $this->fallbackAdvance);
     }
 
+    /** The same context in display or inline (text) style. */
+    public function withDisplay(bool $display): self
+    {
+        return new self($this->font, $this->baseSize, $this->level, $display, $this->tight, $this->cramped, $this->scriptAlternates, $this->fallbackAdvance);
+    }
+
     /** The same context in cramped style (radicands). */
     public function cramped(): self
     {

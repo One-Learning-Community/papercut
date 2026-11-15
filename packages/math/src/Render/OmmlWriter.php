@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Render;
 
+use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
@@ -88,6 +89,7 @@ final class OmmlWriter
             $n instanceof Fenced => '<m:d><m:dPr><m:begChr m:val="' . Xml::text($n->open) . '"/><m:endChr m:val="' . Xml::text($n->close) . '"/></m:dPr><m:e>'
                 . self::node($n->content, $rPr) . '</m:e></m:d>',
             $n instanceof Row => self::sequence($n->children, $rPr),
+            $n instanceof DisplayStyle => self::node($n->content, $rPr),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content, $rPr),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
