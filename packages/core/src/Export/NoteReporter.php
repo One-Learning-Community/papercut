@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Papercut\Export;
 
-use Papercut\{Annotated, Document, Node, Page};
+use Papercut\{Annotated, Document, Equation, Node, Page, Text};
+use Papercut\Markup\{MathNotes, Note};
 use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver};
 use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
 
@@ -27,15 +28,31 @@ final class NoteReporter implements TreeVisitor
     public function enter(Node $node, ComputedStyle $style, Visit $at): bool
     {
         if ($node instanceof Annotated) {
-            foreach ($node->notes() as $note) {
-                $path = $note->where === '' ? $at->path() : $at->path() . ' > ' . $note->where;
-                match ($note->level) {
-                    FidelityLevel::Approximated => $this->fidelity->approximated($note->feature, $path),
-                    FidelityLevel::Dropped => $this->fidelity->dropped($note->feature, $path),
-                };
+            $this->reportAll($node->notes(), $at);
+        }
+        if ($node instanceof Equation) {
+            $this->reportAll(MathNotes::of($node->math()), $at);
+        }
+        if ($node instanceof Text) {
+            foreach ($node->spanList() as $span) {
+                if ($span->math !== null) {
+                    $this->reportAll(MathNotes::of($span->math), $at);
+                }
             }
         }
         return true;
+    }
+
+    /** @param iterable<Note> $notes */
+    private function reportAll(iterable $notes, Visit $at): void
+    {
+        foreach ($notes as $note) {
+            $path = $note->where === '' ? $at->path() : $at->path() . ' > ' . $note->where;
+            match ($note->level) {
+                FidelityLevel::Approximated => $this->fidelity->approximated($note->feature, $path),
+                FidelityLevel::Dropped => $this->fidelity->dropped($note->feature, $path),
+            };
+        }
     }
 
     public function leave(Node $node, ComputedStyle $style, Visit $at): void
