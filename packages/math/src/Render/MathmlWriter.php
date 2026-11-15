@@ -119,10 +119,26 @@ final class MathmlWriter
             $resolved = $forms[$i];
             // What a browser infers from the position in the mrow: first prefix, last postfix, else infix.
             $inferred = $i === 0 ? OperatorDictionary::FORM_PREFIX : ($i === $count - 1 ? OperatorDictionary::FORM_POSTFIX : OperatorDictionary::FORM_INFIX);
-            $out .= $child instanceof Operator ? self::operator($child, $resolved ?? $inferred, $inferred) : self::node($child);
+            $op = Fallback::unwrap($child);
+            $out .= $op instanceof Operator ? self::styled($child, self::operator($op, $resolved ?? $inferred, $inferred)) : self::node($child);
         }
 
         return '<mrow>' . $out . '</mrow>';
+    }
+
+    /** An operator's markup inside the mstyle displaystyle wrappers its node was peeled out of. */
+    private static function styled(Node $node, string $xml): string
+    {
+        $displays = Fallback::displays($node);
+        $inner = Fallback::unwrap($node);
+        if ($inner instanceof Row && count($inner->children) === 1) {
+            $displays = [...$displays, ...Fallback::displays($inner->children[0])];
+        }
+        foreach (array_reverse($displays) as $display) {
+            $xml = '<mstyle displaystyle="' . ($display ? 'true' : 'false') . '">' . $xml . '</mstyle>';
+        }
+
+        return $xml;
     }
 
     private static function scripts(Scripts $s): string
@@ -143,7 +159,7 @@ final class MathmlWriter
         $part = static function (Node $n): string {
             $op = UnderOver::operatorOf($n);
 
-            return $op !== null ? self::operator($op, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX, false, true) : self::node($n);
+            return $op !== null ? self::styled($n, self::operator($op, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX, false, true)) : self::node($n);
         };
         $baseOp = UnderOver::operatorOf($u->base);
         if (UnderOver::isLimitName($u->base)) {
@@ -153,7 +169,7 @@ final class MathmlWriter
         } elseif ($baseOp !== null) {
             $stretches = $baseOp->stretchy ?? OperatorDictionary::lookup($baseOp->char, OperatorDictionary::FORM_POSTFIX)['stretchy'];
             $form = $baseOp->isLargeop(OperatorDictionary::FORM_PREFIX) ? OperatorDictionary::FORM_PREFIX : OperatorDictionary::FORM_INFIX;
-            $base = self::operator($baseOp, $form, OperatorDictionary::FORM_INFIX, false, $stretches);
+            $base = self::styled($u->base, self::operator($baseOp, $form, OperatorDictionary::FORM_INFIX, false, $stretches));
         } else {
             $base = self::node($u->base);
         }

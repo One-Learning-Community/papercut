@@ -43,8 +43,15 @@ final class MathmlReader
     /** Points per unit, for widths turned into em at 12pt. */
     private const UNIT_PT = ['pt' => 1.0, 'px' => 0.75, 'mm' => 72 / 25.4, 'cm' => 72 / 2.54, 'in' => 72.0];
 
+    /** Elements with no drawing: images, scripts of other languages, embedded objects. */
+    private const FOREIGN = ['img', 'svg', 'picture', 'video', 'audio', 'iframe', 'object', 'embed', 'canvas', 'mglyph'];
+
+    private const MAX_DEPTH = 256;
+
     /** @var array<string, true> element names already noted in this formula */
     private array $noted = [];
+
+    private int $depth = 0;
 
     private function __construct()
     {
@@ -53,19 +60,24 @@ final class MathmlReader
     public static function read(string|\Dom\Element $input): MathmlResult
     {
         $reader = new self();
-        $math = is_string($input) ? self::parse($input) : $input;
+        $lost = null;
+        $math = is_string($input) ? self::parse($input, $lost) : $input;
         if ($math === null) {
             return new MathmlResult(new Row([]), false);
         }
+        $node = $reader->map($math, self::name($math)) ?? new Row([]);
+        if ($lost !== null) {
+            $node = new Fallback($node, $lost);
+        }
 
-        return new MathmlResult($reader->map($math, self::name($math)) ?? new Row([]), strtolower(trim($math->getAttribute('display') ?? '')) === 'block');
+        return new MathmlResult($node, strtolower(trim($math->getAttribute('display') ?? '')) === 'block');
     }
 
     /**
      * Well-formed XML is read as XML (prefixed self-closing tags work); anything else goes through the HTML5 parser,
      * which resolves entities such as &ApplyFunction; but needs prefixed self-closing tags written out.
      */
-    private static function parse(string $s): ?\Dom\Element
+    private static function parse(string $s, ?MathNote &$lost = null): ?\Dom\Element
     {
         if (str_starts_with($s, "\u{FEFF}")) {
             $s = substr($s, 3);
@@ -85,13 +97,35 @@ final class MathmlReader
             }
         }
         $html = (string) preg_replace('~<([A-Za-z][\w.-]*:[\w.-]+)((?:"[^"]*"|\'[^\']*\'|[^>"\'])*?)\s*/>~', '<$1$2></$1>', $s);
-        $find = static function (string $src): ?\Dom\Element {
+        $find = static function (string $src) use (&$lost): ?\Dom\Element {
             $doc = \Dom\HTMLDocument::createFromString('<!DOCTYPE html><html><body>' . $src, LIBXML_NOERROR, 'UTF-8');
+            $body = $doc->body;
+            $math = $body === null ? null : self::findMath($body);
+            if ($math !== null) {
+                $lost = self::contentAfter($math, $body);
+            }
 
-            return $doc->body === null ? null : self::findMath($doc->body);
+            return $math;
         };
 
         return $find($html) ?? $find('<math>' . $html . '</math>');
+    }
+
+    /** A note for content following the math element in the body: an HTML tag inside math ends it, losing the rest. */
+    private static function contentAfter(\Dom\Element $math, \Dom\Element $body): ?MathNote
+    {
+        for ($n = $math; $n !== null && ! $n->isSameNode($body); $n = $n->parentNode) {
+            for ($next = $n->nextSibling; $next !== null; $next = $next->nextSibling) {
+                if ($next instanceof \Dom\Element) {
+                    return new MathNote(NoteLevel::Dropped, self::name($next), 'content after an HTML tag inside math (not drawn)', 'math');
+                }
+                if ($next instanceof \Dom\Text && trim($next->data) !== '') {
+                    return new MathNote(NoteLevel::Dropped, 'text', 'content after an HTML tag inside math (not drawn)', 'math');
+                }
+            }
+        }
+
+        return null;
     }
 
     private static function findMath(\Dom\Element $parent, bool $self = false): ?\Dom\Element
@@ -136,13 +170,42 @@ final class MathmlReader
 
     private function map(\Dom\Element $e, string $where): ?Node
     {
+        if ($this->depth >= self::MAX_DEPTH) {
+            $text = self::collapse((string) $e->textContent);
+
+            return $text === '' ? null : $this->note('#depth', new Text($text), NoteLevel::Approximated, 'math', 'nesting deeper than 256 levels (flattened)', $where);
+        }
+        $this->depth++;
+        try {
+            return $this->dispatch($e, $where);
+        } finally {
+            $this->depth--;
+        }
+    }
+
+    /** $content wrapped in a Fallback carrying the note, the first time $key is seen; bare afterwards. */
+    private function note(string $key, ?Node $content, NoteLevel $level, string $element, string $reason, string $where): ?Node
+    {
+        if (isset($this->noted[$key])) {
+            return $content;
+        }
+        $this->noted[$key] = true;
+
+        return new Fallback($content, new MathNote($level, $element, $reason, $where));
+    }
+
+    private function dispatch(\Dom\Element $e, string $where): ?Node
+    {
         $name = self::name($e);
+        if (in_array($name, self::FOREIGN, true)) {
+            return $this->note($name, null, NoteLevel::Dropped, $name, 'not drawn', $where);
+        }
 
         return match ($name) {
             'math', 'mrow', 'mpadded' => $this->children($e, $where),
             'mstyle' => $this->style($e, $where),
             'semantics' => $this->slots($e, $where, 1)[0] ?? new Row([]),
-            'annotation', 'annotation-xml' => null,
+            'annotation', 'annotation-xml', 'mprescripts', 'none' => null,
             'mi' => $this->identifier($e),
             'mn' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Number($t),
             'mtext' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Text($t),
@@ -160,8 +223,68 @@ final class MathmlReader
             'mover' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], null, $a[1], self::bool($e, 'accent') ?? self::isAccent($a[1]))),
             'munderover' => $this->fixed($name, 3, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], $a[2], self::bool($e, 'accent') ?? self::isAccent($a[2]), self::bool($e, 'accentunder') ?? false)),
             'mfenced' => $this->fenced($e, $this->slots($e, $where)),
-            default => $this->children($e, $where),
+            'mtable' => $this->note($name, $this->table($e, $where), NoteLevel::Approximated, $name, 'tables are drawn as rows of cells', $where),
+            'maction' => $this->note($name, $this->choice($e, $where), NoteLevel::Approximated, $name, 'drawn as its first choice', $where),
+            default => $this->note($name, $this->children($e, $where), NoteLevel::Approximated, $name, 'drawn as its contents', $where),
         };
+    }
+
+    /** Each row's cells side by side (Space 1 between), rows one after another (Space 2 between). */
+    private function table(\Dom\Element $e, string $where): Node
+    {
+        $this->depth += 2;
+        try {
+            return $this->tableRows($e, $where);
+        } finally {
+            $this->depth -= 2;
+        }
+    }
+
+    private function tableRows(\Dom\Element $e, string $where): Node
+    {
+        $rows = [];
+        $i = 0;
+        foreach ($e->children as $tr) {
+            $rowWhere = $this->at($where, $tr, $i++);
+            $trName = self::name($tr);
+            $cells = [];
+            $j = 0;
+            foreach ($tr->children as $td) {
+                $cellWhere = $this->at($rowWhere, $td, $j++);
+                if ($trName === 'mlabeledtr' && $j === 1) {
+                    continue;
+                }
+                $cells[] = $this->children($td, $cellWhere);
+            }
+            $row = [];
+            foreach ($cells as $k => $cell) {
+                $k === 0 || $row[] = new Space(1);
+                $row[] = $cell;
+            }
+            if ($row !== []) {
+                $rows[] = $row;
+            }
+        }
+        $nodes = [];
+        foreach ($rows as $k => $row) {
+            $k === 0 || $nodes[] = new Space(2);
+            array_push($nodes, ...$row);
+        }
+
+        return new Row($nodes);
+    }
+
+    /** The child `selection` names (1-based), else the first. */
+    private function choice(\Dom\Element $e, string $where): Node
+    {
+        $kids = iterator_to_array($e->children, false);
+        if ($kids === []) {
+            return new Row([]);
+        }
+        $pick = (int) $e->getAttribute('selection');
+        $index = $pick >= 1 && $pick <= count($kids) ? $pick - 1 : 0;
+
+        return $this->map($kids[$index], $this->at($where, $kids[$index], $index)) ?? new Row([]);
     }
 
     private function at(string $where, \Dom\Element $child, int $index): string
@@ -362,7 +485,7 @@ final class MathmlReader
             }
         }
 
-        return self::bars($out);
+        return self::bars(array_values($out));
     }
 
     /**

@@ -30,6 +30,7 @@ final class Forms
         $prevIsOperand = false;
         $barTotals = [];
         foreach ($children as $child) {
+            $child = Fallback::unwrap($child);
             if ($child instanceof Operator && self::isBar($child->char)) {
                 $barTotals[$child->char] = ($barTotals[$child->char] ?? 0) + 1;
             }
@@ -41,6 +42,7 @@ final class Forms
             $last--;
         }
         foreach ($children as $i => $child) {
+            $child = Fallback::unwrap($child);
             if (! ($child instanceof Operator)) {
                 $forms[] = null;
                 $prevIsOperand = $prevIsOperand || ! self::spaceLike($child);
@@ -75,6 +77,8 @@ final class Forms
     /** A Space, or a Phantom of space-like content: occupies room but is no operand. */
     public static function spaceLike(Node $n): bool
     {
+        $n = Fallback::unwrap($n);
+
         return $n instanceof Space || ($n instanceof Phantom && self::spaceLike($n->content));
     }
 

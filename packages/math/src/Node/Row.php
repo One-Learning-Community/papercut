@@ -45,19 +45,24 @@ final class Row extends Node
         $forms = $this->forms();
         foreach ($this->children as $i => $child) {
             // A fraction next to an operand (mixed number "3 1/2", "2 x/y") gets a thin space so it does not read as one blob.
-            if ($prev !== null && ! ($prev instanceof Operator) && ! ($prev instanceof Space) && ! ($child instanceof Space)) {
-                if (! ($child instanceof Operator) && ($child instanceof Fraction || $prev instanceof Fraction)) {
+            $seen = Fallback::unwrap($child);
+            if ($prev !== null && ! ($prev instanceof Operator) && ! ($prev instanceof Space) && ! ($seen instanceof Space)) {
+                if (! ($seen instanceof Operator) && ($seen instanceof Fraction || $prev instanceof Fraction)) {
                     $x += $c->mu(3);
                 }
             }
             $form = $forms[$i];
             // Forms::of gives every operator a form and no one else.
-            $b = $child instanceof Operator ? $child->layoutAs($c, $form ?? throw new \LogicException('Forms::of gave an operator no form')) : $child->layout($c);
+            $ctx = $c;
+            foreach (Fallback::displays($child) as $display) {
+                $ctx = $ctx->withDisplay($display);
+            }
+            $b = $seen instanceof Operator ? $seen->layoutAs($ctx, $form ?? throw new \LogicException('Forms::of gave an operator no form')) : $child->layout($c);
             $out->place($b, $x, 0.0);
             $x += $b->width;
             $out->ascent = max($out->ascent, $b->ascent);
             $out->descent = max($out->descent, $b->descent);
-            $prev = $child;
+            $prev = $seen;
             if ($i === 0) {
                 $out->firstGid = $b->firstGid;
             }

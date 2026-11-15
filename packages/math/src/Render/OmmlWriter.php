@@ -182,12 +182,12 @@ final class OmmlWriter
         }
         $spaces = '';
         $j = $i;
-        while (($children[$j] ?? null) instanceof Space) {
+        while (isset($children[$j]) && Fallback::unwrap($children[$j]) instanceof Space) {
             $spaces .= self::node($children[$j], $rPr);
             $j++;
         }
         $next = $children[$j] ?? null;
-        if ($next === null || $next instanceof Operator) {
+        if ($next === null || Fallback::unwrap($next) instanceof Operator) {
             return self::naryXml($nary, null, $rPr);
         }
         $i = $j;
@@ -202,6 +202,7 @@ final class OmmlWriter
      */
     private static function nary(Node $n): ?array
     {
+        $n = Fallback::unwrap($n);
         if (! ($n instanceof UnderOver || $n instanceof Scripts)) {
             return null;
         }

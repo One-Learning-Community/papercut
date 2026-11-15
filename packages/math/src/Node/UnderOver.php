@@ -98,8 +98,12 @@ final class UnderOver extends Node
      */
     public static function operatorOf(?Node $n): ?Operator
     {
+        if ($n === null) {
+            return null;
+        }
+        $n = Fallback::unwrap($n);
         if ($n instanceof Row && count($n->children) === 1) {
-            $n = $n->children[0];
+            $n = Fallback::unwrap($n->children[0]);
         }
 
         return $n instanceof Operator ? $n : null;

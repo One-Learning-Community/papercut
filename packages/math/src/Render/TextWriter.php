@@ -88,11 +88,12 @@ final class TextWriter
         $out = '';
         $prev = null;
         foreach ($r->children as $i => $child) {
-            if ($child instanceof Operator) {
+            $op = Fallback::unwrap($child);
+            if ($op instanceof Operator) {
                 $out .= match (true) {
-                    $forms[$i] === OperatorDictionary::FORM_INFIX && ($child->char === ',' || $child->char === ';') => $child->char . ' ',
-                    $forms[$i] === OperatorDictionary::FORM_INFIX => ' ' . $child->char . ' ',
-                    default => $child->char,
+                    $forms[$i] === OperatorDictionary::FORM_INFIX && ($op->char === ',' || $op->char === ';') => $op->char . ' ',
+                    $forms[$i] === OperatorDictionary::FORM_INFIX => ' ' . $op->char . ' ',
+                    default => $op->char,
                 };
             } else {
                 // A function name set apart from its operand: "sin x", not "sinx"; so is a body after limits.
