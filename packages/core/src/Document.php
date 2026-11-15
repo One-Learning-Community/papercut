@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut;
 
+use Papercut\Exception\InvalidStructure;
 use Papercut\Support\Utf8;
 use Papercut\Export\{ExportOptions, Exporter, HtmlExporter, HtmlOptions, Output, PdfExporter, PdfOptions};
 use Papercut\Paint\DocumentMeta;
@@ -110,6 +111,9 @@ final class Document
      */
     public function export(Exporter $exporter, ?ExportOptions $options = null): Output
     {
+        if ($this->pages === []) {
+            throw new InvalidStructure('A document needs at least one page: Document::make(Page::a4()->body(...)).');
+        }
         $gc = gc_enabled();
         if ($gc) {
             gc_disable();

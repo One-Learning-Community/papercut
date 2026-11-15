@@ -50,7 +50,7 @@ final class QrCode implements Styled
      */
     public static function make(string $value, ErrorCorrection|string $level = ErrorCorrection::Medium, ?QrEncoder $encoder = null): self
     {
-        $level = EnumValue::from(ErrorCorrection::class, $level);
+        $level = EnumValue::from(ErrorCorrection::class, $level, 'QrCode::make()');
         $encoder ??= new PhpPdfQrEncoder();
 
         return new self($encoder->encode($value, $level), $value, $level, $encoder);
@@ -97,7 +97,7 @@ final class QrCode implements Styled
         if ($this->value === null || $this->encoder === null) {
             throw new \LogicException('A QR code made from modules has no text to encode again.');
         }
-        $level = EnumValue::from(ErrorCorrection::class, $level);
+        $level = EnumValue::from(ErrorCorrection::class, $level, 'QrCode::errorCorrection()');
         if ($this->design !== null && self::needsQuartile($this->design->shape) && self::rank($level) < self::rank(ErrorCorrection::Quartile)) {
             $level = ErrorCorrection::Quartile;
         }
@@ -136,7 +136,7 @@ final class QrCode implements Styled
      */
     public function shape(QrShape|string $shape): self
     {
-        $shape = EnumValue::from(QrShape::class, $shape);
+        $shape = EnumValue::from(QrShape::class, $shape, 'QrCode::shape()');
         $styled = $this->designed(static fn (QrDesign $d): QrDesign => $d->with(shape: $shape));
         if (!self::needsQuartile($shape) || $this->value === null || self::rank($this->level) >= self::rank(ErrorCorrection::Quartile)) {
             return $styled;
@@ -167,7 +167,7 @@ final class QrCode implements Styled
      */
     public function eyes(QrEyes|string $eyes): self
     {
-        $eyes = EnumValue::from(QrEyes::class, $eyes);
+        $eyes = EnumValue::from(QrEyes::class, $eyes, 'QrCode::eyes()');
         return $this->designed(static fn (QrDesign $d): QrDesign => $d->with(eyes: $eyes));
     }
 
@@ -193,7 +193,7 @@ final class QrCode implements Styled
      */
     public function gradient(Color|string $from, Color|string $to, QrGradient|string $type = QrGradient::Diagonal): self
     {
-        $type = EnumValue::from(QrGradient::class, $type);
+        $type = EnumValue::from(QrGradient::class, $type, 'QrCode::gradient()');
         $from = self::toColor($from);
         $to = self::toColor($to);
 

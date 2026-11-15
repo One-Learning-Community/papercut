@@ -870,7 +870,7 @@ final class HtmlWriter implements TreeVisitor
     private function tableRow(TableRow $n, ComputedStyle $s, Visit $at): string
     {
         if (!$at->parent() instanceof Table) {
-            throw new \LogicException(sprintf('No layouter registered for %s at "%s".', TableRow::class, $at->path()));
+            throw \Papercut\Layout\LayoutEngine::misplaced($n, $at->path());
         }
         $parent = end($this->styles);
         \assert($parent instanceof ComputedStyle);

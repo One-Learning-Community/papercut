@@ -33,7 +33,7 @@ final class Image implements Styled
     /** @throws \Papercut\Exception\InvalidValue for a string that is not a fit mode */
     public function fit(ImageFit|string $fit): self
     {
-        $fit = EnumValue::from(ImageFit::class, $fit);
+        $fit = EnumValue::from(ImageFit::class, $fit, 'Image::fit()');
         $clone = clone $this;
         $clone->fit = $fit;
         return $clone;

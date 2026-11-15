@@ -211,7 +211,7 @@ final class DocxExporter implements Exporter
             }
         }
         if ($groups === []) {
-            throw new \LogicException('A document needs a page');
+            throw new \Papercut\Exception\InvalidStructure('A document needs at least one page.');
         }
 
         $anyEven = false;

@@ -118,7 +118,7 @@ trait HasStyle
     /** @throws \Papercut\Exception\InvalidValue for a $style string that is not a border style */
     public function border(Length $width, Color|string|null $color = null, BorderStyle|string|null $style = null): static
     {
-        $style = $style === null ? null : EnumValue::from(BorderStyle::class, $style);
+        $style = $style === null ? null : EnumValue::from(BorderStyle::class, $style, self::setterName('border'));
         Check::size($width, self::setterName('border'));
         return $this->withStyle(new Style(borderWidth: Edges::all($width), borderColor: $color === null ? null : self::toColor($color), borderStyle: $style));
     }
@@ -172,7 +172,7 @@ trait HasStyle
     /** @throws \Papercut\Exception\InvalidValue for a string that is not an alignment */
     public function alignSelf(Align|string $v): static
     {
-        $v = EnumValue::from(Align::class, $v);
+        $v = EnumValue::from(Align::class, $v, self::setterName('alignSelf'));
         return $this->withStyle(new Style(alignSelf: $v));
     }
 
@@ -219,7 +219,7 @@ trait HasStyle
     /** @throws \Papercut\Exception\InvalidValue for a string that is not a text alignment */
     public function textAlign(TextAlign|string $v): static
     {
-        $v = EnumValue::from(TextAlign::class, $v);
+        $v = EnumValue::from(TextAlign::class, $v, self::setterName('textAlign'));
         return $this->withStyle(new Style(textAlign: $v));
     }
 

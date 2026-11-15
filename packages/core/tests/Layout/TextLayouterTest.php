@@ -395,14 +395,14 @@ final class TextLayouterTest extends TestCase
         $h = new LayoutHarness();
         try {
             $h->layout(View::make(\Papercut\TableRow::make())->attributes(['direction' => 'row']), 100);
-            self::fail('Expected LogicException');
-        } catch (\LogicException $e) {
+            self::fail('Expected InvalidStructure');
+        } catch (\Papercut\Exception\InvalidStructure $e) {
             self::assertStringContainsString('"row > tr[0]"', $e->getMessage());
         }
         try {
             $h->layout(\Papercut\TableRow::make(), 100);
-            self::fail('Expected LogicException');
-        } catch (\LogicException $e) {
+            self::fail('Expected InvalidStructure');
+        } catch (\Papercut\Exception\InvalidStructure $e) {
             self::assertStringContainsString('"tr"', $e->getMessage());
         }
     }

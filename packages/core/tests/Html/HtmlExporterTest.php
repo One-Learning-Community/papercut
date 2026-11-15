@@ -332,8 +332,6 @@ final class HtmlExporterTest extends TestCase
         $html = $this->html(Document::make(Page::a4()->header(Text::make('H'))));
         self::assertCount(1, $this->xpath($html, '//section/div[@class="pc-header"]'));
         self::assertCount(0, $this->xpath($html, '//div[@class="pc-body"]'));
-
-        self::assertStringContainsString('<div class="papercut"', $this->html(Document::make()));
     }
 
     public function test_metadata_in_full_page_head(): void

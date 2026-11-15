@@ -36,7 +36,7 @@ final class Place implements Node
     /** @throws \Papercut\Exception\InvalidValue for a string that is not an anchor */
     public function anchor(Anchor|string $anchor): self
     {
-        $anchor = EnumValue::from(Anchor::class, $anchor);
+        $anchor = EnumValue::from(Anchor::class, $anchor, 'Place::anchor()');
         $clone = clone $this;
         $clone->anchor = $anchor;
         return $clone;

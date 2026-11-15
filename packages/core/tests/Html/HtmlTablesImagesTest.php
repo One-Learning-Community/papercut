@@ -646,13 +646,13 @@ final class HtmlTablesImagesTest extends TestCase
         foreach (['toHtml', 'toPdf'] as $m) {
             try {
                 $doc->$m();
-                self::fail('expected LogicException');
-            } catch (\LogicException $e) {
+                self::fail('expected InvalidStructure');
+            } catch (\Papercut\Exception\InvalidStructure $e) {
                 $messages[] = $e->getMessage();
             }
         }
         self::assertSame($messages[1], $messages[0]);
-        self::assertStringStartsWith('No layouter registered for Papercut\\TableRow at', $messages[0]);
+        self::assertStringStartsWith('TableRow cannot go here', $messages[0]);
     }
 
     public function test_cell_decoration_override_is_approximated(): void
