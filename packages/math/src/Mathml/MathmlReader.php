@@ -142,7 +142,7 @@ final class MathmlReader
         if ($self && self::name($parent) === 'math') {
             return $parent;
         }
-        foreach ($parent->children as $child) {
+        foreach (self::elements($parent) as $child) {
             if (self::name($child) === 'math') {
                 return $child;
             }
@@ -250,12 +250,12 @@ final class MathmlReader
         $rows = [];
         $labelled = false;
         $i = 0;
-        foreach ($e->children as $tr) {
+        foreach (self::elements($e) as $tr) {
             $rowWhere = $this->at($where, $tr, $i++);
             $trName = self::name($tr);
             $cells = [];
             $j = 0;
-            foreach ($tr->children as $td) {
+            foreach (self::elements($tr) as $td) {
                 $cellWhere = $this->at($rowWhere, $td, $j++);
                 if ($trName === 'mlabeledtr' && $j === 1) {
                     $labelled = true;
@@ -286,7 +286,7 @@ final class MathmlReader
     /** The child `selection` names (1-based), else the first. */
     private function choice(\Dom\Element $e, string $where): Node
     {
-        $kids = iterator_to_array($e->children, false);
+        $kids = self::elements($e);
         if ($kids === []) {
             return new Row([]);
         }
@@ -355,7 +355,7 @@ final class MathmlReader
             default => $this->operator($e),
         };
         $i = 0;
-        foreach ($e->children as $child) {
+        foreach (self::elements($e) as $child) {
             $childName = self::name($child);
             if (in_array($childName, self::FOREIGN, true)) {
                 $node = $this->note($childName, $node, NoteLevel::Dropped, $childName, 'not drawn', $this->at($where, $child, $i));
@@ -451,10 +451,25 @@ final class MathmlReader
         return preg_match('/^\s*[+-]?(?:0+\.?0*|\.0+)\s*(?:em|ex|pt|px|mm|cm|in|%)?\s*$/i', $t ?? '') === 1;
     }
 
+    /**
+     * The element children of $e, in order. `Dom\Element::$children` is PHP 8.5 only, and the floor is 8.4.
+     *
+     * @return list<\Dom\Element>
+     */
+    private static function elements(\Dom\Element $e): array
+    {
+        $out = [];
+        for ($c = $e->firstElementChild; $c !== null; $c = $c->nextElementSibling) {
+            $out[] = $c;
+        }
+
+        return $out;
+    }
+
     /** Whether the $index-th element child of $e is an mo that says accent="true". */
     private static function marked(\Dom\Element $e, int $index): bool
     {
-        $part = $e->children[$index] ?? null;
+        $part = self::elements($e)[$index] ?? null;
 
         return $part !== null && self::name($part) === 'mo' && self::bool($part, 'accent') === true;
     }
@@ -462,7 +477,7 @@ final class MathmlReader
     /** An over part is an accent when its mo says so, else (unless it says not) when it is an accent mark. */
     private static function isAccent(Node $over, \Dom\Element $e, int $index): bool
     {
-        $part = $e->children[$index] ?? null;
+        $part = self::elements($e)[$index] ?? null;
         if ($part !== null && self::name($part) === 'mo' && ($flag = self::bool($part, 'accent')) !== null) {
             return $flag;
         }
