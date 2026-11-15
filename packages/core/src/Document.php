@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut;
 
+use Papercut\Support\Utf8;
 use Papercut\Export\{ExportOptions, Exporter, HtmlExporter, HtmlOptions, Output, PdfExporter, PdfOptions};
 use Papercut\Paint\DocumentMeta;
 use Papercut\Style\ThemeOverride;
@@ -35,28 +36,28 @@ final class Document
     public function title(string $v): self
     {
         $clone = clone $this;
-        $clone->title = $v;
+        $clone->title = Utf8::require($v, 'document title');
         return $clone;
     }
 
     public function author(string $v): self
     {
         $clone = clone $this;
-        $clone->author = $v;
+        $clone->author = Utf8::require($v, 'document author');
         return $clone;
     }
 
     public function subject(string $v): self
     {
         $clone = clone $this;
-        $clone->subject = $v;
+        $clone->subject = Utf8::require($v, 'document subject');
         return $clone;
     }
 
     public function keywords(string $v): self
     {
         $clone = clone $this;
-        $clone->keywords = $v;
+        $clone->keywords = Utf8::require($v, 'document keywords');
         return $clone;
     }
 

@@ -8,6 +8,7 @@ use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
 use Papercut\Math\Layout\Run;
 use Papercut\Math\Styles;
+use Papercut\Math\Utf8;
 
 /** mi: a variable. A single letter is drawn italic (Mathematical Italic codepoints); longer names and symbols upright. */
 final class Identifier extends Node
@@ -15,9 +16,13 @@ final class Identifier extends Node
     /** True when drawn upright: function names, multi-letter names and ordinary symbols. */
     public readonly bool $upright;
 
-    public function __construct(public readonly string $name, public readonly ?bool $italic = null)
+    public readonly string $name;
+
+    /** Invalid UTF-8 in $name is replaced silently here; the Math builders also record a note. */
+    public function __construct(string $name, public readonly ?bool $italic = null)
     {
-        $this->upright = $italic === null ? mb_strlen($name) > 1 : ! $italic;
+        $this->name = Utf8::clean($name);
+        $this->upright = $italic === null ? mb_strlen($this->name) > 1 : ! $italic;
     }
 
     /** @internal Engine detail, not part of papercut/math's public API. */

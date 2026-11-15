@@ -298,10 +298,10 @@ final class Itemizer
         if ($primary->covers($segment)) {
             return [[$segment, $primary]];
         }
-        /** @var list<array{string, bool}> $groups */
+        /** @var list<array{string, int}> $groups 1 covered, 0 not, 2 not covered and U+FFFD (kept apart so it can get its own face) */
         $groups = [];
         foreach (mb_str_split($segment, 1, 'UTF-8') as $ch) {
-            $covered = $primary->covers($ch);
+            $covered = $primary->covers($ch) ? 1 : ($ch === "\u{FFFD}" ? 2 : 0);
             $last = count($groups) - 1;
             if ($last >= 0 && $groups[$last][1] === $covered) {
                 $groups[$last][0] .= $ch;
@@ -311,7 +311,7 @@ final class Itemizer
         }
         $runs = [];
         foreach ($groups as [$run, $covered]) {
-            $runs[] = [$run, $covered ? $primary : $this->fallback($run, $style, $primary)];
+            $runs[] = [$run, $covered === 1 ? $primary : $this->fallback($run, $style, $primary)];
         }
         return $runs;
     }
@@ -326,6 +326,12 @@ final class Itemizer
             $candidate = $this->fonts->resolve($family, $style->fontWeight, $fontStyle);
             if ($candidate->covers($run)) {
                 return $candidate;
+            }
+        }
+        if (str_contains($run, "\u{FFFD}")) { // a whole label (a badge) can arrive here with letters around it
+            $replacement = $this->fonts->replacementFont();
+            if ($replacement->covers($run)) {
+                return $replacement;
             }
         }
         $key = $style->fontFamily . "\0" . $run;

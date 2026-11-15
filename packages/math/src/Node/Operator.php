@@ -10,6 +10,7 @@ use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Run;
 use Papercut\Math\Layout\Stretcher;
 use Papercut\Math\OperatorDictionary;
+use Papercut\Math\Utf8;
 
 /**
  * mo: an operator or fence character. Its form (prefix/infix/postfix) comes from its position in
@@ -24,13 +25,17 @@ final class Operator extends Node
      * @param ?bool $movablelimits null reads the operator dictionary
      * @param ?string $form prefix, infix or postfix when the source fixes it (mo form=); null infers it from the position
      */
+    public readonly string $char;
+
+    /** Invalid UTF-8 in $char is replaced silently here; the Math builders also record a note. */
     public function __construct(
-        public readonly string $char,
+        string $char,
         public readonly ?bool $stretchy = null,
         public readonly ?bool $largeop = null,
         public readonly ?bool $movablelimits = null,
         public readonly ?string $form = null,
     ) {
+        $this->char = Utf8::clean($char);
     }
 
     /** Whether this is a large operator (a sum, an integral) in the given form: drawn bigger in display style. */

@@ -45,15 +45,28 @@ final class Math
     public static function row(string|Node ...$items): Node
     {
         $nodes = [];
+        $bad = false;
         foreach ($items as $it) {
             if (is_string($it)) {
-                array_push($nodes, ...Tokenizer::tokenize($it));
+                array_push($nodes, ...Tokenizer::tokenize(self::scrub($it, $bad)));
             } else {
                 $nodes[] = $it;
             }
         }
 
-        return count($nodes) === 1 ? $nodes[0] : new Row($nodes);
+        return self::flagged(count($nodes) === 1 ? $nodes[0] : new Row($nodes), $bad);
+    }
+
+    /** Twin of Papercut\Support\Utf8::scrub() in papercut/core (see {@see Utf8}). */
+    private static function scrub(string $text, bool &$bad): string
+    {
+        return Utf8::scrub($text, $bad);
+    }
+
+    /** $node, carrying a note that text in it was not valid UTF-8 when $bad. */
+    private static function flagged(Node $node, bool $bad): Node
+    {
+        return $bad ? new Fallback($node, new MathNote(NoteLevel::Approximated, 'text', Utf8::NOTE)) : $node;
     }
 
     public static function frac(string|Node $num, string|Node $den): Fraction
@@ -90,8 +103,10 @@ final class Math
      *
      * @throws \InvalidArgumentException for a variant outside Styles::VARIANTS
      */
-    public static function styled(string $text, string $variant): Identifier
+    public static function styled(string $text, string $variant): Node
     {
+        $bad = false;
+        $text = self::scrub($text, $bad);
         if ($text === '') {
             throw new \InvalidArgumentException('Styled text is empty');
         }
@@ -99,7 +114,7 @@ final class Math
             throw new \InvalidArgumentException('Unknown math variant "' . $variant . '"');
         }
 
-        return new Identifier(implode('', array_map(static fn (string $ch): string => mb_chr(Styles::variant(mb_ord($ch), $variant)), mb_str_split($text))), false);
+        return self::flagged(new Identifier(implode('', array_map(static fn (string $ch): string => mb_chr(Styles::variant(mb_ord($ch), $variant)), mb_str_split($text))), false), $bad);
     }
 
     /** A formula read from MathML (a string, or a `math` element of a parsed document). */
@@ -156,12 +171,13 @@ final class Math
      */
     public static function bigOp(string $op, string|Node|null $under = null, string|Node|null $over = null): Node
     {
-        $o = new Operator($op);
+        $bad = false;
+        $o = new Operator(self::scrub($op, $bad));
         if ($under === null && $over === null) {
-            return $o;
+            return self::flagged($o, $bad);
         }
 
-        return new UnderOver($o, $under === null ? null : self::row($under), $over === null ? null : self::row($over));
+        return self::flagged(new UnderOver($o, $under === null ? null : self::row($under), $over === null ? null : self::row($over)), $bad);
     }
 
     public static function sum(string|Node|null $under = null, string|Node|null $over = null): Node
@@ -188,7 +204,10 @@ final class Math
     /** An accent mark (a combining character such as U+0302) above the base. */
     public static function accent(string|Node $base, string $mark): UnderOver
     {
-        return new UnderOver(self::row($base), null, new Operator($mark), true);
+        $bad = false;
+        $mark = self::scrub($mark, $bad);
+
+        return new UnderOver(self::flagged(self::row($base), $bad), null, new Operator($mark), true);
     }
 
     public static function hat(string|Node $base): UnderOver
@@ -241,12 +260,18 @@ final class Math
 
     public static function fenced(string $open, string $close, string|Node ...$content): Fenced
     {
-        return new Fenced($open, $close, self::row(...$content));
+        $bad = false;
+        $open = self::scrub($open, $bad);
+        $close = self::scrub($close, $bad);
+
+        return new Fenced($open, $close, self::flagged(self::row(...$content), $bad));
     }
 
-    public static function text(string $text): Text
+    public static function text(string $text): Node
     {
-        return new Text($text);
+        $bad = false;
+
+        return self::flagged(new Text(self::scrub($text, $bad)), $bad);
     }
 
     /**

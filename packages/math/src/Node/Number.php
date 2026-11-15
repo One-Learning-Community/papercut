@@ -7,12 +7,17 @@ namespace Papercut\Math\Node;
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
 use Papercut\Math\Layout\Run;
+use Papercut\Math\Utf8;
 
 /** mn: digits with an optional decimal point, drawn upright. Also holds Unicode super/subscript digits as ordinary characters. */
 final class Number extends Node
 {
-    public function __construct(public readonly string $text)
+    public readonly string $text;
+
+    /** Invalid UTF-8 in $text is replaced silently here; the Math builders also record a note. */
+    public function __construct(string $text)
     {
+        $this->text = Utf8::clean($text);
     }
 
     /** @internal Engine detail, not part of papercut/math's public API. */

@@ -100,6 +100,7 @@ final class SmallConstructsTest extends TestCase
     public function test_styled_builds_an_upright_identifier(): void
     {
         $id = Math::styled('R', 'double-struck');
+        self::assertInstanceOf(\Papercut\Math\Node\Identifier::class, $id);
         self::assertSame('ℝ', $id->name);
         self::assertTrue($id->upright);
     }

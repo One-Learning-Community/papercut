@@ -12,7 +12,7 @@ final class ArchitectureTest extends TestCase
     private const INTERNAL = [
         'Font/AssemblyPart.php', 'Font/Binary.php', 'Font/Coverage.php', 'Font/GlyphConstruction.php', 'Font/Gsub.php',
         'Font/MathKern.php', 'Font/MathTable.php', 'Layout/Context.php', 'Layout/Run.php', 'Layout/Stretcher.php',
-        'Node/Forms.php', 'OperatorDictionary.php', 'Render/Xml.php', 'Styles.php', 'Tokenizer.php',
+        'Node/Forms.php', 'OperatorDictionary.php', 'Render/Xml.php', 'Styles.php', 'Tokenizer.php', 'Utf8.php',
     ];
 
     public function test_engine_types_are_internal_and_the_rest_are_not(): void

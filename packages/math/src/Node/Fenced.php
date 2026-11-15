@@ -8,12 +8,19 @@ use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
 use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Stretcher;
+use Papercut\Math\Utf8;
 
 /** mfenced: open and close delimiters that stretch (size variant, then assembly) to the height of the content. */
 final class Fenced extends Node
 {
-    public function __construct(public readonly string $open, public readonly string $close, public readonly Node $content)
+    public readonly string $open;
+    public readonly string $close;
+
+    /** Invalid UTF-8 in a delimiter is replaced silently here; the Math builders also record a note. */
+    public function __construct(string $open, string $close, public readonly Node $content)
     {
+        $this->open = Utf8::clean($open);
+        $this->close = Utf8::clean($close);
     }
 
     /**

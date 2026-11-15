@@ -11,6 +11,8 @@ final readonly class FontSet
 {
     /** The family the math face is registered under, for PDF text runs. */
     public const string MATH_FAMILY = 'Papercut Math';
+    /** The bundled STIX Two Math, kept to draw U+FFFD when no other font has it. */
+    public const string REPLACEMENT_FAMILY = 'Papercut Replacement';
 
     /** @var array<string, string> the name Word should use for a family, by lowercased family */
     private array $wordNames;
