@@ -11,9 +11,11 @@ use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
 use Papercut\Math\Node\Operator;
+use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
 use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
+use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
 use Papercut\Math\OperatorDictionary;
 use Papercut\Math\Styles;
@@ -30,12 +32,14 @@ final class MathmlWriter
     private static function node(Node $n): string
     {
         return match (true) {
-            $n instanceof Identifier => '<mi' . ($n->upright ? ' mathvariant="normal"' : '') . '>' . Xml::text(self::plain($n->name)) . '</mi>',
+            $n instanceof Identifier => '<mi' . ($n->upright ? ' mathvariant="normal"' : '') . '>' . Xml::text($n->upright ? $n->name : self::plain($n->name)) . '</mi>',
             $n instanceof Number => '<mn>' . Xml::text($n->text) . '</mn>',
             // Alone, the layout treats an operator as prefix while a browser infers infix.
             $n instanceof Operator => self::operator($n, OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_INFIX),
             $n instanceof Text => '<mtext>' . Xml::text(self::keepSpaces($n->text)) . '</mtext>',
-            $n instanceof Fraction => '<mfrac>' . self::node($n->numerator) . self::node($n->denominator) . '</mfrac>',
+            $n instanceof Fraction => '<mfrac' . ($n->bar ? '' : ' linethickness="0"') . '>' . self::node($n->numerator) . self::node($n->denominator) . '</mfrac>',
+            $n instanceof Space => '<mspace width="' . self::em($n->em) . 'em"/>',
+            $n instanceof Phantom => '<mphantom>' . self::node($n->content) . '</mphantom>',
             $n instanceof Root => $n->index === null
                 ? '<msqrt>' . self::node($n->radicand) . '</msqrt>'
                 : '<mroot>' . self::node($n->radicand) . self::node($n->index) . '</mroot>',
@@ -45,6 +49,14 @@ final class MathmlWriter
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
+    }
+
+    /** An em width with up to 3 decimals and no trailing zeros. */
+    private static function em(float $em): string
+    {
+        $s = rtrim(rtrim(number_format($em, 3, '.', ''), '0'), '.');
+
+        return $s === '-0' || $s === '' ? '0' : $s;
     }
 
     /** Browsers collapse and trim spaces in mtext; no-break spaces survive. A single inner space stays a plain space. */

@@ -23,6 +23,13 @@ final class TextWriterTest extends TestCase
         yield 'exponential' => [Math::sup('e', Math::row('−kt')), 'e^(−kt)'];
         yield 'squared fraction' => [Math::sup(Math::fenced('(', ')', Math::frac('a', 'b')), '2'), '(a/b)²'];
         yield 'density' => [Math::row(Math::text('density'), '=', Math::frac(Math::text('mass'), Math::text('volume'))), 'density = mass/volume'];
+        yield 'space wide' => [Math::row('a', Math::space(0.5), 'b'), 'a b'];
+        yield 'space thin' => [Math::row('a', Math::space(0.1), 'b'), 'ab'];
+        yield 'phantom' => [Math::row('a', Math::phantom('x'), 'b'), 'ab'];
+        yield 'stack' => [Math::stack('n', 'k'), '(n; k)'];
+        yield 'binom' => [Math::binom('n', 'k'), '(n; k)'];
+        yield 'stack in a script' => [Math::sup(Math::stack('n', 'k'), '2'), '(n; k)²'];
+        yield 'styled' => [Math::styled('R', 'double-struck'), 'ℝ'];
         yield 'single letter script' => [Math::sup('x', 'n'), 'xⁿ'];
         yield 'script with one letter and signs' => [Math::sup('x', 'n + 1'), 'xⁿ⁺¹'];
         yield 'script with an operator' => [Math::sup('x', 'n + m'), 'x^(n + m)'];

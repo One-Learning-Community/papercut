@@ -11,9 +11,11 @@ use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
 use Papercut\Math\Node\Operator;
+use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
 use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
+use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
 use Papercut\Math\Styles;
 
@@ -71,11 +73,13 @@ final class OmmlWriter
     private static function node(Node $n, string $rPr): string
     {
         return match (true) {
-            $n instanceof Identifier => self::run(self::plain($n->name), $rPr, $n->upright ? 'p' : ''),
+            $n instanceof Identifier => self::run($n->upright ? $n->name : self::plain($n->name), $rPr, $n->upright ? 'p' : ''),
             $n instanceof Number => self::run($n->text, $rPr),
             $n instanceof Operator => self::run($n->char, $rPr),
             $n instanceof Text => self::run($n->text, $rPr, 'nor'),
-            $n instanceof Fraction => '<m:f><m:num>' . self::node($n->numerator, $rPr) . '</m:num><m:den>' . self::node($n->denominator, $rPr) . '</m:den></m:f>',
+            $n instanceof Space => self::space($n->em, $rPr),
+            $n instanceof Phantom => '<m:phant><m:phantPr><m:show m:val="0"/></m:phantPr><m:e>' . self::node($n->content, $rPr) . '</m:e></m:phant>',
+            $n instanceof Fraction => '<m:f>' . ($n->bar ? '' : '<m:fPr><m:type m:val="noBar"/></m:fPr>') . '<m:num>' . self::node($n->numerator, $rPr) . '</m:num><m:den>' . self::node($n->denominator, $rPr) . '</m:den></m:f>',
             $n instanceof Root => self::root($n, $rPr),
             $n instanceof Scripts => self::scripts($n, $rPr),
             $n instanceof Fenced => '<m:d><m:dPr><m:begChr m:val="' . Xml::text($n->open) . '"/><m:endChr m:val="' . Xml::text($n->close) . '"/></m:dPr><m:e>'
@@ -83,6 +87,35 @@ final class OmmlWriter
             $n instanceof Row => implode('', array_map(fn (Node $c) => self::node($c, $rPr), $n->children)),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content, $rPr),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
+        };
+    }
+
+    /** Unicode spaces approximating the width; a negative space cannot be written and gives nothing. */
+    private static function space(float $em, string $rPr): string
+    {
+        $text = match (true) {
+            $em <= 0 => '',
+            $em <= 0.2 => "\u{2009}",
+            $em <= 0.3 => "\u{2005}",
+            $em <= 0.4 => "\u{2004}",
+            $em <= 0.6 => "\u{2002}",
+            $em < 1 => "\u{2003}",
+            default => str_repeat("\u{2003}", (int) floor($em)) . self::fraction($em - floor($em)),
+        };
+
+        return $text === '' ? '' : self::run($text, $rPr);
+    }
+
+    /** The Unicode space nearest a fraction of an em; nothing below a tenth. */
+    private static function fraction(float $f): string
+    {
+        return match (true) {
+            $f < 0.1 => '',
+            $f <= 0.2 => "\u{2009}",
+            $f <= 0.3 => "\u{2005}",
+            $f <= 0.4 => "\u{2004}",
+            $f <= 0.6 => "\u{2002}",
+            default => "\u{2003}",
         };
     }
 

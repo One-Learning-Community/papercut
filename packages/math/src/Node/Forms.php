@@ -35,10 +35,15 @@ final class Forms
             }
         }
         $barSeen = [];
+        // Space-like children (mspace) take no part in inferring forms: they are skipped, as in MathML Core.
+        $last = $count - 1;
+        while ($last > 0 && self::spaceLike($children[$last])) {
+            $last--;
+        }
         foreach ($children as $i => $child) {
             if (! ($child instanceof Operator)) {
                 $forms[] = null;
-                $prevIsOperand = true;
+                $prevIsOperand = $prevIsOperand || ! self::spaceLike($child);
                 continue;
             }
             if (self::isBar($child->char)) {
@@ -58,13 +63,19 @@ final class Forms
             $forms[] = match (true) {
                 OperatorDictionary::isClosing($child->char) => OperatorDictionary::FORM_POSTFIX,
                 ! $prevIsOperand => OperatorDictionary::FORM_PREFIX,
-                $i === $count - 1 => OperatorDictionary::FORM_POSTFIX,
+                $i >= $last => OperatorDictionary::FORM_POSTFIX,
                 default => OperatorDictionary::FORM_INFIX,
             };
             $prevIsOperand = OperatorDictionary::isClosing($child->char);
         }
 
         return $forms;
+    }
+
+    /** A Space, or a Phantom of space-like content: occupies room but is no operand. */
+    public static function spaceLike(Node $n): bool
+    {
+        return $n instanceof Space || ($n instanceof Phantom && self::spaceLike($n->content));
     }
 
     private static function isBar(string $char): bool

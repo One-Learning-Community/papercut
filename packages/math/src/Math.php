@@ -10,10 +10,13 @@ use Papercut\Math\Layout\Context;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
+use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
+use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
 use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
+use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
 
 /**
@@ -53,6 +56,47 @@ final class Math
     public static function frac(string|Node $num, string|Node $den): Fraction
     {
         return new Fraction(self::row($num), self::row($den));
+    }
+
+    /** A fraction without a rule (MathML linethickness="0"). */
+    public static function stack(string|Node $top, string|Node $bottom): Fraction
+    {
+        return new Fraction(self::row($top), self::row($bottom), false);
+    }
+
+    /** A binomial coefficient: a barless fraction in parentheses. */
+    public static function binom(string|Node $top, string|Node $bottom): Fenced
+    {
+        return new Fenced('(', ')', self::stack($top, $bottom));
+    }
+
+    /** Horizontal space of $em times the font size; negative pulls the next item back. */
+    public static function space(float $em): Space
+    {
+        return new Space($em);
+    }
+
+    /** Takes the size of its content and draws nothing. */
+    public static function phantom(string|Node ...$content): Phantom
+    {
+        return new Phantom(self::row(...$content));
+    }
+
+    /**
+     * Text drawn in a MathML mathvariant (double-struck, bold, script, ...) as an upright identifier of the mapped code points.
+     *
+     * @throws \InvalidArgumentException for a variant outside Styles::VARIANTS
+     */
+    public static function styled(string $text, string $variant): Identifier
+    {
+        if ($text === '') {
+            throw new \InvalidArgumentException('Styled text is empty');
+        }
+        if (! in_array($variant, Styles::VARIANTS, true)) {
+            throw new \InvalidArgumentException('Unknown math variant "' . $variant . '"');
+        }
+
+        return new Identifier(implode('', array_map(static fn (string $ch): string => mb_chr(Styles::variant(mb_ord($ch), $variant)), mb_str_split($text))), false);
     }
 
     public static function sqrt(string|Node ...$content): Root

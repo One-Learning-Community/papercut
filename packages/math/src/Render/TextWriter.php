@@ -11,9 +11,11 @@ use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
 use Papercut\Math\Node\Operator;
+use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
 use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
+use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
 use Papercut\Math\OperatorDictionary;
 use Papercut\Math\Styles;
@@ -56,7 +58,9 @@ final class TextWriter
             $n instanceof Fraction => self::fraction($n),
             $n instanceof Root => self::root($n),
             $n instanceof Scripts => self::scripts($n),
-            $n instanceof Fenced => $n->open . self::node($n->content) . $n->close,
+            $n instanceof Fenced => $n->open . ($n->content instanceof Fraction && ! $n->content->bar ? self::stacked($n->content) : self::node($n->content)) . $n->close,
+            $n instanceof Space => $n->em >= 0.15 ? ' ' : '',
+            $n instanceof Phantom => '',
             $n instanceof Row => self::row($n),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
@@ -104,6 +108,7 @@ final class TextWriter
     {
         return match (true) {
             $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Root, $n instanceof Scripts => true,
+            $n instanceof Fraction => ! $n->bar,
             $n instanceof Text => preg_match('/\s/u', $n->text) !== 1,
             $n instanceof Fallback => $n->content !== null && self::atom($n->content),
             $n instanceof Row => count($n->children) === 1 && self::atom($n->children[0]),
@@ -118,8 +123,17 @@ final class TextWriter
         return self::atom($n) ? $s : '(' . $s . ')';
     }
 
+    private static function stacked(Fraction $f): string
+    {
+        return trim(self::node($f->numerator)) . '; ' . trim(self::node($f->denominator));
+    }
+
     private static function fraction(Fraction $f): string
     {
+        if (! $f->bar) {
+            return '(' . self::stacked($f) . ')';
+        }
+
         return self::wrap($f->numerator) . '/' . self::wrap($f->denominator);
     }
 

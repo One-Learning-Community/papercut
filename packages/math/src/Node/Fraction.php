@@ -11,7 +11,7 @@ use Papercut\Math\Layout\Rule;
 /** mfrac. Display style keeps numerator/denominator at the current size; inline style shrinks them one script level. */
 final class Fraction extends Node
 {
-    public function __construct(public readonly Node $numerator, public readonly Node $denominator)
+    public function __construct(public readonly Node $numerator, public readonly Node $denominator, public readonly bool $bar = true)
     {
     }
 
@@ -42,6 +42,10 @@ final class Fraction extends Node
         $num = $this->numerator->layout($fc);
         $den = $this->denominator->layout($c->fractionChild(true));
 
+        if (! $this->bar) {
+            return $this->stack($c, $num, $den);
+        }
+
         $axis = $c->k('axisHeight');
         $thick = $c->k('fractionRuleThickness');
         if ($c->display) {
@@ -65,6 +69,34 @@ final class Fraction extends Node
         $out->place($num, $pad + ($w - $num->width) / 2, -$up);
         $out->place($den, $pad + ($w - $den->width) / 2, $down);
         $out->add(new Rule($pad, -($axis + $thick / 2), $w, $thick));
+
+        return $out;
+    }
+
+    /** A fraction without a rule: numerator and denominator stacked with the font's stack constants. */
+    private function stack(Context $c, Box $num, Box $den): Box
+    {
+        if ($c->display) {
+            $up = $c->k('stackTopDisplayStyleShiftUp');
+            $down = $c->k('stackBottomDisplayStyleShiftDown');
+            $gap = $c->k('stackDisplayStyleGapMin');
+        } else {
+            $up = $c->k('stackTopShiftUp');
+            $down = $c->k('stackBottomShiftDown');
+            $gap = $c->k('stackGapMin');
+        }
+        // Too close together: push each part away from the other by half the shortfall.
+        $shortfall = $gap - (($up - $num->descent) + ($down - $den->ascent));
+        if ($shortfall > 0) {
+            $up += $shortfall / 2;
+            $down += $shortfall / 2;
+        }
+
+        $pad = self::padding($c);
+        $w = max($num->width, $den->width);
+        $out = new Box($w + 2 * $pad, $up + $num->ascent, $down + $den->descent);
+        $out->place($num, $pad + ($w - $num->width) / 2, -$up);
+        $out->place($den, $pad + ($w - $den->width) / 2, $down);
 
         return $out;
     }

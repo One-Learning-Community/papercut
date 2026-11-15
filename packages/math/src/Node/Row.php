@@ -45,7 +45,7 @@ final class Row extends Node
         $forms = $this->forms();
         foreach ($this->children as $i => $child) {
             // A fraction next to an operand (mixed number "3 1/2", "2 x/y") gets a thin space so it does not read as one blob.
-            if ($prev !== null && ! ($prev instanceof Operator)) {
+            if ($prev !== null && ! ($prev instanceof Operator) && ! ($prev instanceof Space) && ! ($child instanceof Space)) {
                 if (! ($child instanceof Operator) && ($child instanceof Fraction || $prev instanceof Fraction)) {
                     $x += $c->mu(3);
                 }

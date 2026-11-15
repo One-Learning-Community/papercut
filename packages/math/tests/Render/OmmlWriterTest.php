@@ -195,4 +195,22 @@ final class OmmlWriterTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         new RunFormat(null, null, 'yellow');
     }
+
+    public function test_small_constructs(): void
+    {
+        $w = fn ($n) => OmmlWriter::oMath($n);
+        self::assertStringContainsString("<m:t xml:space=\"preserve\">\u{2005}</m:t>", $w(Math::space(0.25)));
+        self::assertStringContainsString("<m:t xml:space=\"preserve\">\u{2009}</m:t>", $w(Math::space(0.167)));
+        self::assertStringContainsString("<m:t xml:space=\"preserve\">\u{2004}</m:t>", $w(Math::space(0.4)));
+        self::assertStringContainsString("<m:t xml:space=\"preserve\">\u{2002}</m:t>", $w(Math::space(0.5)));
+        self::assertStringContainsString("<m:t xml:space=\"preserve\">\u{2003}\u{2003}</m:t>", $w(Math::space(2)));
+        foreach ([[0.2, "\u{2009}"], [0.3, "\u{2005}"], [0.6, "\u{2002}"], [0.7, "\u{2003}"], [2.3, "\u{2003}\u{2003}\u{2005}"], [1.5, "\u{2003}\u{2002}"]] as [$em, $chars]) {
+            self::assertStringContainsString('<m:t xml:space="preserve">' . $chars . '</m:t>', $w(Math::space($em)), (string) $em);
+        }
+        self::assertSame('<m:oMath></m:oMath>', $w(Math::space(-0.2)));
+        self::assertStringContainsString('<m:phant><m:phantPr><m:show m:val="0"/></m:phantPr><m:e>', $w(Math::phantom('x')));
+        self::assertStringContainsString('<m:f><m:fPr><m:type m:val="noBar"/></m:fPr><m:num>', $w(Math::stack('n', 'k')));
+        self::assertStringContainsString('<m:r><m:rPr><m:sty m:val="p"/></m:rPr>', $w(Math::styled('R', 'double-struck')));
+        self::assertStringContainsString('<m:t xml:space="preserve">ℝ</m:t>', $w(Math::styled('R', 'double-struck')));
+    }
 }

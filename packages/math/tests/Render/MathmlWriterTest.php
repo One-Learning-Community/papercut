@@ -105,4 +105,15 @@ final class MathmlWriterTest extends TestCase
         self::assertStringContainsString('<mtext>abcdef</mtext>', $xml);
         \Dom\XMLDocument::createFromString($xml);
     }
+
+    public function test_small_constructs(): void
+    {
+        self::assertStringContainsString('<mspace width="0.167em"/>', MathmlWriter::write(Math::space(1 / 6)));
+        self::assertStringContainsString('<mspace width="-0.2em"/>', MathmlWriter::write(Math::space(-0.2)));
+        self::assertStringContainsString('<mspace width="0.5em"/>', MathmlWriter::write(Math::space(0.5)));
+        self::assertStringContainsString('<mphantom><mi>x</mi></mphantom>', MathmlWriter::write(Math::phantom('x')));
+        self::assertStringContainsString('<mfrac linethickness="0"><mi>n</mi><mi>k</mi></mfrac>', MathmlWriter::write(Math::stack('n', 'k')));
+        self::assertStringContainsString('<mi mathvariant="normal">ℝ</mi>', MathmlWriter::write(Math::styled('R', 'double-struck')));
+        self::assertStringContainsString('<mi mathvariant="normal">𝑥</mi>', MathmlWriter::write(Math::styled('x', 'italic')));
+    }
 }

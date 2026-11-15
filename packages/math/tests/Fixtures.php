@@ -37,6 +37,10 @@ final class Fixtures
             'e-to-minus-kt' => Math::sup('e', '−kt'),
             'unicode-script-digits' => Math::row('b² + x₂ = c'),
             'nested-radical' => Math::sqrt('1 +', Math::frac('1', Math::row('1 +', Math::frac('1', 'x')))),
+            'binomial' => Math::row(Math::binom('n', 'k'), '=', Math::frac('n!', Math::row('k!(n − k)!'))),
+            'spaced-dx' => Math::row('∫', Math::sup('x', '2'), Math::space(1 / 6), Math::styled('d', 'normal'), 'x'),
+            'phantom-align' => Math::row(Math::phantom('−'), '3', '+', '12'),
+            'double-struck-r' => Math::row('x ∈', Math::styled('R', 'double-struck'), ', ', Math::styled('h', 'italic')),
             'tall-fence' => Math::row(Math::fenced('[', ']', Math::frac(Math::frac('1', 'x'), Math::frac('1', Math::frac('1', 'y')))), '= z'),
         ];
     }
