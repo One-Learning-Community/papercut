@@ -150,4 +150,14 @@ final class StretcherTest extends TestCase
         $r = Stretcher::horizontal($font, $gid, 10000.0);
         self::assertSame([[$gid, 0.0]], $r['pieces']);
     }
+
+    public function test_assembly_ink_extent_may_lie_wholly_above_the_baseline(): void
+    {
+        $font = $this->font();
+        $r = Stretcher::horizontal($font, $font->gid(0x23DE), 20.0 * $font->unitsPerEm);
+        self::assertGreaterThan(1, count($r['pieces']));
+        // An overbrace's ink sits above the baseline: its depth below it is negative, not clamped to zero.
+        self::assertLessThan(0.0, $r['descent']);
+        self::assertGreaterThan(0.0, $r['ascent']);
+    }
 }

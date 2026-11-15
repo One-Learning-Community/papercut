@@ -17,6 +17,7 @@ use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
+use Papercut\Math\Node\UnderOver;
 use Papercut\Math\Styles;
 
 /**
@@ -82,6 +83,7 @@ final class OmmlWriter
             $n instanceof Fraction => '<m:f>' . ($n->bar ? '' : '<m:fPr><m:type m:val="noBar"/></m:fPr>') . '<m:num>' . self::node($n->numerator, $rPr) . '</m:num><m:den>' . self::node($n->denominator, $rPr) . '</m:den></m:f>',
             $n instanceof Root => self::root($n, $rPr),
             $n instanceof Scripts => self::scripts($n, $rPr),
+            $n instanceof UnderOver => self::underOver($n, $rPr),
             $n instanceof Fenced => '<m:d><m:dPr><m:begChr m:val="' . Xml::text($n->open) . '"/><m:endChr m:val="' . Xml::text($n->close) . '"/></m:dPr><m:e>'
                 . self::node($n->content, $rPr) . '</m:e></m:d>',
             $n instanceof Row => implode('', array_map(fn (Node $c) => self::node($c, $rPr), $n->children)),
@@ -142,6 +144,20 @@ final class OmmlWriter
         };
 
         return '<' . $tag . '>' . $e . $sub . $sup . '</' . $tag . '>';
+    }
+
+    /** A plain limit stack; Word's accent, bar and brace structures are not used yet. */
+    private static function underOver(UnderOver $u, string $rPr): string
+    {
+        $out = self::node($u->base, $rPr);
+        if ($u->over !== null) {
+            $out = '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . self::node($u->over, $rPr) . '</m:lim></m:limUpp>';
+        }
+        if ($u->under !== null) {
+            $out = '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . self::node($u->under, $rPr) . '</m:lim></m:limLow>';
+        }
+
+        return $out;
     }
 
     /** Math italic code points back to the plain letter: Word italicises letters itself. */

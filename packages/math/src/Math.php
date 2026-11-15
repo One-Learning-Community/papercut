@@ -12,12 +12,14 @@ use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
+use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
 use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
+use Papercut\Math\Node\UnderOver;
 
 /**
  * Builder API. Wherever a Node is expected a plain string works too and is tokenized
@@ -122,6 +124,112 @@ final class Math
     public static function subSup(string|Node $base, string|Node $sub, string|Node $sup): Scripts
     {
         return new Scripts(self::row($base), self::row($sub), self::row($sup));
+    }
+
+    /** A part below the base (munder). */
+    public static function under(string|Node $base, string|Node $under): UnderOver
+    {
+        return new UnderOver(self::row($base), self::row($under), null);
+    }
+
+    /** A part above the base (mover). */
+    public static function over(string|Node $base, string|Node $over): UnderOver
+    {
+        return new UnderOver(self::row($base), null, self::row($over));
+    }
+
+    public static function underOver(string|Node $base, string|Node $under, string|Node $over): UnderOver
+    {
+        return new UnderOver(self::row($base), self::row($under), self::row($over));
+    }
+
+    /**
+     * A large operator with limits above and below it in display style (beside it as scripts in inline style when its
+     * limits are movable). Without limits it is the operator alone.
+     */
+    public static function bigOp(string $op, string|Node|null $under = null, string|Node|null $over = null): Node
+    {
+        $o = new Operator($op);
+        if ($under === null && $over === null) {
+            return $o;
+        }
+
+        return new UnderOver($o, $under === null ? null : self::row($under), $over === null ? null : self::row($over));
+    }
+
+    public static function sum(string|Node|null $under = null, string|Node|null $over = null): Node
+    {
+        return self::bigOp('∑', $under, $over);
+    }
+
+    public static function product(string|Node|null $under = null, string|Node|null $over = null): Node
+    {
+        return self::bigOp('∏', $under, $over);
+    }
+
+    /** An integral: its limits stay beside it as scripts, in display style too. */
+    public static function integral(string|Node|null $under = null, string|Node|null $over = null): Node
+    {
+        $o = new Operator('∫');
+        if ($under === null && $over === null) {
+            return $o;
+        }
+
+        return new Scripts($o, $under === null ? null : self::row($under), $over === null ? null : self::row($over));
+    }
+
+    /** An accent mark (a combining character such as U+0302) above the base. */
+    public static function accent(string|Node $base, string $mark): UnderOver
+    {
+        return new UnderOver(self::row($base), null, new Operator($mark), true);
+    }
+
+    public static function hat(string|Node $base): UnderOver
+    {
+        return self::accent($base, "\u{0302}");
+    }
+
+    public static function tilde(string|Node $base): UnderOver
+    {
+        return self::accent($base, "\u{0303}");
+    }
+
+    public static function vec(string|Node $base): UnderOver
+    {
+        return self::accent($base, "\u{20D7}");
+    }
+
+    public static function dot(string|Node $base): UnderOver
+    {
+        return self::accent($base, "\u{0307}");
+    }
+
+    /** A bar over the base, drawn as a rule as wide as the base. */
+    public static function overline(string|Node $base): UnderOver
+    {
+        return new UnderOver(self::row($base), null, new Operator("\u{00AF}"), true);
+    }
+
+    /** A bar under the base, drawn as a rule as wide as the base. */
+    public static function underline(string|Node $base): UnderOver
+    {
+        return new UnderOver(self::row($base), new Operator('_'), null, false, true);
+    }
+
+    /** A brace over the base, stretched to its width, with an optional label above the brace. */
+    public static function overbrace(string|Node $base, string|Node|null $label = null): UnderOver
+    {
+        $braced = new UnderOver(self::row($base), null, new Operator("\u{23DE}"));
+
+        return $label === null ? $braced : new UnderOver($braced, null, self::row($label));
+    }
+
+    /** A brace under the base, stretched to its width, with an optional label below the brace. */
+    public static function underbrace(string|Node $base, string|Node|null $label = null): UnderOver
+    {
+        $braced = new UnderOver(self::row($base), new Operator("\u{23DF}"), null);
+
+        return $label === null ? $braced : new UnderOver($braced, self::row($label), null);
     }
 
     public static function fenced(string $open, string $close, string|Node ...$content): Fenced

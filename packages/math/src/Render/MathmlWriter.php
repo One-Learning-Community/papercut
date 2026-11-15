@@ -17,6 +17,7 @@ use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
+use Papercut\Math\Node\UnderOver;
 use Papercut\Math\OperatorDictionary;
 use Papercut\Math\Styles;
 
@@ -44,6 +45,7 @@ final class MathmlWriter
                 ? '<msqrt>' . self::node($n->radicand) . '</msqrt>'
                 : '<mroot>' . self::node($n->radicand) . self::node($n->index) . '</mroot>',
             $n instanceof Scripts => self::scripts($n),
+            $n instanceof UnderOver => self::underOver($n),
             $n instanceof Fenced => self::fenced($n),
             $n instanceof Row => self::row($n),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
@@ -123,6 +125,20 @@ final class MathmlWriter
         }
 
         return '<msub>' . $base . self::node($s->sub ?? throw new \LogicException('Scripts without a script')) . '</msub>';
+    }
+
+    private static function underOver(UnderOver $u): string
+    {
+        $part = static fn (Node $n): string => $n instanceof Operator ? '<mo>' . Xml::text($n->char) . '</mo>' : self::node($n);
+        $base = self::node($u->base);
+        if ($u->under !== null && $u->over !== null) {
+            return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under) . $part($u->over) . '</munderover>';
+        }
+        if ($u->over !== null) {
+            return '<mover' . ($u->accent ? ' accent="true"' : '') . '>' . $base . $part($u->over) . '</mover>';
+        }
+
+        return '<munder' . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under ?? throw new \LogicException('UnderOver without a part')) . '</munder>';
     }
 
     private static function fenced(Fenced $f): string

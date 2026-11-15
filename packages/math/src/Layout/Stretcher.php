@@ -78,8 +78,8 @@ final class Stretcher
         }
         [$placed, $size] = self::solveParts($con->parts, $requiredUnits, $font->math()->minConnectorOverlap);
         $pieces = [];
-        $ascent = 0.0;
-        $descent = 0.0;
+        $ascent = -INF;
+        $descent = -INF;
         $xmin = INF;
         $xmax = -INF;
         foreach ($placed as [$p, $x]) {

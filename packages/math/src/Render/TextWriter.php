@@ -17,6 +17,7 @@ use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
+use Papercut\Math\Node\UnderOver;
 use Papercut\Math\OperatorDictionary;
 use Papercut\Math\Styles;
 
@@ -58,6 +59,7 @@ final class TextWriter
             $n instanceof Fraction => self::fraction($n),
             $n instanceof Root => self::root($n),
             $n instanceof Scripts => self::scripts($n),
+            $n instanceof UnderOver => self::underOver($n),
             $n instanceof Fenced => $n->open . ($n->content instanceof Fraction && ! $n->content->bar ? self::stacked($n->content) : self::node($n->content)) . $n->close,
             $n instanceof Space => $n->em >= 0.15 ? ' ' : '',
             $n instanceof Phantom => '',
@@ -107,7 +109,7 @@ final class TextWriter
     private static function atom(Node $n): bool
     {
         return match (true) {
-            $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Root, $n instanceof Scripts => true,
+            $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Root, $n instanceof Scripts, $n instanceof UnderOver => true,
             $n instanceof Fraction => ! $n->bar,
             $n instanceof Text => preg_match('/\s/u', $n->text) !== 1,
             $n instanceof Fallback => $n->content !== null && self::atom($n->content),
@@ -157,6 +159,16 @@ final class TextWriter
         $base = self::node($s->base);
 
         return $base . ($s->sub !== null ? self::script($s->sub, self::SUB, '_') : '') . ($s->sup !== null ? self::script($s->sup, self::SUP, '^') : '');
+    }
+
+    /** An accent or bar follows its base; limits read like scripts. */
+    private static function underOver(UnderOver $u): string
+    {
+        if ($u->accent || $u->accentUnder) {
+            return self::node($u->base) . ($u->over !== null ? self::node($u->over) : '') . ($u->under !== null ? self::node($u->under) : '');
+        }
+
+        return self::scripts(new Scripts($u->base, $u->under, $u->over));
     }
 
     /** @param array<int|string, string> $map */
