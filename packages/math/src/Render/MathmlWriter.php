@@ -39,12 +39,12 @@ final class MathmlWriter
             // Alone, the layout treats an operator as prefix while a browser infers infix.
             $n instanceof Operator => self::operator($n, OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_INFIX),
             $n instanceof Text => '<mtext>' . Xml::text(self::keepSpaces($n->text)) . '</mtext>',
-            $n instanceof Fraction => '<mfrac' . ($n->bar ? '' : ' linethickness="0"') . '>' . self::node($n->numerator) . self::node($n->denominator) . '</mfrac>',
+            $n instanceof Fraction => '<mfrac' . ($n->bar ? '' : ' linethickness="0"') . '>' . self::slot($n->numerator) . self::slot($n->denominator) . '</mfrac>',
             $n instanceof Space => '<mspace width="' . self::em($n->em) . 'em"/>',
             $n instanceof Phantom => '<mphantom>' . self::node($n->content) . '</mphantom>',
             $n instanceof Root => $n->index === null
-                ? '<msqrt>' . self::node($n->radicand) . '</msqrt>'
-                : '<mroot>' . self::node($n->radicand) . self::node($n->index) . '</mroot>',
+                ? '<msqrt>' . self::slot($n->radicand) . '</msqrt>'
+                : '<mroot>' . self::slot($n->radicand) . self::slot($n->index) . '</mroot>',
             $n instanceof Scripts => self::scripts($n),
             $n instanceof UnderOver => self::underOver($n),
             $n instanceof Fenced => self::fenced($n),
@@ -53,6 +53,12 @@ final class MathmlWriter
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
+    }
+
+    /** A child in a fixed-arity element: a dropped one is written as an empty mrow so the others keep their places. */
+    private static function slot(Node $n): string
+    {
+        return $n instanceof Fallback && $n->content === null ? '<mrow></mrow>' : self::node($n);
     }
 
     /** An em width with up to 3 decimals and no trailing zeros. */
@@ -144,15 +150,15 @@ final class MathmlWriter
 
     private static function scripts(Scripts $s): string
     {
-        $base = self::node($s->base);
+        $base = self::slot($s->base);
         if ($s->sub !== null && $s->sup !== null) {
-            return '<msubsup>' . $base . self::node($s->sub) . self::node($s->sup) . '</msubsup>';
+            return '<msubsup>' . $base . self::slot($s->sub) . self::slot($s->sup) . '</msubsup>';
         }
         if ($s->sup !== null) {
-            return '<msup>' . $base . self::node($s->sup) . '</msup>';
+            return '<msup>' . $base . self::slot($s->sup) . '</msup>';
         }
 
-        return '<msub>' . $base . self::node($s->sub ?? throw new \LogicException('Scripts without a script')) . '</msub>';
+        return '<msub>' . $base . self::slot($s->sub ?? throw new \LogicException('Scripts without a script')) . '</msub>';
     }
 
     private static function underOver(UnderOver $u): string
@@ -160,7 +166,7 @@ final class MathmlWriter
         $part = static function (Node $n): string {
             $op = UnderOver::operatorOf($n);
 
-            return $op !== null ? self::styled($n, self::operator($op, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX, false, true)) : self::node($n);
+            return $op !== null ? self::styled($n, self::operator($op, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX, false, true)) : self::slot($n);
         };
         $baseOp = UnderOver::operatorOf($u->base);
         if (UnderOver::isLimitName($u->base)) {
@@ -172,7 +178,7 @@ final class MathmlWriter
             $form = $baseOp->isLargeop(OperatorDictionary::FORM_PREFIX) ? OperatorDictionary::FORM_PREFIX : OperatorDictionary::FORM_INFIX;
             $base = self::styled($u->base, self::operator($baseOp, $form, OperatorDictionary::FORM_INFIX, false, $stretches));
         } else {
-            $base = self::node($u->base);
+            $base = self::slot($u->base);
         }
         if ($u->under !== null && $u->over !== null) {
             return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under) . $part($u->over) . '</munderover>';

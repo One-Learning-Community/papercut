@@ -86,10 +86,14 @@ final class Math
         return new Fenced('(', ')', self::stack($top, $bottom));
     }
 
-    /** Horizontal space of $em times the font size; negative pulls the next item back. */
+    /** Horizontal space of $em times the font size (clamped to +-100em); negative pulls the next item back. */
     public static function space(float $em): Space
     {
-        return new Space($em);
+        if (! is_finite($em)) {
+            throw new \InvalidArgumentException('Math::space() needs a finite number of em, got ' . var_export($em, true));
+        }
+
+        return new Space(max(-Space::MAX_EM, min(Space::MAX_EM, $em)));
     }
 
     /** Takes the size of its content and draws nothing. */

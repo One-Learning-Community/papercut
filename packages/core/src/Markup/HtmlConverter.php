@@ -1056,8 +1056,10 @@ final class HtmlConverter
     {
         $mathml = $el->getAttribute('data-mathml') ?? '';
         if ($mathml !== '' && in_array('Wirisformula', preg_split('/\s+/', $el->getAttribute('class') ?? '') ?: [], true)) {
-            $result = MathmlReader::read(str_contains($mathml, '«') ? SafeXml::decode($mathml) : $mathml);
-            if (!self::emptyMath($result)) {
+            $mathml = str_contains($mathml, '«') ? SafeXml::decode($mathml) : $mathml;
+            // Text that is not markup would be drawn as formula text; the picture is the better fallback.
+            $result = stripos($mathml, '<math') !== false ? MathmlReader::read($mathml) : null;
+            if ($result !== null && !self::emptyMath($result)) {
                 $this->math($result, $style, $href, $preset);
                 return;
             }

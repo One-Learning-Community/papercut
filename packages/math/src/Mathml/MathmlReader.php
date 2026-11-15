@@ -211,7 +211,7 @@ final class MathmlReader
             'semantics' => $this->slots($e, $where, 1)[0] ?? new Row([]),
             'annotation', 'annotation-xml', 'mprescripts', 'none' => null,
             'mi', 'mn', 'mtext', 'ms', 'mo' => $this->token($e, $name, $where),
-            'mspace' => new Space(self::width($e->getAttribute('width'))),
+            'mspace' => $this->space(self::width($e->getAttribute('width')), $where),
             'mphantom' => new Phantom($this->children($e, $where)),
             'msqrt' => new Root($this->children($e, $where)),
             'mfrac' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new Fraction($a[0], $a[1], ! self::zeroThickness($e->getAttribute('linethickness')))),
@@ -243,6 +243,7 @@ final class MathmlReader
     private function tableRows(\Dom\Element $e, string $where): Node
     {
         $rows = [];
+        $labelled = false;
         $i = 0;
         foreach ($e->children as $tr) {
             $rowWhere = $this->at($where, $tr, $i++);
@@ -252,6 +253,7 @@ final class MathmlReader
             foreach ($tr->children as $td) {
                 $cellWhere = $this->at($rowWhere, $td, $j++);
                 if ($trName === 'mlabeledtr' && $j === 1) {
+                    $labelled = true;
                     continue;
                 }
                 $cells[] = $this->children($td, $cellWhere);
@@ -271,7 +273,9 @@ final class MathmlReader
             array_push($nodes, ...$row);
         }
 
-        return new Row($nodes);
+        $row = new Row($nodes);
+
+        return $labelled ? ($this->note('mlabeledtr', $row, NoteLevel::Approximated, 'mlabeledtr', 'row label not drawn', $where) ?? $row) : $row;
     }
 
     /** The child `selection` names (1-based), else the first. */
@@ -405,6 +409,16 @@ final class MathmlReader
         );
     }
 
+    private function space(float $em, string $where): Node
+    {
+        if (abs($em) <= Space::MAX_EM) {
+            return new Space($em);
+        }
+        $space = new Space(max(-Space::MAX_EM, min(Space::MAX_EM, $em)));
+
+        return $this->note('#space', $space, NoteLevel::Approximated, 'mspace', 'width limited to 100em', $where) ?? $space;
+    }
+
     /** A width in em (12pt basis); 0 when missing or unparseable. */
     private static function width(?string $w): float
     {
@@ -416,6 +430,9 @@ final class MathmlReader
             return 0.0;
         }
         $v = (float) $m[1];
+        if (! is_finite($v)) {
+            return 0.0;
+        }
 
         return match ($m[2]) {
             'em' => $v,

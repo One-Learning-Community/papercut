@@ -480,6 +480,9 @@ final class TableLayouter implements Layouter
             $message = sprintf('Table columns need %.2fpt but only %.2fpt is available', $total, $width);
             if ($ctx->quiet) {
                 $held = true;
+            } elseif ($table->fitsColumns()) {
+                // Converted markup: unbreakable content (a wide formula) overflows like an overlong word.
+                $ctx->approximated(sprintf('table content wider than the page (%.2fpt of %.2fpt; it runs past the edge)', $total, $width));
             } elseif ($ctx->overflow === OverflowMode::Throw) {
                 throw LayoutOverflow::tooWide($ctx->path(), $message);
             } else {

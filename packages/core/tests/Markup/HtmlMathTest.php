@@ -241,4 +241,23 @@ final class HtmlMathTest extends TestCase
             self::assertInstanceOf(Equation::class, $first->children()[0]);
         }
     }
+
+    public function test_wiris_with_non_markup_data_falls_back_to_the_image(): void
+    {
+        $options = new MarkupOptions(images: static fn (string $src): string => TestImages::png());
+        $h = Markup::html('<img class="Wirisformula" src="f.png" alt="x squared" data-mathml="not math">', $options);
+        $blocks = $h instanceof View ? $h->children() : [$h];
+        self::assertInstanceOf(Image::class, $blocks[0]);
+        $spans = self::spans('<p><img class="Wirisformula" src="missing.png" alt="x squared" data-mathml="not math"></p>');
+        self::assertStringContainsString('x squared', implode('', array_map(static fn ($s) => $s->text, $spans)));
+    }
+
+    public function test_wide_inline_formula_in_a_table_cell_overflows_instead_of_throwing(): void
+    {
+        $wide = '<math><mrow>' . str_repeat('<mi>x</mi><mo>+</mo>', 60) . '<mi>y</mi></mrow></math>';
+        foreach (['<table><tr><td>' . $wide . '</td></tr></table>', '<table><tr><td>a <math><mi>x</mi> ' . str_repeat('<mi>q</mi>', 5) . '</td></tr></table>'] as $html) {
+            $pdf = Document::make(Page::a4()->body(Markup::html($html)))->toPdf(new PdfOptions(backend: new FakeBackend()));
+            self::assertNotSame('', $pdf);
+        }
+    }
 }
