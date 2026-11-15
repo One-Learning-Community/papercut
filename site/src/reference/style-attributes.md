@@ -2,6 +2,8 @@
 
 Every tag marked **Style** in the [tag reference](./blade-tags.md) accepts these attributes. The PHP methods with the same names take typed values instead, like `width(mm(70))` or `background('slate-50')`.
 
+A bad value, such as a negative width or an `opacity` of 2, throws `InvalidValue` naming the attribute and what it accepts. An attribute bound to `null` (`:width="$maybeNull"`) is the same as leaving it off; an array or object throws.
+
 **Lengths** can be `pt`, `mm`, `cm`, `in` or `px`, or relative to the element: `em` for its font size and `lh` for its line height. **Colours** are Tailwind palette names like `slate-500`, or hex codes. **Booleans** can be written on their own (`bold`) or as `true`, `1`, `false` or `0`.
 
 ## Box

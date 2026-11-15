@@ -40,6 +40,10 @@ $document = Document::make(Page::letter()->body(
 
 On text tags, `align` and `size` are shorthand for `text-align` and `font-size`. On boxes, `align` positions the children instead.
 
+## Text that isn't valid UTF-8
+
+Text that isn't valid UTF-8 (a database column in the wrong encoding, say) doesn't stop the export. Each bad byte becomes the replacement character, and the node gets one `approximated` note, which makes [strict mode](./rich-text.md#strict-mode) say so. The same goes for link text, table cells, code blocks and equations. Document metadata and `PageNumber` formats have no node to carry a note, so bad bytes there throw `InvalidValue`.
+
 ## Keeping spaces and line breaks
 
 By default runs of whitespace collapse to one space and a newline is just a space. The `white-space` style attribute (`Style::make(whiteSpace: WhiteSpace::PreWrap)` in PHP) changes that. It takes `normal` (the default) or `pre-wrap`, and it is inherited, so it can be set on a box or on a single span.

@@ -61,7 +61,9 @@ $table = Table::make()->columns('auto auto auto')->fillWidth()->row('Mon', 'Tue'
 
 When the columns don't fit even at their narrowest (the longest word in each, or the longest piece between hyphens and slashes), the widest `auto` and `fr` columns give way first. They're narrowed to a shared width so the table fits, and long words in them break across lines. Narrow columns keep their width. A column never gets narrower than its content can go: its cell padding plus its widest letter, or the full width of a fixed-width box or a nested table's own narrowest columns. Images, SVGs and PDF pages scale down. This is reported as an approximation through `onWarning`, with how much more room the table needed. Smaller text or less cell padding keeps words whole. Word export uses the same shrunk column widths.
 
-Length columns (`1in`) keep the width you gave them. If they, or the narrowest widths left after shrinking, still don't fit, the table can't fit its box: Papercut throws a `LayoutOverflow` or, in clip mode, draws the table too wide and warns. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). Tables from `Markup::html()` shrink their length columns too.
+Length columns (`1in`) keep the width you gave them. If they, or the narrowest widths left after shrinking, still don't fit, the table can't fit its box: Papercut throws a `LayoutOverflow` or, in clip mode, draws the table too wide and warns. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). Tables from `Markup::html()` shrink their length columns too, and a markup table too wide for its page overflows with a note instead of throwing.
+
+A table inside a `Row` is narrowed to the space its row gives it, with the same note. If it still cannot fit, it throws `LayoutOverflow` like a table in a column; Word export reports it as a note instead.
 
 ## Cells
 
@@ -71,7 +73,7 @@ In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single
 
 ## Spanning rows
 
-`rowspan` makes a cell reach down into the rows below it. Those rows leave a gap in the spanned column, so write only the cells that remain, just as in HTML. `colspan` and `rowspan` can be combined on one cell. A `rowspan` that runs past the end of its section, or a `colspan` that runs into a `rowspan` from above, is clamped, and the table warns once. In PHP, `TableCell::colsSpanned()` and `rowsSpanned()` return the spans.
+`rowspan` makes a cell reach down into the rows below it. Those rows leave a gap in the spanned column, so write only the cells that remain, just as in HTML. `colspan` and `rowspan` can be combined on one cell. A `rowspan` that runs past the end of its section, or a `colspan` that runs into a `rowspan` from above, is clamped, and the table warns once. A `colspan` is also clamped at column 1000, with one note, so a mistyped value can't make a table with millions of cells. In PHP, `TableCell::colsSpanned()` and `rowsSpanned()` return the spans.
 
 ::: code-tabs#style
 @tab Blade

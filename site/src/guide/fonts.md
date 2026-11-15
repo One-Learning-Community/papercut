@@ -95,7 +95,7 @@ The family match is case-insensitive, and the last name set for a family wins. A
 
 ## Fallback fonts
 
-When the main font doesn't have a character, Papercut tries each fallback family in order. If none of them have it, the character prints as an empty box and Papercut warns. In [strict mode](./rich-text.md#strict-mode), the export throws instead. In Laravel, `php artisan papercut:fonts` shows every registered font file and whether it's `ok`, `missing` or `invalid`.
+When the main font doesn't have a character, Papercut tries each fallback family in order. If none of them have it, the character prints as an empty box and Papercut records a `dropped` note that lists the missing characters, at the text's place in the document. In [strict mode](./rich-text.md#strict-mode), the export throws instead. Only the PDF reports this: Word and browsers pick another font themselves. The replacement character U+FFFD (what Papercut puts in for invalid UTF-8) is drawn from the bundled math font when none of your fonts have it, so it never counts as missing. In Laravel, `php artisan papercut:fonts` shows every registered font file and whether it's `ok`, `missing` or `invalid`.
 
 ### Names in other scripts
 

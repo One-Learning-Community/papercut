@@ -26,6 +26,8 @@ $document = Document::make(Page::letter()->body(
 ```
 :::
 
+`Image::bytes()` throws `ImageUnreadable` for data that is cut off or isn't an image.
+
 `fit` can be `contain`, `cover` or `fill`, and works like CSS `object-fit`. Images are scaled down to fit the page width, and an image taller than a page is scaled down to fit on one. The exception is an image with an explicit `height`: Papercut keeps that height, and if it can't fit on an empty page you'll get a `LayoutOverflow` error (see [Content that doesn't fit](./pages.md#content-that-doesn-t-fit)).
 
 If a file isn't a supported image, Papercut throws `ImageUnreadable`.
@@ -84,6 +86,8 @@ Papercut draws paths (including arcs and curves), rectangles with rounded corner
 
 A few things aren't drawn yet: `<clipPath>`, `<mask>`, `<filter>`, `<pattern>`, `<image>`, `<marker>`, `<symbol>`, `<textPath>`, `<tspan>`, links and nested `<svg>` elements. When an SVG uses any of them, you'll get a warning that names them, and the rest of the drawing still appears.
 
+Before an SVG is read, `<?xml-stylesheet?>` processing instructions and `xml:base` are removed.
+
 ### In Word
 
 Word export draws each SVG into a picture with `rsvg-convert` or Imagick. See [SVG in Word](./word-export.md#svg-in-word).
@@ -104,7 +108,7 @@ In HTML exports, an SVG becomes an `<img>` with the SVG in a `data:` URI. It's n
 
 ## Links
 
-A link makes everything inside it clickable.
+A link makes everything inside it clickable. `Link::to()` accepts `http`, `https`, `mailto`, `tel` and `#fragment` links; any other scheme, or an address containing a line break or NUL, throws `InvalidValue` when you build it. Links inside [rich text](./rich-text.md) are untrusted, so there an unsupported one is dropped and reported instead.
 
 ::: code-tabs#style
 @tab Blade

@@ -121,6 +121,8 @@ In PHP, `Markup::flatten()` does the same thing and merges the converted content
 - **`theme`** (the default): the HTML provides the structure, and your theme decides how it looks. Inline `style="…"` attributes are ignored.
 - **`original`**: inline styles are applied on top of the theme. Colour, font size, weight, italic and text decoration work everywhere. `background-color` works on spans too. Alignment, margin, padding and sizes work on block elements only. Column properties on a `div` make a [column flow](#columns). Anything else is dropped and reported.
 
+Pasted CSS is never rejected, but it is limited to what a page can hold. A `font-size` is clamped to 1 to 400pt and every other length to plus or minus 2000pt, and each clamp is reported as an approximation. A value that isn't a finite number is dropped. A `height` smaller than its content acts as a `min-height`, so nothing is cut off, and a `max-height` is not applied; both are reported. Negative margins are kept.
+
 ## Columns
 
 In `original` style mode, a `div` (or a block tag that would otherwise be dropped, like `section`) whose `style` attribute sets `column-count` or `columns` (a count) becomes a [column flow](./layout.md#column-flow). Only the style attribute is read, never a stylesheet.
@@ -131,7 +133,7 @@ In `original` style mode, a `div` (or a block tag that would otherwise be droppe
 </div>
 ```
 
-- `column-count` sets the number of columns. `columns` sets it too: only its count is read, and a width in it is ignored. A count above 45 is clamped to 45, with a note.
+- `column-count` sets the number of columns. `columns` sets it too: only its count is read, and a width in it is ignored. A count above 45 is clamped to 45, with a note, and a count that would make the columns narrower than 72pt on the page is reduced until they are at least that wide, also with a note. PDF, HTML and Word all use the reduced count.
 - `column-gap` sets the gap and `column-rule` the width and colour of the rule, but only beside a count: without `column-count` or `columns`, they're dropped with a note and the content stays in one column.
 - `column-span`, `column-width` and `column-fill` are dropped, with a note. The flow has no way to span columns, work out a count from a width, or leave columns unbalanced.
 - On `p`, headings, lists and tables the column properties are dropped, with a note.
@@ -155,7 +157,7 @@ $document = Document::make(Page::letter()->body(
 ));
 ```
 
-Papercut calls the resolver once per distinct `src` in a conversion and reuses the answer, `null` included. When an image is missing, its `alt` text is shown in italics. In Laravel, set `papercut.markup.images` to a resolver class. The [Laravel configuration page](/laravel/configuration.md#markup-images) has a full example.
+Papercut calls the resolver once per distinct `src` in a conversion and reuses the answer, `null` included. When an image is missing, its `alt` text is shown in italics. Bytes that aren't a readable image, such as a cut-off download, are treated the same as `null`: the `alt` text, or a `dropped` note when there is none, and the rest of the document is made. In Laravel, set `papercut.markup.images` to a resolver class. The [Laravel configuration page](/laravel/configuration.md#markup-images) has a full example.
 
 ::: danger Treat src as user input
 Your resolver decides which files can be read. Don't pass `src` straight to the filesystem or a storage disk. Check it against the paths you expect, and reject anything containing `..`.
