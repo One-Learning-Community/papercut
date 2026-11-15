@@ -338,4 +338,28 @@ final class OmmlWriterTest extends TestCase
         $xml = self::oMath(new UnderOver(Math::row('a'), null, new Operator('⏞', false)));
         self::assertStringContainsString('<m:limUpp>', $xml);
     }
+
+    public function test_multi_character_delimiters_and_accents(): void
+    {
+        $cases = [
+            Math::fenced('((', '))', 'x'),
+            Math::fenced("\u{1F600}", "\u{1F600}", 'x'),
+            Math::accent('x', 'abc'),
+            Math::mathml('<math><mfenced open="[[" close="]]"><mi>x</mi></mfenced></math>'),
+            Math::mathml("<math><mover accent=\"true\"><mi>x</mi><mo>\u{2192}\u{2192}</mo></mover></math>"),
+            Math::mathml('<math><munder accentunder="true"><mi>x</mi><mo>ab</mo></munder></math>'),
+        ];
+        foreach ($cases as $i => $math) {
+            $xml = self::oMath($math);
+            preg_match_all('/<m:(?:chr|begChr|endChr) m:val="([^"]*)"/u', $xml, $m);
+            foreach ($m[1] as $val) {
+                self::assertLessThanOrEqual(1, strlen(mb_convert_encoding(html_entity_decode($val), 'UTF-16LE', 'UTF-8')) / 2, "case $i: $val");
+            }
+            self::assertStringContainsString('x', $xml);
+        }
+        $xml = OmmlWriter::oMath(Math::fenced('((', '))', 'x'));
+        self::assertStringContainsString('((', $xml);
+        self::assertStringContainsString('))', $xml);
+        self::assertStringContainsString('abc', OmmlWriter::oMath(Math::accent('x', 'abc')));
+    }
 }

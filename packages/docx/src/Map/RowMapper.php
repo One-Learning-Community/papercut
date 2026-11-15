@@ -100,7 +100,8 @@ final class RowMapper
         $edges[count($edges) - 1] = max(end($edges), $total);
         $grid = [];
         for ($i = 1, $n = count($edges); $i < $n; $i++) {
-            $grid[] = max(1, Units::tw($edges[$i]) - Units::tw($edges[$i - 1]));
+            // Widths are clamped, not the running positions: a row wider than Word allows keeps every column.
+            $grid[] = max(1, Units::clamp((int) round(min(1e6, $edges[$i]) * 20) - (int) round(min(1e6, $edges[$i - 1]) * 20)));
         }
         $col = static function (float $x) use ($edges): int {
             $best = 0;

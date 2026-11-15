@@ -86,13 +86,31 @@ final class OmmlWriter
             $n instanceof Root => self::root($n, $rPr),
             $n instanceof Scripts => self::scripts($n, $rPr),
             $n instanceof UnderOver => self::underOver($n, $rPr),
-            $n instanceof Fenced => '<m:d><m:dPr><m:begChr m:val="' . Xml::text($n->open) . '"/><m:endChr m:val="' . Xml::text($n->close) . '"/></m:dPr><m:e>'
-                . self::node($n->content, $rPr) . '</m:e></m:d>',
+            $n instanceof Fenced => self::fenced($n, $rPr),
             $n instanceof Row => self::sequence($n->children, $rPr),
             $n instanceof DisplayStyle => self::node($n->content, $rPr),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content, $rPr),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
+    }
+
+    /** Whether $char fits an attribute that holds one character (one UTF-16 unit, as the schema counts). */
+    private static function single(string $char): bool
+    {
+        return mb_strlen($char) === 1 && mb_ord($char) <= 0xFFFF;
+    }
+
+    /** A delimiter longer than one character is written as text inside the group, with an empty delimiter attribute. */
+    private static function fenced(Fenced $f, string $rPr): string
+    {
+        $open = self::single($f->open);
+        $close = self::single($f->close);
+
+        return '<m:d><m:dPr><m:begChr m:val="' . ($open ? Xml::text($f->open) : '') . '"/><m:endChr m:val="' . ($close ? Xml::text($f->close) : '') . '"/></m:dPr><m:e>'
+            . ($open || $f->open === '' ? '' : self::run($f->open, $rPr))
+            . self::node($f->content, $rPr)
+            . ($close || $f->close === '' ? '' : self::run($f->close, $rPr))
+            . '</m:e></m:d>';
     }
 
     /** Unicode spaces approximating the width; a negative space cannot be written and gives nothing. */
@@ -207,7 +225,7 @@ final class OmmlWriter
             return null;
         }
         $op = UnderOver::operatorOf($n->base);
-        if ($op === null || ! $op->isLargeop(OperatorDictionary::FORM_PREFIX)) {
+        if ($op === null || ! self::single($op->char) || ! $op->isLargeop(OperatorDictionary::FORM_PREFIX)) {
             return null;
         }
 
@@ -239,8 +257,8 @@ final class OmmlWriter
             $op = UnderOver::operatorOf($u->under);
             $out = match (true) {
                 $op !== null && in_array($op->char, UnderOver::BARS, true) => self::bar($out, 'bot'),
-                $op !== null && UnderOver::isBrace($op, false) => self::groupChr($out, $op->char, 'bot', 'top'),
-                $op !== null && $u->accentUnder => self::groupChr($out, Styles::accentMark($op->char) ?? $op->char, 'bot', 'top'),
+                $op !== null && UnderOver::isBrace($op, false) => self::groupChr($out, $op->char, 'bot', 'top', $rPr),
+                $op !== null && $u->accentUnder => self::groupChr($out, Styles::accentMark($op->char) ?? $op->char, 'bot', 'top', $rPr),
                 default => '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . self::node($u->under, $rPr) . '</m:lim></m:limLow>',
             };
         }
@@ -248,8 +266,8 @@ final class OmmlWriter
             $op = UnderOver::operatorOf($u->over);
             $out = match (true) {
                 $op !== null && in_array($op->char, UnderOver::BARS, true) => self::bar($out, 'top'),
-                $op !== null && $u->accent => '<m:acc><m:accPr><m:chr m:val="' . Xml::text(Styles::accentMark($op->char) ?? $op->char) . '"/></m:accPr><m:e>' . $out . '</m:e></m:acc>',
-                $op !== null && UnderOver::isBrace($op, true) => self::groupChr($out, $op->char, 'top', 'bot'),
+                $op !== null && $u->accent => self::accent($out, Styles::accentMark($op->char) ?? $op->char, $rPr, $u->over),
+                $op !== null && UnderOver::isBrace($op, true) => self::groupChr($out, $op->char, 'top', 'bot', $rPr),
                 default => '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . self::node($u->over, $rPr) . '</m:lim></m:limUpp>',
             };
         }
@@ -262,8 +280,24 @@ final class OmmlWriter
         return '<m:bar><m:barPr><m:pos m:val="' . $pos . '"/></m:barPr><m:e>' . $e . '</m:e></m:bar>';
     }
 
-    private static function groupChr(string $e, string $char, string $pos, string $vertJc): string
+    /** An accent over $e; a mark longer than one character is a limit above it instead. */
+    private static function accent(string $e, string $mark, string $rPr, Node $over): string
     {
+        if (! self::single($mark)) {
+            return '<m:limUpp><m:e>' . $e . '</m:e><m:lim>' . self::node($over, $rPr) . '</m:lim></m:limUpp>';
+        }
+
+        return '<m:acc><m:accPr><m:chr m:val="' . Xml::text($mark) . '"/></m:accPr><m:e>' . $e . '</m:e></m:acc>';
+    }
+
+    private static function groupChr(string $e, string $char, string $pos, string $vertJc, string $rPr): string
+    {
+        if (! self::single($char)) {
+            $tag = $pos === 'bot' ? 'limLow' : 'limUpp';
+
+            return '<m:' . $tag . '><m:e>' . $e . '</m:e><m:lim>' . self::run($char, $rPr) . '</m:lim></m:' . $tag . '>';
+        }
+
         return '<m:groupChr><m:groupChrPr><m:chr m:val="' . Xml::text($char) . '"/><m:pos m:val="' . $pos . '"/><m:vertJc m:val="' . $vertJc . '"/></m:groupChrPr><m:e>' . $e . '</m:e></m:groupChr>';
     }
 

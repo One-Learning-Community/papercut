@@ -13,10 +13,37 @@ use Papercut\Value\Color;
  */
 final class Units
 {
-    /** Twentieths of a point. */
+    /** The widest length OOXML takes in twentieths of a point (22 inches); lengths beyond it, either way, are clamped to it. */
+    public const int MAX_TWIPS = 31680;
+
+    /** The largest `w:sz` Word takes, in half points (1638 pt). */
+    public const int MAX_HALF_POINTS = 3276;
+
+    /** Twentieths of a point, clamped to what OOXML allows. */
     public static function tw(float $points): int
     {
-        return (int) round($points * 20);
+        return max(-self::MAX_TWIPS, min(self::MAX_TWIPS, (int) round(max(-1e6, min(1e6, $points)) * 20)));
+    }
+
+    /** The widest border `w:sz` takes, in eighths of a point (12 pt). */
+    public const int MAX_BORDER_EIGHTHS = 96;
+
+    /** A twip total (a sum of clamped values) clamped again to what OOXML allows. */
+    public static function clamp(int $twips): int
+    {
+        return max(-self::MAX_TWIPS, min(self::MAX_TWIPS, $twips));
+    }
+
+    /** A border width in eighths of a point for `w:sz`: at least 2 (a quarter point), at most what Word takes. */
+    public static function eighths(float $points): int
+    {
+        return max(2, min(self::MAX_BORDER_EIGHTHS, (int) round(max(0.0, min(1e6, $points)) * 8)));
+    }
+
+    /** Half points for `w:sz`, between 1 and what Word takes. */
+    public static function halfPoints(float $points): int
+    {
+        return max(1, min(self::MAX_HALF_POINTS, (int) round(max(0.0, min(1e6, $points)) * 2)));
     }
 
     /** English Metric Units: 12700 per point. */

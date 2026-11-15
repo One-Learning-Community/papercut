@@ -229,7 +229,7 @@ final class TextMapper
     public function runStyle(ComputedStyle $s): RunStyle
     {
         return new RunStyle(
-            sizeHalfPoints: (int) round($s->fontSize * 2),
+            sizeHalfPoints: Units::halfPoints($s->fontSize),
             color: Units::hex($s->color),
             fontFamily: $this->fonts->name($s->fontFamily),
             bold: $s->fontWeight >= 600,
@@ -289,7 +289,7 @@ final class TextMapper
         $size = $s->height instanceof Length ? $s->height->points * 1.25 : $s->fontSize;
 
         return new Paragraph(
-            [new Run($glyph, new RunStyle(sizeHalfPoints: (int) round($size * 2), color: Units::hex($s->borderColor)))],
+            [new Run($glyph, new RunStyle(sizeHalfPoints: Units::halfPoints($size), color: Units::hex($s->borderColor)))],
             new ParagraphStyle(lineSpacingTwips: 240, lineSpacingRule: 'auto'),
         );
     }
