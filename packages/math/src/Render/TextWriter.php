@@ -178,7 +178,7 @@ final class TextWriter
         $underPlain = $u->under;
         if ($over !== null) {
             $isBar = in_array($over->char, UnderOver::BARS, true);
-            if ($isBar || $u->accent) {
+            if ($isBar || ($u->accent && ! UnderOver::isBrace($over, true))) {
                 $marks .= $isBar ? "\u{0304}" : (Styles::accentMark($over->char) ?? $over->char);
                 $overPlain = null;
             } elseif (UnderOver::isBrace($over, true)) {
@@ -188,7 +188,7 @@ final class TextWriter
         }
         if ($under !== null) {
             $isBar = in_array($under->char, UnderOver::BARS, true);
-            if ($isBar || $u->accentUnder) {
+            if ($isBar || ($u->accentUnder && ! UnderOver::isBrace($under, false))) {
                 $marks .= $isBar ? "\u{0332}" : (Styles::accentMark($under->char) ?? $under->char);
                 $underPlain = null;
             } elseif (UnderOver::isBrace($under, false)) {

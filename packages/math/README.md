@@ -112,13 +112,14 @@ What a string may look like:
   `Papercut\Math\Mathml\SafeXml::decode($text)` to turn it into MathML and `SafeXml::find($text)` to locate each
   `«math…«/math»` run (byte offset and length) in a larger text.
 
-A bare fragment without a `math` element (`<mi>x</mi><mo>+</mo><mn>1</mn>`) is read as if wrapped in one, and empty input gives an empty formula. The reader never throws.
+A bare fragment without a `math` element (`<mi>x</mi><mo>+</mo><mn>1</mn>`) is read as if wrapped in one, and empty
+input gives an empty formula. The reader never throws.
 
 ### What is approximated or dropped
 
 Not everything in MathML has a counterpart yet. The reader draws what it can and records a note for each kind of
-element it changed, once per element name in a formula (three `menclose` give one note). `Math::notes(Node $root): list<MathNote>` returns them in reading order (the same as
-`$result->notes()`).
+element it changed, once per element name in a formula (three `menclose` give one note).
+`Math::notes(Node $root): list<MathNote>` returns them in reading order (the same as `$result->notes()`).
 
 ```php
 use Papercut\Math\Math;

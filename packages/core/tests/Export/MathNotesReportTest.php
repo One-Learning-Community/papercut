@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Export;
 
-use Papercut\{Document, Equation, Page, Span, Text};
+use Papercut\{Document, Equation, Link, Page, Span, Table, Text};
 use Papercut\Exception\UnsupportedFeature;
 use Papercut\Export\{HtmlOptions, PdfOptions};
+use Papercut\Markup\Markup;
 use Papercut\Math\Math;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class MathNotesReportTest extends TestCase
@@ -57,8 +59,33 @@ final class MathNotesReportTest extends TestCase
         }
 
         $approx = Document::make(Page::a4()->body(Equation::of(Math::mathml(self::TABLE))));
-        $approx->toPdf(new PdfOptions(strict: true, cacheDir: false));
-        $this->addToAssertionCount(1);
+        $messages = [];
+        $approx->toPdf(new PdfOptions(strict: true, cacheDir: false, onWarning: function (string $m) use (&$messages): void {
+            $messages[] = $m;
+        }));
+        self::assertCount(1, $messages);
+        self::assertStringContainsString('math <mtable>', $messages[0]);
+    }
+
+    /** @return iterable<string, array{Document, non-empty-string}> */
+    public static function containers(): iterable
+    {
+        $table = static fn (): Equation => Equation::of(Math::mathml(self::TABLE));
+        yield 'table cell' => [Document::make(Page::a4()->body(Markup::html('<table><tr><td>' . self::TABLE . '</td></tr></table>'))), '> td[0] > text[0] > math > mtable[0]'];
+        yield 'list item' => [Document::make(Page::a4()->body(Markup::html('<ul><li>' . self::TABLE . '</li></ul>'))), '> item[0] > text[0] > math > mtable[0]'];
+        yield 'link' => [Document::make(Page::a4()->body(Markup::html('<p><a href="https://e.test/">' . self::TABLE . '</a></p>'))), '> text[0] > math > mtable[0]'];
+        yield 'link around equation' => [Document::make(Page::a4()->body(Link::to('https://e.test/', $table()))), '> link[0] > equation[0] > math > mtable[0]'];
+        yield 'header' => [Document::make(Page::a4()->header($table())->body(Text::make('x'))), 'page > header > equation[0] > math > mtable[0]'];
+        yield 'table row' => [Document::make(Page::a4()->body(Table::make()->columns('auto')->row($table()))), '> td[0] > equation[0] > math > mtable[0]'];
+    }
+
+    /** @param non-empty-string $suffix */
+    #[DataProvider('containers')]
+    public function test_one_note_with_its_path_wherever_the_formula_sits(Document $doc, string $suffix): void
+    {
+        $messages = $this->pdfMessages($doc);
+        self::assertCount(1, $messages);
+        self::assertStringEndsWith($suffix, $messages[0]);
     }
 
     public function test_html_export_reports_too(): void

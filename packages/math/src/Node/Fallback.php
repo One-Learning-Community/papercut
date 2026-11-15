@@ -56,7 +56,11 @@ final class Fallback extends Node
         }
     }
 
-    /** @return list<Node> */
+    /**
+     * @return list<Node>
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
     public function children(): array
     {
         return $this->content === null ? [] : [$this->content];

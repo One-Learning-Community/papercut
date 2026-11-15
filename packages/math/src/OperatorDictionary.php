@@ -19,6 +19,9 @@ final class OperatorDictionary
 
     private const DEFAULT_SPACE = 5;
 
+    /** Function names whose limits move like a sum's; as operators they take MathML 3's spacing for them (0, 3/18 em). */
+    public const LIMIT_NAMES = ['lim', 'max', 'min', 'sup', 'inf', 'det', 'gcd', 'Pr', 'liminf', 'limsup'];
+
     /** @var array<string, array{form: string, lspace: int, rspace: int, stretchy: bool, symmetric: bool, largeop: bool, movablelimits: bool, fence: bool}>|null */
     private static ?array $table = null;
 
@@ -44,6 +47,9 @@ final class OperatorDictionary
     public static function lookup(string $char, string $form): array
     {
         self::$table ??= require __DIR__ . '/../resources/operators.php';
+        if (self::isLimitName($char)) {
+            return ['lspace' => 0, 'rspace' => 3, 'stretchy' => false, 'symmetric' => false, 'largeop' => false, 'movablelimits' => true];
+        }
         foreach ([$form, self::FORM_INFIX, self::FORM_POSTFIX, self::FORM_PREFIX] as $f) {
             $e = self::$table[$char . '|' . $f] ?? null;
             if ($e !== null) {
@@ -66,6 +72,16 @@ final class OperatorDictionary
             'largeop' => false,
             'movablelimits' => false,
         ];
+    }
+
+    /** Whether text (in any mathvariant) spells one of the limit names. */
+    public static function isLimitName(string $text): bool
+    {
+        if (mb_strlen($text) < 2) {
+            return false;
+        }
+
+        return in_array(implode('', array_map(static fn (string $ch): string => mb_chr(Styles::unstyled(mb_ord($ch))), mb_str_split($text))), self::LIMIT_NAMES, true);
     }
 
     /**

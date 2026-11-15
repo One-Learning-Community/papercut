@@ -33,7 +33,7 @@ trait BuildsEquation
             throw new InvalidStructure("$tag requires a math attribute: a string, or a node built with Papercut\\Math\\Math");
         }
 
-        if (is_string($math) && preg_match('/^\s*(<|«)([\w-]+:)?math[\s>»:]/iu', $math) === 1) {
+        if (is_string($math) && self::isMathml($math)) {
             $math = Math::mathml($math);
         }
 

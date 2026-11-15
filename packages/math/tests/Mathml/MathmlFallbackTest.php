@@ -157,7 +157,7 @@ final class MathmlFallbackTest extends TestCase
         self::assertCount(1, $notes);
         self::assertSame(NoteLevel::Dropped, $notes[0]->level);
         self::assertSame('b', $notes[0]->element);
-        self::assertSame('content after an HTML tag inside math (not drawn)', $notes[0]->reason);
+        self::assertSame('content after the math element (not drawn)', $notes[0]->reason);
         self::assertSame('math', $notes[0]->where);
     }
 

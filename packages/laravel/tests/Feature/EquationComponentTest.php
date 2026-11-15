@@ -225,6 +225,30 @@ final class EquationComponentTest extends TestCase
         self::assertCount(1, $warnings);
     }
 
+    public function test_mtable_note_reported_once_through_a_view_export(): void
+    {
+        $spy = \Illuminate\Support\Facades\Log::spy();
+        $mml = '<math><mtable><mtr><mtd><mi>a</mi></mtd></mtr></mtable></math>';
+        $pdf = Papercut::view('pdf.mathml', ['m' => $mml])->pdf()->toString();
+
+        self::assertStringStartsWith('%PDF-', $pdf);
+        $spy->shouldHaveReceived('debug')->withArgs(fn (string $m): bool => str_contains($m, 'math <mtable>'))->once();
+    }
+
+    public function test_literal_mathml_attribute_keeps_its_entities(): void
+    {
+        $n = $this->nodeFrom('<x-doc::equation math="<math><mtext>x &lt;b&gt; &amp; y</mtext></math>" />');
+
+        self::assertEquals(Math::mathml('<math><mtext>x &lt;b&gt; &amp; y</mtext></math>'), $n->math());
+        self::assertSame('x <b> & y', \Papercut\Math\Render\TextWriter::write($n->math()));
+        self::assertSame([], Math::notes($n->math()));
+    }
+
+    public function test_literal_plain_attribute_still_decodes_entities(): void
+    {
+        self::assertEquals(Equation::of('a < b & c')->math(), $this->nodeFrom('<x-doc::equation math="a &lt; b &amp; c" />')->math());
+    }
+
     private function containsFraction(\Papercut\Math\Node\Node $node): bool
     {
         if ($node instanceof \Papercut\Math\Node\Fraction) {

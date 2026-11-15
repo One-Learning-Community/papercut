@@ -43,6 +43,7 @@ final class InlineMathHtmlTest extends TestCase
         self::assertStringContainsString('color:', $html);
         self::assertDoesNotMatchRegularExpression('~<span style="[^"]*(font-style|font-weight|text-decoration|letter-spacing)[^"]*"><math~', $html);
         self::assertMatchesRegularExpression('~<span style="[^"]*color:[^"]*"><math~', $html);
+        self::assertMatchesRegularExpression('~<span style="[^"]*background-color:#eeeeee[^"]*"><math~', $html);
     }
 
     public function test_no_math_no_font_rule(): void

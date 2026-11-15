@@ -8,11 +8,13 @@ use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Rule;
 use Papercut\Math\Math;
+use Papercut\Math\Mathml\MathmlReader;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Row;
 use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\UnderOver;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class UnderOverTest extends TestCase
@@ -406,5 +408,139 @@ final class UnderOverTest extends TestCase
         $b = Math::layout(Math::sub('x', 'y'), self::SIZE, false);
 
         self::assertNotEquals($b->items, $a->items);
+    }
+
+    public function test_stretchy_part_covers_a_non_operator_accent_part(): void
+    {
+        $under = Math::row('abcdefghij');
+        $node = new UnderOver(new Identifier('x'), $under, new Operator('→'), false, true);
+        $box = Math::layout($node, self::SIZE, true);
+        $above = array_filter(self::glyphs($box), fn (Glyph $g) => self::inkY($g)[1] < 0);
+        $below = array_filter(self::glyphs($box), fn (Glyph $g) => self::inkY($g)[0] > 0);
+        self::assertNotEmpty($above);
+        self::assertNotEmpty($below);
+        $span = static fn (array $gs): float => max([0.0, ...array_map(fn (Glyph $g) => self::inkX($g)[1], $gs)]) - min([INF, ...array_map(fn (Glyph $g) => self::inkX($g)[0], $gs)]);
+
+        self::assertGreaterThanOrEqual($span($below) - 0.5, $span($above));
+    }
+
+    /** @return array<string, array{string}> */
+    public static function spacingAccents(): array
+    {
+        return [
+            'harpoon over a row' => ['<math><mover><mrow><mi>A</mi><mi>B</mi></mrow><mo>&#8640;</mo></mover></math>'],
+            'arrow over a letter' => ['<math><mover><mi>v</mi><mo>&#8594;</mo></mover></math>'],
+            'arrow accent=true' => ['<math><mover accent="true"><mi>v</mi><mo>&#8594;</mo></mover></math>'],
+            'circumflex over a letter' => ['<math><mover accent="true"><mi>x</mi><mo>^</mo></mover></math>'],
+        ];
+    }
+
+    #[DataProvider('spacingAccents')]
+    public function test_spacing_accent_clears_the_base(string $mathml): void
+    {
+        $b = Math::layout(MathmlReader::read($mathml)->node, self::SIZE, true);
+        $baseTop = null;
+        $accentBottom = null;
+        foreach (self::glyphs($b) as $g) {
+            [$top, $bottom] = self::inkY($g);
+            if ($g->text !== null && preg_match('/^[\x{1D434}-\x{1D467}]$/u', $g->text) === 1) {
+                $baseTop = min($baseTop ?? $top, $top);
+            } else {
+                $accentBottom = max($accentBottom ?? $bottom, $bottom);
+            }
+        }
+        self::assertNotNull($baseTop);
+        self::assertNotNull($accentBottom);
+        self::assertLessThan($baseTop, $accentBottom, 'accent ink bottom is above the base ink top (y down)');
+    }
+
+    /** Lowest ink of every glyph that is not a base letter, in points above the baseline. */
+    private static function accentInkBottom(Box $b): float
+    {
+        $low = null;
+        foreach (self::glyphs($b) as $g) {
+            if ($g->text !== null && preg_match('/^[\x{1D434}-\x{1D467}]$/u', $g->text) === 1) {
+                continue;
+            }
+            $low = min($low ?? INF, -self::inkY($g)[1]);
+        }
+
+        return $low ?? 0.0;
+    }
+
+    /** @return array<string, array{string, string, string}> */
+    public static function accentEquivalents(): array
+    {
+        $out = [];
+        foreach (['x' => '<mi>x</mi>', 'X' => '<mi>X</mi>', 'frac' => '<mfrac><mi>a</mi><mi>b</mi></mfrac>'] as $name => $base) {
+            foreach ([
+                '^' => 'hat', "\u{02C6}" => 'hat', '~' => 'tilde', "\u{02DC}" => 'tilde', "\u{0302}" => 'hat',
+                "\u{2192}" => 'vec', "\u{21C0}" => "\u{20D1}", "\u{00A8}" => "\u{0308}", "\u{00B4}" => "\u{0301}", "\u{02C7}" => "\u{030C}", "\u{02D9}" => 'dot',
+            ] as $mark => $eq) {
+                $out["$name $mark"] = [$base, $mark, $eq];
+            }
+        }
+
+        return $out;
+    }
+
+    #[DataProvider('accentEquivalents')]
+    public function test_spacing_accent_sits_like_its_combining_form(string $base, string $mark, string $eq): void
+    {
+        $mathml = '<math><mover accent="true">' . $base . '<mo>' . $mark . '</mo></mover></math>';
+        $got = Math::layout(MathmlReader::read($mathml)->node, self::SIZE, true);
+        $baseNode = MathmlReader::read('<math>' . $base . '</math>')->node;
+        $want = Math::layout(match ($eq) {
+            'hat' => Math::hat($baseNode),
+            'tilde' => Math::tilde($baseNode),
+            'vec' => Math::vec($baseNode),
+            'dot' => Math::dot($baseNode),
+            default => Math::accent($baseNode, $eq),
+        }, self::SIZE, true);
+        self::assertEqualsWithDelta(self::accentInkBottom($want), self::accentInkBottom($got), 0.5);
+        self::assertEqualsWithDelta($want->ascent, $got->ascent, 0.5);
+    }
+
+    public function test_text_accent_gap_uses_real_ink(): void
+    {
+        $b = Math::layout(MathmlReader::read('<math><mover accent="true"><mi>x</mi><mo>~~</mo></mover></math>')->node, self::SIZE, true);
+        $base = Math::layout(Math::row('x'), self::SIZE, true);
+        self::assertEqualsWithDelta($base->ascent + self::k('overbarVerticalGap'), self::accentInkBottom($b), 0.3);
+    }
+
+    public function test_harpoon_over_a_wide_base_covers_it(): void
+    {
+        $src = '<math><mover><mrow>' . str_repeat('<mi>m</mi>', 8) . '</mrow><mo>&#8640;</mo></mover></math>';
+        $b = Math::layout(MathmlReader::read($src)->node, self::SIZE, true);
+        $left = INF;
+        $right = -INF;
+        foreach (self::glyphs($b) as $g) {
+            if ($g->text !== null && preg_match('/^[\x{1D434}-\x{1D467}]$/u', $g->text) === 1) {
+                continue;
+            }
+            [$l, $r] = self::inkX($g);
+            $left = min($left, $l);
+            $right = max($right, $r);
+        }
+        $base = Math::layout(Math::row('mmmmmmmm'), self::SIZE, true);
+        self::assertEqualsWithDelta($base->width, $right - $left, 1.0);
+    }
+
+    public function test_unstretchy_accent_arrow_keeps_its_natural_size(): void
+    {
+        $natural = Math::layout(MathmlReader::read('<math><mover accent="true"><mi>x</mi><mo stretchy="false">&#8640;</mo></mover></math>')->node, self::SIZE, true);
+        $wide = Math::layout(MathmlReader::read('<math><mover accent="true"><mrow>' . str_repeat('<mi>m</mi>', 8) . '</mrow><mo stretchy="false">&#8640;</mo></mover></math>')->node, self::SIZE, true);
+        $arrow = static function (Box $b): float {
+            $w = 0.0;
+            foreach (self::glyphs($b) as $g) {
+                if ($g->text === null || preg_match('/^[\x{1D434}-\x{1D467}]$/u', $g->text) !== 1) {
+                    [$l, $r] = self::inkX($g);
+                    $w = max($w, $r - $l);
+                }
+            }
+
+            return $w;
+        };
+        self::assertEqualsWithDelta($arrow($natural), $arrow($wide), 0.01);
     }
 }

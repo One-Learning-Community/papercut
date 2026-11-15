@@ -164,7 +164,7 @@ Equation::of(Math::mathml('<math><msqrt><mi>x</mi></msqrt></math>'))->center();
 <x-doc::p>Half is <x-doc::math :math="$mathml" />.</x-doc::p>
 ```
 
-A literal attribute is entity-decoded by Blade before Papercut sees it, so `&lt;` in MathML arrives as a bare `<`, which can change what the formula means. A formula with entities such as `&lt;`, `&amp;` or `&nbsp;` is safer passed bound, as `:math="$mathml"`. The string then reaches Papercut untouched.
+A literal `math` attribute that holds MathML (it starts with `<math`, `<mml:math` or `«math`) keeps its entities, so `&lt;` and `&amp;` inside `<mtext>` stay text. Any other literal attribute is entity-decoded before Papercut sees it, as are bound values that Blade has escaped. A formula passed bound, as `:math="$mathml"`, reaches Papercut untouched.
 
 ### What a formula takes from its text
 
@@ -174,7 +174,7 @@ A formula read from MathML takes its colour, size, background and link from the 
 
 Not all of MathML has a counterpart yet. The reader draws what it can and records a note, once per element name in a formula, so three `<menclose>` give one note.
 
-- **Approximated.** The content is drawn, but not as the source meant. Matrices and other tables (`<mtable>`) are drawn as rows of cells for now, without alignment or lines. `<menclose>`, `<mmultiscripts>`, `<maction>` and elements the reader doesn't know are drawn as their contents.
+- **Approximated.** The content is drawn, but not as the source meant. Matrices and other tables (`<mtable>`) are drawn as rows of cells for now, without alignment or lines. `<menclose>`, `<mmultiscripts>` and elements the reader doesn't know are drawn as their contents, and `<maction>` is drawn as its first choice.
 - **Dropped.** The content is not drawn. This covers images and other media inside a formula, and content an HTML tag pushed out of a `<math>` element when the markup isn't well-formed XML.
 
 Notes reach the [`onWarning`](./rich-text.md#conversion-warnings) callback as the document is exported. A formula with approximated parts exports normally in strict mode. One with dropped parts makes strict mode fail, like any other content an output can't draw.

@@ -107,6 +107,27 @@ final class Styles
         };
     }
 
+    /** @var array<int, int>|null styled Latin letter or digit => plain, over every variant */
+    private static ?array $unstyled = null;
+
+    /** The inverse of variant() for Latin letters and digits, whatever the variant: a styled letter back to the plain one. */
+    public static function unstyled(int $cp): int
+    {
+        if (self::$unstyled === null) {
+            self::$unstyled = [];
+            foreach (array_keys(self::TABLE) as $variant) {
+                foreach ([...range(0x41, 0x5A), ...range(0x61, 0x7A), ...range(0x30, 0x39)] as $plain) {
+                    $styled = self::variant($plain, $variant);
+                    if ($styled !== $plain) {
+                        self::$unstyled[$styled] = $plain;
+                    }
+                }
+            }
+        }
+
+        return self::$unstyled[$cp] ?? $cp;
+    }
+
     /** Accent marks (spacing, combining and arrow forms) and the combining character each stands for. */
     private const ACCENTS = [
         '^' => "\u{0302}", "\u{02C6}" => "\u{0302}", "\u{0302}" => "\u{0302}",

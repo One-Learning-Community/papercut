@@ -88,6 +88,7 @@ final class MathmlWriter
      */
     private static function operator(Operator $o, string $form, string $inferred, bool $fence = false, bool $stretched = false): string
     {
+        $form = $o->form ?? $form;
         $attrs = $form !== $inferred ? ' form="' . $form . '"' : '';
         if ($fence) {
             $attrs .= ' stretchy="true"';
@@ -164,8 +165,8 @@ final class MathmlWriter
         $baseOp = UnderOver::operatorOf($u->base);
         if (UnderOver::isLimitName($u->base)) {
             // Marked as an operator so a browser sets its limit beside it in inline style, as the PDF does.
-            $name = $u->base instanceof Row ? $u->base->children[0] : $u->base;
-            $base = '<mo movablelimits="true">' . Xml::text($name instanceof Identifier ? $name->name : '') . '</mo>';
+            $name = UnderOver::nameNode($u->base);
+            $base = '<mo movablelimits="true">' . Xml::text($name instanceof Identifier ? $name->name : ($name instanceof Operator ? $name->char : '')) . '</mo>';
         } elseif ($baseOp !== null) {
             $stretches = $baseOp->stretchy ?? OperatorDictionary::lookup($baseOp->char, OperatorDictionary::FORM_POSTFIX)['stretchy'];
             $form = $baseOp->isLargeop(OperatorDictionary::FORM_PREFIX) ? OperatorDictionary::FORM_PREFIX : OperatorDictionary::FORM_INFIX;

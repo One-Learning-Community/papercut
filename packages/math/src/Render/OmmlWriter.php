@@ -78,7 +78,7 @@ final class OmmlWriter
         return match (true) {
             $n instanceof Identifier => self::run($n->upright ? $n->name : self::plain($n->name), $rPr, $n->upright ? 'p' : ''),
             $n instanceof Number => self::run($n->text, $rPr),
-            $n instanceof Operator => self::run($n->char, $rPr),
+            $n instanceof Operator => self::run($n->char, $rPr, preg_match('/^\\p{L}+$/u', $n->char) === 1 ? 'p' : ''),
             $n instanceof Text => self::run($n->text, $rPr, 'nor'),
             $n instanceof Space => self::space($n->em, $rPr),
             $n instanceof Phantom => '<m:phant><m:phantPr><m:show m:val="0"/></m:phantPr><m:e>' . self::node($n->content, $rPr) . '</m:e></m:phant>',

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Tests\Mathml;
 
+use Papercut\Math\Math;
 use Papercut\Math\Mathml\MathmlReader;
 use Papercut\Math\Mathml\SafeXml;
 use Papercut\Math\NoteLevel;
 use Papercut\Math\Render\MathmlWriter;
 use Papercut\Math\Render\OmmlWriter;
+use Papercut\Math\Render\SvgRenderer;
 use Papercut\Math\Render\TextWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -76,6 +78,20 @@ final class EditorFixturesTest extends TestCase
 
         foreach ($formulas as $i => $src) {
             $r = MathmlReader::read($src);
+            foreach ([true, false] as $display) {
+                $box = Math::layout($r->node, 12.0, $display);
+                self::assertGreaterThan(0.0, $box->width, "$name #$i " . ($display ? 'display' : 'inline'));
+            }
+            $svgFile = __DIR__ . "/../snapshots/editors/svg/$name-$i.svg";
+            $svg = (new SvgRenderer(Math::stixTwoMath()))->render(Math::layout($r->node, 12.0, true), 0.0);
+            if ($update) {
+                if (! is_dir(dirname($svgFile))) {
+                    mkdir(dirname($svgFile), 0777, true);
+                }
+                file_put_contents($svgFile, $svg . "\n");
+            }
+            self::assertFileExists($svgFile);
+            self::assertSame(rtrim($svg), rtrim((string) file_get_contents($svgFile)), "$name #$i svg");
             $notes = $r->notes();
             if (str_contains($name, '-table')) {
                 self::assertCount(1, $notes, "$name #$i");

@@ -22,12 +22,14 @@ final class Operator extends Node
      * @param ?bool $stretchy null reads the operator dictionary; false never stretches; true stretches
      * @param ?bool $largeop null reads the operator dictionary
      * @param ?bool $movablelimits null reads the operator dictionary
+     * @param ?string $form prefix, infix or postfix when the source fixes it (mo form=); null infers it from the position
      */
     public function __construct(
         public readonly string $char,
         public readonly ?bool $stretchy = null,
         public readonly ?bool $largeop = null,
         public readonly ?bool $movablelimits = null,
+        public readonly ?string $form = null,
     ) {
     }
 
@@ -50,7 +52,7 @@ final class Operator extends Node
      */
     public function layout(Context $c): Box
     {
-        return $this->layoutAs($c, OperatorDictionary::FORM_PREFIX);
+        return $this->layoutAs($c, $this->form ?? OperatorDictionary::FORM_PREFIX);
     }
 
     /** @internal Engine detail, not part of papercut/math's public API. */
@@ -61,13 +63,14 @@ final class Operator extends Node
         if ($c->tight && OperatorDictionary::dropsSpacingInScripts($this->char)) {
             [$l, $r] = [0, 0];
         }
-        if ($c->display && $this->isLargeop($form)) {
+        if ($c->display && $this->isLargeop($form) && mb_strlen($this->char) === 1) {
             $big = $this->displaySize($c, $c->mu($l), $c->mu($r));
             if ($big !== null) {
                 return $big;
             }
         }
-        $b = Run::build($c, [[mb_ord($this->char), $this->char]], $c->mu($l), $c->mu($r));
+        $glyphs = array_map(static fn (string $ch): array => [mb_ord($ch), $ch], mb_str_split($this->char));
+        $b = Run::build($c, $glyphs, $c->mu($l), $c->mu($r));
         $b->italic = 0.0;
 
         return $b;

@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Papercut\Math\Tests\Render;
 
 use Papercut\Math\Math;
+use Papercut\Math\Mathml\MathmlReader;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\UnderOver;
-use Papercut\Math\Styles;
 use Papercut\Math\Render\MathmlWriter;
+use Papercut\Math\Styles;
 use Papercut\Math\Tests\Fixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -172,5 +173,17 @@ final class MathmlWriterTest extends TestCase
         self::assertStringContainsString('<munder><mo movablelimits="true">lim</mo><mrow>', $xml);
         self::assertStringNotContainsString('<mi mathvariant="normal">lim</mi>', $xml);
         self::assertStringContainsString('<mo movablelimits="true">max</mo>', MathmlWriter::write(Math::under('max', 'x')));
+    }
+
+    public function test_wrapped_lim_base_keeps_its_name(): void
+    {
+        foreach ([
+            '<math><munder><menclose notation="box"><mi>lim</mi></menclose><mi>x</mi></munder></math>',
+            '<math><munder><mi>lim<mglyph alt="q"/></mi><mi>x</mi></munder></math>',
+        ] as $src) {
+            $out = MathmlWriter::write(MathmlReader::read($src)->node);
+            self::assertStringContainsString('lim', $out, $src);
+            self::assertStringNotContainsString('<mo movablelimits="true"></mo>', $out, $src);
+        }
     }
 }

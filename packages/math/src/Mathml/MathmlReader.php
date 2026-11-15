@@ -25,8 +25,9 @@ use Papercut\Math\OperatorDictionary;
 use Papercut\Math\Styles;
 
 /**
- * Reads MathML (from editors, Word, hand-written) into formula nodes. Markup is parsed with the HTML5 parser, so
- * entities such as &ApplyFunction; resolve and prefixed (`mml:`) or unprefixed elements both work.
+ * Reads MathML (from editors, Word, hand-written) into formula nodes. Well-formed markup is read as XML first, then anything
+ * else goes through the HTML5 parser (so entities such as &ApplyFunction; resolve); prefixed (`mml:`) or unprefixed
+ * elements both work.
  */
 final class MathmlReader
 {
@@ -37,7 +38,6 @@ final class MathmlReader
 
     private const NAMED_SPACES = [
         'veryverythin' => 1, 'verythin' => 2, 'thin' => 3, 'medium' => 4, 'thick' => 5, 'verythick' => 6, 'veryverythick' => 7,
-        'veryveryhigh' => 7,
     ];
 
     /** Points per unit, for widths turned into em at 12pt. */
@@ -85,9 +85,9 @@ final class MathmlReader
         if (preg_match('/^\s*«/u', $s) === 1) {
             $s = SafeXml::decode($s);
         }
-        $s = (string) preg_replace('/^\s*<\?xml[^>]*\?>/', '', $s);
-        $s = (string) preg_replace('~<((?:[\w.-]+:)?annotation(?:-xml)?)\b(?:"[^"]*"|\'[^\']*\'|[^>"\'])*/>~i', '', $s);
-        $s = (string) preg_replace('~<((?:[\w.-]+:)?annotation(?:-xml)?)\b[^>]*>.*?</\1\s*>~is', '', $s);
+        $s = preg_replace('/^\s*<\?xml[^>]*\?>/', '', $s) ?? $s;
+        $s = preg_replace('~<((?:[\w.-]+:)?annotation(?:-xml)?)\b(?:"[^"]*"|\'[^\']*\'|[^>"\'/]|/(?!>))*+/>~i', '', $s) ?? $s;
+        $s = preg_replace('~<((?:[\w.-]+:)?annotation(?:-xml)?)\b[^>]*>.*?</\1\s*>~is', '', $s) ?? $s;
 
         if (stripos($s, '<!DOCTYPE') === false && stripos($s, '<!ENTITY') === false) {
             try {
@@ -99,7 +99,8 @@ final class MathmlReader
                 // not well-formed XML: fall through to HTML5
             }
         }
-        $html = (string) preg_replace('~<([A-Za-z][\w.-]*:[\w.-]+)((?:"[^"]*"|\'[^\']*\'|[^>"\'])*?)\s*/>~', '<$1$2></$1>', $s);
+        // Possessive, so a long run of spaces in a tag costs one pass, not one per position.
+        $html = preg_replace('~<([A-Za-z][\w.-]*:[\w.-]+)((?:"[^"]*"|\'[^\']*\'|[^>"\'/]|/(?!>))*+)/>~', '<$1$2></$1>', $s) ?? $s;
         $find = static function (string $src) use (&$lost): ?\Dom\Element {
             $doc = \Dom\HTMLDocument::createFromString('<!DOCTYPE html><html><body>' . $src, LIBXML_NOERROR, 'UTF-8');
             $body = $doc->body;
@@ -120,10 +121,10 @@ final class MathmlReader
         for ($n = $math; $n !== null && ! $n->isSameNode($body); $n = $n->parentNode) {
             for ($next = $n->nextSibling; $next !== null; $next = $next->nextSibling) {
                 if ($next instanceof \Dom\Element) {
-                    return new MathNote(NoteLevel::Dropped, self::name($next), 'content after an HTML tag inside math (not drawn)', 'math');
+                    return new MathNote(NoteLevel::Dropped, self::name($next), 'content after the math element (not drawn)', 'math');
                 }
                 if ($next instanceof \Dom\Text && trim($next->data) !== '') {
-                    return new MathNote(NoteLevel::Dropped, 'text', 'content after an HTML tag inside math (not drawn)', 'math');
+                    return new MathNote(NoteLevel::Dropped, 'text', 'content after the math element (not drawn)', 'math');
                 }
             }
         }
@@ -159,7 +160,7 @@ final class MathmlReader
 
     private static function collapse(string $t): string
     {
-        return trim((string) preg_replace('/[ \t\n\r\f]+/', ' ', $t), " \t\n\r\f");
+        return trim(preg_replace('/[ \t\n\r\f]+/', ' ', $t) ?? $t, " \t\n\r\f");
     }
 
     private static function bool(\Dom\Element $e, string $attr): ?bool
@@ -209,11 +210,7 @@ final class MathmlReader
             'mstyle' => $this->style($e, $where),
             'semantics' => $this->slots($e, $where, 1)[0] ?? new Row([]),
             'annotation', 'annotation-xml', 'mprescripts', 'none' => null,
-            'mi' => $this->identifier($e),
-            'mn' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Number($t),
-            'mtext' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Text($t),
-            'ms' => new Text('"' . self::collapse((string) $e->textContent) . '"'),
-            'mo' => $this->operator($e),
+            'mi', 'mn', 'mtext', 'ms', 'mo' => $this->token($e, $name, $where),
             'mspace' => new Space(self::width($e->getAttribute('width'))),
             'mphantom' => new Phantom($this->children($e, $where)),
             'msqrt' => new Root($this->children($e, $where)),
@@ -222,9 +219,9 @@ final class MathmlReader
             'msub' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new Scripts($a[0], $a[1], null)),
             'msup' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new Scripts($a[0], null, $a[1])),
             'msubsup' => $this->fixed($name, 3, $this->slots($e, $where), $where, fn (array $a): Node => new Scripts($a[0], $a[1], $a[2])),
-            'munder' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], null, false, self::bool($e, 'accentunder') ?? false)),
-            'mover' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], null, $a[1], self::bool($e, 'accent') ?? self::isAccent($a[1]))),
-            'munderover' => $this->fixed($name, 3, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], $a[2], self::bool($e, 'accent') ?? self::isAccent($a[2]), self::bool($e, 'accentunder') ?? false)),
+            'munder' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], null, false, self::bool($e, 'accentunder') ?? self::marked($e, 1))),
+            'mover' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], null, $a[1], self::bool($e, 'accent') ?? self::isAccent($a[1], $e, 1))),
+            'munderover' => $this->fixed($name, 3, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], $a[2], self::bool($e, 'accent') ?? self::isAccent($a[2], $e, 2), self::bool($e, 'accentunder') ?? self::marked($e, 1))),
             'mfenced' => $this->fenced($e, $this->slots($e, $where)),
             'mtable' => $this->note($name, $this->table($e, $where), NoteLevel::Approximated, $name, 'tables are drawn as rows of cells', $where),
             'maction' => $this->note($name, $this->choice($e, $where), NoteLevel::Approximated, $name, 'drawn as its first choice', $where),
@@ -338,6 +335,39 @@ final class MathmlReader
         return $display === null ? $content : new DisplayStyle($content, $display);
     }
 
+    /** A token element (mi, mn, mo, mtext, ms); an image or glyph inside it is not drawn and is noted, its text kept. */
+    private function token(\Dom\Element $e, string $name, string $where): ?Node
+    {
+        $node = match ($name) {
+            'mi' => $this->identifier($e),
+            'mn' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Number(self::variantText($e, $t)),
+            'mtext' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Text(self::variantText($e, $t)),
+            'ms' => new Text('"' . self::variantText($e, self::collapse((string) $e->textContent)) . '"'),
+            default => $this->operator($e),
+        };
+        $i = 0;
+        foreach ($e->children as $child) {
+            $childName = self::name($child);
+            if (in_array($childName, self::FOREIGN, true)) {
+                $node = $this->note($childName, $node, NoteLevel::Dropped, $childName, 'not drawn', $this->at($where, $child, $i));
+            }
+            $i++;
+        }
+
+        return $node;
+    }
+
+    /** $text with the element's mathvariant applied (none for normal or an unknown variant). */
+    private static function variantText(\Dom\Element $e, string $text): string
+    {
+        $variant = strtolower(trim($e->getAttribute('mathvariant') ?? ''));
+        if (! in_array($variant, Styles::VARIANTS, true)) {
+            return $text;
+        }
+
+        return implode('', array_map(static fn (string $ch): string => mb_chr(Styles::variant(mb_ord($ch), $variant)), mb_str_split($text)));
+    }
+
     private function identifier(\Dom\Element $e): ?Node
     {
         $text = self::collapse((string) $e->textContent);
@@ -348,13 +378,8 @@ final class MathmlReader
         if ($variant === 'normal') {
             return new Identifier($text, false);
         }
-        if (in_array($variant, Styles::VARIANTS, true)) {
-            $mapped = implode('', array_map(static fn (string $ch): string => mb_chr(Styles::variant(mb_ord($ch), $variant)), mb_str_split($text)));
 
-            return new Identifier($mapped, false);
-        }
-
-        return new Identifier($text);
+        return in_array($variant, Styles::VARIANTS, true) ? new Identifier(self::variantText($e, $text), false) : new Identifier($text);
     }
 
     private function operator(\Dom\Element $e): ?Node
@@ -369,14 +394,22 @@ final class MathmlReader
             return null;
         }
 
-        return new Operator($text, self::bool($e, 'stretchy'), self::bool($e, 'largeop'), self::bool($e, 'movablelimits'));
+        $form = strtolower(trim($e->getAttribute('form') ?? ''));
+
+        return new Operator(
+            self::variantText($e, $text),
+            self::bool($e, 'stretchy'),
+            self::bool($e, 'largeop'),
+            self::bool($e, 'movablelimits'),
+            in_array($form, [OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_POSTFIX], true) ? $form : null,
+        );
     }
 
     /** A width in em (12pt basis); 0 when missing or unparseable. */
     private static function width(?string $w): float
     {
         $w = strtolower(trim($w ?? ''));
-        if (preg_match('/^(negative)?(veryverythin|verythin|thin|medium|thick|verythick|veryverythick|veryveryhigh)mathspace$/', $w, $m) === 1) {
+        if (preg_match('/^(negative)?(veryverythin|verythin|thin|medium|thick|verythick|veryverythick)mathspace$/', $w, $m) === 1) {
             return (($m[1] === '' ? 1 : -1) * self::NAMED_SPACES[$m[2]]) / 18;
         }
         if (preg_match('/^([+-]?(?:\d+\.?\d*|\.\d+))\s*(em|ex|pt|px|mm|cm|in)$/', $w, $m) !== 1) {
@@ -396,8 +429,22 @@ final class MathmlReader
         return preg_match('/^\s*[+-]?(?:0+\.?0*|\.0+)\s*(?:em|ex|pt|px|mm|cm|in|%)?\s*$/i', $t ?? '') === 1;
     }
 
-    private static function isAccent(Node $over): bool
+    /** Whether the $index-th element child of $e is an mo that says accent="true". */
+    private static function marked(\Dom\Element $e, int $index): bool
     {
+        $part = $e->children[$index] ?? null;
+
+        return $part !== null && self::name($part) === 'mo' && self::bool($part, 'accent') === true;
+    }
+
+    /** An over part is an accent when its mo says so, else (unless it says not) when it is an accent mark. */
+    private static function isAccent(Node $over, \Dom\Element $e, int $index): bool
+    {
+        $part = $e->children[$index] ?? null;
+        if ($part !== null && self::name($part) === 'mo' && ($flag = self::bool($part, 'accent')) !== null) {
+            return $flag;
+        }
+
         return $over instanceof Operator && Styles::accentMark($over->char) !== null;
     }
 

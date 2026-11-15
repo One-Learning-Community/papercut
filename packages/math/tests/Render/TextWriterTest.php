@@ -65,4 +65,14 @@ final class TextWriterTest extends TestCase
     {
         self::assertSame('a^(⏞)', TextWriter::write(new UnderOver(Math::row('a'), null, new Operator('⏞', false))));
     }
+
+    public function test_brace_wins_over_accentunder(): void
+    {
+        $base = Math::underbrace('x + y');
+        self::assertInstanceOf(UnderOver::class, $base);
+        $flagged = new UnderOver($base->base, $base->under, $base->over, false, true);
+
+        self::assertSame(TextWriter::write($base), TextWriter::write($flagged));
+        self::assertStringNotContainsString('⏟', TextWriter::write($flagged));
+    }
 }

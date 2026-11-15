@@ -24,7 +24,7 @@ final class Scripts extends Node
      */
     public function children(): array
     {
-        return array_values(array_filter([$this->base, $this->sub, $this->sup]));
+        return array_values(array_filter([$this->base, $this->sub, $this->sup], static fn (?Node $n): bool => $n !== null));
     }
 
     /** @internal Engine detail, not part of papercut/math's public API. */

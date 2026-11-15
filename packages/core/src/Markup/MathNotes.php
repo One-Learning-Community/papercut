@@ -22,7 +22,10 @@ final class MathNotes
         $notes = [];
         foreach (Math::notes($root) as $n) {
             $notes[] = new Note(
-                $n->level === NoteLevel::Dropped ? FidelityLevel::Dropped : FidelityLevel::Approximated,
+                match ($n->level) {
+                    NoteLevel::Dropped => FidelityLevel::Dropped,
+                    NoteLevel::Approximated => FidelityLevel::Approximated,
+                },
                 'math <' . $n->element . '> (' . $n->reason . ')',
                 $n->where,
             );

@@ -8,11 +8,13 @@ use Papercut\Document;
 use Papercut\Equation;
 use Papercut\Export\PdfOptions;
 use Papercut\Image;
+use Papercut\Link;
 use Papercut\Markup\Markup;
 use Papercut\Markup\MarkupOptions;
 use Papercut\Markup\StyleMode;
 use Papercut\Math\Render\TextWriter;
 use Papercut\Page;
+use Papercut\Style\TextAlign;
 use Papercut\Tests\Support\FakeBackend;
 use Papercut\Tests\Support\TestImages;
 use Papercut\Text;
@@ -210,5 +212,33 @@ final class HtmlMathTest extends TestCase
         self::assertNull($st->italic);
         self::assertNull($st->fontWeight);
         self::assertNull($st->letterSpacing);
+    }
+
+    public function test_display_formula_takes_the_blocks_text_align_in_original_mode_only(): void
+    {
+        $html = '<p style="text-align:center"><math display="block"><mi>x</mi></math></p>';
+        $original = Markup::html($html, new MarkupOptions(styles: StyleMode::Original));
+        $equation = $original instanceof View ? $original->children()[0] : $original;
+        self::assertInstanceOf(Equation::class, $equation);
+        self::assertSame(TextAlign::Center, $equation->style()->textAlign);
+
+        $theme = Markup::html($html);
+        $equation = $theme instanceof View ? $theme->children()[0] : $theme;
+        self::assertInstanceOf(Equation::class, $equation);
+        self::assertNull($equation->style()->textAlign);
+    }
+
+    public function test_display_formula_inside_a_link_keeps_the_link(): void
+    {
+        foreach ([
+            '<p><a href="https://e.test/f"><math display="block"><mi>x</mi></math></a></p>',
+            '<p><a href="https://e.test/f"><img class="Wirisformula" data-mathml="&lt;math display=&quot;block&quot;&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/math&gt;"></a></p>',
+        ] as $html) {
+            $v = Markup::html($html);
+            $first = $v instanceof View ? $v->children()[0] : $v;
+            self::assertInstanceOf(Link::class, $first, $html);
+            self::assertSame('https://e.test/f', $first->uri());
+            self::assertInstanceOf(Equation::class, $first->children()[0]);
+        }
     }
 }

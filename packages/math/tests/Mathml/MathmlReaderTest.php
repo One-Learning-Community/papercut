@@ -169,7 +169,7 @@ final class MathmlReaderTest extends TestCase
         yield 'veryverythin' => ['veryverythinmathspace', 1 / 18];
         yield 'thin' => ['thinmathspace', 3 / 18];
         yield 'medium' => ['mediummathspace', 4 / 18];
-        yield 'veryveryhigh' => ['veryveryhighmathspace', 7 / 18];
+        yield 'veryveryhigh is not a MathML name' => ['veryveryhighmathspace', 0.0];
         yield 'veryverythick' => ['veryverythickmathspace', 7 / 18];
         yield 'negative thick' => ['negativethickmathspace', -5 / 18];
         yield 'unparseable' => ['wide', 0.0];

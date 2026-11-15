@@ -52,4 +52,32 @@ final class NotesTest extends TestCase
         self::assertSame('<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"></math>', MathmlWriter::write($dropped, false));
         self::assertSame('<m:oMath></m:oMath>', OmmlWriter::oMath($dropped));
     }
+
+    public function test_several_notes_come_in_reading_order(): void
+    {
+        $a = new MathNote(NoteLevel::Approximated, 'a', 'first');
+        $b = new MathNote(NoteLevel::Dropped, 'b', 'second');
+        $c = new MathNote(NoteLevel::Approximated, 'c', 'third');
+        $tree = Math::row(new Fallback(Math::row('x'), $a), Math::frac(new Fallback(null, $b), 'y'), new Fallback(Math::row('z'), $c));
+
+        self::assertSame([$a, $b, $c], Math::notes($tree));
+    }
+
+    public function test_nested_fallbacks_report_outer_then_inner(): void
+    {
+        $outer = new MathNote(NoteLevel::Approximated, 'outer', 'o');
+        $inner = new MathNote(NoteLevel::Dropped, 'inner', 'i');
+
+        self::assertSame([$outer, $inner], Math::notes(new Fallback(new Fallback(Math::row('x'), $inner), $outer)));
+    }
+
+    public function test_writers_draw_the_content_of_a_non_null_fallback(): void
+    {
+        $note = new MathNote(NoteLevel::Approximated, 'mfoo', 'drawn as its contents');
+        $tree = new Fallback(Math::frac('a', 'b'), $note);
+
+        self::assertSame(MathmlWriter::write(Math::frac('a', 'b'), false), MathmlWriter::write($tree, false));
+        self::assertSame(OmmlWriter::oMath(Math::frac('a', 'b')), OmmlWriter::oMath($tree));
+        self::assertSame('a/b', TextWriter::write($tree));
+    }
 }

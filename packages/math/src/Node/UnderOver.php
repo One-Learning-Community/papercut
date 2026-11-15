@@ -10,6 +10,7 @@ use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Rule;
 use Papercut\Math\Layout\Stretcher;
 use Papercut\Math\OperatorDictionary;
+use Papercut\Math\Styles;
 
 /**
  * munder / mover / munderover in one class: a base with a part below, above, or both. Depending on the base and the
@@ -24,7 +25,6 @@ final class UnderOver extends Node
     public const BRACES_OVER = ['⏞', '⎴'];
     /** @internal Braces drawn below their base. */
     public const BRACES_UNDER = ['⏟', '⎵'];
-    private const LIMIT_NAMES = ['lim', 'max', 'min', 'sup', 'inf', 'det', 'gcd', 'Pr', 'liminf', 'limsup'];
 
     public function __construct(
         public readonly Node $base,
@@ -45,7 +45,7 @@ final class UnderOver extends Node
      */
     public function children(): array
     {
-        return array_values(array_filter([$this->base, $this->under, $this->over]));
+        return array_values(array_filter([$this->base, $this->under, $this->over], static fn (?Node $n): bool => $n !== null));
     }
 
     /** @internal Engine detail, not part of papercut/math's public API. */
@@ -84,11 +84,27 @@ final class UnderOver extends Node
      */
     public static function isLimitName(Node $n): bool
     {
-        if ($n instanceof Row && count($n->children) === 1) {
-            $n = $n->children[0];
+        $n = self::nameNode($n);
+        if ($n instanceof Operator) {
+            return $n->movablelimits !== false && OperatorDictionary::isLimitName($n->char);
         }
 
-        return $n instanceof Identifier && $n->upright && in_array($n->name, self::LIMIT_NAMES, true);
+        return $n instanceof Identifier && $n->upright && in_array($n->name, OperatorDictionary::LIMIT_NAMES, true);
+    }
+
+    /**
+     * The node a base stands for once wrappers that only annotate it (a Fallback, a DisplayStyle, a one-child Row) are peeled.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function nameNode(Node $n): Node
+    {
+        $n = Fallback::unwrap($n);
+        if ($n instanceof Row && count($n->children) === 1) {
+            $n = Fallback::unwrap($n->children[0]);
+        }
+
+        return $n;
     }
 
     /**
@@ -174,6 +190,13 @@ final class UnderOver extends Node
         $baseBox = $baseStretch ? null : $this->base->layout($c);
         $overBox = $overKind === 'plain' && $this->over !== null ? $this->over->layout($c->script()) : null;
         $underBox = $underKind === 'plain' && $this->under !== null ? $this->under->layout($c->script()) : null;
+        // An accent that is not an operator stays at the base's level and does not stretch, so it counts as plain here.
+        if ($overKind === 'accent' && $overOp === null && $this->over !== null) {
+            $overBox = $this->over->layout($c);
+        }
+        if ($underKind === 'accent' && $underOp === null && $this->under !== null) {
+            $underBox = $this->under->layout($c);
+        }
         $width = static fn (?Box $b): float => $b === null ? 0.0 : $b->width;
         $widest = max($width($baseBox), $width($overBox), $width($underBox));
         if ($baseStretch) {
@@ -184,16 +207,17 @@ final class UnderOver extends Node
         }
         // Stretchy parts stretch to the widest child that does not stretch.
         $overAnchor = 0.0;
+        $overChar = $overOp?->char;
+        if ($overOp !== null && $overKind === 'accent') {
+            $overChar = self::combiningForm($c, $overOp, $widest) ?? $overOp->char;
+        }
         if ($overOp !== null && ($overKind === 'accent' || $overKind === 'stretch')) {
-            [$overBox, $overAnchor] = self::stretched($c, $overOp->char, $widest);
-        } elseif ($overKind === 'accent' && $this->over !== null) {
-            $overBox = $this->over->layout($c); // an accent that is not an operator stays at the base's level
+            [$overBox, $overAnchor] = self::stretched($c, $overChar ?? $overOp->char, $overOp->stretchy === false ? 0.0 : $widest);
+        } elseif ($overKind === 'accent' && $overBox !== null) {
             $overAnchor = $overBox->width / 2;
         }
         if ($underOp !== null && ($underKind === 'accent' || $underKind === 'stretch')) {
             [$underBox] = self::stretched($c, $underOp->char, $widest);
-        } elseif ($underKind === 'accent' && $this->under !== null) {
-            $underBox = $this->under->layout($c);
         }
 
         $asc = $baseBox->ascent;
@@ -209,7 +233,12 @@ final class UnderOver extends Node
             $asc = max($asc, $y + $c->k('overbarExtraAscender'));
         } elseif ($overBox !== null) {
             $up = match (true) {
-                $overKind === 'accent' => $baseBox->ascent - min($baseBox->ascent, $c->k('accentBaseHeight')),
+                // A combining mark's ink already sits above x-height, so the font's accentBaseHeight rule raises it just enough.
+                // A spacing mark with a covered combining form (^, ˆ, ¨, an arrow) is drawn as that form and follows the same rule.
+                $overKind === 'accent' && ($overOp !== null ? self::isCombining($overChar ?? '') : self::operatorOf($this->over) === null) => $baseBox->ascent - min($baseBox->ascent, $c->k('accentBaseHeight')),
+                // Anything else (a name such as .., a mark with no combining form) goes by its real ink: the bottom clears the
+                // base top by the gap an overbar leaves.
+                $overKind === 'accent' => $baseBox->ascent + $c->k('overbarVerticalGap') - self::inkBottom($c, $overBox),
                 $baseStretch => max($c->k('stretchStackTopShiftUp'), $baseBox->ascent + $c->k('stretchStackGapAboveMin') + $overBox->descent),
                 default => $baseBox->ascent + $c->k('overbarVerticalGap') + $overBox->descent,
             };
@@ -259,6 +288,11 @@ final class UnderOver extends Node
             return [$part === null ? 'none' : ($accent ? 'accent' : 'plain'), null];
         }
 
+        if (mb_strlen($op->char) !== 1) {
+            // Only a single glyph can be an accent or stretch; a longer operator is laid out whole, as text.
+            return [$accent ? 'accent' : 'plain', null];
+        }
+
         return match (true) {
             in_array($op->char, self::BARS, true) => ['bar', $op],
             $accent => ['accent', $op],
@@ -267,9 +301,72 @@ final class UnderOver extends Node
         };
     }
 
+    /**
+     * The combining character an accent mark stands for, when the font has a glyph for it and it can stretch as far as the
+     * spacing mark can (U+20D1 has size variants only, U+21C0 assembles to any width).
+     */
+    private static function combiningForm(Context $c, Operator $op, float $required): ?string
+    {
+        $mark = Styles::accentMark($op->char);
+        $gid = $mark === null ? 0 : $c->font->gid(mb_ord($mark));
+        if ($mark === null || $gid === 0) {
+            return null;
+        }
+        if ($op->stretchy === false || $mark === $op->char) {
+            return $mark;
+        }
+        $units = $required / $c->unit();
+
+        return self::reaches($c, $gid, $units) || ! self::reaches($c, $c->font->gid(mb_ord($op->char)), $units) ? $mark : null;
+    }
+
+    /** Whether a glyph can be stretched horizontally to $units font units: a variant that wide, or an assembly. */
+    private static function reaches(Context $c, int $gid, float $units): bool
+    {
+        if ($gid === 0) {
+            return false;
+        }
+        $con = $c->font->math()->horizontal($gid);
+        if ($con === null) {
+            return $c->font->advance($gid) >= $units;
+        }
+        $widest = 0;
+        foreach ($con->variants as [, $adv]) {
+            $widest = max($widest, $adv);
+        }
+
+        return $widest >= $units || ($con->parts ?? []) !== [];
+    }
+
+    /** Height of a box's lowest ink above its baseline (negative below it), from the glyphs' bounding boxes. */
+    private static function inkBottom(Context $c, Box $b): float
+    {
+        $low = null;
+        foreach ($b->items as $i) {
+            if ($i instanceof Glyph) {
+                $bb = $c->font->bbox($i->gid);
+                $h = -$i->y + $bb[1] * $i->size / $c->font->unitsPerEm;
+                $low = $low === null ? $h : min($low, $h);
+            }
+        }
+
+        return $low ?? -$b->descent;
+    }
+
+    /** Whether a character is a combining mark (its ink is drawn relative to the base, above or below the origin). */
+    private static function isCombining(string $char): bool
+    {
+        $cp = mb_ord($char);
+
+        return ($cp >= 0x300 && $cp <= 0x36F) || ($cp >= 0x20D0 && $cp <= 0x20FF);
+    }
+
     /** The operator's glyph id when it is a stretchy operator the font can stretch horizontally. */
     private static function horizontalGid(Context $c, Operator $op): ?int
     {
+        if (mb_strlen($op->char) !== 1) {
+            return null; // a name such as lim is drawn as text, never stretched
+        }
         if (! ($op->stretchy ?? OperatorDictionary::lookup($op->char, OperatorDictionary::FORM_POSTFIX)['stretchy'])) {
             return null;
         }

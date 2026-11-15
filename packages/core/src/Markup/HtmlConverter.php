@@ -210,7 +210,8 @@ final class HtmlConverter
         }
         if ($result->display) {
             $this->flush($preset);
-            $this->blocks[] = [Equation::of($result->node), false];
+            $equation = Equation::of($result->node);
+            $this->blocks[] = [$href === null ? $equation : Link::to($href, $equation), false];
             return;
         }
         $this->run->math($result->node, $style, $href);

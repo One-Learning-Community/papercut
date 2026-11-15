@@ -1,0 +1,107 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Papercut\Math\Tests\Mathml;
+
+use Papercut\Math\Math;
+use Papercut\Math\Mathml\MathmlReader;
+use Papercut\Math\Node\Fallback;
+use Papercut\Math\Node\Node;
+use Papercut\Math\Node\Number;
+use Papercut\Math\Node\Operator;
+use Papercut\Math\Node\Row;
+use Papercut\Math\Node\Text;
+use Papercut\Math\Node\UnderOver;
+use Papercut\Math\NoteLevel;
+use Papercut\Math\Render\MathmlWriter;
+use PHPUnit\Framework\TestCase;
+
+final class MathmlTokenTest extends TestCase
+{
+    private static function unwrapped(string $mathml): Node
+    {
+        return Fallback::unwrap(MathmlReader::read($mathml)->node);
+    }
+
+    public function test_foreign_child_of_a_token_is_noted_and_text_kept(): void
+    {
+        foreach ([
+            '<math><mi>x<mglyph alt="A"/></mi></math>' => 'mglyph',
+            '<math><mtext>see <img src="a.png"/> here</mtext></math>' => 'img',
+            '<math><mn>1<img src="a.png"/></mn></math>' => 'img',
+            '<math><mo>+<img src="a.png"/></mo></math>' => 'img',
+        ] as $mathml => $element) {
+            $notes = MathmlReader::read($mathml)->notes();
+            self::assertCount(1, $notes, $mathml);
+            self::assertSame(NoteLevel::Dropped, $notes[0]->level);
+            self::assertSame($element, $notes[0]->element);
+            self::assertSame('not drawn', $notes[0]->reason);
+        }
+        $text = self::unwrapped('<math><mtext>see <img src="a.png"/> here</mtext></math>');
+        self::assertInstanceOf(Text::class, $text);
+        self::assertStringContainsString('see', $text->text);
+    }
+
+    public function test_token_that_is_only_a_foreign_child_is_still_noted(): void
+    {
+        $r = MathmlReader::read('<math><mi><mglyph alt="A"/></mi></math>');
+        self::assertCount(1, $r->notes());
+    }
+
+    public function test_mathvariant_applies_to_mn_mo_and_mtext(): void
+    {
+        $n = self::unwrapped('<math><mn mathvariant="bold">1</mn></math>');
+        self::assertInstanceOf(Number::class, $n);
+        self::assertSame("\u{1D7CF}", $n->text);
+        $t = self::unwrapped('<math><mtext mathvariant="bold">A</mtext></math>');
+        self::assertInstanceOf(Text::class, $t);
+        self::assertSame("\u{1D400}", $t->text);
+        $o = self::unwrapped('<math><mo mathvariant="bold">A</mo></math>');
+        self::assertInstanceOf(Operator::class, $o);
+        self::assertSame("\u{1D400}", $o->char);
+        $normal = self::unwrapped('<math><mn mathvariant="normal">1</mn></math>');
+        self::assertInstanceOf(Number::class, $normal);
+        self::assertSame('1', $normal->text);
+    }
+
+    public function test_mo_form_is_read_and_changes_spacing(): void
+    {
+        $mathml = '<math><mrow><mi>a</mi><mo form="prefix">+</mo><mi>b</mi></mrow></math>';
+        $row = self::unwrapped($mathml);
+        self::assertInstanceOf(Row::class, $row);
+        self::assertSame('prefix', $row->forms()[1]);
+        $plain = Math::layout(MathmlReader::read('<math><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow></math>')->node, 12.0, true);
+        $forced = Math::layout(MathmlReader::read($mathml)->node, 12.0, true);
+        self::assertLessThan($plain->width, $forced->width);
+        self::assertStringContainsString('form="prefix"', MathmlWriter::write(MathmlReader::read($mathml)->node));
+        $post = self::unwrapped('<math><mrow><mi>a</mi><mo form="postfix">!</mo><mi>b</mi></mrow></math>');
+        self::assertInstanceOf(Row::class, $post);
+        self::assertSame('postfix', $post->forms()[1]);
+    }
+
+    public function test_mo_accent_attribute_marks_an_accent_part(): void
+    {
+        $over = self::unwrapped('<math><mover><mi>x</mi><mo accent="true">~~</mo></mover></math>');
+        self::assertInstanceOf(UnderOver::class, $over);
+        self::assertTrue($over->accent);
+        $under = self::unwrapped('<math><munder><mi>x</mi><mo accent="true">~</mo></munder></math>');
+        self::assertInstanceOf(UnderOver::class, $under);
+        self::assertTrue($under->accentUnder);
+        $off = self::unwrapped('<math><mover><mi>x</mi><mo accent="false">^</mo></mover></math>');
+        self::assertInstanceOf(UnderOver::class, $off);
+        self::assertFalse($off->accent);
+        $plain = self::unwrapped('<math><munder><mi>x</mi><mo>~</mo></munder></math>');
+        self::assertInstanceOf(UnderOver::class, $plain);
+        self::assertFalse($plain->accentUnder);
+    }
+
+    public function test_long_runs_of_spaces_in_a_prefixed_tag_neither_hang_nor_empty_the_formula(): void
+    {
+        $src = '<math><mi>x</mi><br><mml:mn' . str_repeat(' ', 200000) . 'a="1">2</mml:mn></math>';
+        $start = microtime(true);
+        $r = MathmlReader::read($src);
+        self::assertLessThan(2.0, microtime(true) - $start);
+        self::assertStringContainsString('x', \Papercut\Math\Render\TextWriter::write($r->node));
+    }
+}

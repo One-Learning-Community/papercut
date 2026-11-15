@@ -7,7 +7,10 @@ namespace Papercut\Math\Tests\Layout;
 use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Rule;
 use Papercut\Math\Math;
+use Papercut\Math\MathNote;
+use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Row;
+use Papercut\Math\NoteLevel;
 use PHPUnit\Framework\TestCase;
 
 final class RowTest extends TestCase
@@ -100,5 +103,14 @@ final class RowTest extends TestCase
         $row = Math::row('a|b');
         self::assertInstanceOf(Row::class, $row);
         self::assertSame([null, 'infix', null], $row->forms());
+    }
+
+    public function test_mixed_number_gap_survives_a_fallback_around_the_fraction(): void
+    {
+        $note = new MathNote(NoteLevel::Approximated, 'mfoo', 'drawn as its contents');
+        $plain = Math::layout(Math::row('3', Math::frac('1', '2')), 18, false);
+        $wrapped = Math::layout(Math::row('3', new Fallback(Math::frac('1', '2'), $note)), 18, false);
+
+        self::assertEqualsWithDelta($plain->width, $wrapped->width, 1e-9);
     }
 }
