@@ -411,7 +411,7 @@ final class TextLayouterTest extends TestCase
     {
         $h = new LayoutHarness();
         $h->layout(Text::make("\u{65E5}"), 100);
-        self::assertSame(["[text] Missing glyphs for \"\u{65E5}\" in font family Inter"], $h->warnings);
+        self::assertSame(["pdf: dropped missing glyphs in font family Inter (\"\u{65E5}\") at text"], $h->warnings);
     }
 
     public function test_context_path_stack(): void

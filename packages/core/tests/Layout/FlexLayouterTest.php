@@ -186,12 +186,12 @@ final class FlexLayouterTest extends TestCase
 
     // --- Final review ---
 
-    public function test_page_break_inside_a_row_is_ignored_with_a_warning(): void
+    public function test_page_break_inside_a_row_is_ignored(): void
     {
         $h = new LayoutHarness();
         $r = $h->layout(Row::make(Text::make('a'), \Papercut\PageBreak::make(), Text::make('b')), 100, 100);
         self::assertSame(Status::Complete, $r->status);
         self::assertSame(['a', 'b'], array_column(LayoutHarness::runs($r->fragment), 'text'));
-        self::assertSame(['[row] PageBreak inside a row is ignored'], $h->warnings);
+        self::assertSame([], $h->warnings); // the note comes from NoteReporter
     }
 }

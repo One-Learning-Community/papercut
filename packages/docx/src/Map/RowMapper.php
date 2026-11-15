@@ -15,7 +15,7 @@ use Papercut\Value\Length;
  * A flex row as a borderless fixed-layout table: one grid column per item and per stretch of empty space
  * (padding, gaps, spacers, free space), at the widths WidthResolver gives the PDF.
  *
- * @phpstan-type Item array{blocks: list<BlockElement>, style: ?ComputedStyle, index: int, boxed: bool, picture?: bool}
+ * @phpstan-type Item array{blocks: list<BlockElement>, style: ?ComputedStyle, index: int, boxed: bool, picture?: bool, path?: string}
  * @phpstan-type Segment array{x0: float, x1: float, item: ?Item, pad: array{float, float}, free: float}
  *
  * @internal Part of Papercut's engine, not its public API. It may change in any release.
@@ -163,7 +163,7 @@ final class RowMapper
                     default => VerticalAlign::Top,
                 };
                 if ($own !== $s && $own->radius > 0.0 && !(($item['picture'] ?? false) && ImageMapper::bare($own))) {
-                    $this->fidelity->dropped('radius', $path);
+                    $this->fidelity->dropped('radius', $item['path'] ?? $path);
                 }
                 $out[] = new TableCell(BoxMapper::cellContent($item['blocks']), $this->boxes->cellStyle($own, $width, $span, $v, $s, [$padT, $pad[1], $padB, $pad[0]]));
             }

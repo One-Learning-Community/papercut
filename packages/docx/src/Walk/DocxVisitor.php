@@ -228,7 +228,7 @@ final class DocxVisitor implements TreeVisitor
             $node instanceof Toc => $this->toc?->blocks($node, $style, $frame, $at) ?? [],
             $node instanceof PageNumber => [$this->text->pageNumber($node, $style)],
             $node instanceof Spacer => $this->spacer($node, $parent, $at),
-            $node instanceof PageBreak => [new DocxPageBreak()],
+            $node instanceof PageBreak => $parent->isRow ? [] : [new DocxPageBreak()], // ignored in a row, as in the PDF (noted by NoteReporter)
             $node instanceof Image => $this->images->image($node, $style, $frame, $at->path()),
             $node instanceof QrCode => $this->images->qr($node, $style, $frame, $at->path()),
             $node instanceof Svg => $this->images->svg($node, $style, $frame, $at->path()),
@@ -300,7 +300,7 @@ final class DocxVisitor implements TreeVisitor
             $blocks = [$this->boxes->stack($frame, $at->path()) ?? $this->boxes->box($blocks, $style, $frame->width, $at->path(), $align, $childMin)];
             $boxed = true;
         }
-        $parent->items[] = ['blocks' => $blocks, 'style' => $style, 'index' => $at->index(), 'boxed' => $boxed, 'picture' => $picture];
+        $parent->items[] = ['blocks' => $blocks, 'style' => $style, 'index' => $at->index(), 'boxed' => $boxed, 'picture' => $picture, 'path' => $at->path()];
     }
 
     /**

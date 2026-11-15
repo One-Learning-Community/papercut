@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Export;
 
-use Papercut\{Annotated, Document, Equation, Node, Page, Text};
+use Papercut\{Annotated, Document, Equation, Node, Page, PageBreak, Text, View};
 use Papercut\Markup\{MathNotes, Note};
 use Papercut\Style\{ComputedStyle, PageThemes, StyleResolver};
 use Papercut\Tree\{Region, TreeVisitor, TreeWalker, Visit};
@@ -30,6 +30,9 @@ final class NoteReporter implements TreeVisitor
         if ($node instanceof Annotated) {
             $this->reportAll($node->notes(), $at);
         }
+        if ($node instanceof PageBreak && self::inRow($at)) {
+            $this->fidelity->approximated('page break inside a row', $at->path());
+        }
         if ($node instanceof Equation) {
             $this->reportAll(MathNotes::of($node->math()), $at);
         }
@@ -41,6 +44,17 @@ final class NoteReporter implements TreeVisitor
             }
         }
         return true;
+    }
+
+    /**
+     * A page break whose parent is a row has no page to end: the PDF leaves it out, Word
+     * never wrote it, and the HTML writer's forced break is ignored by browsers inside a flex row, so every format reports it.
+     */
+    private static function inRow(Visit $at): bool
+    {
+        $parent = $at->ancestors()[count($at->ancestors()) - 1] ?? null;
+
+        return $parent !== null && $parent['node'] instanceof View && $parent['style']->direction === \Papercut\Style\Direction::Row;
     }
 
     /** @param iterable<Note> $notes */

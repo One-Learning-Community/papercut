@@ -15,9 +15,6 @@ final class Itemizer
 {
     private const string BREAK_AFTER = "-\u{2013}\u{2014}/";
 
-    /** @var array<string, true> */
-    private array $warned = [];
-
     /** @var \SplObjectStorage<MathNode, array<string, Box>> each formula's boxes by the size, font and style they were laid out at */
     private \SplObjectStorage $mathBoxes;
 
@@ -334,12 +331,9 @@ final class Itemizer
                 return $replacement;
             }
         }
-        $key = $style->fontFamily . "\0" . $run;
-        if (!isset($this->warned[$key])) {
-            $this->warned[$key] = true;
-            if ($this->onWarning !== null) {
-                ($this->onWarning)(sprintf('Missing glyphs for "%s" in font family %s', $run, $style->fontFamily));
-            }
+        // Reported on every call: the layout context keeps one note per node and feature.
+        if ($this->onWarning !== null) {
+            ($this->onWarning)(sprintf('missing glyphs in font family %s', $style->fontFamily), $run);
         }
         return $primary;
     }
