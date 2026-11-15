@@ -152,7 +152,7 @@ final class DocxVisitor implements TreeVisitor
         $cols = $spec === null ? null : $this->flowColumns($spec, $style, $at);
         if ($spec !== null && $cols !== null) {
             // Word flows content through every column, so tables and boxes are sized to the narrowest one.
-            $content = min([$content, ...array_column($spec->columns($this->stack[0]->width), 'width')]);
+            $content = min([$content, ...array_column($spec->fitted($this->stack[0]->width)->columns($this->stack[0]->width), 'width')]);
         }
         $frame = new Frame($node, $style, $width, $content, $isRow);
         $frame->cols = $cols;
@@ -326,7 +326,15 @@ final class DocxVisitor implements TreeVisitor
         }
 
         // The section's columns span the page's content width, which is all an on-page flow has.
-        return DocxPatcher::colsXml($spec, $this->stack[0]->width);
+        $fitted = $spec->fitted($this->stack[0]->width);
+        if ($fitted->count < $spec->count) {
+            $this->fidelity->approximated(ColumnSpec::reducedFeature($fitted->count), $at->path());
+            if ($fitted->count === 1) {
+                return null;
+            }
+        }
+
+        return DocxPatcher::colsXml($fitted, $this->stack[0]->width);
     }
 
     /** @return list<BlockElement> */

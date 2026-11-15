@@ -361,7 +361,7 @@ final class HtmlConverter
      *
      * `columns` is set only where the element may become a column flow and its CSS has a column count.
      *
-     * @return array{style: Style, dropped: list<string>, float: bool, marker: ?ListMarker, columns: ?array{count: ?int, gap: ?Length, rule: ?array{width: Length, color: Color}}, columnDeclarations: list<string>, notes: list<array{FidelityLevel, string}>}|null
+     * @return array{style: Style, dropped: list<string>, float: bool, marker: ?ListMarker, columns: ?array{count: ?int, gap: ?Length, rule: ?array{width: Length, color: Color}}, columnDeclarations: list<string>, notes: list<array{FidelityLevel, string}>, columnNotes: list<array{FidelityLevel, string}>}|null
      */
     private function css(\Dom\Element $el, bool $inline, bool $list, ?string $part = null): ?array
     {
@@ -387,7 +387,7 @@ final class HtmlConverter
             }
             $declarations = implode(';', $kept);
         }
-        $css = InlineCss::parse($declarations, $inline, $list, $part === 'rule');
+        $css = InlineCss::parse($declarations, $inline, $list, $part === 'rule', $el->localName !== 'img');
         if ($css['float']) {
             $each(FidelityLevel::Approximated, 'markup float (rendered as a block)');
         }
@@ -399,9 +399,9 @@ final class HtmlConverter
                 $each(FidelityLevel::Dropped, 'markup CSS "' . $declaration . '"');
             }
             $css['columns'] = null;
-            $css['notes'] = [];
+            $css['columnNotes'] = [];
         }
-        foreach ($css['notes'] as [$level, $feature]) {
+        foreach ([...$css['notes'], ...$css['columnNotes']] as [$level, $feature]) {
             $each($level, $feature);
         }
         return $css;
@@ -714,7 +714,7 @@ final class HtmlConverter
                 }
             }
         }
-        $tracks = $this->fitted(array_values($tracks));
+        $tracks = array_values($tracks);
         $table = $table->columns(...$tracks)->fillWidth()->fitColumns()->apply('markup.table');
         if (!$own->isEmpty()) {
             $table = $table->apply($own);
@@ -724,27 +724,6 @@ final class HtmlConverter
             $table = $table->width($width)->maxWidth(Percent::of(100));
         }
         $this->blocks[] = [$table, false];
-    }
-
-    /**
-     * The tracks with Percent columns that together exceed 100% scaled down to 100% (noted). Length columns are
-     * left as written: the table fits them to the width it is given when it is laid out.
-     *
-     * @param list<Length|Percent|Auto> $tracks
-     * @return list<Length|Percent|Auto>
-     */
-    private function fitted(array $tracks): array
-    {
-        $percent = 0.0;
-        foreach ($tracks as $track) {
-            $percent += $track instanceof Percent ? $track->value : 0.0;
-        }
-        if ($percent <= 100.0) {
-            return $tracks;
-        }
-        $this->note(FidelityLevel::Approximated, 'markup column widths (wider than the page; fitted)');
-        $scale = 100.0 / $percent;
-        return array_map(static fn (Length|Percent|Auto $t): Length|Percent|Auto => $t instanceof Percent ? Percent::of($t->value * $scale) : $t, $tracks);
     }
 
     /**

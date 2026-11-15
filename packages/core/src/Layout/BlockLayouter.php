@@ -220,7 +220,8 @@ final class BlockLayouter implements Layouter
             return LayoutResult::doesNotFit();
         }
 
-        $contentHeight = $cursor;
+        // Negative margins can pull the content up past its own top: a box is never shorter than nothing.
+        $contentHeight = max(0.0, $cursor);
         // A box that breaks fills the slice it was given (fill); one that ends is stretched (definiteHeight).
         $last = $breakAt === null && !$c->open;
         $target = $fixed ?? ($breakAt === null ? $stretch : $c->fill);
@@ -249,10 +250,13 @@ final class BlockLayouter implements Layouter
         if ($allowed !== null) {
             // The bottom of the content itself: a last child's bottom margin is space, not content.
             $bottom = 0.0;
+            $pull = 0.0;
             foreach ($placed as $p) {
                 $bottom = max($bottom, $p['y'] + $p['fragment']->height);
+                // a negative margin pulls the box's end up into its content: that much overlap is not overflow
+                $pull += -min(0.0, $p['style']->margin->top->points) - min(0.0, $p['style']->margin->bottom->points);
             }
-            BoxGeometry::contain($f, $bottom, $allowed, $engine);
+            BoxGeometry::contain($f, $bottom, $allowed + $pull, $engine);
         }
         $ox = $style->borderWidth->left->points + $style->padding->left->points;
         $oy = $first ? BoxGeometry::topEdge($style) : 0.0;

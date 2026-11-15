@@ -388,6 +388,27 @@ final class TableLayouter implements Layouter
             }
         }
 
+        // A markup table never throws for pasted widths: percent and fixed columns that leave the auto columns less
+        // than their min-content (or are wider than the table) are scaled down together, and reported once.
+        $fitHeld = false;
+        if ($table->fitsColumns() && $widths !== []) {
+            $fixed = array_sum($widths);
+            $autoMin = 0.0;
+            foreach ($auto as $k) {
+                $autoMin += $content[$k]['min'];
+            }
+            if ($fixed > self::EPSILON && $fixed + $autoMin > $width + self::EPSILON) {
+                $scale = min(1.0, max($width * 0.1, $width - $autoMin) / $fixed);
+                if ($scale < 1.0) {
+                    foreach ($widths as $k => $w) {
+                        $widths[$k] = $w * $scale;
+                    }
+                    $feature = 'markup column widths (wider than the page; fitted)';
+                    $engine->context()->quiet ? $fitHeld = true : $engine->context()->approximated($feature);
+                }
+            }
+        }
+
         // Auto tracks: max-content if it fits, min-content if even that overflows, else in between ∝ (max - min).
         $remaining = $width - array_sum($widths);
         $sumMin = 0.0;
@@ -443,7 +464,7 @@ final class TableLayouter implements Layouter
             $total = array_sum($widths);
         }
         $ctx = $engine->context();
-        $held = false;
+        $held = $fitHeld;
         if ($total > $width + self::EPSILON) {
             $needed = $total;
             $total = $this->shrink($table, $style, $tracks, $widths, $width, $engine);
