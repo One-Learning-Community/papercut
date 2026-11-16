@@ -11,6 +11,7 @@ use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Forms;
+use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Operator;
@@ -35,20 +36,14 @@ final class MathmlFallbackTest extends TestCase
     public function test_mtable_rows_of_cells(): void
     {
         $r = MathmlReader::read('<math><mo>(</mo>' . self::MATRIX . '<mo>)</mo></math>');
-        $notes = $r->notes();
-        self::assertCount(1, $notes);
-        self::assertSame(NoteLevel::Approximated, $notes[0]->level);
-        self::assertSame('mtable', $notes[0]->element);
-        self::assertSame('tables are drawn as rows of cells', $notes[0]->reason);
+        self::assertSame([], $r->notes());
         $text = TextWriter::write($r->node);
         self::assertMatchesRegularExpression('/a.*b.*c.*d/s', $text);
         $fenced = $r->node;
         self::assertInstanceOf(Fenced::class, $fenced);
-        self::assertInstanceOf(Fallback::class, $fenced->content);
-        $table = $fenced->content->content;
-        self::assertInstanceOf(Row::class, $table);
-        $kinds = array_map(static fn (Node $n): string => $n instanceof Space ? 'S' . $n->em : 'cell', $table->children);
-        self::assertSame(['cell', 'S1', 'cell', 'S2', 'cell', 'S1', 'cell'], $kinds);
+        self::assertInstanceOf(Grid::class, $fenced->content);
+        self::assertCount(2, $fenced->content->rows);
+        self::assertSame(2, $fenced->content->columns);
     }
 
     public function test_mlabeledtr_drops_label(): void
@@ -61,7 +56,7 @@ final class MathmlFallbackTest extends TestCase
     public function test_two_tables_one_note(): void
     {
         $r = MathmlReader::read('<math>' . self::MATRIX . '<mo>+</mo>' . self::MATRIX . '</math>');
-        self::assertCount(1, $r->notes());
+        self::assertSame([], $r->notes());
         self::assertSame(2, preg_match_all('/a.*?b.*?c.*?d/s', TextWriter::write($r->node)));
     }
 
@@ -144,7 +139,7 @@ final class MathmlFallbackTest extends TestCase
 
     public function test_where_path(): void
     {
-        $r = MathmlReader::read('<math><mrow><mi>a</mi>' . self::MATRIX . '</mrow></math>');
+        $r = MathmlReader::read('<math><mrow><mi>a</mi>' . str_replace('<mtable>', '<mtable rowlines="solid">', self::MATRIX) . '</mrow></math>');
         self::assertSame('math > mrow[0] > mtable[1]', $r->notes()[0]->where);
     }
 

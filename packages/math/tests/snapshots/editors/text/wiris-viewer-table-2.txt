@@ -1,1 +1,1 @@
-f(x) = {x, if x ⩽ 0 sin (x), if x > 0
+f(x) = {x, if x ⩽ 0; sin (x), if x > 0

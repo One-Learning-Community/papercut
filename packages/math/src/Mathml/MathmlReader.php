@@ -9,6 +9,7 @@ use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
+use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
@@ -47,6 +48,13 @@ final class MathmlReader
     private const FOREIGN = ['img', 'svg', 'picture', 'video', 'audio', 'iframe', 'object', 'embed', 'canvas', 'mglyph'];
 
     private const MAX_DEPTH = 256;
+
+    /** Table attributes that are noted, not drawn, per element (columnalign/rowalign on the mtable itself are honoured). */
+    private const IGNORED = [
+        'mtable' => ['columnlines', 'rowlines', 'frame', 'columnspacing', 'rowspacing', 'columnwidth', 'equalrows', 'equalcolumns', 'align', 'groupalign'],
+        'mtr' => ['columnalign', 'rowalign'],
+        'mtd' => ['rowspan', 'columnspan', 'columnalign', 'rowalign'],
+    ];
 
     /** @var array<string, true> element names already noted in this formula */
     private array $noted = [];
@@ -228,13 +236,13 @@ final class MathmlReader
             'mover' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], null, $a[1], self::bool($e, 'accent') ?? self::isAccent($a[1], $e, 1))),
             'munderover' => $this->fixed($name, 3, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], $a[2], self::bool($e, 'accent') ?? self::isAccent($a[2], $e, 2), self::bool($e, 'accentunder') ?? self::marked($e, 1))),
             'mfenced' => $this->fenced($e, $this->slots($e, $where)),
-            'mtable' => $this->note($name, $this->table($e, $where), NoteLevel::Approximated, $name, 'tables are drawn as rows of cells', $where),
+            'mtable' => $this->table($e, $where),
             'maction' => $this->note($name, $this->choice($e, $where), NoteLevel::Approximated, $name, 'drawn as its first choice', $where),
             default => $this->note($name, $this->children($e, $where), NoteLevel::Approximated, $name, 'drawn as its contents', $where),
         };
     }
 
-    /** Each row's cells side by side (Space 1 between), rows one after another (Space 2 between). */
+    /** The table as a Grid, wrapped in a Fallback for each distinct attribute that is not drawn. */
     private function table(\Dom\Element $e, string $where): Node
     {
         $this->depth += 2;
@@ -247,40 +255,103 @@ final class MathmlReader
 
     private function tableRows(\Dom\Element $e, string $where): Node
     {
+        /** @var list<array{string, string, string}> $ignored element, attribute, path */
+        $ignored = [];
+        foreach (self::IGNORED['mtable'] as $attr) {
+            if (self::drawable($e, $attr)) {
+                $ignored[] = ['mtable', $attr, $where];
+            }
+        }
         $rows = [];
+        $rowNotes = [];
+        $cellNotes = [];
         $labelled = false;
         $i = 0;
         foreach (self::elements($e) as $tr) {
             $rowWhere = $this->at($where, $tr, $i++);
             $trName = self::name($tr);
+            foreach (self::IGNORED['mtr'] as $attr) {
+                if (self::drawable($tr, $attr)) {
+                    $rowNotes[] = ['mtr', $attr, $rowWhere];
+                }
+            }
             $cells = [];
             $j = 0;
             foreach (self::elements($tr) as $td) {
                 $cellWhere = $this->at($rowWhere, $td, $j++);
+                foreach (self::IGNORED['mtd'] as $attr) {
+                    if (self::drawable($td, $attr)) {
+                        $cellNotes[] = ['mtd', $attr, $cellWhere];
+                    }
+                }
                 if ($trName === 'mlabeledtr' && $j === 1) {
                     $labelled = true;
                     continue;
                 }
                 $cells[] = $this->children($td, $cellWhere);
             }
-            $row = [];
-            foreach ($cells as $k => $cell) {
-                $k === 0 || $row[] = new Space(1);
-                $row[] = $cell;
-            }
-            if ($row !== []) {
-                $rows[] = $row;
-            }
-        }
-        $nodes = [];
-        foreach ($rows as $k => $row) {
-            $k === 0 || $nodes[] = new Space(2);
-            array_push($nodes, ...$row);
+            $rows[] = $cells;
         }
 
-        $row = new Row($nodes);
+        $columns = 0;
+        foreach ($rows as $cells) {
+            $columns = max($columns, count($cells));
+        }
+        $tokens = self::columnAlign($e->getAttribute('columnalign'));
+        $align = [];
+        for ($k = 0; $tokens !== [] && $k < $columns; $k++) {
+            $align[] = $tokens[$k % count($tokens)];
+        }
 
-        return $labelled ? ($this->note('mlabeledtr', $row, NoteLevel::Approximated, 'mlabeledtr', 'row label not drawn', $where) ?? $row) : $row;
+        $grid = new Grid(
+            $rows,
+            $align,
+            self::rowAlign($e->getAttribute('rowalign')),
+            self::bool($e, 'displaystyle') ?? false,
+        );
+        $node = $grid;
+        if ($labelled) {
+            $node = $this->note('mlabeledtr', $node, NoteLevel::Approximated, 'mlabeledtr', 'row label not drawn', $where) ?? $node;
+        }
+        foreach ([...$ignored, ...$rowNotes, ...$cellNotes] as [$element, $attr, $path]) {
+            $node = $this->note($element . '/' . $attr, $node, NoteLevel::Approximated, $element, $attr . ' is not drawn', $path) ?? $node;
+        }
+
+        return $node;
+    }
+
+    /** Whether the attribute is present with a value that asks for something the grid does not draw. */
+    private static function drawable(\Dom\Element $e, string $attr): bool
+    {
+        $raw = $e->getAttribute($attr);
+        $v = strtolower(trim($raw ?? ''));
+        if ($v === '') {
+            return false;
+        }
+
+        return match ($attr) {
+            'columnlines', 'rowlines', 'frame' => preg_match('/[^\s]+/', str_ireplace('none', '', $v)) === 1,
+            'rowspan', 'columnspan' => ctype_digit($v) && (int) $v > 1,
+            'equalrows', 'equalcolumns' => $v !== 'false',
+            default => true,
+        };
+    }
+
+    /**
+     * @return list<string> the table's columnalign tokens (anything but left or right is center)
+     */
+    private static function columnAlign(?string $raw): array
+    {
+        $tokens = preg_split('/\s+/', trim((string) $raw), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return array_map(static fn (string $t): string => in_array(strtolower($t), ['left', 'right'], true) ? strtolower($t) : 'center', $tokens);
+    }
+
+    private static function rowAlign(?string $raw): string
+    {
+        $first = strtolower(preg_split('/\s+/', trim((string) $raw), -1, PREG_SPLIT_NO_EMPTY)[0] ?? '');
+
+        return in_array($first, Grid::ROW_ALIGN, true) ? $first : 'baseline';
     }
 
     /** The child `selection` names (1-based), else the first. */
@@ -577,6 +648,14 @@ final class MathmlReader
                 }
             } else {
                 $out[] = $n;
+            }
+        }
+
+        // An opener with no closer, directly before a table, fences it alone: `{` then a table is cases.
+        foreach (array_reverse($stack) as [$idx, $opener]) {
+            $next = $out[$idx + 1] ?? null;
+            if ($next !== null && Fallback::unwrap($next) instanceof Grid) {
+                array_splice($out, $idx, 2, [new Fenced($opener->char, '', $next)]);
             }
         }
 
