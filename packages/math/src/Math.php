@@ -277,7 +277,7 @@ final class Math
      *
      * @param list<list<string|Node>> $rows
      * @param string $fence paren, bracket, brace, bar, doublebar or none (a bare grid)
-     * @param string|array<mixed> $align left, center or right: one value for every column, or a list with one per column (the last repeats)
+     * @param string|array<string> $align left, center or right: one value for every column, or a list with one per column (the last repeats)
      *
      * @throws \InvalidArgumentException for no cells, an unknown fence or an unknown alignment
      */
@@ -293,6 +293,8 @@ final class Math
         }
         foreach ($align as $a) {
             if (! in_array($a, Grid::COLUMN_ALIGN, true)) {
+                // The docblock says string; callers without static analysis can still pass anything.
+                // @phpstan-ignore function.alreadyNarrowedType
                 throw new \InvalidArgumentException(sprintf('Math::matrix() align must be one or a list of %s, got %s.', implode(', ', Grid::COLUMN_ALIGN), is_string($a) ? "'" . $a . "'" : get_debug_type($a)));
             }
         }

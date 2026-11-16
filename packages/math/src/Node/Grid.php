@@ -24,7 +24,7 @@ final class Grid extends Node
 
     /**
      * @param array<array<Node>> $rows read in order, whatever their keys
-     * @param array<mixed> $columnAlign strings, read in order, whatever their keys; left, center or right per column; the last repeats, empty means center
+     * @param array<string> $columnAlign read in order, whatever their keys; left, center or right per column; the last repeats, empty means center
      * @param string $rowAlign how cells of one row line up: baseline, axis, center, top or bottom
      * @param bool $display lay the cells out in display style rather than text style
      */
@@ -36,6 +36,8 @@ final class Grid extends Node
     ) {
         foreach ($columnAlign as $a) {
             if (! in_array($a, self::COLUMN_ALIGN, true)) {
+                // The docblock says string; callers without static analysis can still pass anything.
+                // @phpstan-ignore function.alreadyNarrowedType
                 throw new \InvalidArgumentException(sprintf('Unknown column alignment "%s"; use one of: %s', is_string($a) ? $a : get_debug_type($a), implode(', ', self::COLUMN_ALIGN)));
             }
         }
