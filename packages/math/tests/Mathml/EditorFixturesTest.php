@@ -93,12 +93,9 @@ final class EditorFixturesTest extends TestCase
             self::assertFileExists($svgFile);
             self::assertSame(rtrim($svg), rtrim((string) file_get_contents($svgFile)), "$name #$i svg");
             $notes = $r->notes();
-            if (str_contains($name, '-table')) {
-                self::assertCount(1, $notes, "$name #$i");
-                self::assertSame(NoteLevel::Approximated, $notes[0]->level, "$name #$i");
-            } else {
-                self::assertSame([], $notes, "$name #$i");
-            }
+            // The one table with an attribute the grid does not draw (columnspacing).
+            $expected = $name === 'wiris-viewer-table' && $i === 2 ? ['columnspacing is not drawn'] : [];
+            self::assertSame($expected, array_map(static fn ($n): string => $n->reason, $notes), "$name #$i");
             $outputs = [
                 'mathml' => MathmlWriter::write($r->node, $r->display),
                 'omml' => OmmlWriter::oMath($r->node),

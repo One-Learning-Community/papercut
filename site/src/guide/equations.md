@@ -32,6 +32,8 @@ The builder lives in the `papercut/math` package, which `papercut/core` installs
 | `Math::sub($base, $subscript)` | A subscript. |
 | `Math::subSup($base, $subscript, $superscript)` | A subscript and a superscript on one base. |
 | `Math::fenced($open, $close, ...$content)` | Content between delimiters, such as `(` and `)`. The delimiters stretch to fit what is inside. |
+| `Math::matrix($rows, $fence, $align)` | Rows of cells in aligned columns inside a fence. |
+| `Math::cases($rows)` | A left brace around left-aligned rows, for piecewise definitions. |
 | `Math::text($text)` | Literal text, such as a word in a formula. It is not tokenized. |
 
 ```php
@@ -40,6 +42,18 @@ Math::fenced('(', ')', Math::frac('a', 'b'));           // a tall pair of bracke
 Math::row('f', Math::fenced('(', ')', 'x'), '=', Math::root('x', '3'));
 Math::row(Math::text('speed'), '=', Math::text('distance'), '/', Math::text('time'));
 ```
+
+### Matrices and cases
+
+`Math::matrix()` takes a list of rows, each a list of cells (strings or nodes). The fence is one of `paren` (the default), `bracket`, `brace`, `bar`, `doublebar` or `none`, and it stretches to the height of the grid. `$align` is `center` (the default), `left` or `right` for every column, or a list with one value per column (a short list repeats its last value). `Math::cases()` is a left brace around columns that are all left-aligned. A grid sits on the same line as a neighbouring `=`, centred on the math axis.
+
+```php
+Math::row('A', '=', Math::matrix([['1', '0'], ['0', '1']], 'bracket'));
+Math::row('det', Math::matrix([['a', 'b'], ['c', 'd']], 'bar'), '=', 'ad − bc');
+Math::row('|x|', '=', Math::cases([['x', Math::text('if x ≥ 0')], ['−x', Math::text('otherwise')]]));
+```
+
+No rows, or a row with no cells, throws `InvalidArgumentException`, as does an unknown fence or alignment. In MathML input, `<mtable>` is read as the same grid, with `columnalign`, `rowalign` and `displaystyle` honoured on the table, and a lone opening bracket such as `{` before a table becomes a stretching fence. Attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) are reported as approximated, for example `math <mtable> (rowlines is not drawn)`. In Word a grid is a live matrix (`m:m`).
 
 ### Limits, accents and bars
 
@@ -172,9 +186,9 @@ A formula read from MathML takes its colour, size, background and link from the 
 
 ### What is approximated or dropped
 
-Not all of MathML has a counterpart yet. The reader draws what it can and records a note, once per element name in a formula, so three `<menclose>` give one note.
+Not all of MathML has a counterpart yet. The reader draws what it can and records a note, once per element name and reason in a formula, so three `<menclose>` give one note.
 
-- **Approximated.** The content is drawn, but not as the source meant. Matrices and other tables (`<mtable>`) are drawn as rows of cells for now, without alignment or lines. `<menclose>`, `<mmultiscripts>` and elements the reader doesn't know are drawn as their contents, and `<maction>` is drawn as its first choice.
+- **Approximated.** The content is drawn, but not as the source meant. A table (`<mtable>`) is drawn as a grid and is not reported, unless it uses an attribute that isn't drawn (see [Matrices and cases](#matrices-and-cases)). `<menclose>`, `<mmultiscripts>` and elements the reader doesn't know are drawn as their contents, and `<maction>` is drawn as its first choice.
 - **Dropped.** The content is not drawn. This covers images and other media inside a formula, and content an HTML tag pushed out of a `<math>` element when the markup isn't well-formed XML.
 
 `Math::mathml()` never expands entities. MathML that carries a DOCTYPE, in any encoding, is read as HTML would read it, so an entity declaration in it does nothing.
@@ -220,5 +234,5 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 
 These are not supported yet:
 
-- Matrices and other grids drawn as grids. MathML tables are read as rows of cells.
+- Table lines, spacing and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like).
 - Math fonts with CFF outlines.

@@ -52,6 +52,10 @@ final class Fixtures
             'vector-ab' => Math::row(Math::vec('ab'), '=', Math::vec('a'), '+', Math::vec('b')),
             'overbrace' => Math::overbrace('a + b + c', Math::text('three terms')),
             'tall-fence' => Math::row(Math::fenced('[', ']', Math::frac(Math::frac('1', 'x'), Math::frac('1', Math::frac('1', 'y')))), '= z'),
+            'matrix-2x2' => Math::matrix([['a', 'b'], ['c', 'd']]),
+            'determinant' => Math::matrix([['a', 'b'], ['c', 'd']], 'bar'),
+            'cases' => Math::row('f(x) =', Math::cases([['−x', 'x < 0'], ['x', 'x ≥ 0']])),
+            'matrix-equals' => Math::row('A =', Math::matrix([['1', '0'], ['0', '1']], 'bracket')),
         ];
     }
 }

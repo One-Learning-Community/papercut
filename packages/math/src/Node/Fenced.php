@@ -49,6 +49,9 @@ final class Fenced extends Node
         if ($this->open !== '') {
             [$x, $asc, $desc] = $this->delimiter($c, $out, $this->open, $req, $x, $asc, $desc);
         }
+        if ($this->open === '{' && $this->close === '' && Fallback::unwrap($this->content) instanceof Grid) {
+            $x += $c->mu(3); // a piecewise brace sits a little off its rows
+        }
         $out->place($inner, $x, 0);
         $x += $inner->width;
         if ($this->close !== '') {

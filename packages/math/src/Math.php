@@ -11,6 +11,7 @@ use Papercut\Math\Mathml\MathmlReader;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
+use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Operator;
@@ -269,6 +270,82 @@ final class Math
         $close = self::scrub($close, $bad);
 
         return new Fenced($open, $close, self::flagged(self::row(...$content), $bad));
+    }
+
+    /**
+     * A matrix: rows of cells in aligned columns, inside a fence.
+     *
+     * @param list<list<string|Node>> $rows
+     * @param string $fence paren, bracket, brace, bar, doublebar or none (a bare grid)
+     * @param string|array<string> $align left, center or right: one value for every column, or a list with one per column (the last repeats)
+     *
+     * @throws \InvalidArgumentException for no cells, an unknown fence or an unknown alignment
+     */
+    public static function matrix(array $rows, string $fence = 'paren', string|array $align = 'center'): Node
+    {
+        $fences = ['paren' => ['(', ')'], 'bracket' => ['[', ']'], 'brace' => ['{', '}'], 'bar' => ['|', '|'], 'doublebar' => ["\u{2016}", "\u{2016}"], 'none' => ['', '']];
+        if (! isset($fences[$fence])) {
+            throw new \InvalidArgumentException(sprintf("Math::matrix() fence must be one of %s, got '%s'.", implode(', ', array_keys($fences)), $fence));
+        }
+        $align = is_array($align) ? array_values($align) : [$align];
+        if ($align === []) {
+            throw new \InvalidArgumentException(sprintf('Math::matrix() align must be one or a list of %s.', implode(', ', Grid::COLUMN_ALIGN)));
+        }
+        foreach ($align as $a) {
+            if (! in_array($a, Grid::COLUMN_ALIGN, true)) {
+                // The docblock says string; callers without static analysis can still pass anything.
+                // @phpstan-ignore function.alreadyNarrowedType
+                throw new \InvalidArgumentException(sprintf('Math::matrix() align must be one or a list of %s, got %s.', implode(', ', Grid::COLUMN_ALIGN), is_string($a) ? "'" . $a . "'" : get_debug_type($a)));
+            }
+        }
+        $grid = new Grid(self::gridCells('matrix', $rows), $align);
+
+        return $fence === 'none' ? $grid : new Fenced($fences[$fence][0], $fences[$fence][1], $grid);
+    }
+
+    /**
+     * A piecewise definition: a left brace around rows of cells, every column left-aligned.
+     *
+     * @param list<list<string|Node>> $rows
+     *
+     * @throws \InvalidArgumentException for no cells
+     */
+    public static function cases(array $rows): Fenced
+    {
+        return new Fenced('{', '', new Grid(self::gridCells('cases', $rows), ['left']));
+    }
+
+    /**
+     * @param array<mixed> $rows
+     * @return list<list<Node>>
+     */
+    private static function gridCells(string $method, array $rows): array
+    {
+        if ($rows === []) {
+            throw new \InvalidArgumentException(sprintf('Math::%s() needs at least one row with at least one cell.', $method));
+        }
+        $out = [];
+        $n = 0;
+        foreach ($rows as $row) {
+            $n++;
+            if (! is_array($row) || $row === []) {
+                throw new \InvalidArgumentException($n === 1
+                    ? sprintf('Math::%s() needs at least one row with at least one cell.', $method)
+                    : sprintf('Math::%s() row %d must be a non-empty list of cells.', $method, $n));
+            }
+            $cells = [];
+            $m = 0;
+            foreach ($row as $cell) {
+                $m++;
+                if (! is_string($cell) && ! $cell instanceof Node) {
+                    throw new \InvalidArgumentException(sprintf('Math::%s() row %d cell %d must be a string or a Node, got %s.', $method, $n, $m, get_debug_type($cell)));
+                }
+                $cells[] = self::row($cell);
+            }
+            $out[] = $cells;
+        }
+
+        return $out;
     }
 
     public static function text(string $text): Node

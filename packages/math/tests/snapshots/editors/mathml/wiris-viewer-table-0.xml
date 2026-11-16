@@ -1,1 +1,1 @@
-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="true">(</mo><mrow><mi>x</mi><mspace width="2em"/><mi>y</mi></mrow><mo stretchy="true">)</mo></mrow></math>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="true">(</mo><mtable><mtr><mtd><mi>x</mi></mtd></mtr><mtr><mtd><mi>y</mi></mtd></mtr></mtable><mo stretchy="true">)</mo></mrow></math>
