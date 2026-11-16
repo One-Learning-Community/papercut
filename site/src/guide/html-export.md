@@ -94,6 +94,28 @@ With it on:
 Inline SVG runs in the page. Turn `inlineSvgs` on only when you trust where every SVG comes from. Papercut removes scripts and event handlers, but not links (including `javascript:` links) or animations that change links, and an inlined SVG can make the browser fetch external resources (an `<image>` `href`, `feImage`, `url(...)` in a style). Leave it off for SVGs that users upload.
 :::
 
+## Fitting a narrow container
+
+The HTML keeps the page's width and margins. A fragment in a container narrower than the page, such as a side panel or a phone screen, reflows its content into what's left after the margins, so text and tables get squeezed. To show it as a scaled-down print preview instead, zoom each page to the container's width:
+
+```html
+<div class="preview">{!! $invoice->html() !!}</div>
+
+<script>
+  document.querySelectorAll('.preview').forEach((box) => {
+    const fit = () => box.querySelectorAll('.pc-page').forEach((page) => {
+      page.style.zoom = '';
+      const pageWidth = parseFloat(getComputedStyle(page).maxWidth); // the page width, in px
+      page.style.zoom = Math.min(1, box.clientWidth / pageWidth);
+    });
+    fit();
+    new ResizeObserver(fit).observe(box);
+  });
+</script>
+```
+
+Each `.pc-page` has the page's width as its `max-width`, so the zoom is the container's width over that, and never more than 1. The page keeps the same line breaks and table layout at any width, and because `zoom` scales layout as well as drawing, the container's height shrinks with it.
+
 ## Image URLs
 
 Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` for any image you'd still like embedded. SVGs are always embedded, as `data:` URIs or inline markup, so `imageUrl` doesn't apply to them.
