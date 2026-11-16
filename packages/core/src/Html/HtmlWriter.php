@@ -884,7 +884,7 @@ final class HtmlWriter implements TreeVisitor
             array_pop($this->sections);
             $this->sections[] = $want;
         }
-        $box = Css::box($s);
+        $box = Css::tableBox($s);
         if (isset($box['padding'])) {
             unset($box['padding']);
             $this->fidelity->approximated('row padding', $at->path());
@@ -907,7 +907,7 @@ final class HtmlWriter implements TreeVisitor
         $colspan = $p->colspan ?? $n->span();
         $rowspan = $p->rowspan ?? $n->rowsSpanned();
         $span = ($colspan > 1 ? ' colspan="' . $colspan . '"' : '') . ($rowspan > 1 ? ' rowspan="' . $rowspan . '"' : '');
-        $td = [...Css::box($s), ...$this->textCss($s, $parent, $at->path())];
+        $td = [...Css::tableBox($s), ...$this->textCss($s, $parent, $at->path())];
         if ($s->justify === Justify::Center) {
             $td['vertical-align'] = 'middle';
         } elseif ($s->justify === Justify::End) {

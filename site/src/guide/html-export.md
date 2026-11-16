@@ -43,7 +43,7 @@ A [table of contents](./pages.md#tables-of-contents) becomes a `<nav class="pape
 
 To pick the HTML element a view exports as, call `htmlTag()` (`div`, `section`, `aside`, `blockquote`, `header`, `footer` or `figure`). PDF ignores it.
 
-The HTML uses meaningful tags where it can: sections become `<section>`, callouts `<aside>`, blockquotes `<blockquote>`, lists `<ol>` or `<ul>`, and tables `<table>`.
+The HTML uses meaningful tags where it can: sections become `<section>`, callouts `<aside>`, blockquotes `<blockquote>`, lists `<ol>` or `<ul>`, and tables `<table>`. A row or cell's minimum height is written as its `height`, which a browser treats as a minimum for table rows and cells (it ignores `min-height` there).
 
 ## Columns
 

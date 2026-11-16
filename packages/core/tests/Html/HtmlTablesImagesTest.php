@@ -177,6 +177,22 @@ final class HtmlTablesImagesTest extends TestCase
         self::assertStringContainsString('background:#ff0000', $this->style($this->xpath($html, '//tbody/tr')[0]));
     }
 
+    public function test_cell_and_row_min_height_is_written_as_height_which_browsers_treat_as_a_minimum(): void
+    {
+        // Browsers ignore min-height on table rows and cells; their height already acts as a floor.
+        $html = $this->html($this->body(Table::make()->columns('1fr 1fr')->bodyRow(
+            TableRow::make(TableCell::make()->minHeight(pt(21)), TableCell::make('x')->height(pt(30))->minHeight(pt(40)))->minHeight(pt(18)),
+        )));
+        $cells = $this->xpath($html, '//tbody/tr/td');
+        self::assertMatchesRegularExpression('/(^|;)height:21pt(;|$)/', $this->style($cells[0]));
+        self::assertStringNotContainsString('min-height', $this->style($cells[0]));
+        self::assertMatchesRegularExpression('/(^|;)height:40pt(;|$)/', $this->style($cells[1]));
+        self::assertStringNotContainsString('min-height', $this->style($cells[1]));
+        $row = $this->style($this->xpath($html, '//tbody/tr')[0]);
+        self::assertMatchesRegularExpression('/(^|;)height:18pt(;|$)/', $row);
+        self::assertStringNotContainsString('min-height', $row);
+    }
+
     public function test_png_and_jpeg_embed_as_data_uris(): void
     {
         $png = TestImages::png(8, 4);
