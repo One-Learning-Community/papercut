@@ -12,14 +12,14 @@ use PHPUnit\Framework\TestCase;
 
 final class MatrixEquationTest extends TestCase
 {
-    /** @return list<string> */
-    private function warnings(Document $doc, ?string &$pdf = null): array
+    /** @return array{string, list<string>} the PDF bytes and the warnings reported while writing them */
+    private function render(Document $doc): array
     {
         $messages = [];
         $pdf = $doc->toPdf(new PdfOptions(onWarning: function (string $m) use (&$messages): void {
             $messages[] = $m;
         }, cacheDir: false))->bytes();
-        return $messages;
+        return [$pdf, $messages];
     }
 
     public function test_matrix_equation_renders_in_pdf(): void
@@ -28,7 +28,7 @@ final class MatrixEquationTest extends TestCase
             Equation::of(Math::matrix([['a', 'b'], ['c', 'd']])),
             Text::spans(Span::text('det '), Span::math(Math::matrix([['a', 'b'], ['c', 'd']], 'bar'))),
         ));
-        $messages = $this->warnings($doc, $pdf);
+        [$pdf, $messages] = $this->render($doc);
         self::assertStringStartsWith('%PDF', $pdf);
         self::assertSame([], $messages);
     }
@@ -37,13 +37,13 @@ final class MatrixEquationTest extends TestCase
     {
         $table = '<math display="block"><mtable><mtr><mtd><mi>a</mi></mtd><mtd><mi>b</mi></mtd></mtr></mtable></math>';
         $doc = Document::make(Page::a4()->body(Markup::html($table)));
-        self::assertSame([], $this->warnings($doc));
+        self::assertSame([], $this->render($doc)[1]);
     }
 
     public function test_markup_mtable_with_ignored_attribute_reports_one_note(): void
     {
         $table = '<math display="block"><mtable rowlines="solid"><mtr><mtd><mi>a</mi></mtd></mtr></mtable></math>';
-        $messages = $this->warnings(Document::make(Page::a4()->body(Markup::html($table))));
+        [, $messages] = $this->render(Document::make(Page::a4()->body(Markup::html($table))));
         self::assertCount(1, $messages, implode("\n", $messages));
         self::assertStringContainsString('math <mtable> (rowlines is not drawn)', $messages[0]);
     }
