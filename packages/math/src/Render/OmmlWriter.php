@@ -118,7 +118,7 @@ final class OmmlWriter
     /** Word's matrix. Row alignment and display style have no counterpart in OMML and are not written. */
     private static function grid(Grid $g, string $rPr): string
     {
-        if ($g->rows === [] || $g->columns === 0) {
+        if ($g->columns === 0) {
             return '';
         }
         $out = '<m:m><m:mPr><m:plcHide m:val="1"/><m:mcs>';

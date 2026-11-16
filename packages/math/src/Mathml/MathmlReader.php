@@ -255,13 +255,7 @@ final class MathmlReader
 
     private function tableRows(\Dom\Element $e, string $where): Node
     {
-        /** @var list<array{string, string, string}> $ignored element, attribute, path */
-        $ignored = [];
-        foreach (self::IGNORED['mtable'] as $attr) {
-            if (self::drawable($e, $attr)) {
-                $ignored[] = ['mtable', $attr, $where];
-            }
-        }
+        $ignored = self::ignoredOn($e, 'mtable', $where);
         $rows = [];
         $rowNotes = [];
         $cellNotes = [];
@@ -270,24 +264,16 @@ final class MathmlReader
         foreach (self::elements($e) as $tr) {
             $rowWhere = $this->at($where, $tr, $i++);
             $trName = self::name($tr);
-            foreach (self::IGNORED['mtr'] as $attr) {
-                if (self::drawable($tr, $attr)) {
-                    $rowNotes[] = ['mtr', $attr, $rowWhere];
-                }
-            }
+            array_push($rowNotes, ...self::ignoredOn($tr, 'mtr', $rowWhere, $trName));
             $cells = [];
             $j = 0;
             foreach (self::elements($tr) as $td) {
                 $cellWhere = $this->at($rowWhere, $td, $j++);
-                foreach (self::IGNORED['mtd'] as $attr) {
-                    if (self::drawable($td, $attr)) {
-                        $cellNotes[] = ['mtd', $attr, $cellWhere];
-                    }
-                }
                 if ($trName === 'mlabeledtr' && $j === 1) {
                     $labelled = true;
                     continue;
                 }
+                array_push($cellNotes, ...self::ignoredOn($td, 'mtd', $cellWhere));
                 $cells[] = $this->children($td, $cellWhere);
             }
             $rows[] = $cells;
@@ -320,8 +306,27 @@ final class MathmlReader
         return $node;
     }
 
+    /**
+     * The attributes of $kind (an IGNORED key) that $el sets to something the grid does not draw.
+     *
+     * @param string|null $element the element name for the note, when it differs from $kind (mlabeledtr rows)
+     *
+     * @return list<array{string, string, string}> element, attribute, path
+     */
+    private static function ignoredOn(\Dom\Element $el, string $kind, string $path, ?string $element = null): array
+    {
+        $out = [];
+        foreach (self::IGNORED[$kind] as $attr) {
+            if (self::notDrawn($el, $attr)) {
+                $out[] = [$element ?? $kind, $attr, $path];
+            }
+        }
+
+        return $out;
+    }
+
     /** Whether the attribute is present with a value that asks for something the grid does not draw. */
-    private static function drawable(\Dom\Element $e, string $attr): bool
+    private static function notDrawn(\Dom\Element $e, string $attr): bool
     {
         $raw = $e->getAttribute($attr);
         $v = strtolower(trim($raw ?? ''));
@@ -330,7 +335,7 @@ final class MathmlReader
         }
 
         return match ($attr) {
-            'columnlines', 'rowlines', 'frame' => preg_match('/[^\s]+/', str_ireplace('none', '', $v)) === 1,
+            'columnlines', 'rowlines', 'frame' => preg_match('/[^\s]+/', str_replace('none', '', $v)) === 1,
             'rowspan', 'columnspan' => ctype_digit($v) && (int) $v > 1,
             'equalrows', 'equalcolumns' => $v !== 'false',
             default => true,
@@ -642,8 +647,13 @@ final class MathmlReader
                     $out[] = $n;
                 } else {
                     [$idx, $opener] = $stack[$found];
+                    // Openers still on the stack above this one are unmatched, inside the pair.
+                    $inner = [];
+                    foreach (array_slice($stack, $found + 1) as [$innerIdx, $innerOpener]) {
+                        $inner[] = [$innerIdx - $idx - 1, $innerOpener];
+                    }
                     $stack = array_slice($stack, 0, $found);
-                    $between = array_splice($out, $idx + 1);
+                    $between = self::foldLoneOpeners(array_splice($out, $idx + 1), $inner);
                     $out[$idx] = new Fenced($opener->char, $ch, self::row(self::bars($between)));
                 }
             } else {
@@ -652,14 +662,40 @@ final class MathmlReader
         }
 
         // An opener with no closer, directly before a table, fences it alone: `{` then a table is cases.
-        foreach (array_reverse($stack) as [$idx, $opener]) {
-            $next = $out[$idx + 1] ?? null;
+        return self::bars(self::foldLoneOpeners(array_values($out), $stack));
+    }
+
+    /**
+     * An opener with no closer, directly before a table, fences it alone: `{` then a table is cases. One forward pass.
+     *
+     * @param list<Node> $nodes
+     * @param list<array{int, Operator}> $openers index in $nodes and node of each unmatched opener
+     *
+     * @return list<Node>
+     */
+    private static function foldLoneOpeners(array $nodes, array $openers): array
+    {
+        $fold = [];
+        foreach ($openers as [$idx, $opener]) {
+            $next = $nodes[$idx + 1] ?? null;
             if ($next !== null && Fallback::unwrap($next) instanceof Grid) {
-                array_splice($out, $idx, 2, [new Fenced($opener->char, '', $next)]);
+                $fold[$idx] = $opener;
+            }
+        }
+        if ($fold === []) {
+            return $nodes;
+        }
+        $out = [];
+        $count = count($nodes);
+        for ($i = 0; $i < $count; $i++) {
+            if (isset($fold[$i])) {
+                $out[] = new Fenced($fold[$i]->char, '', $nodes[++$i]);
+            } else {
+                $out[] = $nodes[$i];
             }
         }
 
-        return self::bars(array_values($out));
+        return $out;
     }
 
     /**

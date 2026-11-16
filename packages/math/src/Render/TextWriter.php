@@ -62,7 +62,7 @@ final class TextWriter
             $n instanceof Root => self::root($n),
             $n instanceof Scripts => self::scripts($n),
             $n instanceof UnderOver => self::underOver($n),
-            $n instanceof Fenced && $n->open === '{' && $n->close === '' && $n->content instanceof Grid => '{' . self::grid($n->content, ', '),
+            $n instanceof Fenced && $n->open === '{' && $n->close === '' && Fallback::unwrap($n->content) instanceof Grid => '{' . self::grid(Fallback::unwrap($n->content), ', '),
             $n instanceof Fenced => $n->open . ($n->content instanceof Fraction && ! $n->content->bar ? self::stacked($n->content) : self::node($n->content)) . $n->close,
             $n instanceof Grid => self::grid($n, ' '),
             $n instanceof Space => $n->em >= 0.15 ? ' ' : '',
@@ -77,10 +77,21 @@ final class TextWriter
     /** Rows joined by "; " and cells by $sep: one line, whatever the shape. */
     private static function grid(Grid $g, string $sep): string
     {
-        return implode('; ', array_map(
-            static fn (array $row): string => implode($sep, array_map(static fn (Node $cell): string => trim(self::node($cell)), $row)),
-            $g->rows,
-        ));
+        $rows = array_map(static function (array $row) use ($sep): string {
+            $out = '';
+            foreach ($row as $cell) {
+                $text = trim(self::node($cell));
+                if ($text === '') {
+                    continue;
+                }
+                // A cell that already ends in the separator's comma (Wiris writes `x,`) is not given a second one.
+                $out .= $out === '' ? $text : (str_ends_with($out, rtrim($sep)) ? ' ' : $sep) . $text;
+            }
+
+            return $out;
+        }, $g->rows);
+
+        return implode('; ', array_filter($rows, static fn (string $row): bool => $row !== ''));
     }
 
     private static function plain(string $name): string
@@ -124,7 +135,8 @@ final class TextWriter
     private static function atom(Node $n): bool
     {
         return match (true) {
-            $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Grid, $n instanceof Root, $n instanceof Scripts, $n instanceof UnderOver => true,
+            $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Root, $n instanceof Scripts, $n instanceof UnderOver => true,
+            $n instanceof Grid => count($n->rows) === 1 && $n->columns === 1,
             $n instanceof Fraction => ! $n->bar,
             $n instanceof Text => preg_match('/\s/u', $n->text) !== 1,
             $n instanceof Fallback => $n->content !== null && self::atom($n->content),

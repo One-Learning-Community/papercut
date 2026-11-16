@@ -127,7 +127,7 @@ input gives an empty formula. The reader never throws.
 ### What is approximated or dropped
 
 Not everything in MathML has a counterpart yet. The reader draws what it can and records a note for each kind of
-element it changed, once per element name in a formula (three `menclose` give one note).
+element it changed, once per element name and reason in a formula (three `menclose` give one note).
 `Math::notes(Node $root): list<MathNote>` returns them in reading order (the same as `$result->notes()`).
 
 ```php
@@ -144,10 +144,11 @@ foreach (Math::notes($formula) as $note) {
 A `MathNote` has `level`, `element` (the MathML element name), `reason` (plain words) and `where` (the path to it in the
 formula).
 
-- `NoteLevel::Approximated`: the content is drawn, but not the way the source meant. This covers `mtable` attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`,
-  `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `columnalign` and `rowalign` on
-  `mtr`, `rowspan`, `columnspan`, `columnalign` and `rowalign` on `mtd`; a plain table is drawn as a grid and gives no
-  note), `menclose`, `mmultiscripts`, `maction` (its first choice is drawn) and elements the reader does not know.
+- `NoteLevel::Approximated`: the content is drawn, but not the way the source meant. This covers `mtable` attributes
+  that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`,
+  `equalcolumns`, `align`, `groupalign`, `columnalign` and `rowalign` on `mtr`, `rowspan`, `columnspan`, `columnalign`
+  and `rowalign` on `mtd`; a plain table is drawn as a grid and gives no note), `menclose`, `mmultiscripts`, `maction`
+  (its first choice is drawn) and elements the reader does not know.
 - `NoteLevel::Dropped`: the content is not drawn. This covers images and other media inside the math (`img`, `svg`,
   `video`, `mglyph` and the like), and content that an HTML tag pushed out of the `math` element: in HTML5 parsing a
   stray tag such as `<p>` inside math ends it, and what follows is lost.

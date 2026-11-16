@@ -194,6 +194,9 @@ final class MathmlWriter
 
     private static function grid(Grid $g): string
     {
+        if ($g->columns === 0) {
+            return '';
+        }
         $attrs = '';
         if (array_any($g->columnAlign, static fn (string $a): bool => $a !== 'center')) {
             $attrs .= ' columnalign="' . implode(' ', $g->columnAlign) . '"';
@@ -206,10 +209,10 @@ final class MathmlWriter
         }
         $rows = '';
         foreach ($g->rows as $row) {
-            $rows .= '<mtr>' . implode('', array_map(fn (Node $cell): string => '<mtd>' . self::node($cell) . '</mtd>', $row)) . '</mtr>';
+            $rows .= '<mtr>' . implode('', array_map(static fn (Node $cell): string => '<mtd>' . self::node($cell) . '</mtd>', $row)) . '</mtr>';
         }
 
-        return $g->rows === [] || $g->columns === 0 ? '' : '<mtable' . $attrs . '>' . $rows . '</mtable>';
+        return '<mtable' . $attrs . '>' . $rows . '</mtable>';
     }
 
     private static function fenced(Fenced $f): string

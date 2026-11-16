@@ -53,7 +53,7 @@ Math::row('det', Math::matrix([['a', 'b'], ['c', 'd']], 'bar'), '=', 'ad − bc'
 Math::row('|x|', '=', Math::cases([['x', Math::text('if x ≥ 0')], ['−x', Math::text('otherwise')]]));
 ```
 
-No rows, or a row with no cells, throws `InvalidArgumentException`, as does an unknown fence or alignment. In MathML input, `<mtable>` is read as the same grid, with `columnalign`, `rowalign` and `displaystyle` honoured on the table, and a lone `{` before a table becomes a stretching fence. Attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) are reported as approximated, for example `math <mtable> (rowlines is not drawn)`. In Word a grid is a live matrix (`m:m`).
+No rows, or a row with no cells, throws `InvalidArgumentException`, as does an unknown fence or alignment. In MathML input, `<mtable>` is read as the same grid, with `columnalign`, `rowalign` and `displaystyle` honoured on the table, and a lone opening bracket such as `{` before a table becomes a stretching fence. Attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) are reported as approximated, for example `math <mtable> (rowlines is not drawn)`. In Word a grid is a live matrix (`m:m`).
 
 ### Limits, accents and bars
 
@@ -186,7 +186,7 @@ A formula read from MathML takes its colour, size, background and link from the 
 
 ### What is approximated or dropped
 
-Not all of MathML has a counterpart yet. The reader draws what it can and records a note, once per element name in a formula, so three `<menclose>` give one note.
+Not all of MathML has a counterpart yet. The reader draws what it can and records a note, once per element name and reason in a formula, so three `<menclose>` give one note.
 
 - **Approximated.** The content is drawn, but not as the source meant. A table (`<mtable>`) is drawn as a grid and is not reported, unless it uses an attribute that isn't drawn (see [Matrices and cases](#matrices-and-cases)). `<menclose>`, `<mmultiscripts>` and elements the reader doesn't know are drawn as their contents, and `<maction>` is drawn as its first choice.
 - **Dropped.** The content is not drawn. This covers images and other media inside a formula, and content an HTML tag pushed out of a `<math>` element when the markup isn't well-formed XML.

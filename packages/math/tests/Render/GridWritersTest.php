@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Math\Tests\Render;
 
 use Papercut\Math\Math;
+use Papercut\Math\Mathml\MathmlReader;
 use Papercut\Math\Node\Grid;
 use Papercut\Math\Render\MathmlWriter;
 use Papercut\Math\Render\OmmlWriter;
@@ -106,6 +107,28 @@ final class GridWritersTest extends TestCase
         self::assertStringNotContainsString("\n", TextWriter::write(Math::cases(self::abcd())));
     }
 
+    public function test_cases_through_a_fallback_and_filler_rows(): void
+    {
+        $r = MathmlReader::read('<math><mrow><mo>{</mo><mtable frame="solid"><mtr><mtd><mi>a</mi></mtd><mtd><mi>b</mi></mtd></mtr></mtable></mrow></math>');
+        self::assertSame('{a, b', TextWriter::write($r->node));
+        self::assertSame('a c', TextWriter::write(Math::matrix([['', ''], ['a', 'c'], ['', '']], 'none')));
+        self::assertSame('{a, c', TextWriter::write(Math::cases([['', ''], ['a', 'c']])));
+    }
+
+    public function test_an_unfenced_grid_in_a_fraction_is_wrapped_but_a_fenced_one_is_not(): void
+    {
+        $bare = Math::matrix(self::abcd(), 'none');
+        self::assertSame('(a b; c d)/2', TextWriter::write(Math::frac($bare, '2')));
+        self::assertSame('(a b; c d)/2', TextWriter::write(Math::frac(Math::matrix(self::abcd()), '2')));
+        self::assertSame('a/2', TextWriter::write(Math::frac(Math::matrix([['a']], 'none'), '2')));
+    }
+
+    public function test_empty_cells_do_not_leave_double_spaces_or_stray_commas(): void
+    {
+        self::assertSame('a b', TextWriter::write(Math::matrix([['a', '', 'b']], 'none')));
+        self::assertSame('{b; c, d', TextWriter::write(Math::cases([['', 'b'], ['c', 'd']])));
+    }
+
     public function test_empty_grid_writes_nothing(): void
     {
         $grid = new Grid([]);
@@ -124,8 +147,13 @@ final class GridWritersTest extends TestCase
         ];
         foreach ($trees as $tree) {
             self::assertNotSame('', TextWriter::write($tree));
-            self::assertNotSame('', OmmlWriter::oMath($tree));
-            self::assertNotSame('', MathmlWriter::write($tree));
         }
+        self::assertSame(2, substr_count(MathmlWriter::write($trees[0]), '<mtable'));
+        self::assertSame(2, substr_count(OmmlWriter::oMath($trees[0]), '<m:m>'));
+        $fraction = MathmlWriter::write($trees[1]);
+        self::assertMatchesRegularExpression('#<mfrac><mrow><mo[^>]*>\(</mo><mtable.*</mtable><mo[^>]*>\)</mo></mrow>#s', $fraction);
+        self::assertStringContainsString('<m:f>', OmmlWriter::oMath($trees[1]));
+        self::assertStringContainsString('<m:num><m:d>', OmmlWriter::oMath($trees[1]));
+        self::assertMatchesRegularExpression('#<m:num><m:d>.*<m:m>.*</m:num>#s', OmmlWriter::oMath($trees[1]));
     }
 }

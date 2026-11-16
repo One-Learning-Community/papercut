@@ -100,11 +100,14 @@ final class GridTest extends TestCase
     {
         foreach ([1, 2, 3] as $n) {
             $rows = [];
+            $frac = Math::frac('a', 'b');
             for ($r = 0; $r < $n; $r++) {
-                $rows[] = [Math::row('x'), Math::frac('a', 'b')];
+                $rows[] = [Math::row('x'), $frac];
             }
             $box = self::lay(new Grid($rows));
             $this->assertEqualsWithDelta(2 * self::axis(), $box->ascent - $box->descent, 1e-9);
+            // The tallest cell of the first row (the fraction) starts exactly at the top of the box.
+            $this->assertEqualsWithDelta(-$box->ascent, self::shiftOf($box, $frac)[1] - self::lay($frac, false)->ascent, 1e-9);
         }
     }
 
@@ -114,6 +117,45 @@ final class GridTest extends TestCase
         $text = self::lay(new Grid([[$f]]));
         $disp = self::lay(new Grid([[$f]], display: true));
         $this->assertLessThan($disp->height(), $text->height());
+    }
+
+    public function test_rows_and_alignments_with_odd_keys_are_read_as_lists(): void
+    {
+        $odd = new Grid(
+            [5 => [3 => Math::row('a'), 9 => Math::row('b')], 'x' => [7 => Math::row('c')]],
+            ['p' => 'left', 'q' => 'right'],
+        );
+        $clean = new Grid([[Math::row('a'), Math::row('b')], [Math::row('c')]], ['left', 'right']);
+        $this->assertSame(2, $odd->columns);
+        $this->assertSame(['left', 'right'], $odd->columnAlign);
+        $this->assertSame([0, 1], array_keys($odd->rows));
+        $this->assertSame([0, 1], array_keys($odd->rows[0]));
+        $this->assertSame([0, 1], array_keys($odd->rows[1]));
+        $this->assertEquals(self::lay($clean), self::lay($odd));
+    }
+
+    public function test_a_nested_array_alignment_throws_without_a_warning(): void
+    {
+        set_error_handler(static function (int $no, string $msg): never {
+            self::fail("unexpected PHP error: $msg");
+        });
+        try {
+            foreach ([[['left']], ['left', ['x']]] as $align) {
+                try {
+                    new Grid([[Math::row('a')]], self::untyped($align));
+                    $this->fail('expected an InvalidArgumentException');
+                } catch (\InvalidArgumentException $e) {
+                    $this->assertStringContainsString('Unknown column alignment', $e->getMessage());
+                }
+            }
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    private static function untyped(mixed $v): mixed
+    {
+        return $v;
     }
 
     public function test_ragged_rows_are_padded(): void
@@ -211,6 +253,7 @@ final class GridTest extends TestCase
             }
             $rows[] = $row;
         }
+        memory_reset_peak_usage();
         $mem = memory_get_peak_usage();
         $t = microtime(true);
         $box = self::lay(new Grid($rows));

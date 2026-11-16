@@ -73,35 +73,55 @@ final class MathMatrixTest extends TestCase
 
     public function test_cells_are_tokenized(): void
     {
-        $g = self::grid(Math::matrix([['x²', '-1'], [Math::sqrt('2'), '']], 'none'));
+        $root = Math::sqrt('2');
+        $g = self::grid(Math::matrix([['x²', '-1'], [$root, '']], 'none'));
         self::assertEquals(Math::row('x²'), $g->rows[0][0]);
         self::assertEquals(Math::row('-1'), $g->rows[0][1]);
-        self::assertInstanceOf(\Papercut\Math\Node\Root::class, $g->rows[1][0]);
+        self::assertSame($root, $g->rows[1][0]);
         self::assertEquals(new Row([]), $g->rows[1][1]);
     }
 
-    /** @return array<string, array{\Closure(): mixed, string}> */
+    /** @return array<string, array{\Closure(): mixed, string, string}> closure, the builder named in the message, a phrase it must carry */
     public static function invalid(): array
     {
+        $fences = 'paren, bracket, brace, bar, doublebar, none';
+        $aligns = 'left, center, right';
+
         return [
-            'no rows' => [static fn () => Math::matrix([]), 'Math::matrix() needs at least one row'],
-            'empty row' => [static fn () => Math::matrix([[]]), 'Math::matrix() needs at least one row'],
-            'row not an array' => [static fn () => Math::matrix(self::untyped(['a'])), 'Math::matrix() needs at least one row'],
-            'unknown fence' => [static fn () => Math::matrix([['a']], 'x'), 'paren, bracket, brace, bar, doublebar, none'],
-            'unknown alignment' => [static fn () => Math::matrix([['a']], 'paren', 'middle'), 'left, center, right'],
-            'unknown alignment in list' => [static fn () => Math::matrix([['a']], 'paren', ['left', 'middle']), 'left, center, right'],
-            'empty alignment list' => [static fn () => Math::matrix([['a']], 'paren', []), 'left, center, right'],
-            'cases no rows' => [static fn () => Math::cases([]), 'Math::cases() needs at least one row'],
+            'no rows' => [static fn () => Math::matrix([]), 'Math::matrix()', 'needs at least one row'],
+            'empty row' => [static fn () => Math::matrix([[]]), 'Math::matrix()', 'needs at least one row'],
+            'row not an array' => [static fn () => Math::matrix(self::untyped(['a'])), 'Math::matrix()', 'needs at least one row'],
+            'later row empty' => [static fn () => Math::matrix([['a'], []]), 'Math::matrix()', 'row 2 must be a non-empty list of cells'],
+            'later row not an array' => [static fn () => Math::matrix(self::untyped([['a'], 'b', ['c']])), 'Math::matrix()', 'row 2 must be a non-empty list of cells'],
+            'cases later row empty' => [static fn () => Math::cases([['a'], ['b'], []]), 'Math::cases()', 'row 3 must be a non-empty list of cells'],
+            'unknown fence' => [static fn () => Math::matrix([['a']], 'x'), 'Math::matrix()', $fences . ", got 'x'"],
+            'unknown alignment' => [static fn () => Math::matrix([['a']], 'paren', 'middle'), 'Math::matrix()', $aligns . ", got 'middle'"],
+            'unknown alignment in list' => [static fn () => Math::matrix([['a']], 'paren', ['left', 'middle']), 'Math::matrix()', $aligns . ", got 'middle'"],
+            'empty alignment list' => [static fn () => Math::matrix([['a']], 'paren', []), 'Math::matrix()', $aligns],
+            'nested alignment' => [static fn () => Math::matrix([['a']], 'paren', self::untyped([['left']])), 'Math::matrix()', $aligns . ', got array'],
+            'cases no rows' => [static fn () => Math::cases([]), 'Math::cases()', 'needs at least one row'],
+            'cell is a number' => [static fn () => Math::matrix(self::untyped([['a', 'b'], ['c', 3]])), 'Math::matrix()', 'row 2 cell 2 must be a string or a Node, got int'],
+            'cases cell is null' => [static fn () => Math::cases(self::untyped([[null]])), 'Math::cases()', 'row 1 cell 1 must be a string or a Node, got null'],
         ];
     }
 
     /** @param \Closure(): mixed $call */
     #[DataProvider('invalid')]
-    public function test_matrix_validation(\Closure $call, string $message): void
+    public function test_matrix_validation(\Closure $call, string $builder, string $phrase): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage($message);
-        $call();
+        try {
+            $call();
+            self::fail('expected an InvalidArgumentException');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString($builder, $e->getMessage());
+            self::assertStringContainsString($phrase, $e->getMessage());
+        }
+    }
+
+    public function test_an_associative_align_list_does_not_misalign(): void
+    {
+        $g = self::grid(Math::matrix([['a', 'b']], 'none', self::untyped(['x' => 'left', 'y' => 'right'])));
+        self::assertSame(['left', 'right'], $g->columnAlign);
     }
 
     public function test_invalid_utf8_in_a_cell_is_noted(): void

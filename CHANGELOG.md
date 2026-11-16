@@ -11,7 +11,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- `mtable` is no longer reported as "drawn as rows of cells": a plain table gives no note, and a table that uses an attribute that is not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) is reported as approximated, for example `math <mtable> (rowlines is not drawn)`. A lone `{` before a table is now a stretching fence.
+- `mtable` is no longer reported as "drawn as rows of cells": a plain table gives no note, and a table that uses an attribute that is not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) is reported as approximated, for example `math <mtable> (rowlines is not drawn)`. A lone opening bracket such as `{` before a table is now a stretching fence.
 
 ## [0.13.0] - 2026-11-14
 

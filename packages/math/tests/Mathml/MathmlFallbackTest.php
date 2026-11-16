@@ -13,7 +13,6 @@ use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Forms;
 use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Row;
@@ -53,7 +52,7 @@ final class MathmlFallbackTest extends TestCase
         self::assertStringContainsString('a', TextWriter::write($r->node));
     }
 
-    public function test_two_tables_one_note(): void
+    public function test_two_plain_tables_no_note(): void
     {
         $r = MathmlReader::read('<math>' . self::MATRIX . '<mo>+</mo>' . self::MATRIX . '</math>');
         self::assertSame([], $r->notes());

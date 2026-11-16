@@ -23,8 +23,8 @@ final class Grid extends Node
     public readonly int $columns;
 
     /**
-     * @param list<list<Node>> $rows
-     * @param list<string> $columnAlign left, center or right per column; the last repeats, empty means center
+     * @param array<array<Node>> $rows read in order, whatever their keys
+     * @param array<mixed> $columnAlign strings, read in order, whatever their keys; left, center or right per column; the last repeats, empty means center
      * @param string $rowAlign how cells of one row line up: baseline, axis, center, top or bottom
      * @param bool $display lay the cells out in display style rather than text style
      */
@@ -36,12 +36,14 @@ final class Grid extends Node
     ) {
         foreach ($columnAlign as $a) {
             if (! in_array($a, self::COLUMN_ALIGN, true)) {
-                throw new \InvalidArgumentException(sprintf('Unknown column alignment "%s"; use one of: %s', $a, implode(', ', self::COLUMN_ALIGN)));
+                throw new \InvalidArgumentException(sprintf('Unknown column alignment "%s"; use one of: %s', is_string($a) ? $a : get_debug_type($a), implode(', ', self::COLUMN_ALIGN)));
             }
         }
         if (! in_array($rowAlign, self::ROW_ALIGN, true)) {
             throw new \InvalidArgumentException(sprintf('Unknown row alignment "%s"; use one of: %s', $rowAlign, implode(', ', self::ROW_ALIGN)));
         }
+        $columnAlign = array_values($columnAlign);
+        $rows = array_map(array_values(...), array_values($rows));
         $columns = 0;
         foreach ($rows as $row) {
             $columns = max($columns, count($row));
@@ -83,7 +85,7 @@ final class Grid extends Node
     /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
-        if ($this->rows === [] || $this->columns === 0) {
+        if ($this->columns === 0) {
             return new Box();
         }
         $cc = $c->withDisplay($this->display);

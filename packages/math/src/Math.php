@@ -277,7 +277,7 @@ final class Math
      *
      * @param list<list<string|Node>> $rows
      * @param string $fence paren, bracket, brace, bar, doublebar or none (a bare grid)
-     * @param string|list<string> $align left, center or right: one value for every column, or one per column (the last repeats)
+     * @param string|array<mixed> $align left, center or right: one value for every column, or a list with one per column (the last repeats)
      *
      * @throws \InvalidArgumentException for no cells, an unknown fence or an unknown alignment
      */
@@ -287,9 +287,14 @@ final class Math
         if (! isset($fences[$fence])) {
             throw new \InvalidArgumentException(sprintf("Math::matrix() fence must be one of %s, got '%s'.", implode(', ', array_keys($fences)), $fence));
         }
-        $align = is_array($align) ? $align : [$align];
-        if ($align === [] || array_diff($align, Grid::COLUMN_ALIGN) !== []) {
+        $align = is_array($align) ? array_values($align) : [$align];
+        if ($align === []) {
             throw new \InvalidArgumentException(sprintf('Math::matrix() align must be one or a list of %s.', implode(', ', Grid::COLUMN_ALIGN)));
+        }
+        foreach ($align as $a) {
+            if (! in_array($a, Grid::COLUMN_ALIGN, true)) {
+                throw new \InvalidArgumentException(sprintf('Math::matrix() align must be one or a list of %s, got %s.', implode(', ', Grid::COLUMN_ALIGN), is_string($a) ? "'" . $a . "'" : get_debug_type($a)));
+            }
         }
         $grid = new Grid(self::gridCells('matrix', $rows), $align);
 
@@ -314,16 +319,28 @@ final class Math
      */
     private static function gridCells(string $method, array $rows): array
     {
-        $out = [];
-        foreach ($rows as $row) {
-            if (! is_array($row) || $row === []) {
-                $out = [];
-                break;
-            }
-            $out[] = array_map(static fn (string|Node $cell): Node => self::row($cell), array_values($row));
-        }
-        if ($out === []) {
+        if ($rows === []) {
             throw new \InvalidArgumentException(sprintf('Math::%s() needs at least one row with at least one cell.', $method));
+        }
+        $out = [];
+        $n = 0;
+        foreach ($rows as $row) {
+            $n++;
+            if (! is_array($row) || $row === []) {
+                throw new \InvalidArgumentException($n === 1
+                    ? sprintf('Math::%s() needs at least one row with at least one cell.', $method)
+                    : sprintf('Math::%s() row %d must be a non-empty list of cells.', $method, $n));
+            }
+            $cells = [];
+            $m = 0;
+            foreach ($row as $cell) {
+                $m++;
+                if (! is_string($cell) && ! $cell instanceof Node) {
+                    throw new \InvalidArgumentException(sprintf('Math::%s() row %d cell %d must be a string or a Node, got %s.', $method, $n, $m, get_debug_type($cell)));
+                }
+                $cells[] = self::row($cell);
+            }
+            $out[] = $cells;
         }
 
         return $out;

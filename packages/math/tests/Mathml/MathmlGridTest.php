@@ -16,6 +16,7 @@ use Papercut\Math\NoteLevel;
 use Papercut\Math\Render\MathmlWriter;
 use Papercut\Math\Render\OmmlWriter;
 use Papercut\Math\Render\TextWriter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class MathmlGridTest extends TestCase
@@ -109,8 +110,7 @@ final class MathmlGridTest extends TestCase
         return $out;
     }
 
-    /** @dataProvider ignored */
-    #[\PHPUnit\Framework\Attributes\DataProvider('ignored')]
+    #[DataProvider('ignored')]
     public function test_ignored_attributes_note(string $el, string $attr, string $value): void
     {
         $xml = match ($el) {
@@ -157,6 +157,127 @@ final class MathmlGridTest extends TestCase
         self::assertSame('row label not drawn', $notes[0]->reason);
         self::assertStringNotContainsString('LABEL', TextWriter::write($r->node));
         self::assertStringContainsString('a', TextWriter::write($r->node));
+    }
+
+    public function test_an_opener_inside_a_matched_pair_still_fences_its_table(): void
+    {
+        $r = MathmlReader::read('<math><mo>[</mo><mo>{</mo>' . self::table() . '<mo>]</mo></math>');
+        self::assertInstanceOf(Fenced::class, $r->node);
+        self::assertSame('[', $r->node->open);
+        self::assertSame(']', $r->node->close);
+        $inner = $r->node->content;
+        if ($inner instanceof Row) {
+            self::assertCount(1, $inner->children);
+            $inner = $inner->children[0];
+        }
+        self::assertInstanceOf(Fenced::class, $inner);
+        self::assertSame('{', $inner->open);
+        self::assertSame('', $inner->close);
+        self::assertInstanceOf(Grid::class, $inner->content);
+    }
+
+    public function test_many_lone_openers_before_tables_read_in_linear_time_and_all_fold(): void
+    {
+        $best = static function (int $n): float {
+            $xml = '<math>' . str_repeat('<mo>{</mo>' . self::table(), $n) . '</math>';
+            $times = [];
+            for ($k = 0; $k < 3; $k++) {
+                $t = microtime(true);
+                MathmlReader::read($xml);
+                $times[] = microtime(true) - $t;
+            }
+
+            return min($times);
+        };
+        $small = $best(4000);
+        $large = $best(16000);
+        // Linear is about 4; the old splice-per-opener pass was about 16.
+        self::assertLessThan(6.0, $large / $small);
+
+        $r = MathmlReader::read('<math>' . str_repeat('<mo>{</mo>' . self::table(), 2000) . '</math>');
+        self::assertInstanceOf(Row::class, $r->node);
+        self::assertCount(2000, $r->node->children);
+        foreach ($r->node->children as $child) {
+            self::assertInstanceOf(Fenced::class, $child);
+            self::assertSame('{', $child->open);
+            self::assertSame('', $child->close);
+            self::assertInstanceOf(Grid::class, $child->content);
+        }
+    }
+
+    public function test_a_lone_opener_before_a_fallback_wrapped_grid_folds(): void
+    {
+        $r = MathmlReader::read('<math><mo>{</mo>' . self::table('frame="solid"') . '</math>');
+        self::assertInstanceOf(Fenced::class, $r->node);
+        self::assertSame('{', $r->node->open);
+        self::assertInstanceOf(Fallback::class, $r->node->content);
+        self::assertInstanceOf(Grid::class, Fallback::unwrap($r->node->content));
+    }
+
+    public function test_nested_tables_read_as_nested_grids(): void
+    {
+        $inner = self::table();
+        $r = MathmlReader::read('<math><mtable><mtr><mtd>' . $inner . '</mtd><mtd><mi>x</mi></mtd></mtr></mtable></math>');
+        self::assertInstanceOf(Grid::class, $r->node);
+        $cell = $r->node->rows[0][0];
+        while ($cell instanceof Row && count($cell->children) === 1) {
+            $cell = $cell->children[0];
+        }
+        self::assertInstanceOf(Grid::class, $cell);
+        self::assertSame(2, $cell->columns);
+    }
+
+    public function test_a_matched_pair_wins_over_a_lone_opener_fold(): void
+    {
+        $r = MathmlReader::read('<math><mo>(</mo>' . self::table() . '<mi>x</mi><mo>)</mo></math>');
+        self::assertInstanceOf(Fenced::class, $r->node);
+        self::assertSame('(', $r->node->open);
+        self::assertSame(')', $r->node->close);
+        self::assertInstanceOf(Row::class, $r->node->content);
+        self::assertInstanceOf(Grid::class, $r->node->content->children[0]);
+        self::assertCount(2, $r->node->content->children);
+    }
+
+    public function test_a_lone_paren_before_a_table_fences_it(): void
+    {
+        $r = MathmlReader::read('<math><mo>(</mo>' . self::table() . '</math>');
+        self::assertInstanceOf(Fenced::class, $r->node);
+        self::assertSame('(', $r->node->open);
+        self::assertSame('', $r->node->close);
+        self::assertInstanceOf(Grid::class, $r->node->content);
+    }
+
+    public function test_a_lone_bar_before_a_table_stays_plain(): void
+    {
+        $r = MathmlReader::read('<math><mo>|</mo>' . self::table() . '</math>');
+        self::assertInstanceOf(Row::class, $r->node);
+        self::assertInstanceOf(Operator::class, $r->node->children[0]);
+        self::assertInstanceOf(Grid::class, $r->node->children[1]);
+    }
+
+    public function test_absurd_attribute_values_neither_throw_nor_warn(): void
+    {
+        $align = implode(' ', array_fill(0, 5000, 'left'));
+        $r = MathmlReader::read('<math><mtable columnalign="' . $align . '"><mtr><mtd rowspan="' . str_repeat('9', 30) . '"><mi>a</mi></mtd></mtr></mtable></math>');
+        self::assertCount(1, $r->notes());
+        self::assertSame('rowspan is not drawn', $r->notes()[0]->reason);
+    }
+
+    public function test_attribute_on_mlabeledtr_names_that_element(): void
+    {
+        $r = MathmlReader::read('<math><mtable><mlabeledtr columnalign="left"><mtd/><mtd/></mlabeledtr></mtable></math>');
+        $found = array_values(array_filter($r->notes(), static fn ($n): bool => $n->reason === 'columnalign is not drawn'));
+        self::assertCount(1, $found);
+        self::assertSame('mlabeledtr', $found[0]->element);
+        self::assertStringEndsWith('mlabeledtr[0]', $found[0]->where);
+    }
+
+    public function test_attributes_on_the_dropped_label_cell_do_not_note(): void
+    {
+        $label = MathmlReader::read('<math><mtable><mlabeledtr><mtd rowspan="2"><mtext>L</mtext></mtd><mtd><mi>a</mi></mtd></mlabeledtr></mtable></math>');
+        self::assertSame(['row label not drawn'], array_map(static fn ($n): string => $n->reason, $label->notes()));
+        $body = MathmlReader::read('<math><mtable><mlabeledtr><mtd><mtext>L</mtext></mtd><mtd rowspan="2"><mi>a</mi></mtd></mlabeledtr></mtable></math>');
+        self::assertContains('rowspan is not drawn', array_map(static fn ($n): string => $n->reason, $body->notes()));
     }
 
     public function test_ragged_and_empty_tables(): void
@@ -230,8 +351,7 @@ final class MathmlGridTest extends TestCase
         return $s;
     }
 
-    /** @dataProvider written */
-    #[\PHPUnit\Framework\Attributes\DataProvider('written')]
+    #[DataProvider('written')]
     public function test_write_then_read_round_trips(Node $node): void
     {
         $back = Math::mathml(MathmlWriter::write($node));
