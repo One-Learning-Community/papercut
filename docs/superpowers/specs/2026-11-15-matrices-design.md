@@ -110,8 +110,9 @@ Math::cases(array $rows): Node
   when not `baseline`, `displaystyle="true"` only when set. A `Fenced` around a grid is written as it is today.
 - **OMML:** `<m:m>` with `<m:mPr>` holding `<m:mcs>` (one `<m:mc><m:mcPr><m:count m:val="1"/><m:mcJc m:val="center|left|right"/>
   </m:mcPr></m:mc>` per column) and rows as `<m:mr>` with one `<m:e>` per cell. A `Fenced` around it is `m:d` as today.
-  Empty cells must not show Word's placeholder box: add `<m:plcHide m:val="1"/>` to `m:mPr`; **the builder must check this
-  in Word or LibreOffice**, I have not. Word's own `cases` is an equation array, but a left-aligned matrix inside
+  An empty cell is written as a run holding one space (`<m:r><m:t xml:space="preserve"> </m:t></m:r>`), because LibreOffice
+  shows a red "¿" and collapses the rows for an empty `m:e`. `<m:plcHide m:val="1"/>` stays in `m:mPr` for Word; **the
+  Word check of an empty cell is still outstanding**. Word's own `cases` is an equation array, but a left-aligned matrix inside
   `m:d` with a `{` delimiter is the same on screen and edits as a matrix; use that.
 - **TextWriter:** single line only (this writer feeds table-of-contents entries, PDF outline titles and slugs, not display).
   A grid is its rows joined by `; `, each row's cells joined by a space, inside the fence characters: `[a b; c d]`,

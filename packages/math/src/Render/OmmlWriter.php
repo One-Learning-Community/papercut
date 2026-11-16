@@ -129,7 +129,9 @@ final class OmmlWriter
         foreach ($g->rows as $row) {
             $out .= '<m:mr>';
             foreach ($row as $cell) {
-                $out .= '<m:e>' . self::node($cell, $rPr) . '</m:e>';
+                $content = self::node($cell, $rPr);
+                // LibreOffice shows a red "¿" and collapses the rows for an empty m:e; a run holding one space is fine.
+                $out .= '<m:e>' . ($content === '' ? self::run(' ', $rPr) : $content) . '</m:e>';
             }
             $out .= '</m:mr>';
         }

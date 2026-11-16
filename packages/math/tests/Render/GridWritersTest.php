@@ -74,8 +74,13 @@ final class GridWritersTest extends TestCase
 
         self::assertStringContainsString('m:val="left"', OmmlWriter::oMath(Math::matrix(self::abcd(), 'none', 'left')));
 
-        $empty = OmmlWriter::oMath(Math::matrix([['a', ''], ['', 'd']], 'none'));
-        self::assertTrue(str_contains($empty, '<m:e/>') || str_contains($empty, '<m:e></m:e>'));
+        // LibreOffice shows a red "¿" and collapses the rows for an empty m:e, so an empty cell holds one space.
+        $empty = OmmlWriter::oMath(Math::matrix([['1', ''], ['', '1']]));
+        self::assertSame(2, substr_count($empty, '<m:t xml:space="preserve"> </m:t>'));
+        self::assertStringNotContainsString('<m:e></m:e>', $empty);
+        self::assertStringNotContainsString('<m:e/>', $empty);
+        self::assertStringContainsString('<m:plcHide m:val="1"/>', $empty);
+        self::assertStringNotContainsString('<m:t xml:space="preserve"> </m:t>', OmmlWriter::oMath(Math::matrix(self::abcd())));
     }
 
     public function test_omml_fenced_matrix_and_cases(): void
