@@ -82,14 +82,16 @@ $options = new HtmlOptions(inlineSvgs: true);
 
 With it on:
 
-- SVG text uses the font the PDF uses. A family you haven't registered is replaced by the document's family, as in the PDF. A family used only inside an SVG gets an `@font-face` rule in the [font modes](./web-fonts.md) that write them.
-- Every `id` is prefixed, with its references rewritten, and a `<style>` element is scoped to its own SVG, so several SVGs on one page can't clash with each other or with the page.
-- Comments are dropped.
+- SVG text uses the font the PDF uses, whether the family comes from `font-family` (an attribute, a `style` attribute or a `<style>` rule, in any letter case) or from the `font` shorthand, whose family part is rewritten the same way. A family you haven't registered is replaced by the document's family, as in the PDF. A family used only inside an SVG gets an `@font-face` rule in the [font modes](./web-fonts.md) that write them.
+- Every `id` is prefixed, with its references rewritten, and a `<style>` element is scoped to its own SVG, so several SVGs in one export can't clash with each other or with the page. The prefix is built from a short hash of the SVG's markup and its position in the export, so SVGs with different markup keep different prefixes even when you put fragments from separate exports on one page. Two fragments that each start with the same markup in the same position share a prefix; vary the markup or export them together.
+- The SVG shrinks to its container, like an image does, and keeps its aspect ratio. Setting only a width or only a height on the node scales the other side from the `viewBox`. `@keyframes` are kept with their names prefixed; `@supports` and `@import` rules are removed.
+- An SVG with no `xmlns` (such as d3's `outerHTML`) is written as SVG, and a root `content` attribute (draw.io's copy of the whole diagram) is dropped.
 - An SVG with alt text gets `role="img"` and `aria-label`. A decorative one gets `aria-hidden="true"`.
-- An SVG is inlined only if every element in it is a standard SVG element and its `<title>` and `<desc>` hold only text. Any other SVG stays an `<img>`, and the export reports `SVG kept as an image (…)` with the reason.
+- Editor data is removed: comments, `<metadata>`, elements that aren't SVG (such as Inkscape's `sodipodi:namedview` and `inkscape:*` elements) with everything inside them, and attributes from other namespaces (such as `inkscape:label`). Drawing elements are kept as they are.
+- An SVG with a `<foreignObject>` stays an `<img>`, since the markup inside it isn't SVG. The export reports `SVG kept as an image (<foreignObject> can't be written inline)`.
 
 ::: danger
-Inline SVG runs in the page. Turn `inlineSvgs` on only when you trust where every SVG comes from. Papercut removes scripts and event handlers, but not links (including `javascript:` links), animations that change links, or references to external images and other resources. Leave it off for SVGs that users upload.
+Inline SVG runs in the page. Turn `inlineSvgs` on only when you trust where every SVG comes from. Papercut removes scripts and event handlers, but not links (including `javascript:` links) or animations that change links, and an inlined SVG can make the browser fetch external resources (an `<image>` `href`, `feImage`, `url(...)` in a style). Leave it off for SVGs that users upload.
 :::
 
 ## Image URLs

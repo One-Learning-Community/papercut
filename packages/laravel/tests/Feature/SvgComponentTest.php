@@ -55,6 +55,18 @@ final class SvgComponentTest extends TestCase
         self::assertSame('Line', $n->altText());
     }
 
+    public function test_an_empty_alt_overrides_the_svg_title(): void
+    {
+        $titled = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><title>Logo</title><rect width="10" height="10"/></svg>';
+        $withTitle = $this->nodeFrom('<x-doc::svg>' . $titled . '</x-doc::svg>');
+        $decorative = $this->nodeFrom('<x-doc::svg alt="">' . $titled . '</x-doc::svg>');
+
+        self::assertInstanceOf(Svg::class, $withTitle);
+        self::assertInstanceOf(Svg::class, $decorative);
+        self::assertSame('Logo', $withTitle->altText());
+        self::assertSame('', $decorative->altText());
+    }
+
     public function test_a_non_string_alt_is_rejected(): void
     {
         $this->expectException(InvalidStructure::class);

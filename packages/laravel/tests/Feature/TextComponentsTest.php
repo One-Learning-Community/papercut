@@ -20,6 +20,14 @@ final class TextComponentsTest extends TestCase
         self::assertSame('Chart', $n->altText());
     }
 
+    public function test_an_empty_image_alt_is_decorative(): void
+    {
+        $n = $this->nodeFrom('<x-doc::image :data="$b" alt="" />', ['b' => 'raw']);
+
+        self::assertInstanceOf(Image::class, $n);
+        self::assertSame('', $n->altText());
+    }
+
     public function test_a_non_string_image_alt_is_rejected(): void
     {
         $this->expectException(InvalidStructure::class);

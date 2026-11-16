@@ -62,9 +62,12 @@ final class HtmlSvgTest extends TestCase
         self::assertSame('Number line', self::imgs($html)[0]->getAttribute('alt'));
     }
 
-    public function test_svg_falls_back_to_title(): void
+    public function test_an_svg_without_a_title_has_empty_alt(): void
     {
-        self::assertSame('Acme logo', self::imgs(self::html(Svg::fromString(self::LOGO)))[0]->getAttribute('alt'));
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20"><rect width="40" height="20"/></svg>';
+        $html = self::html(Svg::fromString($svg));
+        self::assertSame('', self::imgs($html)[0]->getAttribute('alt'));
+        self::assertStringContainsString(' alt=""', $html);
     }
 
     public function test_empty_alt_marks_svg_decorative(): void
@@ -151,10 +154,22 @@ final class HtmlSvgTest extends TestCase
     {
         $html = self::inlineHtml(Row::make(Svg::fromString(self::GRADIENT), Svg::fromString(self::GRADIENT)));
 
-        self::assertSame(1, substr_count($html, 'id="pc-s1-g"'));
-        self::assertSame(1, substr_count($html, 'id="pc-s2-g"'));
-        self::assertSame(1, substr_count($html, 'url(#pc-s1-g)'));
-        self::assertSame(1, substr_count($html, 'url(#pc-s2-g)'));
+        $hash = substr(sha1(Svg::fromString(self::GRADIENT)->document()->xml), 0, 6);
+        self::assertSame(1, substr_count($html, 'id="pc-' . $hash . '-1-g"'));
+        self::assertSame(1, substr_count($html, 'id="pc-' . $hash . '-2-g"'));
+        self::assertSame(1, substr_count($html, 'url(#pc-' . $hash . '-1-g)'));
+        self::assertSame(1, substr_count($html, 'url(#pc-' . $hash . '-2-g)'));
+    }
+
+    public function test_different_svgs_get_different_prefixes_in_every_export(): void
+    {
+        $a = self::inlineHtml(Svg::fromString(self::GRADIENT));
+        $b = self::inlineHtml(Svg::fromString(self::LOGO . ' '));
+        $c = self::inlineHtml(Svg::fromString(str_replace('#1d4ed8', '#000', self::LOGO)));
+        self::assertSame(1, preg_match('/pc-([0-9a-f]{6})-1-/', $a, $ma));
+        self::assertSame($a, self::inlineHtml(Svg::fromString(self::GRADIENT)));
+        self::assertStringNotContainsString('pc-' . ($ma[1] ?? '?'), $c);
+        self::assertNotSame($b, $c);
     }
 
     public function test_inline_svg_text_note_only_when_not_inline(): void
@@ -169,24 +184,17 @@ final class HtmlSvgTest extends TestCase
         self::assertSame([], $on);
     }
 
-    /** @return array<string, array{string, string}> */
-    public static function unsafeInlineContent(): array
+    /** @return array<string, array{string}> */
+    public static function foreignObjects(): array
     {
-        $bomb = 'p{content:"&lt;/style&gt;&lt;img src=x onerror=alert(1)&gt;"}';
-
         return [
-            'foreignObject' => ['<foreignObject width="10" height="10"><div xmlns="http://www.w3.org/1999/xhtml"></div></foreignObject>', "<foreignObject> can't be written inline"],
-            'lowercase foreignobject' => ['<foreignobject width="10" height="10"><textarea/></foreignobject>', "<foreignobject> can't be written inline"],
-            'style in title' => ['<title>T<style>' . $bomb . '</style></title>', '<title> holds elements'],
-            'style in desc' => ['<desc><style>' . $bomb . '</style></desc>', '<desc> holds elements'],
-            'svg namespace p' => ['<p/><textarea/>', "<p> can't be written inline"],
-            'xhtml img outside foreignObject' => ['<img xmlns="http://www.w3.org/1999/xhtml" src="x.png"/>', "<img> can't be written inline"],
-            'textarea in desc' => ['<desc><textarea/></desc>', '<desc> holds elements'],
+            'foreignObject' => ['<foreignObject width="10" height="10"><div xmlns="http://www.w3.org/1999/xhtml">x</div></foreignObject>', 'foreignObject'],
+            'lowercase foreignobject' => ['<foreignobject width="10" height="10"><textarea/></foreignobject>', 'foreignobject'],
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('unsafeInlineContent')]
-    public function test_unsafe_content_keeps_the_svg_an_image(string $inner, string $reason): void
+    #[\PHPUnit\Framework\Attributes\DataProvider('foreignObjects')]
+    public function test_an_svg_with_foreign_object_stays_an_image(string $inner, string $name): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">' . $inner . '<text x="1" y="5">Hi</text></svg>';
         $notes = [];
@@ -195,15 +203,39 @@ final class HtmlSvgTest extends TestCase
         self::assertStringContainsString('<img src="data:image/svg+xml;base64,', $html);
         self::assertStringContainsString('alt="Box"', $html);
         self::assertCount(2, $notes);
-        self::assertStringContainsString('SVG kept as an image (' . $reason . ')', $notes[0]);
+        self::assertStringContainsString("SVG kept as an image (<foreignObject> can't be written inline)", $notes[0]);
         self::assertStringContainsString("SVG text in the browser's own fonts", $notes[1]);
         self::assertStringNotContainsString('inlineSvgs', $notes[1]);
-        $doc = \Dom\HTMLDocument::createFromString('<!doctype html><body>' . $html . '<p id="after">x</p>', LIBXML_NOERROR);
-        self::assertSame('BODY', $doc->getElementById('after')?->parentNode?->nodeName);
-        foreach ($doc->getElementsByTagName('img') as $img) {
-            self::assertFalse($img->hasAttribute('onerror'));
+        self::assertSame(1, \Dom\HTMLDocument::createFromString('<!doctype html><body>' . $html, LIBXML_NOERROR)->getElementsByTagName('img')->length);
+    }
+
+    public function test_an_svg_from_an_editor_is_inlined_without_the_editor_data(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+            . ' xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"'
+            . ' xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" viewBox="0 0 10 10" sodipodi:docname="logo.svg" inkscape:version="1.3">'
+            . '<sodipodi:namedview id="namedview1" inkscape:zoom="2" inkscape:current-layer="layer1"/>'
+            . '<metadata id="metadata1"><rdf:RDF><rdf:Description/></rdf:RDF></metadata>'
+            . '<defs id="defs1"><inkscape:perspective id="p1"/><linearGradient id="g"><stop offset="0" stop-color="red"/></linearGradient></defs>'
+            . '<g inkscape:label="Layer 1" inkscape:groupmode="layer" id="layer1"><rect id="r" width="5" height="5" fill="url(#g)" xlink:title="x"/>'
+            . '<text x="1" y="5">Hi</text></g></svg>';
+        $notes = [];
+        $html = self::inlineHtml(Svg::fromString($svg), $notes);
+
+        self::assertStringNotContainsString('data:image/svg+xml', $html);
+        self::assertSame([], $notes);
+        foreach (['sodipodi', 'inkscape', 'rdf', 'namedview', 'metadata', 'perspective'] as $gone) {
+            self::assertStringNotContainsString($gone, $html);
         }
-        self::assertSame(1, $doc->getElementsByTagName('img')->length);
+        $doc = \Dom\HTMLDocument::createFromString('<!doctype html><body>' . $html, LIBXML_NOERROR);
+        $root = $doc->getElementsByTagName('svg')->item(0);
+        self::assertNotNull($root);
+        self::assertSame(1, $root->getElementsByTagName('rect')->length);
+        self::assertSame(1, $root->getElementsByTagName('text')->length);
+        self::assertSame(1, $root->getElementsByTagName('linearGradient')->length);
+        self::assertSame(1, $root->getElementsByTagName('g')->length);
+        self::assertMatchesRegularExpression('/url\(#pc-[0-9a-f]{6}-1-g\)/', $html);
+        self::assertStringContainsString('xlink:title="x"', $html);
     }
 
     public function test_a_normal_svg_is_inlined_and_metadata_is_dropped(): void
@@ -220,35 +252,14 @@ final class HtmlSvgTest extends TestCase
         self::assertSame([], $notes);
     }
 
-    /** @return array<string, array{string}> */
-    public static function commentsInline(): array
+    public function test_comments_are_dropped_from_inline_svg(): void
     {
-        return [
-            'abrupt comment at the top' => ['<!--><img src=x onerror=alert(1)>-->'],
-            'abrupt dash comment at the top' => ['<!---><img src=x onerror=alert(1)>-->'],
-            'abrupt comment in title' => ['<title>T<!--><img src=x onerror=alert(1)>--></title>'],
-            'abrupt comment in desc' => ['<desc><!--><p>x</p>--></desc>'],
-        ];
-    }
-
-    #[\PHPUnit\Framework\Attributes\DataProvider('commentsInline')]
-    public function test_comments_are_dropped_from_inline_svg(string $inner): void
-    {
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">' . $inner . '<rect width="1" height="1"/></svg>';
-        $notes = [];
-        $html = self::inlineHtml(Svg::fromString($svg)->alt('Box'), $notes);
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><!-- note --><title>T<!-- inner --></title><rect width="1" height="1"/></svg>';
+        $html = self::inlineHtml(Svg::fromString($svg)->alt('Box'));
 
         self::assertStringContainsString('<svg', $html);
-        self::assertStringNotContainsString('data:image/svg+xml', $html);
         self::assertStringNotContainsString('<!--', $html);
-        self::assertSame([], $notes);
-        $doc = \Dom\HTMLDocument::createFromString('<!doctype html><body>' . $html . '<p id="after">x</p>', LIBXML_NOERROR);
-        self::assertSame('BODY', $doc->getElementById('after')?->parentNode?->nodeName);
-        self::assertSame(0, $doc->getElementsByTagName('img')->length);
-        self::assertSame(1, $doc->getElementsByTagName('p')->length);
-        $svgs = $doc->getElementsByTagName('svg');
-        self::assertSame(1, $svgs->length);
-        self::assertSame(1, $svgs->item(0)?->getElementsByTagName('rect')->length);
+        self::assertStringContainsString('<rect', $html);
     }
 
     /** @return array<string, array{string, string}> */

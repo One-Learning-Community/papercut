@@ -772,7 +772,7 @@ final class HtmlWriter implements TreeVisitor
         if ($this->options->inlineSvgs()) {
             $keepAsImage = InlineSvg::inlinable($svg->xml);
             if ($keepAsImage === null) {
-                $written = (new InlineSvg($this->svgFamily($s, $at)))->write($svg->xml, 'pc-s' . ++$this->inlineSvgCount . '-', $n->altText(), $decls);
+                $written = (new InlineSvg($this->svgFamily($s, $at)))->write($svg->xml, 'pc-' . substr(sha1($svg->xml), 0, 6) . '-' . ++$this->inlineSvgCount . '-', $n->altText(), $decls);
                 foreach ($written['approximated'] as $note) {
                     $this->fidelity->approximated($note, $at->path());
                 }
@@ -807,13 +807,15 @@ final class HtmlWriter implements TreeVisitor
         }
         $registered = $this->registeredFamilies;
         $path = $at->path();
+        /** @var array<string, string> $stacks the CSS family stack of each family, read once */
+        $stacks = [];
 
-        return function (?string $list, int $weight, bool $italic) use ($s, $fonts, $registered, $path): string {
+        return function (?string $list, int $weight, bool $italic) use ($s, $fonts, $registered, $path, &$stacks): string {
             $name = SvgFonts::firstRegistered($list, static fn (string $n): bool => isset($registered[strtolower($n)]));
             $family = $name === null ? $s->fontFamily : $registered[strtolower($name)];
             $this->recordFamily($family, $weight, $italic, $path);
 
-            return Css::fontFamily($family, $fonts->fallbacks, $fonts->info($family)?->class);
+            return $stacks[$family] ??= Css::fontFamily($family, $fonts->fallbacks, $fonts->info($family)?->class);
         };
     }
 

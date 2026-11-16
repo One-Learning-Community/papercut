@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Tests\Html;
 
-use Papercut\Html\InlineSvg;
+use Papercut\Html\{Css, InlineSvg};
 use PHPUnit\Framework\TestCase;
 
 final class InlineSvgTest extends TestCase
@@ -75,7 +75,7 @@ final class InlineSvgTest extends TestCase
         $r = self::write('<style>@import url(x.css); @media print{.a{fill:red}} @font-face{font-family:X;src:url(x.woff)} .b{fill:blue}</style>');
 
         self::assertStringNotContainsString('@import', $r['html']);
-        self::assertSame(['inline SVG style @import'], $r['approximated']);
+        self::assertSame(["inline SVG <style> @import removed (can't be scoped)"], $r['approximated']);
         self::assertStringContainsString('@media print', $r['html']);
         self::assertStringContainsString('.pc-s1 .a', $r['html']);
         self::assertStringContainsString('@font-face', $r['html']);
@@ -84,9 +84,9 @@ final class InlineSvgTest extends TestCase
 
     public function test_one_entry_per_dropped_kind(): void
     {
-        $r = self::write('<style>@import url(a.css); @import url(b.css); @keyframes k{from{fill:red}to{fill:blue}}</style>');
+        $r = self::write('<style>@import url(a.css); @import url(b.css); @supports (x:y){.a{fill:red}}</style>');
 
-        self::assertSame(['inline SVG style @import', 'inline SVG style @keyframes'], $r['approximated']);
+        self::assertSame(["inline SVG <style> @import removed (can't be scoped)", "inline SVG <style> @supports removed (can't be scoped)"], $r['approximated']);
     }
 
     public function test_alt_and_decorative(): void
@@ -104,7 +104,7 @@ final class InlineSvgTest extends TestCase
     {
         $html = self::write('<rect width="1" height="1"/>', '', ['width' => '100pt', 'display' => 'block'])['html'];
 
-        self::assertMatchesRegularExpression('/^<svg[^>]*style="[^"]*width:\s*100pt[^"]*display:\s*block/', $html);
+        self::assertMatchesRegularExpression('/^<svg[^>]*style="[^"]*display:\s*block[^"]*width:\s*100pt/', $html);
     }
 
     public function test_output_is_an_svg_element_without_xml_declaration(): void
@@ -246,5 +246,180 @@ final class InlineSvgTest extends TestCase
         $r = self::write('<text font-family="Arial" style="font-family:Arial">a</text><style>text{font-family:Arial}</style>');
 
         self::assertSame(3, substr_count($r['html'], 'Arial'));
+    }
+
+    public function test_only_foreign_object_or_unreadable_xml_blocks_inlining(): void
+    {
+        $ns = 'xmlns="http://www.w3.org/2000/svg"';
+
+        self::assertNull(InlineSvg::inlinable('<svg ' . $ns . '><title>t<b/></title><p/><rect/></svg>'));
+        self::assertSame("<foreignObject> can't be written inline", InlineSvg::inlinable('<svg ' . $ns . '><g><foreignObject/></g></svg>'));
+        self::assertSame("<foreignObject> can't be written inline", InlineSvg::inlinable('<svg ' . $ns . '><foreignobject/></svg>'));
+        self::assertSame('the SVG cannot be read', InlineSvg::inlinable('<svg'));
+    }
+
+    public function test_style_property_names_match_in_any_case(): void
+    {
+        $html = self::writeFamilies('<style>text{FONT-FAMILY:Y; Font-Weight:bold}</style><text style="FONT-FAMILY:Z">a</text>');
+
+        self::assertStringContainsString('FAMILY(Y|700|n)', $html);
+        self::assertStringContainsString('FAMILY(Z|400|n)', $html);
+        self::assertStringNotContainsString('Y;', $html);
+    }
+
+    public function test_the_font_shorthand_has_its_family_rewritten(): void
+    {
+        $html = self::writeFamilies(
+            '<text style="font: italic bold 12px/1.5 \'Open Sans\', Arial; fill:red">a</text>'
+            . '<text style="font:10pt Mono">b</text>'
+            . '<style>.t{font: 700 9px Lora, serif}.u{font:menu}</style>',
+        );
+
+        self::assertStringContainsString('font:italic bold 12px/1.5 FAMILY(\'Open Sans\', Arial|700|i)', str_replace('font: ', 'font:', $html));
+        self::assertStringContainsString('fill:red', $html);
+        self::assertStringContainsString('font:10pt FAMILY(Mono|400|n)', $html);
+        self::assertStringContainsString('font:700 9px FAMILY(Lora, serif|700|n)', $html);
+        self::assertStringContainsString('.u{font:menu}', $html);
+    }
+
+    public function test_the_root_default_family_is_not_asked_for_without_text(): void
+    {
+        $asked = [];
+        $family = static function (?string $list, int $weight, bool $italic) use (&$asked): string {
+            $asked[] = $list;
+
+            return 'F';
+        };
+        $xml = '<svg ' . self::NS . ' viewBox="0 0 10 10"><rect width="1" height="1"/></svg>';
+        $out = (new InlineSvg($family))->write($xml, 'pc-s1-', '', [])['html'];
+
+        self::assertSame([], $asked);
+        self::assertStringNotContainsString('font-family', $out);
+    }
+
+    public function test_a_family_name_with_quotes_or_markup_stays_inside_the_svg(): void
+    {
+        $name = 'Evil"</style><img src=x onerror=alert(1)>';
+        $family = static fn (?string $list, int $weight, bool $italic): string => Css::fontFamily($name);
+        $xml = '<svg ' . self::NS . ' viewBox="0 0 10 10"><style>text{font-family:Q}</style><text font-family="A">a</text><text style="font-family:B">b</text></svg>';
+        $html = (new InlineSvg($family))->write($xml, 'pc-s1-', '', [])['html'];
+        $doc = \Dom\HTMLDocument::createFromString('<!doctype html><body>' . $html . '<p id="after">x</p>', LIBXML_NOERROR);
+
+        self::assertSame('BODY', $doc->getElementById('after')?->parentNode?->nodeName);
+        self::assertSame(0, $doc->getElementsByTagName('img')->length);
+        self::assertSame(1, $doc->getElementsByTagName('style')->length);
+        self::assertSame(2, $doc->getElementsByTagName('text')->length);
+        self::assertStringContainsString('\\"', $html);
+    }
+
+    public function test_root_shrinks_to_its_container_and_keeps_its_ratio(): void
+    {
+        $html = self::write('<rect width="1" height="1"/>')['html'];
+
+        self::assertMatchesRegularExpression('/style="[^"]*display:\s*block;[^"]*max-width:\s*100%;[^"]*height:\s*auto/', $html);
+        self::assertStringContainsString('width="10pt"', $html);
+    }
+
+    public function test_a_box_width_alone_drops_the_height_attribute_and_a_height_alone_the_width(): void
+    {
+        $w = self::write('<rect width="1" height="1"/>', '', ['width' => '100pt'])['html'];
+        self::assertStringNotContainsString(' height="10pt"', $w);
+        self::assertStringContainsString('width:100pt', $w);
+        self::assertStringNotContainsString('height:100', $w);
+        self::assertStringContainsString('height:auto', $w);
+
+        $h = self::write('<rect width="1" height="1"/>', '', ['height' => '50pt'])['html'];
+        self::assertStringNotContainsString(' width="10pt"', $h);
+        self::assertStringContainsString('height:50pt', $h);
+        self::assertStringNotContainsString('height:auto', $h);
+
+        $both = self::write('<rect width="1" height="1"/>', '', ['width' => '40pt', 'height' => '50pt'])['html'];
+        self::assertStringContainsString('height:50pt', $both);
+    }
+
+    public function test_an_svg_without_a_namespace_keeps_its_content(): void
+    {
+        $xml = '<svg viewBox="0 0 10 10" width="10" height="10"><g id="a"><rect width="10" height="10" fill="red"/></g></svg>';
+        $html = (new InlineSvg())->write($xml, 'pc-x-', 'alt', [])['html'];
+
+        self::assertStringContainsString('<rect', $html);
+        self::assertStringContainsString('<g id="pc-x-a"', $html);
+        self::assertNull(InlineSvg::inlinable($xml));
+        $doc = \Dom\HTMLDocument::createFromString('<!doctype html><body>' . $html, LIBXML_NOERROR);
+        self::assertSame(1, $doc->getElementsByTagName('rect')->length);
+    }
+
+    public function test_a_prefixed_svg_namespace_is_written_unprefixed(): void
+    {
+        $xml = '<svg:svg xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><svg:rect width="1" height="1"/></svg:svg>';
+        $html = (new InlineSvg())->write($xml, 'pc-x-', '', [])['html'];
+
+        self::assertStringStartsWith('<svg', $html);
+        self::assertStringContainsString('<rect', $html);
+        self::assertStringNotContainsString('svg:', $html);
+    }
+
+    public function test_keyframes_are_kept_with_their_names_prefixed_and_references_rewritten(): void
+    {
+        $css = '.a{animation:spin 2s linear infinite}.b{animation-name:spin,fade}'
+            . '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}'
+            . '@-webkit-keyframes fade{0%{opacity:0}100%{opacity:1}}@supports (x:y){.c{fill:red}}';
+        $r = self::write('<style>' . $css . '</style><rect class="a" style="animation: spin 1s" width="1" height="1"/>');
+        $flat = $r['html'];
+
+        self::assertStringContainsString('@keyframes pc-s1-spin{', $flat);
+        self::assertStringContainsString('@-webkit-keyframes pc-s1-fade{', $flat);
+        self::assertStringContainsString('animation:pc-s1-spin 2s linear infinite', $flat);
+        self::assertStringContainsString('animation-name:pc-s1-spin,pc-s1-fade', $flat);
+        self::assertStringContainsString('style="animation: pc-s1-spin 1s"', $flat);
+        self::assertSame(['inline SVG <style> @supports removed (can\'t be scoped)'], $r['approximated']);
+    }
+
+    public function test_bold_and_italic_variants_used_below_a_family_are_asked_for(): void
+    {
+        $asked = [];
+        $family = static function (?string $list, int $weight, bool $italic) use (&$asked): string {
+            $asked[] = ($list ?? '-') . '|' . $weight . '|' . ($italic ? 'i' : 'n');
+
+            return 'F';
+        };
+        $xml = '<svg ' . self::NS . ' viewBox="0 0 10 10"><g font-family="Foo"><text>a<tspan font-weight="bold">b</tspan></text>'
+            . '<text font-style="italic">c</text></g><text><tspan style="font-weight:700">d</tspan></text></svg>';
+        (new InlineSvg($family))->write($xml, 'pc-s1-', '', []);
+
+        self::assertContains('Foo|400|n', $asked);
+        self::assertContains('Foo|700|n', $asked);
+        self::assertContains('Foo|400|i', $asked);
+        self::assertContains('-|700|n', $asked);
+    }
+
+    public function test_the_roots_own_weight_and_style_reach_the_default_family(): void
+    {
+        $asked = [];
+        $family = static function (?string $list, int $weight, bool $italic) use (&$asked): string {
+            $asked[] = ($list ?? '-') . '|' . $weight . '|' . ($italic ? 'i' : 'n');
+
+            return 'F';
+        };
+        $xml = '<svg ' . self::NS . ' viewBox="0 0 10 10" font-weight="bold" font-style="italic"><text>a</text></svg>';
+        (new InlineSvg($family))->write($xml, 'pc-s1-', '', []);
+
+        self::assertContains('-|700|i', $asked);
+        self::assertNotContains('-|400|n', $asked);
+    }
+
+    public function test_a_rewritten_style_attribute_keeps_its_trailing_semicolon(): void
+    {
+        $r = self::write('<style>@keyframes spin{to{opacity:0}}</style><rect width="1" height="1" style="animation-name:spin;"/>', '', []);
+
+        self::assertStringContainsString('animation-name:pc-s1-spin;"', $r['html']);
+    }
+
+    public function test_a_root_content_attribute_is_dropped(): void
+    {
+        $r = self::write('<rect width="1" height="1"/>', '', [], ' content="&lt;mxfile&gt;huge&lt;/mxfile&gt;"');
+
+        self::assertStringNotContainsString('mxfile', $r['html']);
+        self::assertStringNotContainsString('content=', $r['html']);
     }
 }

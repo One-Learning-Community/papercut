@@ -35,10 +35,7 @@ final class Image extends PapercutComponent
             throw new InvalidStructure(Tag::of('image') . ' src must be a string path');
         }
 
-        $alt = $own['alt'] ?? null;
-        if ($alt !== null && !is_string($alt)) {
-            throw new InvalidStructure(Tag::of('image') . ' alt must be a string');
-        }
+        $alt = $this->altOwn($own);
 
         if ($src !== null) {
             try {

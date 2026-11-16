@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Branch `fix-0.14.1` in `/Users/serpentblade/work/olc/papercut-0141`; ships as 0.14.1. Do not push.
+- Branch `fix-0.14.1` in the repository root; ships as 0.14.1. Do not push.
 - PHP floor 8.4: run every suite with `php` (8.5) and `$(brew --prefix php@8.4)/bin/php` before the final commit.
 - Run tests with `php -d xdebug.mode=off vendor/bin/phpunit` from the package directory; PHPStan `vendor/bin/phpstan analyse --memory-limit=1G` must be clean in each touched package.
 - Tests first: write the failing test, watch it fail, then implement.
@@ -141,7 +141,7 @@ Expected: FAIL with `Class "Papercut\Html\InlineSvg" not found`.
 
 - [ ] **Step 3: Implement**
 
-`InlineSvg::write()` loads `$xml` with `DOMDocument` (no network, `LIBXML_NONET`), renames every `id` to `$prefix . $id`, rewrites `#id` in `href`/`xlink:href` and `url(#id)` in any attribute value and in `<style>` text, scopes `<style>` selectors by prefixing each selector in each rule with the root scope (leave `@media` blocks' contents scoped, keep `@font-face`, drop and report other `@`-rules), sets the root's `style`, `role`/`aria-label` or `aria-hidden`, and serializes the root with `saveXML($root)`. The root keeps its `width`/`height` attributes; the CSS box styles win in the browser. `HtmlWriter` keeps a per-export counter for prefixes (`pc-s1-`, `pc-s2-`, …), calls `InlineSvg` when `inlineSvgs()` is on, reports each `approximated` entry via `$this->fidelity->approximated($entry, $at->path())`, and otherwise keeps today's `<img>` with the reworded note.
+`InlineSvg::write()` loads `$xml` with `DOMDocument` (no network, `LIBXML_NONET`), renames every `id` to `$prefix . $id`, rewrites `#id` in `href`/`xlink:href` and `url(#id)` in any attribute value and in `<style>` text, scopes `<style>` selectors by prefixing each selector in each rule with the root scope (leave `@media` blocks' contents scoped, keep `@font-face`, drop and report other `@`-rules), sets the root's `style`, `role`/`aria-label` or `aria-hidden`, and serializes the root with `saveXML($root)`. The root keeps its `width`/`height` attributes; the CSS box styles win in the browser. `HtmlWriter` keeps a per-export counter for prefixes (`pc-<6 hex of sha1 of the SVG>-1-`, `...-2-`, …), calls `InlineSvg` when `inlineSvgs()` is on, reports each `approximated` entry via `$this->fidelity->approximated($entry, $at->path())`, and otherwise keeps today's `<img>` with the reworded note.
 
 - [ ] **Step 4: Run core and laravel suites and PHPStan**
 

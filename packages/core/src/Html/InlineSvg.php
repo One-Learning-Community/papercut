@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Papercut\Html;
 
 /**
- * Writes sanitized SVG markup as an inline element in an HTML page. Every id is prefixed and every reference
+ * Writes SVG markup from a trusted source as an inline element in an HTML page. Every id is prefixed and every reference
  * to it rewritten, and style rules are scoped to the SVG's own root, so two SVGs (or an SVG and the page)
  * cannot touch each other.
  *
@@ -14,20 +14,12 @@ namespace Papercut\Html;
 final class InlineSvg
 {
     private const string SVG_NS = 'http://www.w3.org/2000/svg';
-    private const array ALLOWED = [
-        'svg', 'g', 'defs', 'symbol', 'use', 'a', 'image', 'switch', 'title', 'desc', 'style', 'view',
-        'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan', 'textPath',
-        'linearGradient', 'radialGradient', 'stop', 'pattern', 'clipPath', 'mask', 'marker', 'filter',
-        'feBlend', 'feColorMatrix', 'feComponentTransfer', 'feComposite', 'feConvolveMatrix', 'feDiffuseLighting',
-        'feDisplacementMap', 'feDistantLight', 'feDropShadow', 'feFlood', 'feFuncA', 'feFuncB', 'feFuncG', 'feFuncR',
-        'feGaussianBlur', 'feImage', 'feMerge', 'feMergeNode', 'feMorphology', 'feOffset', 'fePointLight',
-        'feSpecularLighting', 'feSpotLight', 'feTile', 'feTurbulence', 'animate', 'animateMotion', 'animateTransform', 'set', 'mpath',
-    ];
+    private const string XLINK_NS = 'http://www.w3.org/1999/xlink';
+    private const string XML_NS = 'http://www.w3.org/XML/1998/namespace';
 
     /**
-     * Why this SVG cannot be written inline, or null when it can. A browser parses inline SVG as HTML: an
-     * element outside the SVG vocabulary, or markup inside title or desc, can end the svg early or swallow
-     * the page. Elements inside metadata are ignored, since write() drops metadata.
+     * Why this SVG cannot be written inline, or null when it can. Markup inside <foreignObject> is not SVG
+     * and is not written inline; an SVG that cannot be read at all is kept as an image rather than dropped.
      */
     public static function inlinable(string $xml): ?string
     {
@@ -35,33 +27,56 @@ final class InlineSvg
         if ($dom === null || $dom->documentElement === null) {
             return 'the SVG cannot be read';
         }
-        $reason = null;
-        $walk = static function (\DOMElement $el) use (&$walk, &$reason): void {
-            if ($reason !== null) {
-                return;
+        foreach ($dom->getElementsByTagName('*') as $el) {
+            if (strtolower($el->localName ?? '') === 'foreignobject') {
+                return "<foreignObject> can't be written inline";
             }
-            if ($el->namespaceURI === self::SVG_NS && $el->localName === 'metadata' && $el->nodeName === 'metadata') {
-                return;
-            }
-            if ($el->namespaceURI !== self::SVG_NS || $el->nodeName !== $el->localName || !in_array($el->localName, self::ALLOWED, true)) {
-                $reason = '<' . $el->nodeName . "> can't be written inline";
+        }
 
-                return;
+        return null;
+    }
+
+    /**
+     * A copy of the document for a page: <metadata>, comments and processing instructions are left out;
+     * so are elements outside the SVG namespace with their subtree (a root with no namespace at all is SVG,
+     * and so are its unprefixed descendants; prefixed SVG elements are written unprefixed) (sodipodi:namedview, inkscape:*, rdf:*)
+     * and attributes in a namespace other than none, xlink and xml (inkscape:label). CDATA becomes text,
+     * since an HTML parser reads comments and CDATA by its own rules, and the namespace declarations that
+     * only those elements and attributes used go with them.
+     */
+    private static function cleaned(\DOMDocument $dom): \DOMDocument
+    {
+        $out = new \DOMDocument();
+        $copy = static function (\DOMElement $from, \DOMNode $into) use (&$copy, $out): void {
+            $to = $out->createElementNS(self::SVG_NS, $from->localName ?? $from->nodeName);
+            $into->appendChild($to);
+            foreach ($from->attributes ?? [] as $attr) {
+                $ns = $attr->namespaceURI;
+                if ($ns === null) {
+                    $to->setAttribute($attr->nodeName, $attr->value);
+                } elseif ($ns === self::XLINK_NS) {
+                    $to->setAttributeNS($ns, 'xlink:' . $attr->localName, $attr->value);
+                } elseif ($ns === self::XML_NS) {
+                    $to->setAttributeNS($ns, 'xml:' . $attr->localName, $attr->value);
+                }
             }
-            foreach ($el->childNodes as $child) {
+            foreach ($from->childNodes as $child) {
                 if ($child instanceof \DOMElement) {
-                    if (($el->localName === 'title' || $el->localName === 'desc')) {
-                        $reason = '<' . $el->localName . '> holds elements';
-
-                        return;
+                    // An SVG with no namespace at all (d3's outerHTML) is SVG throughout.
+                    $ns = $child->namespaceURI;
+                    if (($ns === self::SVG_NS || ($ns === null && $from->namespaceURI === null)) && $child->localName !== 'metadata') {
+                        $copy($child, $to);
                     }
-                    $walk($child);
+                } elseif ($child instanceof \DOMText) { // text and CDATA
+                    $to->appendChild($out->createTextNode($child->data));
                 }
             }
         };
-        $walk($dom->documentElement);
+        if ($dom->documentElement !== null) {
+            $copy($dom->documentElement, $out);
+        }
 
-        return $reason;
+        return $out;
     }
 
     private static function load(string $xml): ?\DOMDocument
@@ -77,15 +92,19 @@ final class InlineSvg
 
     private const array IDREF_LISTS = ['aria-labelledby', 'aria-describedby', 'aria-controls', 'aria-owns', 'aria-flowto'];
 
+    /** @var array<string, true> names of the @keyframes in the SVG's own stylesheets, for the one being written */
+    private array $keyframes = [];
+
     /**
      * @param (\Closure(?string, int, bool): string)|null $fontFamily rewrites a font-family list for the page's fonts; null leaves families alone
      */
+
     public function __construct(private readonly ?\Closure $fontFamily = null)
     {
     }
 
     /**
-     * @param string $xml the sanitized SVG (SvgDocument::$xml)
+     * @param string $xml the SVG (SvgDocument::$xml)
      * @param string $prefix id prefix such as pc-s3-; the root's scope class is the prefix without its trailing dash
      * @param string $alt the accessible name; '' marks the SVG decorative
      * @param array<string, string> $style box declarations for the root
@@ -98,21 +117,10 @@ final class InlineSvg
         if ($dom === null || $root === null) {
             return ['html' => '', 'approximated' => []];
         }
-        foreach (iterator_to_array($dom->getElementsByTagName('metadata')) as $meta) {
-            $meta->parentNode?->removeChild($meta);
-        }
-        // An HTML parser reads comments and CDATA by its own rules (<!--> closes at once; CDATA in title
-        // or desc is an HTML integration point), so neither is written: comments go, CDATA becomes text.
-        $xpath = new \DOMXPath($dom);
-        foreach (iterator_to_array($xpath->query('//comment()') ?: []) as $comment) {
-            if ($comment instanceof \DOMComment) {
-                $comment->parentNode?->removeChild($comment);
-            }
-        }
-        foreach (iterator_to_array($xpath->query('//text()') ?: []) as $text) {
-            if ($text instanceof \DOMCdataSection) {
-                $text->parentNode?->replaceChild($dom->createTextNode($text->data), $text);
-            }
+        $dom = self::cleaned($dom);
+        $root = $dom->documentElement;
+        if ($root === null) {
+            return ['html' => '', 'approximated' => []];
         }
 
         $ids = [];
@@ -124,8 +132,19 @@ final class InlineSvg
         $dropped = [];
         $scope = rtrim($prefix, '-');
         $hasStyle = false;
+        $this->keyframes = [];
+        foreach ($dom->getElementsByTagName('style') as $el) {
+            if (preg_match_all('/@(?:-webkit-)?keyframes\s+([A-Za-z_][\w-]*)/i', $el->textContent, $found) > 0) {
+                foreach ($found[1] as $name) {
+                    $this->keyframes[$name] = true;
+                }
+            }
+        }
         foreach (iterator_to_array($dom->getElementsByTagName('*')) as $el) {
             $this->rewriteAttributes($el, $ids, $prefix);
+            if ($this->keyframes !== [] && $el->hasAttribute('style')) {
+                $el->setAttribute('style', $this->rewriteAnimations($el->getAttribute('style'), $prefix));
+            }
             if (strtolower($el->localName ?? '') === 'style') {
                 $hasStyle = true;
                 $css = $this->rewriteStyleFamilies($this->scopeStyles($el->textContent, $scope, $ids, $prefix, $dropped));
@@ -139,13 +158,29 @@ final class InlineSvg
         if ($this->fontFamily !== null) {
             $this->rewriteFamilies($root, 400, false);
             // The default for text that names no family: an attribute, so any rule of the SVG's own still wins.
-            if (!$root->hasAttribute('font-family') && !self::hasDeclaration($root->getAttribute('style'), 'font-family')) {
-                $root->setAttribute('font-family', ($this->fontFamily)(null, 400, false));
+            // Without any <text> there is nothing to set, and asking would record a font the page doesn't use.
+            if ($dom->getElementsByTagName('text')->length > 0 && !$root->hasAttribute('font-family') && !self::hasDeclaration($root->getAttribute('style'), 'font-family')) {
+                // The root's own weight and style are inherited by the text below it.
+                [$rootWeight, $rootItalic] = self::variantOf($root, 400, false);
+                $root->setAttribute('font-family', ($this->fontFamily)(null, $rootWeight, $rootItalic));
+                // The variants of text that falls back to that default.
+                foreach ($this->variantsBelow($root, $rootWeight, $rootItalic) as [$weight, $italic]) {
+                    ($this->fontFamily)(null, $weight, $italic);
+                }
             }
         }
         if ($hasStyle) {
             $root->setAttribute('class', trim($root->getAttribute('class') . ' ' . $scope));
         }
+        // The sizing an <img> gets from the page stylesheet: shrink to the container, keeping the aspect ratio.
+        // A box that sets one dimension drops the other attribute, so the view box gives the ratio.
+        $root->removeAttribute('content'); // draw.io's copy of the whole diagram
+        if (isset($style['width']) && !isset($style['height'])) {
+            $root->removeAttribute('height');
+        } elseif (isset($style['height']) && !isset($style['width'])) {
+            $root->removeAttribute('width');
+        }
+        $style = array_merge(['display' => 'block', 'max-width' => '100%'], isset($style['height']) ? [] : ['height' => 'auto'], $style);
         $declarations = array_filter([$root->getAttribute('style') !== '' ? rtrim(trim($root->getAttribute('style')), ';') . ';' : '', Css::attr($style)]);
         if ($declarations !== []) {
             $root->setAttribute('style', implode(' ', $declarations));
@@ -165,7 +200,7 @@ final class InlineSvg
 
         return [
             'html' => $html === false ? '' : $html,
-            'approximated' => array_map(static fn (string $kind): string => 'inline SVG style ' . $kind, array_keys($dropped)),
+            'approximated' => array_map(static fn (string $kind): string => 'inline SVG <style> ' . $kind . " removed (can't be scoped)", array_keys($dropped)),
         ];
     }
 
@@ -184,14 +219,17 @@ final class InlineSvg
             }
         }
         if ($el->hasAttribute('font-family')) {
-            $el->setAttribute('font-family', $this->family($el->getAttribute('font-family'), $weight, $italic));
+            $list = $el->getAttribute('font-family');
+            $el->setAttribute('font-family', $this->family($list, $weight, $italic));
+            $this->recordVariants($list, $el, $weight, $italic);
         }
-        if ($style !== '' && self::hasDeclaration($style, 'font-family')) {
-            $parts = [];
-            foreach ($declared as [$name, $value, $raw]) {
-                $parts[] = $name === 'font-family' ? $name . ':' . $this->family($value, $weight, $italic) : $raw;
+        if ($style !== '' && (self::hasDeclaration($style, 'font-family') || self::hasDeclaration($style, 'font'))) {
+            foreach ($declared as [$name, $value]) {
+                if ($name === 'font-family' && !$el->hasAttribute('font-family')) {
+                    $this->recordVariants($value, $el, $weight, $italic);
+                }
             }
-            $el->setAttribute('style', implode(';', $parts));
+            $el->setAttribute('style', $this->rewriteDeclarations($declared, $weight, $italic));
         }
         foreach ($el->childNodes as $child) {
             if ($child instanceof \DOMElement) {
@@ -200,15 +238,74 @@ final class InlineSvg
         }
     }
 
-    /** Replaces the family in every rule of a stylesheet, except @font-face; weight and style are the rule's own. */
+    /** Asks for the family in the variants the text below $el uses, which only records them for @font-face. */
+    private function recordVariants(string $list, \DOMElement $el, int $weight, bool $italic): void
+    {
+        foreach ($this->variantsBelow($el, $weight, $italic) as [$w, $i]) {
+            if ($w !== $weight || $i !== $italic) {
+                $this->family($list, $w, $i);
+            }
+        }
+    }
+
+    /**
+     * The weight and italic of every <text>, <tspan> and <textPath> below $el that takes its family from $el:
+     * their own nearest font-weight and font-style, else what is passed down. Elements that set a family of their
+     * own are left to their own pass.
+     *
+     * @return list<array{int, bool}>
+     */
+    private function variantsBelow(\DOMElement $el, int $weight, bool $italic): array
+    {
+        $found = [];
+        foreach ($el->childNodes as $child) {
+            if (!$child instanceof \DOMElement) {
+                continue;
+            }
+            if ($child->hasAttribute('font-family') || self::hasDeclaration($child->getAttribute('style'), 'font-family')) {
+                continue;
+            }
+            [$w, $i] = self::variantOf($child, $weight, $italic);
+            if (in_array(strtolower($child->localName ?? ''), ['text', 'tspan', 'textpath'], true)) {
+                $found[$w . ($i ? 'i' : 'n')] = [$w, $i];
+            }
+            foreach ($this->variantsBelow($child, $w, $i) as $v) {
+                $found[$v[0] . ($v[1] ? 'i' : 'n')] = $v;
+            }
+        }
+
+        return array_values($found);
+    }
+
+    /** @return array{int, bool} */
+    private static function variantOf(\DOMElement $el, int $weight, bool $italic): array
+    {
+        $weight = self::weightOf($el->getAttribute('font-weight')) ?? $weight;
+        $italic = self::italicOf($el->getAttribute('font-style')) ?? $italic;
+        foreach (self::declarations($el->getAttribute('style')) as [$name, $value]) {
+            if ($name === 'font-weight') {
+                $weight = self::weightOf($value) ?? $weight;
+            } elseif ($name === 'font-style') {
+                $italic = self::italicOf($value) ?? $italic;
+            }
+        }
+
+        return [$weight, $italic];
+    }
+
+    /**
+     * Replaces the family in every rule of a stylesheet, except @font-face; weight and style are the rule's own.
+     * A bold or italic set on an ancestor element is not known here (the rule can match any element), so a rule
+     * that sets only a family is recorded as regular.
+     */
     private function rewriteStyleFamilies(string $css): string
     {
-        if ($this->fontFamily === null || !str_contains($css, 'font-family')) {
+        if ($this->fontFamily === null || stripos($css, 'font') === false) {
             return $css;
         }
 
         return preg_replace_callback('/([^{}]*)\{([^{}]*)\}/', function (array $m): string {
-            if (str_starts_with(ltrim($m[1]), '@font-face') || !str_contains($m[2], 'font-family')) {
+            if (str_starts_with(ltrim($m[1]), '@font-face') || stripos($m[2], 'font') === false) {
                 return $m[0];
             }
             $weight = 400;
@@ -221,13 +318,49 @@ final class InlineSvg
                     $italic = self::italicOf($value) ?? $italic;
                 }
             }
-            $parts = [];
-            foreach ($declared as [$name, $value, $raw]) {
-                $parts[] = $name === 'font-family' ? $name . ':' . $this->family($value, $weight, $italic) : $raw;
-            }
 
-            return $m[1] . '{' . implode(';', $parts) . '}';
+            return $m[1] . '{' . $this->rewriteDeclarations($declared, $weight, $italic) . '}';
         }, $css) ?? $css;
+    }
+
+    /**
+     * Declarations joined again with their font-family and font families rewritten.
+     *
+     * @param list<array{string, string, string}> $declared
+     */
+    private function rewriteDeclarations(array $declared, int $weight, bool $italic): string
+    {
+        $parts = [];
+        foreach ($declared as [$name, $value, $raw]) {
+            $parts[] = match ($name) {
+                'font-family' => $name . ':' . $this->family($value, $weight, $italic),
+                'font' => $name . ':' . $this->shorthand($value),
+                default => $raw,
+            };
+        }
+
+        return implode(';', $parts);
+    }
+
+    /**
+     * A font shorthand with its family list rewritten. The family follows the size (and an optional /line-height);
+     * weight and style are what the shorthand names before it, as the shorthand resets the rest. A system font
+     * keyword such as menu has no size and is left alone.
+     */
+    private function shorthand(string $value): string
+    {
+        $size = '(?:\d*\.?\d+(?:px|pt|em|rem|%|ex|ch|cm|mm|in|pc|vw|vh|vmin|vmax)|(?:xx|x)-(?:small|large)|small|medium|large|smaller|larger)';
+        if (preg_match('~^(.*?(?:^|\s))(' . $size . ')(\s*/\s*\S+)?(\s+)(.+)$~is', $value, $m) !== 1) {
+            return $value;
+        }
+        $weight = 400;
+        $italic = false;
+        foreach (preg_split('/\s+/', trim($m[1])) ?: [] as $token) {
+            $weight = self::weightOf($token) ?? $weight;
+            $italic = self::italicOf($token) ?? $italic;
+        }
+
+        return $m[1] . $m[2] . $m[3] . $m[4] . $this->family($m[5], $weight, $italic);
     }
 
     /** A family list, with any !important kept, rewritten by the closure. */
@@ -297,6 +430,24 @@ final class InlineSvg
             $value === 'normal' => false,
             default => null,
         };
+    }
+
+    /** A declaration list with the keyframe names in animation and animation-name prefixed. */
+    private function rewriteAnimations(string $declarations, string $prefix): string
+    {
+        $names = array_map(static fn (string $n): string => preg_quote($n, '/'), array_keys($this->keyframes));
+        $pattern = '/(?<![\w-])(' . implode('|', $names) . ')(?![\w-])/';
+        $parts = [];
+        foreach (self::declarations($declarations) as [$name, $value, $raw]) {
+            if (in_array($name, ['animation', 'animation-name', '-webkit-animation', '-webkit-animation-name'], true) && ($new = preg_replace($pattern, $prefix . '$1', $value)) !== null && $new !== $value) {
+                $colon = strpos($raw, ':');
+                $parts[] = substr($raw, 0, $colon + 1) . (str_starts_with(substr($raw, $colon + 1), ' ') ? ' ' : '') . $new;
+            } else {
+                $parts[] = $raw;
+            }
+        }
+
+        return implode(';', $parts) . (str_ends_with(rtrim($declarations), ';') ? ';' : '');
     }
 
     /** @param array<string, true> $ids */
@@ -387,6 +538,8 @@ final class InlineSvg
                     $out .= $prelude . '{' . $this->scopeBlock($body, $scope, $ids, $prefix, $dropped) . '}';
                 } elseif ($name === '@font-face') {
                     $out .= $prelude . '{' . $body . '}';
+                } elseif (($name === '@keyframes' || $name === '@-webkit-keyframes') && preg_match('/^@\S+\s+([A-Za-z_][\w-]*)\s*$/', $prelude, $km) === 1) {
+                    $out .= substr($prelude, 0, strlen($prelude) - strlen($km[1])) . $prefix . $km[1] . '{' . $body . '}';
                 } else {
                     $dropped[$name] = true;
                 }
@@ -408,7 +561,7 @@ final class InlineSvg
                 }
             }
             if ($selectors !== []) {
-                $out .= implode(', ', $selectors) . '{' . $body . '}';
+                $out .= implode(', ', $selectors) . '{' . ($this->keyframes === [] ? $body : $this->rewriteAnimations($body, $prefix)) . '}';
             }
         }
 

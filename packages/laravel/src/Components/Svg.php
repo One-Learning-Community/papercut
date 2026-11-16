@@ -34,10 +34,7 @@ final class Svg extends PapercutComponent
             throw new InvalidStructure(Tag::of('svg') . ' src must be a string path and data a string of SVG markup');
         }
 
-        $alt = $own['alt'] ?? null;
-        if ($alt !== null && !is_string($alt)) {
-            throw new InvalidStructure(Tag::of('svg') . ' alt must be a string');
-        }
+        $alt = $this->altOwn($own);
 
         $where = rtrim(Tag::of('svg'), '>') . ($src !== null ? ' src="' . $src . '">' : '>');
         try {

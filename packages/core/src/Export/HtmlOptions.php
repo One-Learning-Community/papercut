@@ -42,6 +42,7 @@ final readonly class HtmlOptions extends ExportOptions
         $this->fontSources = $fontSources;
     }
 
+    /** Whether the export is a whole page (head, page size and print rules) rather than a fragment. */
     public function fullPage(): bool
     {
         return $this->fullPage;
@@ -76,11 +77,13 @@ final readonly class HtmlOptions extends ExportOptions
         return $this->inlineSvgs;
     }
 
+    /** A copy that writes a whole page (head, page size and print rules) or only the fragment. */
     public function withFullPage(bool $on): self
     {
         return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $on, $this->fontMode, $this->imageUrl, $this->fontUrl, $this->fontSources, $this->inlineSvgs);
     }
 
+    /** A copy that writes SVG as inline markup (true) or as images (false). Use it only for trusted SVG. */
     public function withInlineSvgs(bool $on): self
     {
         return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->fullPage, $this->fontMode, $this->imageUrl, $this->fontUrl, $this->fontSources, $on);

@@ -7,9 +7,11 @@ Ships in 0.14.1 with the table-cell height and math tokenizer fixes on branch `f
 - The getter is `altText(): string`, not `alt(): ?string`; `''` means decorative.
 - A decorative Word picture gets an empty description (php-docx's default would be "image"), so images without alt
   text change from "image" to empty in Word.
-- Inlining is gated by an allowlist: an SVG is inlined only if all its elements are standard SVG elements and
-  `<title>`/`<desc>` hold only text. Otherwise it stays an `<img>` with the note `SVG kept as an image (…)`. This
-  replaces the narrower wording about `foreignObject` and about dropping unscoped rules.
+- `inlineSvgs` is for trusted SVG, so there is no allowlist. On the inline path, comments, `<metadata>`, elements
+  outside the SVG namespace (with their subtree; `sodipodi:namedview`, `inkscape:*`, `rdf:*`) and attributes in a
+  namespace other than none, xlink and xml (`inkscape:label`) are removed. An SVG with a `<foreignObject>` (any
+  letter case) stays an `<img>` with the note `SVG kept as an image (<foreignObject> can't be written inline)`.
+  This replaces the narrower wording about `foreignObject` and about dropping unscoped rules.
 - Comments are dropped on the inline path.
 - The root default font family is written as a presentation attribute, so the SVG's own CSS can still override it.
 
@@ -118,7 +120,7 @@ already gets (scripts, `on…` attributes, processing instructions and `xml:base
 
 Two SVGs on one page share one DOM, which breaks drawings even when both are trusted:
 
-- **IDs.** Every `id` in an inline SVG is prefixed with a per-SVG prefix unique within the export (e.g. `pc-s3-`),
+- **IDs.** Every `id` in an inline SVG is prefixed with a per-SVG prefix unique within the export (e.g. `pc-3a9f2c-3-`: a short hash of the SVG markup and the export counter),
   and every reference to it is rewritten: `href`/`xlink:href="#id"` and `url(#id)` in attributes and in `style`
   attributes and `<style>` text.
 - **`<style>` elements.** A `<style>` inside an inline SVG would style the whole page. Each selector in it is scoped

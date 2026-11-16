@@ -6,7 +6,7 @@ namespace Papercut;
 
 use Papercut\Concerns\HasStyle;
 use Papercut\Style\ImageFit;
-use Papercut\Support\EnumValue;
+use Papercut\Support\{AltText, EnumValue};
 
 final class Image implements Styled
 {
@@ -48,7 +48,7 @@ final class Image implements Styled
     public function alt(string $text): self
     {
         $clone = clone $this;
-        $clone->alt = trim((string) preg_replace('/\s+/u', ' ', $text));
+        $clone->alt = AltText::normalize($text);
         return $clone;
     }
 
