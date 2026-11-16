@@ -58,6 +58,18 @@ final class HtmlTablesImagesTest extends TestCase
         return Document::make(Page::a4()->body(...$nodes));
     }
 
+    public function test_image_alt_is_written(): void
+    {
+        $html = $this->html($this->body(Image::bytes(TestImages::png())->alt("A  \"red\" & <blue>\n dot")));
+        self::assertStringContainsString('alt="A &quot;red&quot; &amp; &lt;blue&gt; dot"', $html);
+    }
+
+    public function test_image_without_alt_is_decorative(): void
+    {
+        $html = $this->html($this->body(Image::bytes(TestImages::png())));
+        self::assertStringContainsString(' alt=""', $html);
+    }
+
     public function test_table_has_colgroup_widths_thead_and_colspan(): void
     {
         $messages = [];

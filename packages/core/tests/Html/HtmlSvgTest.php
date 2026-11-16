@@ -56,6 +56,24 @@ final class HtmlSvgTest extends TestCase
         self::assertSame('Acme logo', self::imgs(self::html(Svg::fromString(self::LOGO)))[0]->getAttribute('alt'));
     }
 
+    public function test_svg_alt_overrides_title(): void
+    {
+        $html = self::html(Svg::fromString(self::LOGO)->alt('Number line'));
+        self::assertSame('Number line', self::imgs($html)[0]->getAttribute('alt'));
+    }
+
+    public function test_svg_falls_back_to_title(): void
+    {
+        self::assertSame('Acme logo', self::imgs(self::html(Svg::fromString(self::LOGO)))[0]->getAttribute('alt'));
+    }
+
+    public function test_empty_alt_marks_svg_decorative(): void
+    {
+        $html = self::html(Svg::fromString(self::LOGO)->alt(''));
+        self::assertSame('', self::imgs($html)[0]->getAttribute('alt'));
+        self::assertStringContainsString(' alt=""', $html);
+    }
+
     public function test_box_styles_are_kept(): void
     {
         $img = self::imgs(self::html(Svg::fromString(self::LOGO)->width(pt(120))->padding(pt(4))))[0];

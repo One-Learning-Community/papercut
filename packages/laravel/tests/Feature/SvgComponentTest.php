@@ -47,6 +47,20 @@ final class SvgComponentTest extends TestCase
         self::assertEqualsWithDelta(\Papercut\mm(40)->points, $n->style()->width->points, 1e-9);
     }
 
+    public function test_alt_sets_the_alt_text(): void
+    {
+        $n = $this->nodeFrom('<x-doc::svg alt="Line">' . self::LOGO . '</x-doc::svg>');
+
+        self::assertInstanceOf(Svg::class, $n);
+        self::assertSame('Line', $n->altText());
+    }
+
+    public function test_a_non_string_alt_is_rejected(): void
+    {
+        $this->expectException(InvalidStructure::class);
+        $this->nodeFrom('<x-doc::svg :alt="$a">' . self::LOGO . '</x-doc::svg>', ['a' => ['x']]);
+    }
+
     public function test_data_takes_markup(): void
     {
         $n = $this->nodeFrom('<x-doc::svg :data="$svg" />', ['svg' => self::LOGO]);

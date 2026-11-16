@@ -19,6 +19,8 @@ final class Svg implements Styled
 
     private ?SvgDocument $document;
 
+    private ?string $alt = null;
+
     private function __construct(
         private readonly string $kind,
         private readonly string $value,
@@ -36,6 +38,24 @@ final class Svg implements Styled
     public static function fromString(string $svg): self
     {
         return new self('string', $svg);
+    }
+
+    /**
+     * Describes the drawing for people who cannot see it. HTML export writes it as the alt text;
+     * runs of whitespace are collapsed to one space. An empty string marks the drawing as
+     * decorative. Without a call to this, the SVG's own title is used.
+     */
+    public function alt(string $text): self
+    {
+        $clone = clone $this;
+        $clone->alt = trim((string) preg_replace('/\s+/u', ' ', $text));
+        return $clone;
+    }
+
+    /** The alt text: the one set with alt(), else the SVG's title. An empty string means decorative. */
+    public function altText(): string
+    {
+        return $this->alt ?? $this->document()->title;
     }
 
     /** @return array{kind: 'file'|'string', value: string} */

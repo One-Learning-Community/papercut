@@ -14,6 +14,8 @@ final class Image implements Styled
 
     private ImageFit $fit = ImageFit::Contain;
 
+    private string $alt = '';
+
     private function __construct(
         private readonly string $kind,
         private readonly string $value,
@@ -37,6 +39,23 @@ final class Image implements Styled
         $clone = clone $this;
         $clone->fit = $fit;
         return $clone;
+    }
+
+    /**
+     * Describes the picture for people who cannot see it. HTML export writes it as the alt text;
+     * runs of whitespace are collapsed to one space. An image with no alt text is decorative.
+     */
+    public function alt(string $text): self
+    {
+        $clone = clone $this;
+        $clone->alt = trim((string) preg_replace('/\s+/u', ' ', $text));
+        return $clone;
+    }
+
+    /** The alt text set with alt(), or an empty string. */
+    public function altText(): string
+    {
+        return $this->alt;
     }
 
     public function fitMode(): ImageFit
