@@ -58,6 +58,15 @@ $total = Math::underbrace(Math::row('a + b + c'), 'three terms');
 
 `binom(top, bottom)` is a binomial coefficient and `stack(top, bottom)` a fraction without a rule.
 
+`matrix(rows, fence, align)` lays rows of cells out in aligned columns inside a stretching fence (`paren`, `bracket`,
+`brace`, `bar`, `doublebar` or `none`, with `center`, `left` or `right` alignment for every column or per column).
+`cases(rows)` is a left brace around left-aligned columns. Both throw `InvalidArgumentException` for no cells.
+
+```php
+$rotation = Math::matrix([['cos θ', '−sin θ'], ['sin θ', 'cos θ']], 'bracket');
+$abs = Math::row('|x|', '=', Math::cases([['x', Math::text('if x ≥ 0')], ['−x', Math::text('otherwise')]]));
+```
+
 ```php
 $choose = Math::row(Math::binom('n', 'k'), '=', Math::frac('n!', Math::row('k!', Math::fenced('(', ')', 'n − k'), '!')));
 ```
@@ -135,9 +144,10 @@ foreach (Math::notes($formula) as $note) {
 A `MathNote` has `level`, `element` (the MathML element name), `reason` (plain words) and `where` (the path to it in the
 formula).
 
-- `NoteLevel::Approximated`: the content is drawn, but not the way the source meant. This covers `mtable` (tables are
-  drawn as rows of cells for now, without alignment or lines), `menclose`, `mmultiscripts`, `maction` (its first
-  choice is drawn) and elements the reader does not know.
+- `NoteLevel::Approximated`: the content is drawn, but not the way the source meant. This covers `mtable` attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`,
+  `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `columnalign` and `rowalign` on
+  `mtr`, `rowspan`, `columnspan`, `columnalign` and `rowalign` on `mtd`; a plain table is drawn as a grid and gives no
+  note), `menclose`, `mmultiscripts`, `maction` (its first choice is drawn) and elements the reader does not know.
 - `NoteLevel::Dropped`: the content is not drawn. This covers images and other media inside the math (`img`, `svg`,
   `video`, `mglyph` and the like), and content that an HTML tag pushed out of the `math` element: in HTML5 parsing a
   stray tag such as `<p>` inside math ends it, and what follows is lost.

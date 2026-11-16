@@ -3,6 +3,16 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Matrices and cases. `Math::matrix($rows, $fence, $align)` lays rows of cells out in aligned columns inside a stretching `paren`, `bracket`, `brace`, `bar`, `doublebar` or no fence, and `Math::cases($rows)` draws a left brace around left-aligned rows. A grid is centred on the math axis, so it sits level with a neighbouring `=`. MathML `mtable` is read as a real grid (`columnalign`, `rowalign` and `displaystyle` on the table are honoured), and Word export writes `m:m`.
+
+### Changed
+
+- `mtable` is no longer reported as "drawn as rows of cells": a plain table gives no note, and a table that uses an attribute that is not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) is reported as approximated, for example `math <mtable> (rowlines is not drawn)`. A lone `{` before a table is now a stretching fence.
+
 ## [0.13.0] - 2026-11-14
 
 ### Added

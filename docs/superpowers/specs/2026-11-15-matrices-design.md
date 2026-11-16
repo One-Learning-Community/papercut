@@ -71,7 +71,9 @@ Math::cases(array $rows): Node
   around the `Grid`, so it stretches with the existing logic. Anything else throws `InvalidArgumentException`.
 - `$align`: one value for every column, or a list with one value per column (a short list repeats its last value).
 - `Math::cases($rows)` is a `Fenced('{', '', Grid)` with every column left-aligned. A thin space (3 mu) separates the
-  brace from the grid, as in TeX *(builder's call on the exact value)*. Rows hold a value and optionally a condition;
+  brace from the grid, as in TeX. It is a layout rule inside `Fenced::layout` (a `Fenced` with a `{` opener, no closer
+  and a `Grid` as content), not a spacer node: a spacer node would break the MathML round trip, because the reader
+  fences a lone opener only when the table follows it directly. Rows hold a value and optionally a condition;
   the condition is not made upright text automatically, so use `Math::text()` for words.
 - No rows, or a row with no cells, throws `InvalidArgumentException`.
 
@@ -146,7 +148,9 @@ Word export through `OmmlWriter`. Check core's tests that assert the `mtable` ap
 - MathML: reading each honoured attribute and each ignored one with its note; a plain table gives no note; `mlabeledtr`.
 - Writers: MathML round trip (write then read gives an equal grid), OMML structure for matrix and cases, TextWriter
   single line with no newline for any grid.
-- Goldens: add SVG snapshots for a matrix, a determinant, `cases`, and a matrix beside an `=` (axis alignment).
+- Snapshots: the fixture-driven MathML and OMML ones (a matrix, a determinant, `cases`, and a matrix beside an `=`),
+  plus layout-number tests for axis alignment. SVG snapshots exist only for the editor fixtures, so they change only
+  where those fixtures hold a table.
 - Docs: `packages/math/README.md` builder list and the `Approximated` paragraph (it names `mtable` today),
   `site/src/guide/equations.md`, and the equations gallery source `site/gallery/sources/equations.php`.
 - Changelog entry; no version bump in the work itself.
