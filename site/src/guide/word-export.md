@@ -124,7 +124,7 @@ In Laravel, set the names in `config/papercut.php`:
 'font_word_names' => ['Inter' => 'Arial'],
 ```
 
-The bundled Cousine is written as Courier New without any setting. These pairs are metric-compatible, so lines break in the same places whichever one a reader has:
+A Word name also keeps layout that Papercut measures from the font, such as choice markers centred on their labels, exact in Word. The bundled Cousine is written as Courier New without any setting. These pairs are metric-compatible, so lines break in the same places whichever one a reader has:
 
 | Papercut font | Word name |
 |---|---|

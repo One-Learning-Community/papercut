@@ -24,6 +24,12 @@ final class TextMapper
 {
     /** The whitespace that collapses outside pre-wrap; a no-break space is not part of it. */
     private const string SPACES = " \t\n\r\f";
+    private const string MARKER_FONT = 'Segoe UI Symbol';
+    /**
+     * How far a marker's centre sits above the bottom of an exact line, as a share of its size. Measured in
+     * Word for Mac with Segoe UI Symbol markers beside Arial at 10pt and 14pt, 0.75em to 2em markers.
+     */
+    private const float MARKER_DROP = 0.48;
 
     public function __construct(
         private readonly LineMetrics $metrics,
@@ -294,13 +300,34 @@ final class TextMapper
         return $round ? ($filled ? '◉' : '○') : ($filled ? '▣' : '☐');
     }
 
+    /**
+     * The marker character in its cell, centred on the capitals of the label's first line, which sits in the
+     * next cell with the same font, size and line height. The marker font is named so all four characters
+     * come from one font at one size: Word ships Segoe UI Symbol on Windows and Mac, and a reader without it
+     * falls back. Left to the text font, ○ came from it and ◉ ☐ ▣ from a bigger fallback font.
+     *
+     * Word honours neither a raised run nor centring here (an auto line grows around a raised glyph), so the
+     * line is exact and its height places the glyph, whose centre Word sets a fixed share of its size above the
+     * line's bottom. This is exact only when Word has the label's font: a font it stands in for has other metrics.
+     */
     public function glyphParagraph(string $glyph, ComputedStyle $s): Paragraph
     {
-        $size = $s->height instanceof Length ? $s->height->points * 1.25 : $s->fontSize;
+        $halfPoints = Units::halfPoints($s->height instanceof Length ? $s->height->points * 1.25 : $s->fontSize);
+        $size = $halfPoints / 2;
+        // Word adds a multiple's extra space above the text, so the label's baseline sits its descent above the line's bottom.
+        $capitals = $s->lineHeight * $s->fontSize
+            - ($this->metrics->descent($s->fontFamily) + $this->metrics->capHeight($s->fontFamily) / 2) * $s->fontSize;
+        // A marker too big to centre there hangs from the top of the line rather than lose its top (ink is ±0.36em).
+        $centre = max($capitals, 0.37 * $size);
 
         return new Paragraph(
-            [new Run($glyph, new RunStyle(sizeHalfPoints: Units::halfPoints($size), color: Units::hex($s->borderColor)))],
-            new ParagraphStyle(lineSpacingTwips: 240, lineSpacingRule: 'auto'),
+            [new Run($glyph, new RunStyle(
+                sizeHalfPoints: $halfPoints,
+                color: Units::hex($s->borderColor),
+                fontFamily: self::MARKER_FONT,
+                fontFamilyEastAsia: self::MARKER_FONT,
+            ))],
+            new ParagraphStyle(lineSpacingTwips: Units::tw($centre + self::MARKER_DROP * $size), lineSpacingRule: 'exact'),
         );
     }
 
