@@ -5,6 +5,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Word: a radio marker made bigger by a variant (one that sets the marker's width and height but not its radius) is now written as ○ or ◉ instead of ☐ or ▣. A marker counts as round once its corner radius is at least a third of its side, which matches how the PDF and HTML draw it.
+
 ## [0.14.1] - 2026-11-16
 
 ### Added

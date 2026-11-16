@@ -170,6 +170,11 @@ final class TextMapperTest extends TestCase
         self::assertSame('▣', $glyph($box(View::make())));
         self::assertSame('○', $glyph($box()->radius(pt(4))));
         self::assertSame('◉', $glyph($box(View::make())->radius(pt(4))));
+        // Round once the corners take most of each side, as a radio enlarged without its radius reads round.
+        $sized = static fn (float $radius): View => View::make()->width(pt(10))->height(pt(10))->border(pt(1), '#000000')->radius(pt($radius));
+        self::assertSame('○', $glyph($sized(3.75)));
+        self::assertSame('☐', $glyph($sized(1.25)));
+        self::assertSame('☐', $glyph($sized(2.5)));
         self::assertNull($glyph(View::make()->width(pt(40))->height(pt(40))->border(pt(1), '#000000')));
         self::assertNull($glyph(View::make()->width(pt(8))->height(pt(8))));
         // A colour swatch is a picture of its fill, not a marker: it keeps its box.

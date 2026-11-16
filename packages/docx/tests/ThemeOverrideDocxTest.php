@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Papercut\Docx\Tests;
 
-use Papercut\{Document, Page, Text, Toc};
+use Papercut\{Column, Document, Page, Text, Toc};
+use Papercut\Decorator\ChoiceList;
 use Papercut\Docx\DocxExporter;
 use Papercut\Docx\Tests\Support\DocxInspector;
-use Papercut\Style\ThemeOverride;
-use Papercut\Value\Color;
+use Papercut\Style\{Style, ThemeOverride};
+use Papercut\Value\{Color, Length};
 use PHPUnit\Framework\TestCase;
 
 use function Papercut\pt;
@@ -59,5 +60,20 @@ final class ThemeOverrideDocxTest extends TestCase
         $empty = $make()->theme(new ThemeOverride())->export(new DocxExporter())->bytes();
 
         self::assertSame($plain, $empty);
+    }
+
+    public function test_choice_markers_in_a_sized_variant_keep_their_shape(): void
+    {
+        $d = self::export(Document::make(Page::a4()->body(Column::make(
+            ChoiceList::radio()->variant('large')->option('Yes', true)->option('No'),
+            ChoiceList::checkbox()->variant('large')->option('Tea', true)->option('Coffee'),
+        )))->theme(new ThemeOverride(styles: ['choice.marker.large' => Style::make(width: Length::em(1), height: Length::em(1))])));
+
+        self::assertSame(['◉', '○', '▣', '☐'], array_values(array_filter(
+            $d->values('//w:t'),
+            static fn (string $t): bool => in_array($t, ['◉', '○', '▣', '☐'], true),
+        )));
+        // Sized from the 1em marker (10pt) at the glyph's 1.25 scale: 12.5pt, 25 half-points.
+        self::assertSame('25', $d->value('//w:r[w:t="○"]/w:rPr/w:sz/@w:val'));
     }
 }

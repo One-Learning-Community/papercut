@@ -286,7 +286,10 @@ final class TextMapper
             }
             $filled = true;
         }
-        $round = $s->radius >= min($s->width->points, $s->height->points) / 2 - 0.5;
+        // Round once the corners take most of each side, not only at a full half: a radio marker enlarged
+        // by a variant keeps the theme's em radius, which no longer reaches half of the bigger box but still
+        // draws round in the PDF and HTML. A rounded checkbox (a sixth of its side) stays a square.
+        $round = $s->radius >= min($s->width->points, $s->height->points) / 3;
 
         return $round ? ($filled ? '◉' : '○') : ($filled ? '▣' : '☐');
     }
