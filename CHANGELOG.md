@@ -5,6 +5,11 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- A radio marker made bigger by a variant (one that sets the marker's width and height but not its radius) stays a circle. The default theme's radio radius is now far past half the marker, which every output clamps to a circle, so the PDF and HTML no longer draw a large radio as a rounded square, and Word writes it as ○ or ◉ instead of ☐ or ▣. In Word, a marker counts as round once its corner radius is more than a third of its side.
+- Word: choice markers are written in Segoe UI Symbol, so ○ ◉ ☐ ▣ come from one font at one size (the text font has ○ but not the others, so ○ came out smaller); the font table lists it with its PANOSE number so a reader without it picks a close stand-in, and each sits centred on the capitals of its label's first line at any marker size instead of hanging low once it is bigger than the text. The centring is exact when Word has the label's font; give a font readers may not have a Word name (`FontSet::withWordName()`) to keep it close.
+
 ## [0.14.1] - 2026-11-16
 
 ### Added
