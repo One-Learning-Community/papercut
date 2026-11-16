@@ -70,18 +70,6 @@ final class MathTest extends TestCase
         self::assertSame('−', $minus->char);
     }
 
-    public function test_unicode_script_digits_stay_attached(): void
-    {
-        $t = Tokenizer::tokenize('b² + x₂');
-        self::assertSame(['b', '²', '+', 'x', '₂'], array_map(fn ($n) => $n instanceof Identifier ? $n->name : ($n instanceof Number ? $n->text : ($n instanceof Operator ? $n->char : '')), $t));
-        self::assertInstanceOf(Number::class, $t[1]);
-        // Drawn as ordinary characters: glyph text is the source character.
-        $box = Math::layout(new Row([$t[0], $t[1]]), 12);
-        $glyph = $box->items[1];
-        self::assertInstanceOf(Glyph::class, $glyph);
-        self::assertSame('²', $glyph->text);
-    }
-
     public function test_prefix_minus_has_no_spacing(): void
     {
         $c = new Context(Math::stixTwoMath(), 10);

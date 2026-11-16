@@ -135,12 +135,12 @@ A string is split into pieces, one per symbol:
 
 - A letter becomes a math italic variable, so `x` is drawn as 𝑥.
 - A run of digits, with an optional decimal point, becomes a number: `3.14` is one number.
-- These function names are drawn upright: `sin`, `cos`, `tan`, `cot`, `sec`, `csc`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `log`, `ln`, `exp`, `lim`, `max`, `min` and `det`. So `sin x` is "sin" followed by an italic 𝑥.
+- These function names are drawn upright: `sin`, `cos`, `tan`, `cot`, `sec`, `csc`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `log`, `ln`, `exp`, `lim`, `max`, `min` and `det`. A name counts only when it is a whole run of letters, so `sin x`, `sin(x)` and `sinθ` are an upright "sin" followed by the next symbol, while the letters of `cost` or `minutes` stay separate variables. A run is letters of one alphabet: `sinθ` splits where the Latin letters end and the Greek one begins, but `sinx` is four italic letters, so write `sin x`. For words in a formula, use `Math::text()`.
 - Whitespace is dropped. Spacing around an operator comes from the MathML Core operator dictionary, the same table browsers use, so `a+b` and `a + b` come out the same.
 - A leading `−` or `±`, at the start of a formula or after another operator, is a sign and gets no space after it. `Math::row('-b')` is a negative `b`.
 - An ASCII hyphen `-` is drawn as a true minus sign, `−`.
 - Two vertical bars `|` pair up as opening and closing, so `|x|` is an absolute value.
-- Unicode superscript and subscript digits such as `²` and `₂` still work, and are drawn as the characters they are. Use `Math::sup()` and `Math::sub()` when you want real scripts, which are sized and placed correctly.
+- Unicode superscript and subscript characters become real scripts on what comes before them: `x²` is `Math::sup('x', '2')`, `x₁²` has both, `x⁻¹` is x to the −1, `e⁻ˣ` has a letter in the exponent, `aₙ₊₁` is a with the subscript n+1, and `(a+b)²` raises the whole bracket. The characters that count are the digits, `+ − = ( )`, and these letters. Superscript: `ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ⁱ ʲ ᵏ ˡ ᵐ ⁿ ᵒ ᵖ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ`. Subscript: `ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ`. After `|` or `‖` the script goes on the whole pair, so `|x|²` squares the absolute value. After a prime `′` or `″` it goes on the symbol and its primes, so `f′²` is (f′)². A script also attaches across the arguments of `Math::row()`, so `Math::row(Math::frac('a', 'b'), '²')` squares the fraction. In a run, one superscript and one subscript attach, in either order; a kind that comes round again (the `³` in `x²₁³`) stays a plain character. A script with nothing before it, as in `² = 4` or `² ³`, stays the character. They are sized and placed like any script, read as powers by screen readers and edited as scripts in Word.
 
 ## MathML input
 

@@ -79,7 +79,7 @@ final class Css
         }
         $min = $d['min-height'];
         unset($d['min-height']);
-        if (!isset($d['height'])) {
+        if (!isset($d['height']) || ($s->height instanceof Percent && $s->minHeight instanceof Length)) {
             $d['height'] = $min;
         } elseif ($s->height instanceof Length && $s->minHeight instanceof Length && $s->minHeight->points > $s->height->points) {
             $d['height'] = $min;

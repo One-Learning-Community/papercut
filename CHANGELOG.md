@@ -3,6 +3,14 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- HTML: a minimum height on a table row or cell is written as `height`, not `min-height`, which browsers ignore on table rows and cells. Empty rows with a minimum height, such as blank rows to write in, now keep their height in a browser instead of collapsing to their padding. A row or cell's `height` still grows to fit its content, as in the PDF. When one of height and minimum height is a percentage and the other a length, the length is written, since a percentage height on a cell or row usually computes to auto.
+- Math: a function name such as `cos`, `min` or `log` is drawn upright only when it is a whole run of letters, so words in a formula are no longer split: `total cost` and `minutes` were drawn with an upright "cos" and "min". `sin x` and `sin(x)` are unchanged; `sinx` without a space is now four italic letters. A run of letters is one alphabet and never includes modifier letters, so `sinθ`, `cosα` and `maxᵢ` keep an upright function name.
+- Math: Unicode superscript and subscript characters (`x²`, `x₁`, `x⁻¹`, `eⁿ`) are real scripts on the token before them, or on a whole bracketed group as in `(a+b)²`. They were drawn as the characters next to the base, which looked right but was not a script in MathML, so screen readers read "x two", and could not be edited as a power in Word's equation editor. Besides digits and `+ − = ( )`, the letter superscripts and subscripts that `TextWriter` writes are read (`e⁻ˣ`, `aₙ₊₁`, `xᵢ²`, `logₑ x`). A script after `|` or `‖` goes on the whole pair (`|x|²`), after `′` or `″` on the symbol and its primes (`f′²`), and across `Math::row()` arguments (`Math::row(Math::frac('a', 'b'), '²')`). A superscript or subscript that comes round again after the other kind (the `³` in `x²₁³`) stays a plain character, and a loose script character is never a base (`² ³`).
+
 ## [0.14.0] - 2026-11-16
 
 ### Added

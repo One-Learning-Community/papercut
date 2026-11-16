@@ -49,7 +49,7 @@ final class Math
         $bad = false;
         foreach ($items as $it) {
             if (is_string($it)) {
-                array_push($nodes, ...Tokenizer::tokenize(self::scrub($it, $bad)));
+                Tokenizer::tokenizeInto($nodes, self::scrub($it, $bad));
             } else {
                 $nodes[] = $it;
             }

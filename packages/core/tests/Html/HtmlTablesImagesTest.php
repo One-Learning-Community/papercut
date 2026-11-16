@@ -193,6 +193,23 @@ final class HtmlTablesImagesTest extends TestCase
         self::assertStringNotContainsString('min-height', $row);
     }
 
+    public function test_cell_length_min_height_wins_over_a_percentage_height(): void
+    {
+        // A percentage height on a td or tr usually computes to auto, so the length is the one written.
+        $html = $this->html($this->body(Table::make()->columns('1fr 1fr')->bodyRow(
+            TableRow::make(
+                TableCell::make('a')->height(\Papercut\Value\Percent::of(50))->minHeight(pt(30)),
+                TableCell::make('b')->height(pt(25))->minHeight(\Papercut\Value\Percent::of(50)),
+            ),
+        )));
+        $cells = $this->xpath($html, '//tbody/tr/td');
+        self::assertMatchesRegularExpression('/(^|;)height:30pt(;|$)/', $this->style($cells[0]));
+        self::assertStringNotContainsString('%', $this->style($cells[0]));
+        self::assertStringNotContainsString('min-height', $this->style($cells[0]));
+        self::assertMatchesRegularExpression('/(^|;)height:25pt(;|$)/', $this->style($cells[1]));
+        self::assertStringNotContainsString('%', $this->style($cells[1]));
+    }
+
     public function test_png_and_jpeg_embed_as_data_uris(): void
     {
         $png = TestImages::png(8, 4);
