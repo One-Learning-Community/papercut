@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-11-16
+
 ### Added
 
 - Alt text. `Image::alt()` and `Svg::alt()` (and an `alt` attribute on `<x-doc::image>` and `<x-doc::svg>`) say what a picture shows, and `altText()` reads it back (an empty string means decorative). An SVG without alt text uses its root `<title>`, and `alt('')` overrides the title. `<img alt>` in HTML passed to `Markup::html()` now carries to the image. HTML writes it as `alt`, or as `role="img"` and `aria-label` (`aria-hidden="true"` when decorative) on an inline SVG, and Word writes it as the picture's description. The PDF doesn't use it yet.
