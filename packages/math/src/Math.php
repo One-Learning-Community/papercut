@@ -11,6 +11,7 @@ use Papercut\Math\Mathml\MathmlReader;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
+use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Operator;
@@ -269,6 +270,63 @@ final class Math
         $close = self::scrub($close, $bad);
 
         return new Fenced($open, $close, self::flagged(self::row(...$content), $bad));
+    }
+
+    /**
+     * A matrix: rows of cells in aligned columns, inside a fence.
+     *
+     * @param list<list<string|Node>> $rows
+     * @param string $fence paren, bracket, brace, bar, doublebar or none (a bare grid)
+     * @param string|list<string> $align left, center or right: one value for every column, or one per column (the last repeats)
+     *
+     * @throws \InvalidArgumentException for no cells, an unknown fence or an unknown alignment
+     */
+    public static function matrix(array $rows, string $fence = 'paren', string|array $align = 'center'): Node
+    {
+        $fences = ['paren' => ['(', ')'], 'bracket' => ['[', ']'], 'brace' => ['{', '}'], 'bar' => ['|', '|'], 'doublebar' => ["\u{2016}", "\u{2016}"], 'none' => ['', '']];
+        if (! isset($fences[$fence])) {
+            throw new \InvalidArgumentException(sprintf("Math::matrix() fence must be one of %s, got '%s'.", implode(', ', array_keys($fences)), $fence));
+        }
+        $align = is_array($align) ? $align : [$align];
+        if ($align === [] || array_diff($align, Grid::COLUMN_ALIGN) !== []) {
+            throw new \InvalidArgumentException(sprintf('Math::matrix() align must be one or a list of %s.', implode(', ', Grid::COLUMN_ALIGN)));
+        }
+        $grid = new Grid(self::gridCells('matrix', $rows), $align);
+
+        return $fence === 'none' ? $grid : new Fenced($fences[$fence][0], $fences[$fence][1], $grid);
+    }
+
+    /**
+     * A piecewise definition: a left brace around rows of cells, every column left-aligned.
+     *
+     * @param list<list<string|Node>> $rows
+     *
+     * @throws \InvalidArgumentException for no cells
+     */
+    public static function cases(array $rows): Fenced
+    {
+        return new Fenced('{', '', new Grid(self::gridCells('cases', $rows), ['left']));
+    }
+
+    /**
+     * @param array<mixed> $rows
+     * @return list<list<Node>>
+     */
+    private static function gridCells(string $method, array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || $row === []) {
+                $out = [];
+                break;
+            }
+            $out[] = array_map(static fn (string|Node $cell): Node => self::row($cell), array_values($row));
+        }
+        if ($out === []) {
+            throw new \InvalidArgumentException(sprintf('Math::%s() needs at least one row with at least one cell.', $method));
+        }
+
+        return $out;
     }
 
     public static function text(string $text): Node
