@@ -75,5 +75,17 @@ final class ThemeOverrideDocxTest extends TestCase
         )));
         // Sized from the 1em marker (10pt) at the glyph's 1.25 scale: 12.5pt, 25 half-points.
         self::assertSame('25', $d->value('//w:r[w:t="○"]/w:rPr/w:sz/@w:val'));
+        // One symbol font for all four, listed in the font table with its PANOSE number for readers without it.
+        self::assertSame(['Segoe UI Symbol'], array_values(array_unique($d->values('//w:r[w:t="○" or w:t="☐"]/w:rPr/w:rFonts/@w:ascii'))));
+        self::assertSame('020B0502040204020203', $d->value('//w:font[@w:name="Segoe UI Symbol"]/w:panose1/@w:val', 'word/fontTable.xml'));
+    }
+
+    public function test_radio_markers_stay_round_up_to_the_largest_marker(): void
+    {
+        $d = self::export(Document::make(Page::a4()->body(Column::make(
+            ChoiceList::radio()->variant('big')->option('Yes', true)->option('No'),
+        )))->theme(new ThemeOverride(styles: ['choice.marker.big' => Style::make(width: Length::em(2), height: Length::em(2))])));
+
+        self::assertSame(['◉', '○'], array_values(array_filter($d->values('//w:t'), static fn (string $t): bool => in_array($t, ['◉', '○', '▣', '☐'], true))));
     }
 }

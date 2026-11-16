@@ -85,9 +85,10 @@ final class LineMetrics
         $descent = -$signed((int) $h['desc']) / $upm;
         // sCapHeight arrived in OS/2 version 2, at byte 88.
         $os2 = $tables->table('OS/2');
-        $version = $os2 !== null && strlen($os2) >= 90 ? unpack('n', $os2, 0) : false;
-        $cap = $version !== false && $version[1] >= 2 ? unpack('n', (string) $os2, 88) : false;
-        $capHeight = $cap !== false ? $signed((int) $cap[1]) / $upm : 0.0;
+        $version = $os2 !== null && strlen($os2) >= 90 ? unpack('nversion', $os2, 0) : false;
+        $cap = $version !== false && $version['version'] >= 2 ? unpack('ncap', (string) $os2, 88) : false;
+        // A font that leaves sCapHeight at 0 gets the fallback, as does a font without the field.
+        $capHeight = $cap !== false ? $signed((int) $cap['cap']) / $upm : 0.0;
 
         return [
             'natural' => $ratio,

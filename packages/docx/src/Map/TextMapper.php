@@ -12,6 +12,7 @@ use Papercut\Exception\InvalidValue;
 use Papercut\Export\Fidelity;
 use Papercut\Paint\Link;
 use Papercut\Style\{ComputedStyle, StyleResolver, TextAlign, Theme, WhiteSpace};
+use Papercut\Text\{FontClass, FontInfo};
 use Papercut\Tree\Visit;
 use Papercut\Value\{Color, Length};
 
@@ -30,6 +31,10 @@ final class TextMapper
      * Word for Mac with Segoe UI Symbol markers beside Arial at 10pt and 14pt, 0.75em to 2em markers.
      */
     private const float MARKER_DROP = 0.48;
+    /** Half the ink height of ○ ◉ ☐ ▣ in Segoe UI Symbol (0.36em) and a little more: Word clips ink above an exact line. */
+    private const float MARKER_INK_HALF = 0.37;
+    /** Segoe UI Symbol's PANOSE number, family and pitch, for the font table, so a reader without it picks a close stand-in. */
+    private const string MARKER_PANOSE = '020B0502040204020203';
 
     public function __construct(
         private readonly LineMetrics $metrics,
@@ -292,10 +297,10 @@ final class TextMapper
             }
             $filled = true;
         }
-        // Round once the corners take most of each side, not only at a full half: a radio marker enlarged
-        // by a variant keeps the theme's em radius, which no longer reaches half of the bigger box but still
-        // draws round in the PDF and HTML. A rounded checkbox (a sixth of its side) stays a square.
-        $round = $s->radius >= min($s->width->points, $s->height->points) / 3;
+        // Round once the corners take more than a third of each side, not only at a full half: a theme's own radio
+        // radius may not reach half of a box a variant enlarged, yet still draws round in the PDF and HTML. The
+        // built-in checkbox (a sixth of its side) stays a square, even shrunk to half its size (a third).
+        $round = $s->radius > min($s->width->points, $s->height->points) / 3;
 
         return $round ? ($filled ? '◉' : '○') : ($filled ? '▣' : '☐');
     }
@@ -309,23 +314,30 @@ final class TextMapper
      * Word honours neither a raised run nor centring here (an auto line grows around a raised glyph), so the
      * line is exact and its height places the glyph, whose centre Word sets a fixed share of its size above the
      * line's bottom. This is exact only when Word has the label's font: a font it stands in for has other metrics.
+     * The label is taken to share the marker's font, size and line height, as the PDF's one-line slot does. Google
+     * Docs turns an exact height into a multiple of its own line, so there the marker sits less exactly; Word is
+     * the reader this is tuned for.
      */
     public function glyphParagraph(string $glyph, ComputedStyle $s): Paragraph
     {
-        $halfPoints = Units::halfPoints($s->height instanceof Length ? $s->height->points * 1.25 : $s->fontSize);
+        if (!$s->height instanceof Length) {
+            throw new \LogicException('A marker glyph comes from glyph(), which only accepts a fixed height.');
+        }
+        $halfPoints = Units::halfPoints($s->height->points * 1.25);
         $size = $halfPoints / 2;
         // Word adds a multiple's extra space above the text, so the label's baseline sits its descent above the line's bottom.
         $capitals = $s->lineHeight * $s->fontSize
             - ($this->metrics->descent($s->fontFamily) + $this->metrics->capHeight($s->fontFamily) / 2) * $s->fontSize;
-        // A marker too big to centre there hangs from the top of the line rather than lose its top (ink is ±0.36em).
-        $centre = max($capitals, 0.37 * $size);
+        // A marker too big to centre there hangs from the top of the line rather than lose its top.
+        $centre = max($capitals, self::MARKER_INK_HALF * $size);
+        $font = $this->fonts->fixed(self::MARKER_FONT, new FontInfo(FontClass::Sans, self::MARKER_PANOSE, false));
 
         return new Paragraph(
             [new Run($glyph, new RunStyle(
                 sizeHalfPoints: $halfPoints,
                 color: Units::hex($s->borderColor),
-                fontFamily: self::MARKER_FONT,
-                fontFamilyEastAsia: self::MARKER_FONT,
+                fontFamily: $font,
+                fontFamilyEastAsia: $font,
             ))],
             new ParagraphStyle(lineSpacingTwips: Units::tw($centre + self::MARKER_DROP * $size), lineSpacingRule: 'exact'),
         );

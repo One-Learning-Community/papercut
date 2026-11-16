@@ -175,6 +175,8 @@ final class TextMapperTest extends TestCase
         self::assertSame('○', $glyph($sized(3.75)));
         self::assertSame('☐', $glyph($sized(1.25)));
         self::assertSame('☐', $glyph($sized(2.5)));
+        // A third exactly is still a square: the built-in checkbox radius on a box shrunk to half (0.375em).
+        self::assertSame('☐', $glyph(View::make()->width(pt(3.75))->height(pt(3.75))->border(pt(0.5), '#000000')->radius(pt(1.25))));
         self::assertNull($glyph(View::make()->width(pt(40))->height(pt(40))->border(pt(1), '#000000')));
         self::assertNull($glyph(View::make()->width(pt(8))->height(pt(8))));
         // A colour swatch is a picture of its fill, not a marker: it keeps its box.
