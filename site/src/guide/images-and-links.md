@@ -38,6 +38,41 @@ In Blade, a relative `src` is looked up inside `papercut.image_path`, which defa
 Never pass user input to `src`.
 :::
 
+### Alt text
+
+Say what a picture shows with `alt`, so screen readers and people who can't see it get the same information. A decorative picture needs none.
+
+::: code-tabs#style
+@tab Blade
+```blade
+<x-doc::image src="img/chart.png" alt="Sales by quarter, rising from 4 to 9 million" />
+<x-doc::image src="img/rule.png" alt="" />
+```
+@tab PHP
+```php
+use Papercut\Image;
+
+$png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+
+$chart = Image::bytes($png)->alt('Sales by quarter, rising from 4 to 9 million');
+$rule  = Image::bytes($png)->alt('');   // decorative
+
+$chart->altText();   // 'Sales by quarter, rising from 4 to 9 million'
+```
+:::
+
+`altText()` returns the text, or an empty string when there is none. An empty string means the picture is decorative. Whitespace in alt text is collapsed and trimmed. Papercut doesn't warn about pictures without alt text.
+
+`<img alt="…">` in HTML you convert with `Markup::html()` sets the alt text of the image it becomes.
+
+Where alt text ends up:
+
+| Format | What is written |
+|---|---|
+| HTML | The `alt` attribute of the `<img>`. Empty when decorative. |
+| Word | The picture's description, which Word reads out and shows as alt text. Empty when decorative. |
+| PDF | Not written yet. |
+
 ## SVG
 
 An SVG is drawn as vector paths, so logos, icons and charts stay sharp at any size.
@@ -96,7 +131,7 @@ Word export draws each SVG into a picture with `rsvg-convert` or Imagick. See [S
 
 Text in an SVG is set in your document's fonts and embedded like the rest of the PDF, so it prints the same everywhere. If the SVG's `font-family` names a family you've [registered](./fonts.md), that family is used; otherwise the text uses the font family of the `<x-doc::svg>` element itself. Bold and italic pick the matching faces, and your fallback families cover any characters the font is missing.
 
-In HTML exports, the browser sets SVG text in its own fonts, because an SVG shown as an image can't use the page's. If text needs to look the same in both formats, convert it to outlines in your design tool.
+In HTML exports, the browser sets SVG text in its own fonts by default, because an SVG shown as an image can't use the page's. The [`inlineSvgs` option](./html-export.md#inline-svgs) writes SVGs into the page, where their text uses the page's fonts. Otherwise, if text needs to look the same in both formats, convert it to outlines in your design tool.
 
 ### SVGs from other people
 
@@ -104,7 +139,22 @@ You can draw SVGs you didn't make yourself, such as an uploaded logo. Papercut n
 
 A relative `src` in Blade follows the same rules as for images, so keep user input out of `src`.
 
-In HTML exports, an SVG becomes an `<img>` with the SVG in a `data:` URI. It's never added to the page as markup, so a browser won't run anything in it or fetch anything it links to. The SVG's `<title>` becomes the image's alt text.
+In HTML exports, an SVG becomes an `<img>` with the SVG in a `data:` URI by default. It's not added to the page as markup, so a browser won't run anything in it or fetch anything it links to. The [`inlineSvgs` option](./html-export.md#inline-svgs) changes that, and comes with a warning.
+
+### Alt text for an SVG
+
+`<x-doc::svg>` and `Svg` take `alt` like an image. Without one, the SVG's root `<title>` is used. `alt('')` overrides the title and marks the SVG as decorative.
+
+```blade
+<x-doc::svg src="img/chart.svg" alt="Sales by quarter" />
+```
+
+```php
+$svg = Svg::file('chart.svg')->alt('Sales by quarter');
+$svg->altText();   // 'Sales by quarter'
+```
+
+In HTML, the alt text is the `<img>`'s `alt`. An inline SVG gets `role="img"` and `aria-label`, or `aria-hidden="true"` when it's decorative. In Word it's the picture's description. HTML you convert never produces an SVG, so there `alt` only reaches images.
 
 ## Links
 

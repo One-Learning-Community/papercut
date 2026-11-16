@@ -57,6 +57,41 @@ A PDF carries its fonts inside the file, but a browser has to load them from som
 
 [Equations](./equations.md) are written as MathML Core: `<math display="block">` for a block equation and `<math display="inline">` inside a line. The browser lays them out, so spacing can differ a little from the PDF. What font the browser uses depends on the [font mode](./web-fonts.md). With the default, `none`, the stylesheet still names "Papercut Math" first but defines no face for it, so the browser falls back to its own `math` font. `embed` embeds STIX Two Math (or your math font) in the page, `link` links to it, and `sources` embeds it as a `data:` URI, since no outside source serves it. A block equation is placed with margins.
 
+## Inline SVGs
+
+By default an SVG is written as an `<img>` with a `data:` URI. An SVG shown that way can't use the page's fonts, so its text is set in the browser's own, and the export reports `SVG text in the browser's own fonts (set inlineSvgs to use the page's fonts)`.
+
+Set `inlineSvgs` to write each SVG into the page as `<svg>` markup instead:
+
+::: code-tabs#style
+@tab Laravel
+```php
+// config/papercut.php
+'html' => [
+    'inline_svgs' => true,
+],
+```
+@tab PHP
+```php
+use Papercut\Export\HtmlOptions;
+
+$options = new HtmlOptions(inlineSvgs: true);
+// or: (new HtmlOptions())->withInlineSvgs(true)
+```
+:::
+
+With it on:
+
+- SVG text uses the font the PDF uses. A family you haven't registered is replaced by the document's family, as in the PDF. A family used only inside an SVG gets an `@font-face` rule in the [font modes](./web-fonts.md) that write them.
+- Every `id` is prefixed, with its references rewritten, and a `<style>` element is scoped to its own SVG, so several SVGs on one page can't clash with each other or with the page.
+- Comments are dropped.
+- An SVG with alt text gets `role="img"` and `aria-label`. A decorative one gets `aria-hidden="true"`.
+- An SVG is inlined only if every element in it is a standard SVG element and its `<title>` and `<desc>` hold only text. Any other SVG stays an `<img>`, and the export reports `SVG kept as an image (…)` with the reason.
+
+::: danger
+Inline SVG runs in the page. Turn `inlineSvgs` on only when you trust where every SVG comes from. Papercut removes scripts and event handlers, but not links (including `javascript:` links), animations that change links, or references to external images and other resources. Leave it off for SVGs that users upload.
+:::
+
 ## Image URLs
 
-Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` for any image you'd still like embedded. SVGs are always embedded as `data:` URIs, so `imageUrl` doesn't apply to them.
+Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` for any image you'd still like embedded. SVGs are always embedded, as `data:` URIs or inline markup, so `imageUrl` doesn't apply to them.

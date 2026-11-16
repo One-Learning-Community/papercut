@@ -5,6 +5,15 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Alt text. `Image::alt()` and `Svg::alt()` (and an `alt` attribute on `<x-doc::image>` and `<x-doc::svg>`) say what a picture shows, and `altText()` reads it back (an empty string means decorative). An SVG without alt text uses its root `<title>`, and `alt('')` overrides the title. `<img alt>` in HTML passed to `Markup::html()` now carries to the image. HTML writes it as `alt`, or as `role="img"` and `aria-label` (`aria-hidden="true"` when decorative) on an inline SVG, and Word writes it as the picture's description. The PDF doesn't use it yet.
+- `HtmlOptions` `inlineSvgs` (constructor argument and `withInlineSvgs()`; `html.inline_svgs` in Laravel), off by default. It writes SVGs into the page as markup, with ids prefixed and `<style>` scoped per SVG and comments dropped, and SVG text uses the font the PDF uses: a family you haven't registered is replaced by the document's, and a family used only in an SVG gets an `@font-face` rule in the font modes that write them. An SVG is inlined only when all its elements are standard SVG elements and its `<title>` and `<desc>` hold only text; otherwise it stays an image and the export reports `SVG kept as an image (…)`. Inline SVG runs in the page: Papercut removes scripts and event handlers but not links, animations that change links, or external references, so turn it on only when you trust every SVG. With it off, an SVG with text reports `SVG text in the browser's own fonts (set inlineSvgs to use the page's fonts)`.
+
+### Changed
+
+- Word: a picture without alt text now has an empty description, which marks it as decorative, instead of "image".
+
 ### Fixed
 
 - HTML: a minimum height on a table row or cell is written as `height`, not `min-height`, which browsers ignore on table rows and cells. Empty rows with a minimum height, such as blank rows to write in, now keep their height in a browser instead of collapsing to their padding. A row or cell's `height` still grows to fit its content, as in the PDF. When one of height and minimum height is a percentage and the other a length, the length is written, since a percentage height on a cell or row usually computes to auto.

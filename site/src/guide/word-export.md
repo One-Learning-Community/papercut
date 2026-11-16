@@ -66,6 +66,7 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | Anything else in a background or overlay layer, a border or background on a layer picture, PDF page templates, embedded PDF pages | ✗ left out |
 | Styled QR codes without Imagick | ≈ plain squares |
 | SVG text | ≈ in the system's fonts |
+| Alt text on an image or SVG | the picture's description in Word; empty for a decorative one. An image without alt text now has an empty description, not "image" |
 | Equations | in Cambria Math, whatever the PDF's math font; LibreOffice ignores their colour and size ([below](#equations-in-word)) |
 | Pictures without the PHP extension they need (below) | ✗ left out |
 

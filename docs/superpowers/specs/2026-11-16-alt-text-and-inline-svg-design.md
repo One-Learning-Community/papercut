@@ -2,6 +2,17 @@
 
 Ships in 0.14.1 with the table-cell height and math tokenizer fixes on branch `fix-0.14.1`.
 
+## What shipped differs
+
+- The getter is `altText(): string`, not `alt(): ?string`; `''` means decorative.
+- A decorative Word picture gets an empty description (php-docx's default would be "image"), so images without alt
+  text change from "image" to empty in Word.
+- Inlining is gated by an allowlist: an SVG is inlined only if all its elements are standard SVG elements and
+  `<title>`/`<desc>` hold only text. Otherwise it stays an `<img>` with the note `SVG kept as an image (…)`. This
+  replaces the narrower wording about `foreignObject` and about dropping unscoped rules.
+- Comments are dropped on the inline path.
+- The root default font family is written as a presentation attribute, so the SVG's own CSS can still override it.
+
 ## Why
 
 Two gaps found while showing a document's HTML export in a browser next to its PDF and Word files:
@@ -38,8 +49,8 @@ Two gaps found while showing a document's HTML export in a browser next to its P
 
 ### Setting it
 
-- `Image::alt(string $text): static` and `Svg::alt(string $text): static`, with an `alt(): ?string` getter.
-  `null` means not set.
+- `Image::alt(string $text): static` and `Svg::alt(string $text): static`, with an `altText(): string` getter.
+  An empty string means not set or decorative.
 - Blade: an `alt` attribute on `<x-doc::image>` and `<x-doc::svg>`.
 - Pasted HTML (`Markup::html()` / the HTML converter): `<img alt="…">` sets the alt of the `Image` the `<img>` becomes.
   The existing behaviour for a missing image (its alt shown as italic stand-in text, reported as approximated) is

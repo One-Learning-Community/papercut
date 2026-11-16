@@ -34,6 +34,7 @@ final readonly class HtmlOptions extends ExportOptions
         ?\Closure $imageUrl = null,
         ?\Closure $fontUrl = null,
         array $fontSources = [],
+        private bool $inlineSvgs = false,
     ) {
         parent::__construct($theme, $fonts, $onWarning, $strict);
         $this->imageUrl = $imageUrl;
@@ -69,9 +70,20 @@ final readonly class HtmlOptions extends ExportOptions
         return $this->fontSources;
     }
 
+    /** Whether an SVG is written as inline markup, so its text uses the page's fonts, instead of as an img. Use it only for trusted SVG. */
+    public function inlineSvgs(): bool
+    {
+        return $this->inlineSvgs;
+    }
+
     public function withFullPage(bool $on): self
     {
-        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $on, $this->fontMode, $this->imageUrl, $this->fontUrl, $this->fontSources);
+        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $on, $this->fontMode, $this->imageUrl, $this->fontUrl, $this->fontSources, $this->inlineSvgs);
+    }
+
+    public function withInlineSvgs(bool $on): self
+    {
+        return new self($this->theme(), $this->fonts(), $this->onWarning(), $this->strict(), $this->fullPage, $this->fontMode, $this->imageUrl, $this->fontUrl, $this->fontSources, $on);
     }
 
     public static function from(ExportOptions $o): self

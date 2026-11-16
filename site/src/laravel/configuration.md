@@ -44,6 +44,7 @@ php artisan vendor:publish --tag=papercut-config
 | `html.fonts` | `'none'` | `'none'`, `'embed'`, `'link'` or `'sources'`. See [Fonts in HTML](/guide/web-fonts.md). |
 | `html.font_url` | `null` | A `FontUrlResolver` class. Required when `fonts` is `'link'`. |
 | `html.image_url` | `null` | An `ImageUrlResolver` class. `null` embeds images as data URIs. |
+| `html.inline_svgs` | `false` | `true` writes SVGs into the page as markup so their text uses the page's fonts. Use only when you trust every SVG: inline SVG runs in the page. See [Inline SVGs](/guide/html-export.md#inline-svgs). |
 | `html.font_sources` | `[GoogleFonts::class]` | The font sources to check, in order, when `fonts` is `'sources'`. |
 | `html.google_fonts.host` | `'https://fonts.googleapis.com'` | Use `'https://fonts.bunny.net'` for Bunny Fonts. |
 | `html.google_fonts.display` | `'swap'` | `font-display`: `auto`, `block`, `swap`, `fallback` or `optional`. |
