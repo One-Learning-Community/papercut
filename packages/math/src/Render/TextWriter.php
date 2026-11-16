@@ -8,6 +8,7 @@ use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
+use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
@@ -61,7 +62,9 @@ final class TextWriter
             $n instanceof Root => self::root($n),
             $n instanceof Scripts => self::scripts($n),
             $n instanceof UnderOver => self::underOver($n),
+            $n instanceof Fenced && $n->open === '{' && $n->close === '' && $n->content instanceof Grid => '{' . self::grid($n->content, ', '),
             $n instanceof Fenced => $n->open . ($n->content instanceof Fraction && ! $n->content->bar ? self::stacked($n->content) : self::node($n->content)) . $n->close,
+            $n instanceof Grid => self::grid($n, ' '),
             $n instanceof Space => $n->em >= 0.15 ? ' ' : '',
             $n instanceof Phantom => '',
             $n instanceof Row => self::row($n),
@@ -69,6 +72,15 @@ final class TextWriter
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
+    }
+
+    /** Rows joined by "; " and cells by $sep: one line, whatever the shape. */
+    private static function grid(Grid $g, string $sep): string
+    {
+        return implode('; ', array_map(
+            static fn (array $row): string => implode($sep, array_map(static fn (Node $cell): string => trim(self::node($cell)), $row)),
+            $g->rows,
+        ));
     }
 
     private static function plain(string $name): string
@@ -112,7 +124,7 @@ final class TextWriter
     private static function atom(Node $n): bool
     {
         return match (true) {
-            $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Root, $n instanceof Scripts, $n instanceof UnderOver => true,
+            $n instanceof Identifier, $n instanceof Number, $n instanceof Fenced, $n instanceof Grid, $n instanceof Root, $n instanceof Scripts, $n instanceof UnderOver => true,
             $n instanceof Fraction => ! $n->bar,
             $n instanceof Text => preg_match('/\s/u', $n->text) !== 1,
             $n instanceof Fallback => $n->content !== null && self::atom($n->content),

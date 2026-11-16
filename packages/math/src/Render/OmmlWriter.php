@@ -8,6 +8,7 @@ use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
+use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
@@ -87,6 +88,7 @@ final class OmmlWriter
             $n instanceof Scripts => self::scripts($n, $rPr),
             $n instanceof UnderOver => self::underOver($n, $rPr),
             $n instanceof Fenced => self::fenced($n, $rPr),
+            $n instanceof Grid => self::grid($n, $rPr),
             $n instanceof Row => self::sequence($n->children, $rPr),
             $n instanceof DisplayStyle => self::node($n->content, $rPr),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content, $rPr),
@@ -111,6 +113,28 @@ final class OmmlWriter
             . self::node($f->content, $rPr)
             . ($close || $f->close === '' ? '' : self::run($f->close, $rPr))
             . '</m:e></m:d>';
+    }
+
+    /** Word's matrix. Row alignment and display style have no counterpart in OMML and are not written. */
+    private static function grid(Grid $g, string $rPr): string
+    {
+        if ($g->rows === [] || $g->columns === 0) {
+            return '';
+        }
+        $out = '<m:m><m:mPr><m:plcHide m:val="1"/><m:mcs>';
+        foreach ($g->columnAlign as $align) {
+            $out .= '<m:mc><m:mcPr><m:count m:val="1"/><m:mcJc m:val="' . $align . '"/></m:mcPr></m:mc>';
+        }
+        $out .= '</m:mcs></m:mPr>';
+        foreach ($g->rows as $row) {
+            $out .= '<m:mr>';
+            foreach ($row as $cell) {
+                $out .= '<m:e>' . self::node($cell, $rPr) . '</m:e>';
+            }
+            $out .= '</m:mr>';
+        }
+
+        return $out . '</m:m>';
     }
 
     /** Unicode spaces approximating the width; a negative space cannot be written and gives nothing. */
