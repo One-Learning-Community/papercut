@@ -27,7 +27,7 @@ There are two kinds of item.
 
 ## Drawing a glyph
 
-`TrueTypeFont::outlinePath($gid)` returns the glyph's outline as path data: absolute `M`, `L`, `Q` and `Z` commands in font units, with y pointing up, cached per glyph. An empty glyph, such as a space, gives an empty string.
+`Font::outlinePath($gid)` returns the glyph's outline as path data: absolute `M`, `L`, `Q` and `Z` commands in font units, with y pointing up, cached per glyph. An empty glyph, such as a space, gives an empty string.
 
 To place it, scale by `size / unitsPerEm`, multiply by `sx` and `sy`, and flip y:
 
@@ -71,7 +71,7 @@ A PDF backend can set ordinary letters as real text, so they can be selected and
 
 ## Fonts
 
-STIX Two Math is bundled and is the default. Load another math font with `TrueTypeFont::fromFile($path)` and pass it to both `Math::layout(..., font: $font)` and the writer.
+STIX Two Math is bundled and is the default. Load another math font with `Font::fromFile($path)` and pass it to both `Math::layout(..., font: $font)` and the writer.
 
 The font needs an OpenType `MATH` table and TrueType outlines. Fonts with CFF outlines are not read yet. A font that can't be used throws `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason.
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Quoin\Math;
 
-use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\Font;
 use Quoin\Math\Layout\Box;
 use Quoin\Math\Layout\Context;
 use Quoin\Math\Mathml\MathmlReader;
@@ -33,7 +33,7 @@ use Quoin\Math\Tex\TexReader;
 final class Math
 {
     /** The bundled STIX Two Math, opened once per process. */
-    private static ?TrueTypeFont $stix = null;
+    private static ?Font $stix = null;
 
     /** Path of the bundled STIX Two Math font (SIL OFL 1.1, see resources/fonts/OFL.txt). */
     public static function stixTwoMathPath(): string
@@ -41,9 +41,9 @@ final class Math
         return __DIR__ . '/../resources/fonts/STIXTwoMath-Regular.ttf';
     }
 
-    public static function stixTwoMath(): TrueTypeFont
+    public static function stixTwoMath(): Font
     {
-        return self::$stix ??= TrueTypeFont::fromFile(self::stixTwoMathPath());
+        return self::$stix ??= Font::fromFile(self::stixTwoMathPath());
     }
 
     /** Total heights in em of the four fixed delimiter sizes (TeX's \big to \Bigg). */
@@ -502,7 +502,7 @@ final class Math
         Node $root,
         float $size = 12.0,
         bool $display = true,
-        ?TrueTypeFont $font = null,
+        ?Font $font = null,
         bool $scriptAlternates = true,
         ?\Closure $fallbackAdvance = null,
     ): Box {

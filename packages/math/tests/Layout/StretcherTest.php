@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Quoin\Math\Tests\Layout;
 
 use Quoin\Math\Font\AssemblyPart;
-use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\Font;
 use Quoin\Math\Layout\Stretcher;
 use Quoin\Math\Math;
 use PHPUnit\Framework\TestCase;
 
 final class StretcherTest extends TestCase
 {
-    private function font(): TrueTypeFont
+    private function font(): Font
     {
-        return TrueTypeFont::fromFile(Math::stixTwoMathPath());
+        return Font::fromFile(Math::stixTwoMathPath());
     }
 
     public function test_horizontal_picks_variant(): void
@@ -64,7 +64,7 @@ final class StretcherTest extends TestCase
      *
      * @return list<array{int, float}> [cap, actual overlap] per joint
      */
-    private function jointOverlaps(TrueTypeFont $font, int $gid, float $required): array
+    private function jointOverlaps(Font $font, int $gid, float $required): array
     {
         $r = Stretcher::horizontal($font, $gid, $required);
         $byGid = [];
@@ -96,7 +96,7 @@ final class StretcherTest extends TestCase
      *
      * @param list<array{int, float}> $pieces
      */
-    private function runLength(TrueTypeFont $font, int $gid, array $pieces): float
+    private function runLength(Font $font, int $gid, array $pieces): float
     {
         $byGid = [];
         foreach ($font->math()->horizontal($gid)->parts ?? [] as $p) {

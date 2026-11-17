@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Quoin\Math\Layout;
 
-use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\Font;
 
 /**
  * Immutable layout state: font, base size, script level and math style (display or inline/text).
@@ -23,7 +23,7 @@ final readonly class Context
     private float $unit;
 
     public function __construct(
-        public TrueTypeFont $font,
+        public Font $font,
         public float $baseSize,
         public int $level = 0,
         public bool $display = true,

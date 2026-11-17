@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Quoin\Laravel;
 
-use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\Font;
 use Quoin\Text\FontStyle;
 
 /**
@@ -68,7 +68,7 @@ final class FontConfig
         }
         $path = self::resolve($path);
         try {
-            TrueTypeFont::fromFile($path);
+            Font::fromFile($path);
         } catch (\Throwable $e) {
             throw self::invalid('quoin.math_font', $e->getMessage());
         }

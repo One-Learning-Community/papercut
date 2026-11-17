@@ -3,3 +3,6 @@ parameters:
     paths:
         - src
         - tests
+    excludePaths:
+        # Deprecated class_alias shim; analysing it reports the alias as an unknown class.
+        - src/Font/TrueTypeFont.php

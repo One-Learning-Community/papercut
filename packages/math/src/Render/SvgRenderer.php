@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Quoin\Math\Render;
 
-use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\Font;
 use Quoin\Math\Layout\Box;
 use Quoin\Math\Layout\DisplayItem;
 use Quoin\Math\Layout\Glyph;
@@ -16,7 +16,7 @@ use Quoin\Math\Layout\Rule;
  */
 final class SvgRenderer
 {
-    public function __construct(private readonly TrueTypeFont $font, private readonly string $color = '#000000', private readonly float $opacity = 1.0)
+    public function __construct(private readonly Font $font, private readonly string $color = '#000000', private readonly float $opacity = 1.0)
     {
     }
 

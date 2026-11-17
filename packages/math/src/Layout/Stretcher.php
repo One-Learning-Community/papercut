@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Quoin\Math\Layout;
 
-use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\Font;
 
 /**
  * Picks a size variant, or builds a GlyphAssembly, for a stretchy glyph, vertically (fences, radicals) or
@@ -22,7 +22,7 @@ final class Stretcher
      * @return array{pieces: list<array{int,float,float}>, ymin: float, ymax: float, advance: float}
      *         pieces: [gid, y origin offset in font units, up, scale along y (assembly pieces only; 1.0 unless a run of one straight extender is drawn once)]. Assemblies span ymin = 0 .. ymax = size.
      */
-    public static function vertical(TrueTypeFont $font, int $gid, float $requiredUnits): array
+    public static function vertical(Font $font, int $gid, float $requiredUnits): array
     {
         $requiredUnits = min($requiredUnits, self::MAX_STRETCH_EM * $font->unitsPerEm);
         $con = $font->math()->vertical($gid);
@@ -87,7 +87,7 @@ final class Stretcher
      *         baseline. An assembly can come out wider than requested when the parts cannot overlap enough to shrink
      *         to it, and shorter when the extenders add no length or the repetition ceiling is hit.
      */
-    public static function horizontal(TrueTypeFont $font, int $gid, float $requiredUnits): array
+    public static function horizontal(Font $font, int $gid, float $requiredUnits): array
     {
         $requiredUnits = min($requiredUnits, self::MAX_STRETCH_EM * $font->unitsPerEm);
         $con = $font->math()->horizontal($gid);
@@ -134,7 +134,7 @@ final class Stretcher
      * @param list<array{\Quoin\Math\Font\AssemblyPart, float}> $placed
      * @return list<array{\Quoin\Math\Font\AssemblyPart, float, float}>
      */
-    private static function merge(TrueTypeFont $font, array $placed, bool $vertical): array
+    private static function merge(Font $font, array $placed, bool $vertical): array
     {
         $out = [];
         $last = -1;
@@ -156,7 +156,7 @@ final class Stretcher
      * @param list<\Quoin\Math\Font\AssemblyPart> $parts bottom to top
      * @return array{pieces: list<array{int,float,float}>, ymin: float, ymax: float, advance: float}
      */
-    private static function assemble(TrueTypeFont $font, array $parts, float $required): array
+    private static function assemble(Font $font, array $parts, float $required): array
     {
         [$placed, $size] = self::solveParts($parts, $required, $font->math()->minConnectorOverlap);
         $pieces = [];

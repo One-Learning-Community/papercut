@@ -12,7 +12,7 @@ $box = Math::layout($formula, size: 12.0, display: true);
 |---|---|---|
 | `size` | `12.0` | Font size in points. In a browser, SVG points are CSS pixels. |
 | `display` | `true` | Display style, for a formula on its own line: large operators carry their limits above and below, fractions are full size. `false` is text style, for a formula inside a line. |
-| `font` | STIX Two Math | A `TrueTypeFont`; see [Custom backends](./backends.md#fonts). |
+| `font` | STIX Two Math | A `Font`; see [Custom backends](./backends.md#fonts). |
 | `scriptAlternates` | `true` | Use the font's script-size glyph forms. Turn it off when your output can only draw glyphs reachable from a character. |
 | `fallbackAdvance` | `null` | A `Closure(string $char, float $size): ?float` that gives the width of a character the font lacks, for a backend that draws such characters in another font. |
 

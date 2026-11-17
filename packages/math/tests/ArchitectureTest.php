@@ -10,7 +10,7 @@ final class ArchitectureTest extends TestCase
 {
     /** The builder, nodes, boxes and writers are the public API; the layout state, font readers and tokenizer are the engine. */
     private const INTERNAL = [
-        'Font/AssemblyPart.php', 'Font/Binary.php', 'Font/Coverage.php', 'Font/GlyphConstruction.php', 'Font/Gsub.php',
+        'Font/AssemblyPart.php', 'Font/Binary.php', 'Font/CffOutlines.php', 'Font/Coverage.php', 'Font/GlyphConstruction.php', 'Font/Gsub.php',
         'Font/MathKern.php', 'Font/MathTable.php', 'Layout/Context.php', 'Layout/Run.php', 'Layout/Stretcher.php',
         'Node/Forms.php', 'OperatorDictionary.php', 'Render/Xml.php', 'ScriptChars.php',
         'Tex/TexClass.php', 'Tex/TexCursor.php', 'Tex/TexEnvironments.php', 'Tex/TexLexer.php', 'Tex/TexMacros.php', 'Tex/TexSymbols.php',
