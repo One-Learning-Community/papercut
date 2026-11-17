@@ -274,7 +274,7 @@ $document->toPdf(new PdfOptions(fonts: $fonts));
 
 In Laravel, set `math_font` in `config/quoin.php` to the file's path, or leave it `null` for the bundled font.
 
-The font must be an OpenType math font with a `MATH` table. Its outlines may be TrueType (`.ttf`) or CFF (`.otf`), so Latin Modern Math works. A CFF2 (variable) font, a CID-keyed CFF font, a font collection or a font without a `MATH` table is rejected with `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason. A PDF embeds a CFF font whole, so it grows by about the size of the font file; see [Fonts](./fonts.md#the-math-font). The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
+The font must be an OpenType math font with a `MATH` table. Its outlines may be TrueType (`.ttf`) or CFF (`.otf`), so Latin Modern Math works. A CFF2 (variable) font, a CID-keyed CFF font, a CFF font whose `FontMatrix` disagrees with its units per em, a font collection or a font without a `MATH` table is rejected with `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason. A PDF embeds a CFF font whole, which adds a few hundred KB for a large font; see [Fonts](./fonts.md#the-math-font). The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
 
 A character the math font has no glyph for, such as a CJK ideograph or an emoji, is drawn with the document's [fallback fonts](./fonts.md#fallback-fonts).
 

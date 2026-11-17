@@ -45,7 +45,7 @@ KaTeX and MathJax are the standard tools for math on the web, and they are excel
 
 `quoin/math` is the PHP-only alternative. It reads the TeX KaTeX reads (gaps listed under [Input](./input.md#tex)), runs in your PHP process and returns a string. It also writes Word equations, which neither JavaScript library does.
 
-Not yet supported: fonts other than STIX Two Math, line breaks inside long formulas, color and boxes within a formula, and equation numbers.
+Not yet supported: line breaks inside long formulas, color and boxes within a formula, and equation numbers.
 
 ## Speed and safety
 

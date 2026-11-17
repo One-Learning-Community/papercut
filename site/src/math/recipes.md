@@ -50,7 +50,7 @@ $box = Math::layout(Math::tex('\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}
 echo (new SvgRenderer($font, 'currentColor'))->render($box, pad: 2.0);
 ```
 
-Load the font once and pass the same object to the layout and the renderer. SVG, PNG and MathML output carry no font, so the file costs nothing there. In a PDF the font is embedded whole, which adds about 400 KB; see [Fonts](/guide/fonts.md#the-math-font).
+Load the font once and pass the same object to the layout and the renderer. SVG, PNG and MathML output carry no font, so the file costs nothing there. In a PDF the font is embedded whole, which adds about 390 KB; see [Fonts](/guide/fonts.md#the-math-font).
 
 Other math fonts with CFF outlines load the same way: New Computer Modern Math, the TeX Gyre math fonts, Fira Math, Libertinus Math and XITS Math. In a document, point the font set at the file with `withMathFont()`, or set `math_font` in Laravel.
 

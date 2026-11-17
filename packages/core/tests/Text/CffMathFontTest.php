@@ -16,7 +16,9 @@ final class CffMathFontTest extends TestCase
     private function fira(): string
     {
         $path = __DIR__ . '/../../vendor/quoin/math/tests/fixtures/FiraMath-Regular.otf';
-        $this->assertFileExists($path);
+        if (!is_file($path)) {
+            $this->markTestSkipped('the math package test fixtures are not installed (dist archive)');
+        }
 
         return $path;
     }

@@ -15,11 +15,11 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 - `Quoin\Math\Font\TrueTypeFont` is renamed `Font`, since it reads both outline formats. `TrueTypeFont` remains as a deprecated alias until 1.0.
 - `Font::outlinePath()` may return `C` (cubic) commands for a CFF font, so its contract is M, L, Q, C and Z. A TrueType font never produces `C`. A custom backend must handle `C`.
-- `UnsupportedFont` gives new reasons (CFF2, CID-keyed CFF, `FontMatrix`), and a file that is not a font now says so instead of reporting a missing `MATH` table.
+- `UnsupportedFont` gives new reasons (CFF2, CID-keyed CFF, `FontMatrix`), and a file that is not a font now says so instead of reporting a missing `MATH` table. A missing required table, a missing usable `cmap` and a table that runs past the end of the file now throw `UnsupportedFont` (an `InvalidArgumentException`) naming the file; they threw `RuntimeException` before, so code that caught `RuntimeException` around `Font::fromFile()` must catch `UnsupportedFont`.
 
 ### Known differences
 
-- A PDF embeds a CFF math font whole instead of subsetting it, so a large font makes a large file. A page with one equation is 135 KB in Fira Math (a 175 KB font) and 471 KB in Latin Modern Math (716 KB), against 71 KB with the bundled STIX Two Math. SVG, PNG and MathML output carry no font.
+- A PDF embeds a CFF math font whole instead of subsetting it, so a large font makes a large file. One equation adds about 60 KB to a PDF in Fira Math (a 175 KB font) and about 390 KB in Latin Modern Math (716 KB). SVG, PNG and MathML output carry no font.
 
 ## [0.16.0] - 2026-11-17
 

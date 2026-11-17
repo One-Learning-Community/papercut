@@ -115,7 +115,7 @@ foreach (Math::notes($formula) as $note) {
 
 ### Missing glyphs
 
-Some math fonts lack whole alphabets: Fira Math has no script or Fraktur letters, and Euler has no double-struck ones. A character the font has no glyph for is drawn as the font's missing-glyph box. These notes depend on the font, so they come from the laid-out box instead of the formula. `$box->notes()` returns one `Dropped` note per such character, with the character as `element`.
+Some math fonts lack whole alphabets: Fira Math has no script or Fraktur letters, and Euler has no double-struck ones. A character the font has no glyph for is drawn as the font's missing-glyph box. These notes depend on the font, so they come from the laid-out box. `$box->notes()` returns one `Dropped` note per such character, with the character as `element`.
 
 ```php
 $box = Math::layout(Math::tex('\mathcal{L}(x)'), font: $fira);

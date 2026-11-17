@@ -62,7 +62,7 @@ $box->each(function (DisplayItem $item, float $dx, float $dy) use ($font, $canva
 });
 ```
 
-`$canvas` stands for your drawing API. Cache the parsed commands per glyph if you draw many formulas. `Q` is a quadratic curve and `C` a cubic one. A TrueType font writes only `Q`; a font with CFF outlines writes only `C`, so a backend that accepts any math font handles both. If your API has only cubic curves, a quadratic from `p0` through control point `q` to `p1` is the cubic with control points `p0 + ⅔(q − p0)` and `p1 + ⅔(q − p1)`.
+`$canvas` stands for your drawing API. Cache the parsed commands per glyph if you draw many formulas. `Q` is a quadratic curve and `C` a cubic one. The only curve a TrueType font writes is `Q`, and the only curve a font with CFF outlines writes is `C`, so a backend that accepts any math font handles both. If your API has only cubic curves, a quadratic from `p0` through control point `q` to `p1` is the cubic with control points `p0 + ⅔(q − p0)` and `p1 + ⅔(q − p1)`.
 
 ## Glyphs as text
 
