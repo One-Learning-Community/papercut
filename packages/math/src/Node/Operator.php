@@ -77,7 +77,9 @@ final class Operator extends Node
         }
         $glyphs = array_map(static fn (string $ch): array => [mb_ord($ch), $ch], mb_str_split($this->char));
         $b = Run::build($c, $glyphs, $c->mu($l), $c->mu($r));
-        $b->italic = 0.0;
+        if (! $this->isLargeop($form)) {
+            $b->italic = 0.0; // a large operator keeps its italics correction: its superscript sits that far right of its subscript
+        }
 
         return $b;
     }
@@ -99,6 +101,7 @@ final class Operator extends Node
         $shift = $m->constant('axisHeight') - ($s['ymin'] + $s['ymax']) / 2;
         $single = count($s['pieces']) === 1;
         $b = new Box($lead + $s['advance'] * $u + $trail, ($s['ymax'] + $shift) * $u, -($s['ymin'] + $shift) * $u);
+        $b->trail = $trail;
         foreach ($s['pieces'] as [$pg, $off]) {
             $b->add(new Glyph($pg, $single ? $this->char : null, $lead, -($off + $shift) * $u, $c->size()));
         }

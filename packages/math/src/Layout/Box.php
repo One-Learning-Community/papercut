@@ -33,6 +33,13 @@ final class Box
     public ?float $lastDescent = null;
 
     /**
+     * Space after the last glyph that is part of $width (an operator's rspace); scripts attach before it and it follows them.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public float $trail = 0.0;
+
+    /**
      * @param float $italic italics correction of the last glyph, in points (used to place superscripts)
      * @param bool $simple true for a single token (letter, digit run, operator): scripts then ignore the base's height
      */

@@ -71,6 +71,7 @@ final class Row extends Node
         $out->width = $x;
         if ($last !== null) {
             $out->italic = $last->italic;
+            $out->trail = $last->trail;
             $out->lastGid = $last->lastGid;
             $out->lastAscent = $last->lastAscent ?? $last->ascent;
             $out->lastDescent = $last->lastDescent ?? $last->descent;

@@ -123,6 +123,22 @@ final class UnderOverTest extends TestCase
         }
     }
 
+    public function test_inline_limits_on_a_large_operator_are_nudged_apart_by_its_italic_correction(): void
+    {
+        // An inline integral with limits above and below: the over limit sits half its italic correction right of centre, the under limit half left, as in display.
+        $f = Math::stixTwoMath();
+        foreach ([false, true] as $display) {
+            $box = Math::layout(new UnderOver(new Operator('∫'), Math::row('1'), Math::row('1')), self::SIZE, $display);
+            $int = self::glyphs($box)[0];
+            $limits = array_values(array_filter(self::glyphs($box), static fn (Glyph $g): bool => $g->text === '1'));
+            [$over, $under] = $limits[0]->y < $limits[1]->y ? [$limits[0], $limits[1]] : [$limits[1], $limits[0]];
+            $delta = $f->math()->italicsCorrection($int->gid) * $int->size / $f->unitsPerEm;
+
+            self::assertGreaterThan(0.0, $delta);
+            self::assertEqualsWithDelta($delta, $over->x - $under->x, 0.01, $display ? 'display' : 'inline');
+        }
+    }
+
     public function test_limit_operator_flags_override_dictionary(): void
     {
         $stackedInline = new UnderOver(new Operator('∑', false, null, false), Math::row('i'), Math::row('n'));

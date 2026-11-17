@@ -47,6 +47,7 @@ final class Run
         }
         $box->italic = $last ? $f->math()->italicsCorrection($last) * $u : 0.0;
         $box->width += $trail;
+        $box->trail = $trail;
 
         return $box;
     }

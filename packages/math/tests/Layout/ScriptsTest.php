@@ -7,6 +7,8 @@ namespace Papercut\Math\Tests\Layout;
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Math;
+use Papercut\Math\Node\Operator;
+use Papercut\Math\Node\Scripts;
 use PHPUnit\Framework\TestCase;
 
 final class ScriptsTest extends TestCase
@@ -92,5 +94,70 @@ final class ScriptsTest extends TestCase
         $baseW = $f->advance($f->gid(0x1D453)) * 12.0 / $f->unitsPerEm;
 
         self::assertLessThan($baseW, $g[1]->x);
+    }
+
+    /** @return array{0: Glyph, 1: Glyph, 2: Glyph, 3: Box} */
+    private static function integralParts(bool $display): array
+    {
+        $box = Math::layout(Math::integral('0', '1'), 12.0, $display);
+
+        return [self::glyphWithText($box, '∫'), self::glyphWithText($box, '0'), self::glyphWithText($box, '1'), $box];
+    }
+
+    private static function assertLimitsHugTheSign(bool $display): void
+    {
+        $f = Math::stixTwoMath();
+        [$int, $sub, $sup, $box] = self::integralParts($display);
+        $unit = $int->size / $f->unitsPerEm;
+        $adv = $f->advance($int->gid) * $unit;
+        $ic = $f->math()->italicsCorrection($int->gid) * $unit;
+
+        self::assertEqualsWithDelta($int->x + $adv, $sub->x, 0.05);
+        self::assertEqualsWithDelta($sub->x + $ic, $sup->x, 0.05);
+
+        // The operator's trailing space (3/18 em) comes after the scripts, with spaceAfterScript.
+        $edge = max($sub->x + $f->advance($sub->gid) * $sub->size / $f->unitsPerEm, $sup->x + $f->advance($sup->gid) * $sup->size / $f->unitsPerEm);
+        $after = 3 / 18 * 12.0 + $f->math()->constant('spaceAfterScript') * $unit;
+        self::assertEqualsWithDelta($after, $box->width - $edge, 0.05);
+    }
+
+    public function test_integral_limits_hug_the_sign_in_display(): void
+    {
+        self::assertLimitsHugTheSign(true);
+    }
+
+    public function test_integral_limits_hug_the_sign_inline(): void
+    {
+        self::assertLimitsHugTheSign(false);
+    }
+
+    /** The script attaches at the base's last glyph's advance; the operator's rspace follows the script, so the width is the same as before. */
+    private static function assertScriptSkipsTrailingSpace(Box $box, string $opText, float $rspace): void
+    {
+        $f = Math::stixTwoMath();
+        $op = self::glyphWithText($box, $opText);
+        $sup = self::glyphWithText($box, '2');
+        $adv = $f->advance($op->gid) * $op->size / $f->unitsPerEm;
+        $supAdv = $f->advance($sup->gid) * $sup->size / $f->unitsPerEm;
+        $after = $f->math()->constant('spaceAfterScript') * $op->size / $f->unitsPerEm;
+
+        self::assertEqualsWithDelta($op->x + $adv, $sup->x, 0.05, 'no gap for the operator\'s rspace');
+        // Old placement: the script after the whole base (rspace included); the box ends at the same place.
+        self::assertEqualsWithDelta($op->x + $adv + $rspace + $supAdv + $after, $box->width, 0.05);
+    }
+
+    public function test_script_on_an_operator_attaches_at_its_advance(): void
+    {
+        // '=' in prefix form takes 5/18 em after it (the dictionary's infix entry).
+        $box = Math::layout(new Scripts(new Operator('='), null, Math::row('2')));
+
+        self::assertScriptSkipsTrailingSpace($box, '=', 5 / 18 * 12.0);
+    }
+
+    public function test_script_on_a_row_ending_in_an_operator_attaches_at_its_advance(): void
+    {
+        $box = Math::layout(Math::sup(Math::row('a', '+'), '2'));
+
+        self::assertScriptSkipsTrailingSpace($box, '+', 4 / 18 * 12.0);
     }
 }
