@@ -1,0 +1,78 @@
+# Custom backends
+
+The SVG and PNG writers are short loops over a public display list. Any API that can fill a path can draw a formula the same way.
+
+## The display list
+
+`Math::layout()` returns a `Box`. Its numbers are points. The origin is the left end of the baseline, and y points down, so anything above the baseline has a negative y.
+
+Walk it with `each()`, which hands you every item with the offset of the box it sits in:
+
+```php
+use Papercut\Math\Layout\DisplayItem;
+use Papercut\Math\Layout\Glyph;
+use Papercut\Math\Layout\Rule;
+
+$box->each(function (DisplayItem $item, float $dx, float $dy): void {
+    // the item's position on the page is ($dx + $item->x, $dy + $item->y)
+});
+```
+
+There are two kinds of item.
+
+- **`Rule`**: a filled rectangle, such as a fraction bar or the top of a radical. `x` and `y` are its top-left corner, `w` and `h` its size.
+- **`Glyph`**: one glyph of the math font. `gid` is the glyph id, `(x, y)` its origin on the baseline, `size` the font size. `sx` and `sy` stretch the outline about the origin; they are 1.0 except on a stretched delimiter or arrow, where one straight piece is scaled to cover a long run. Ignore them and a tall bracket comes out short.
+
+`$box->items` gives the same items as a flat list with absolute positions. It is built on every read, so read it once, or prefer `each()`.
+
+## Drawing a glyph
+
+`TrueTypeFont::outlinePath($gid)` returns the glyph's outline as path data: absolute `M`, `L`, `Q` and `Z` commands in font units, with y pointing up, cached per glyph. An empty glyph, such as a space, gives an empty string.
+
+To place it, scale by `size / unitsPerEm`, multiply by `sx` and `sy`, and flip y:
+
+```php
+$font = Math::stixTwoMath();
+
+$box->each(function (DisplayItem $item, float $dx, float $dy) use ($font, $canvas): void {
+    if ($item instanceof Rule) {
+        $canvas->fillRect($dx + $item->x, $dy + $item->y, $item->w, $item->h);
+
+        return;
+    }
+    if (! $item instanceof Glyph) {
+        return;
+    }
+    $k = $item->size / $font->unitsPerEm;
+    $x = static fn (float $u): float => $dx + $item->x + $u * $k * $item->sx;
+    $y = static fn (float $v): float => $dy + $item->y - $v * $k * $item->sy;
+
+    preg_match_all('/([MLQZ])([^MLQZ]*)/', $font->outlinePath($item->gid), $commands, PREG_SET_ORDER);
+    foreach ($commands as [, $op, $args]) {
+        $n = array_map('floatval', preg_split('/ /', trim($args), -1, PREG_SPLIT_NO_EMPTY));
+        match ($op) {
+            'M' => $canvas->moveTo($x($n[0]), $y($n[1])),
+            'L' => $canvas->lineTo($x($n[0]), $y($n[1])),
+            'Q' => $canvas->quadTo($x($n[0]), $y($n[1]), $x($n[2]), $y($n[3])),
+            'Z' => $canvas->closePath(),
+        };
+    }
+    $canvas->fill();   // nonzero winding
+});
+```
+
+`$canvas` stands for your drawing API. Cache the parsed commands per glyph if you draw many formulas. If your API has only cubic curves, a quadratic from `p0` through control point `q` to `p1` is the cubic with control points `p0 + ⅔(q − p0)` and `p1 + ⅔(q − p1)`.
+
+## Glyphs as text
+
+A PDF backend can set ordinary letters as real text, so they can be selected and searched, as Papercut's PDF output does. `Glyph::$text` holds the character a glyph stands for. Set a glyph as text only when `text` is a single code point and the font maps that code point to `gid` (`$font->gid($codePoint) === $glyph->gid`), and `sx` and `sy` are 1.0. Draw every other glyph as an outline: stretched pieces have no character, and script-size forms share a character with the full-size glyph.
+
+`SvgRenderer::glyphPaths($glyphs, $box)` draws just the glyphs you pass, as an SVG in the box's own coordinates (baseline at y = 0), for a backend that sets text itself and only needs the rest as shapes.
+
+## Fonts
+
+STIX Two Math is bundled and is the default. Load another math font with `TrueTypeFont::fromFile($path)` and pass it to both `Math::layout(..., font: $font)` and the writer.
+
+The font needs an OpenType `MATH` table and TrueType outlines. Fonts with CFF outlines are not read yet. A font that can't be used throws `Papercut\Math\Exception\UnsupportedFont`, which names the file and the reason.
+
+A character the font has no glyph for is laid out with the font's `.notdef` glyph. If your backend draws such characters in another font, pass `fallbackAdvance` to `Math::layout()` so the layout leaves room for them.

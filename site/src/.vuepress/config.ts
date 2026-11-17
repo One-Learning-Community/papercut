@@ -46,6 +46,7 @@ export default defineUserConfig({
     navbar: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Laravel', link: '/laravel/' },
+      { text: 'Math', link: '/math/' },
       { text: 'Reference', link: '/reference/blade-tags.html' },
       { text: 'Examples', link: '/examples.html' },
       { text: 'Gallery', link: '/gallery.html' },
@@ -78,6 +79,12 @@ export default defineUserConfig({
         {
           text: 'Laravel',
           children: ['/laravel/', '/laravel/configuration.md', '/laravel/preview.md', '/laravel/recipes.md', '/tools/tailwind.md'],
+        },
+      ],
+      '/math/': [
+        {
+          text: 'papercut/math',
+          children: ['/math/', '/math/recipes.md', '/math/input.md', '/math/output.md', '/math/backends.md'],
         },
       ],
       '/reference/': [

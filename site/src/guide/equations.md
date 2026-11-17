@@ -16,7 +16,7 @@ Equation::of('x', '=', Math::frac(
 ))->center();
 ```
 
-The builder lives in the `papercut/math` package, which `papercut/core` installs for you.
+The builder lives in the `papercut/math` package, which `papercut/core` installs for you. That package also works without Papercut, to put formulas in web pages, email or Word files: see [Math](/math/).
 
 ## Building a formula
 
@@ -217,7 +217,7 @@ $document->toPdf(new PdfOptions(onWarning: fn (string $message) => error_log($me
 // pdf: approximated math <menclose> (drawn as its contents) at …
 ```
 
-To read the notes yourself, `Math::notes($node)` returns them as a list of `MathNote`, each with a `level`, the `element` name, a `reason` and where it was found. The `papercut/math` package's README describes the reader in full.
+To read the notes yourself, `Math::notes($node)` returns them as a list of `MathNote`, each with a `level`, the `element` name, a `reason` and where it was found. [Input](/math/input.md#notes) describes the readers in full.
 
 ## TeX input
 
