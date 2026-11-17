@@ -1296,7 +1296,7 @@ final class TexReader
         return self::withNotes($node, $lost);
     }
 
-    /** `\substack{a \\ b}`: stacked lines, centred, for under- and overscripts. */
+    /** `\substack{a \\ b}`: stacked lines, centered, for under- and overscripts. */
     private function substack(int $at): Node
     {
         $this->c->skipSp();
@@ -1751,7 +1751,7 @@ final class TexReader
     }
 
     /**
-     * One token of text as the characters it adds. A command text mode cannot honour adds nothing (an accent, a style: the
+     * One token of text as the characters it adds. A command text mode cannot honor adds nothing (an accent, a style: the
      * letters it covers stay) or its own name (unknown), and is recorded in $found.
      *
      * @param array{string, string, int} $t

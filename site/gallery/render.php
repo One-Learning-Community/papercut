@@ -69,7 +69,7 @@ function render(string $source, string $image, int $pages): void
         }
         $images = array_map(static fn (string $f): \GdImage => imagecreatefrompng($f) ?: throw new \RuntimeException("cannot read $f"), $files);
         if ($pages === 1) {
-            // Cropped to the content, then centred on the page's width, so a narrow component keeps the scale of a wide one.
+            // Cropped to the content, then centered on the page's width, so a narrow component keeps the scale of a wide one.
             $result = Raster::centerOn(Raster::trim($images[0], 24), imagesx($images[0]));
         } else {
             $result = Raster::trim(Raster::sideBySide($images, 32, 1), 24);

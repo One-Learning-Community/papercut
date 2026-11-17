@@ -33,10 +33,10 @@ final class PngRenderer
     private array $outlines = [];
 
     /**
-     * $color is an ImageMagick colour: #rgb, #rrggbb, rgb(...) or a name such as "navy". SVG's "currentColor" is not one.
+     * $color is an ImageMagick color: #rgb, #rrggbb, rgb(...) or a name such as "navy". SVG's "currentColor" is not one.
      * With Imagick loaded it is checked here.
      *
-     * @throws \InvalidArgumentException when ImageMagick does not know the colour
+     * @throws \InvalidArgumentException when ImageMagick does not know the color
      */
     public function __construct(private readonly TrueTypeFont $font, private readonly string $color = '#000000', private readonly float $opacity = 1.0)
     {

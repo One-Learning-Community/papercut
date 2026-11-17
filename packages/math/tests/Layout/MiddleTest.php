@@ -70,7 +70,7 @@ final class MiddleTest extends TestCase
         self::assertGreaterThan(0.0, $brace);
         self::assertGreaterThanOrEqual(0.9 * $brace, $bar);
         $mid = (new Middle('|', self::height($fence)))->layout(new Context(Math::stixTwoMath(), self::SIZE));
-        // Centred on the math axis, like the fence itself.
+        // Centered on the math axis, like the fence itself.
         $axis = Math::stixTwoMath()->math()->constant('axisHeight') / Math::stixTwoMath()->unitsPerEm * self::SIZE;
         self::assertEqualsWithDelta($axis, ($mid->ascent - $mid->descent) / 2, 0.05);
     }

@@ -52,7 +52,7 @@ final class PngRendererTest extends TestCase
         foreach ([[0, 0], [$im->getImageWidth() - 1, 0], [0, $im->getImageHeight() - 1], [$im->getImageWidth() - 1, $im->getImageHeight() - 1]] as [$x, $y]) {
             self::assertSame(0.0, $im->getImagePixelColor($x, $y)->getColorValue(\Imagick::COLOR_ALPHA), "corner $x,$y");
         }
-        // Rule centre: x = pad + 4 + 6 = 13 pt, y = pad + ascent - 6 + 1.5 = 8.5 pt.
+        // Rule center: x = pad + 4 + 6 = 13 pt, y = pad + ascent - 6 + 1.5 = 8.5 pt.
         $c = $im->getImagePixelColor(26, 17);
         self::assertSame(1.0, $c->getColorValue(\Imagick::COLOR_ALPHA));
         self::assertLessThan(0.05, $c->getColorValue(\Imagick::COLOR_RED));

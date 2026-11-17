@@ -132,7 +132,7 @@ final class MathmlWriter
         return (string) preg_replace_callback('/^ +| +$| {2,}/', fn (array $m) => str_repeat("\u{A0}", strlen($m[0])), $t);
     }
 
-    /** Math italic code points back to the plain letter: the browser italicises a single-letter mi itself. */
+    /** Math italic code points back to the plain letter: the browser italicizes a single-letter mi itself. */
     private static function plain(string $name): string
     {
         $out = '';

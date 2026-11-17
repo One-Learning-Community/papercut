@@ -9,7 +9,7 @@ use Papercut\Math\Layout\Context;
 
 /**
  * An equation grid (mtable): rows of cells in aligned columns, laid out the way TeX sets a matrix.
- * Columns are one em apart unless columnSpacing says otherwise, rows sit at least 1.2 em apart, and the whole grid is centred on the math axis.
+ * Columns are one em apart unless columnSpacing says otherwise, rows sit at least 1.2 em apart, and the whole grid is centered on the math axis.
  */
 final class Grid extends Node
 {

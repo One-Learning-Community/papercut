@@ -133,7 +133,7 @@ final class Fenced extends Node
         $gid = $f->gid(mb_ord($ch));
         $s = Stretcher::vertical($f, $gid, $req / $u);
         $axisU = $f->math()->constant('axisHeight');
-        $shift = $axisU - ($s['ymin'] + $s['ymax']) / 2; // centre on the math axis
+        $shift = $axisU - ($s['ymin'] + $s['ymax']) / 2; // center on the math axis
         $single = count($s['pieces']) === 1 && $s['pieces'][0][0] === $gid;
         foreach ($s['pieces'] as $pc) {
             [$pg, $off] = $pc;

@@ -68,7 +68,7 @@ final class UnderOverTest extends TestCase
         self::assertSame($variants[count($variants) - 1][0], $g->gid);
         self::assertNotSame(Math::stixTwoMath()->gid(0x2211), $g->gid);
         self::assertSame('∑', $g->text);
-        // centred on the math axis
+        // centered on the math axis
         [$top, $bottom] = self::inkY($g);
         self::assertEqualsWithDelta(-self::k('axisHeight'), ($top + $bottom) / 2, 0.01);
     }
@@ -94,7 +94,7 @@ final class UnderOverTest extends TestCase
         [$sigmaTop, $sigmaBottom] = self::inkY($sigma);
         self::assertGreaterThanOrEqual(self::k('upperLimitGapMin') - 0.01, $sigmaTop - self::inkY($above)[1]);
         self::assertGreaterThanOrEqual(self::k('lowerLimitGapMin') - 0.01, self::inkY($below)[0] - $sigmaBottom);
-        // both limits are centred over the sigma
+        // both limits are centered over the sigma
         [$sl, $sr] = self::inkX($sigma);
         [$al, $ar] = self::inkX($above);
         self::assertEqualsWithDelta(($sl + $sr) / 2, ($al + $ar) / 2, 1.0);
@@ -125,7 +125,7 @@ final class UnderOverTest extends TestCase
 
     public function test_inline_limits_on_a_large_operator_are_nudged_apart_by_its_italic_correction(): void
     {
-        // An inline integral with limits above and below: the over limit sits half its italic correction right of centre, the under limit half left, as in display.
+        // An inline integral with limits above and below: the over limit sits half its italic correction right of center, the under limit half left, as in display.
         $f = Math::stixTwoMath();
         foreach ([false, true] as $display) {
             $box = Math::layout(new UnderOver(new Operator('∫'), Math::row('1'), Math::row('1')), self::SIZE, $display);
@@ -411,7 +411,7 @@ final class UnderOverTest extends TestCase
         self::assertSame(self::SIZE, $mark->size);
         // accent position: raised by ascent - min(ascent, accentBaseHeight)
         self::assertEqualsWithDelta(-($base->ascent - min($base->ascent, self::k('accentBaseHeight'))), $mark->y, 1e-9);
-        // centred over the base
+        // centered over the base
         [$ml, $mr] = self::inkX($mark);
         [$bl, $br] = self::inkX(self::glyphs($box)[0]);
         self::assertEqualsWithDelta(($bl + $br) / 2, ($ml + $mr) / 2, 1.0);

@@ -687,7 +687,7 @@ final class TexWriter
         return null;
     }
 
-    /** A grid on its own (or inside a \left \right pair): a matrix when centred, aligned when an alignment, otherwise an array. */
+    /** A grid on its own (or inside a \left \right pair): a matrix when centered, aligned when an alignment, otherwise an array. */
     private static function gridBody(Grid $g, bool $bare): string
     {
         if ($g->alignment) {

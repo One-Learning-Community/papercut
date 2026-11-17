@@ -6,7 +6,7 @@ namespace Papercut\Tests\Support;
 
 use PHPUnit\Framework\Assert;
 
-/** PDFs rasterised at 72 dpi with pdftoppm, so a point is a pixel. */
+/** PDFs rasterized at 72 dpi with pdftoppm, so a point is a pixel. */
 final class Raster
 {
     /** Null when pdftoppm or GD is missing, else the reason to skip. */

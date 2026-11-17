@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 use function Papercut\pt;
 
-/** Opacity fades a node and everything in it, as in the PDF: colours are blended onto white. */
+/** Opacity fades a node and everything in it, as in the PDF: colors are blended onto white. */
 final class OpacityTest extends TestCase
 {
     use Styles;

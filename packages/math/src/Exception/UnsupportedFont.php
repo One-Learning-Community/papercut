@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Exception;
 
-/** The font file cannot be used for math layout: it is CFF-flavoured or has no MATH table. */
+/** The font file cannot be used for math layout: it is CFF-flavored or has no MATH table. */
 final class UnsupportedFont extends \InvalidArgumentException
 {
     public function __construct(public readonly string $path, string $reason)

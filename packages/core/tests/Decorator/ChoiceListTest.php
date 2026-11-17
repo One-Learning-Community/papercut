@@ -153,13 +153,13 @@ final class ChoiceListTest extends TestCase
 
     public function test_marker_aligns_with_first_line_of_wrapped_label(): void
     {
-        // Default theme: 10pt at 1.4, so a 7.5pt marker centred on a 14pt line sits 3.25pt down.
+        // Default theme: 10pt at 1.4, so a 7.5pt marker centered on a 14pt line sits 3.25pt down.
         self::assertMarkerCentred(new LayoutHarness(), 7.5, 3.25);
     }
 
     public function test_marker_follows_the_theme_size(): void
     {
-        // 12pt at 1.5: a 9pt marker centred on an 18pt line sits 4.5pt down.
+        // 12pt at 1.5: a 9pt marker centered on an 18pt line sits 4.5pt down.
         self::assertMarkerCentred(new LayoutHarness(Theme::default()->with(fontSize: 12.0, lineHeight: 1.5)), 9.0, 4.5);
     }
 

@@ -179,7 +179,7 @@ final class TextMapperTest extends TestCase
         self::assertSame('☐', $glyph(View::make()->width(pt(3.75))->height(pt(3.75))->border(pt(0.5), '#000000')->radius(pt(1.25))));
         self::assertNull($glyph(View::make()->width(pt(40))->height(pt(40))->border(pt(1), '#000000')));
         self::assertNull($glyph(View::make()->width(pt(8))->height(pt(8))));
-        // A colour swatch is a picture of its fill, not a marker: it keeps its box.
+        // A color swatch is a picture of its fill, not a marker: it keeps its box.
         self::assertNull($glyph($box()->background('#2563eb')));
         self::assertSame('☐', $glyph($box()->background('#ffffff')));
         self::assertNull($glyph($box(Text::make('x'))));
@@ -195,14 +195,14 @@ final class TextMapperTest extends TestCase
         self::assertSame('Segoe UI Symbol', $run->style->fontFamily);
         self::assertSame('Segoe UI Symbol', $run->style->fontFamilyEastAsia);
         self::assertSame(25, $run->style->sizeHalfPoints);
-        // An exact line: Inter's cap centre sits 14 - 2.41 - 3.64 = 7.95pt down the label's line, and the glyph's
-        // centre 0.48 of its size above the line's bottom, so the line is 7.95 + 6 = 13.95pt (279 twips).
+        // An exact line: Inter's cap center sits 14 - 2.41 - 3.64 = 7.95pt down the label's line, and the glyph's
+        // center 0.48 of its size above the line's bottom, so the line is 7.95 + 6 = 13.95pt (279 twips).
         self::assertSame('exact', $p->style->lineSpacingRule);
         self::assertSame(279, $p->style->lineSpacingTwips);
 
         $small = View::make()->width(Length::em(0.75))->height(Length::em(0.75))->border(pt(1), '#000000');
         self::assertSame(250, $this->mapper()->glyphParagraph('○', self::styleOf($small))->style->lineSpacingTwips);
-        // Too big to centre on the capitals without its top cut off: it hangs from the top of the line instead.
+        // Too big to center on the capitals without its top cut off: it hangs from the top of the line instead.
         $big = View::make()->width(Length::em(2))->height(Length::em(2))->border(pt(1), '#000000');
         self::assertSame(425, $this->mapper()->glyphParagraph('○', self::styleOf($big))->style->lineSpacingTwips);
     }

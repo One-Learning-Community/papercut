@@ -425,7 +425,7 @@ final class OmmlWriter
         return '<m:groupChr><m:groupChrPr><m:chr m:val="' . Xml::text($char) . '"/><m:pos m:val="' . $pos . '"/><m:vertJc m:val="' . $vertJc . '"/></m:groupChrPr><m:e>' . $e . '</m:e></m:groupChr>';
     }
 
-    /** Math italic code points back to the plain letter: Word italicises letters itself. */
+    /** Math italic code points back to the plain letter: Word italicizes letters itself. */
     private static function plain(string $name): string
     {
         $out = '';

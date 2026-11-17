@@ -11,7 +11,7 @@ use Papercut\Math\Layout\Stretcher;
 use Papercut\Math\Utf8;
 
 /**
- * A delimiter inside a fence's content (TeX's \middle) that stretches to the fence's height, centred on the math
+ * A delimiter inside a fence's content (TeX's \middle) that stretches to the fence's height, centered on the math
  * axis, with 3 mu of space on each side (none in scripts). Outside a Fenced it is the plain glyph.
  */
 final class Middle extends Node

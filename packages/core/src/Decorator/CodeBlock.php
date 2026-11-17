@@ -180,7 +180,7 @@ final class CodeBlock implements Decorator, ThemedComponent
         );
 
         if ($caption) {
-            // The rule is the code Text's left border (code-block.code.caption), so its colour goes there.
+            // The rule is the code Text's left border (code-block.code.caption), so its color goes there.
             $code = $code->apply(Style::make(borderColor: $colors->rule));
             $box = View::make($code)->apply($block->part('code-block'))->apply($boxStyle)->apply($this->style());
             $parts = $labelNode === null ? [$box] : [$labelNode->keepWithNext(true), $box];
@@ -251,7 +251,7 @@ final class CodeBlock implements Decorator, ThemedComponent
     }
 
     /**
-     * The code as uncoloured lines on the theme's background.
+     * The code as uncolored lines on the theme's background.
      *
      * @param list<Note> $notes
      * @return array{0: HighlightedCode, 1: string}
@@ -274,7 +274,7 @@ final class CodeBlock implements Decorator, ThemedComponent
                     }
                     $theme = CodeTheme::DEFAULT;
                 } catch (UnknownLanguage) {
-                    break; // a highlighter without a 'text' grammar: use the default theme's colours
+                    break; // a highlighter without a 'text' grammar: use the default theme's colors
                 }
             }
         }

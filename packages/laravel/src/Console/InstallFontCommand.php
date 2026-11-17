@@ -10,7 +10,7 @@ use Papercut\Backend\PhpPdf\PhpPdfBackend;
 
 /**
  * Downloads a family's TrueType files from Google Fonts once, so PDFs can embed them like any local font, and the
- * family's licence beside them. Rendering never touches the network: the files live in the app and are registered
+ * family's license beside them. Rendering never touches the network: the files live in the app and are registered
  * in papercut.fonts.
  *
  * @internal Part of Papercut's engine, not its public API. It may change in any release.
@@ -28,7 +28,7 @@ final class InstallFontCommand extends Command
 
     private const string CSS = 'https://fonts.googleapis.com/css2';
     private const string FILES = 'https://fonts.gstatic.com/';
-    /** Google Fonts' source repository, which keeps each family's licence in a folder named for the licence. */
+    /** Google Fonts' source repository, which keeps each family's license in a folder named for the license. */
     private const string LICENCES = 'https://raw.githubusercontent.com/google/fonts/main/';
     private const array LICENCE_FILES = ['ofl' => 'OFL.txt', 'apache' => 'LICENSE.txt', 'ufl' => 'UFL.txt'];
 
@@ -129,7 +129,7 @@ final class InstallFontCommand extends Command
         return self::SUCCESS;
     }
 
-    /** Saves the family's licence beside its files and returns the file's name, or null when none was found. */
+    /** Saves the family's license beside its files and returns the file's name, or null when none was found. */
     private function saveLicence(string $family, string $dir, string $relative): ?string
     {
         if (!$this->option('force')) {

@@ -137,7 +137,7 @@ final class UnderOver extends Node
         return $n instanceof Operator ? $n : null;
     }
 
-    /** Limits above and below a large operator, centred on it and nudged apart by its italic correction. */
+    /** Limits above and below a large operator, centered on it and nudged apart by its italic correction. */
     private function limits(Context $c): Box
     {
         $b = $this->base->layout($c);
@@ -162,9 +162,9 @@ final class UnderOver extends Node
     }
 
     /**
-     * Centre parts on the base's centre line and set the box width to what they span.
+     * Center parts on the base's center line and set the box width to what they span.
      *
-     * @param list<array{Box, float, float}> $parts [box, x shift from centred, dy] with the base first
+     * @param list<array{Box, float, float}> $parts [box, x shift from centered, dy] with the base first
      * @param list<Rule> $rules rules already positioned relative to the base's left edge
      */
     private static function assemble(array $parts, float $baseWidth, float $asc, float $desc, array $rules = []): Box

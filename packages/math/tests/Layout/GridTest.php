@@ -209,7 +209,7 @@ final class GridTest extends TestCase
                     $this->assertEqualsWithDelta($ty, $sy, 1e-9);
                     break;
                 case 'axis':
-                    // Cell centres sit on the row's axis (axis above the row baseline); the grid then shifts as a whole to centre on the axis.
+                    // Cell centers sit on the row's axis (axis above the row baseline); the grid then shifts as a whole to center on the axis.
                     $rowA = max($ta->ascent, $sa->ascent);
                     $rowD = max($ta->descent, $sa->descent);
                     $expect = -$axis + (-$axis - ($rowD - $rowA) / 2);

@@ -62,7 +62,7 @@ final class EquationHtmlTest extends TestCase
 
     public function test_block_math_is_shrunk_and_placed_by_margins(): void
     {
-        // A browser centres the content of a full-width display:block math; a fit-content box placed by margins follows the alignment.
+        // A browser centers the content of a full-width display:block math; a fit-content box placed by margins follows the alignment.
         $rule = '.papercut math[display=block]{width:fit-content;max-width:100%}';
         $default = $this->html(Equation::of('x'));
         self::assertStringContainsString($rule, $default);
@@ -88,7 +88,7 @@ final class EquationHtmlTest extends TestCase
         $html = $this->html(Equation::of('x')->color(Color::hex('#ff0000'))->size(Length::points(30)));
         self::assertMatchesRegularExpression('/<div style="[^"]*font-size:30pt[^"]*"><math[ >]/', $html);
         self::assertMatchesRegularExpression('/<div style="[^"]*color:#ff0000[^"]*"><math[ >]/', $html);
-        // The MathML itself sets no colour or size: it inherits them from the wrapper.
+        // The MathML itself sets no color or size: it inherits them from the wrapper.
         $m = $this->mathml($html);
         self::assertStringNotContainsString('color', $m);
         self::assertStringNotContainsString('font-size', $m);

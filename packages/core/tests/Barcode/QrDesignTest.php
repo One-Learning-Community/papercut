@@ -17,7 +17,7 @@ use function Papercut\pt;
 
 /**
  * Styled QR codes: Papercut encodes the grid, and BaconQrCode draws it as an SVG with the
- * chosen module shape, eyes and colours. A plain code still draws as rectangles.
+ * chosen module shape, eyes and colors. A plain code still draws as rectangles.
  */
 final class QrDesignTest extends TestCase
 {
@@ -175,7 +175,7 @@ final class QrDesignTest extends TestCase
         }
     }
 
-    /** Every dark module is inked at its centre and every light one is paper, whatever the shape. */
+    /** Every dark module is inked at its center and every light one is paper, whatever the shape. */
     #[DataProvider('shapes')]
     public function test_the_pdf_draws_exactly_our_grid(QrShape $shape): void
     {
@@ -199,7 +199,7 @@ final class QrDesignTest extends TestCase
         $image = self::raster($qr, 8);
         $q = $qr->quietZoneModules();
 
-        // The top-left eye's outer ring and centre are red; a data module stays black.
+        // The top-left eye's outer ring and center are red; a data module stays black.
         foreach ([[0, 0], [3, 3], [6, 0]] as [$x, $y]) {
             self::assertSame([255, 0, 0], self::rgb($image, ($x + $q) * 8 + 4, ($y + $q) * 8 + 4), "eye module $x,$y");
         }

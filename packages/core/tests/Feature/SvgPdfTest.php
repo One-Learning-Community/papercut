@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 use function Papercut\pt;
 
 /**
- * SVG drawn into real PDFs and rasterised with pdftoppm. Every fixture has a 100 x 100 view box
+ * SVG drawn into real PDFs and rasterized with pdftoppm. Every fixture has a 100 x 100 view box
  * drawn 100pt wide on a 100pt page with no margin, so at 72 dpi a user unit is a pixel.
  */
 final class SvgPdfTest extends TestCase

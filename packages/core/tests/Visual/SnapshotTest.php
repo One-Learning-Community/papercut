@@ -11,8 +11,8 @@ use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Renders each fixture, rasterises every page with pdftoppm at 72 dpi and compares it with the committed
- * snapshot. Poppler versions rasterise text slightly differently, so the comparison tolerates 0.5% of
+ * Renders each fixture, rasterizes every page with pdftoppm at 72 dpi and compares it with the committed
+ * snapshot. Poppler versions rasterize text slightly differently, so the comparison tolerates 0.5% of
  * pixels differing by more than 32 per channel.
  *
  * Refresh with: UPDATE_SNAPSHOTS=1 php -d xdebug.mode=off vendor/bin/phpunit tests/Visual

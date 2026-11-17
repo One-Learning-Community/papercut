@@ -10,7 +10,7 @@ use Papercut\Math\Node\Row;
 use PHPUnit\Framework\Assert;
 
 /**
- * Structural comparison of two node trees, for round-trip tests. Both trees are normalised first: a Fallback with
+ * Structural comparison of two node trees, for round-trip tests. Both trees are normalized first: a Fallback with
  * content is its content, a Fallback without content is nothing, a Row of one child is that child. Then the class and
  * every public property are compared recursively (floats within 1e-6); notes are not compared.
  */

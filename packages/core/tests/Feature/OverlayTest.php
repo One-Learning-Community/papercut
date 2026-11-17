@@ -98,7 +98,7 @@ final class OverlayTest extends TestCase
         $page = self::page()->overlay(Place::at('50%', '50%', QrCode::make('https://example.com')->width(Percent::of(100)))->width('20%')->anchor(Anchor::Center));
         $image = Raster::of(self::pdf($page));
 
-        // 80pt square centred on (200, 100); the first module of the finder pattern sits just inside the quiet zone.
+        // 80pt square centered on (200, 100); the first module of the finder pattern sits just inside the quiet zone.
         $inked = 0;
         for ($x = 160; $x < 240; $x++) {
             $inked += Raster::ink($image, $x, 100) ? 1 : 0;

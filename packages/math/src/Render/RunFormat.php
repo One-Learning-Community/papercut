@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Render;
 
-/** Colour, size and background shading that equation runs inherit from the surrounding text. */
+/** Color, size and background shading that equation runs inherit from the surrounding text. */
 final readonly class RunFormat
 {
     public function __construct(public ?string $colorHex = null, public ?int $sizeHalfPoints = null, public ?string $shadingHex = null)

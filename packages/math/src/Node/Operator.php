@@ -110,7 +110,7 @@ final class Operator extends Node
 
     /**
      * A large operator in display style: the font's first size variant (or an assembly) at least displayOperatorMinHeight
-     * tall, centred on the math axis the way Fenced centres delimiters. Null when the font has no glyph for it.
+     * tall, centered on the math axis the way Fenced centers delimiters. Null when the font has no glyph for it.
      */
     private function displaySize(Context $c, float $lead, float $trail): ?Box
     {

@@ -17,7 +17,7 @@ final class CodeTheme
 
     /**
      * @return array{background: Color, foreground: Color}
-     * @throws \InvalidArgumentException when the file is unreadable or lacks the editor colours
+     * @throws \InvalidArgumentException when the file is unreadable or lacks the editor colors
      */
     public static function editorColors(string $path): array
     {

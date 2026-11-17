@@ -60,7 +60,7 @@ final class MathmlReader
 
     private const string TOO_LARGE = 'formula too large; the rest is dropped';
 
-    /** Table attributes that are noted, not drawn, per element (columnalign/rowalign on the mtable itself are honoured). */
+    /** Table attributes that are noted, not drawn, per element (columnalign/rowalign on the mtable itself are honored). */
     private const IGNORED = [
         'mtable' => ['columnlines', 'rowlines', 'frame', 'rowspacing', 'columnwidth', 'equalrows', 'equalcolumns', 'align', 'groupalign'],
         'mtr' => ['columnalign', 'rowalign'],
