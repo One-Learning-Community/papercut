@@ -75,9 +75,11 @@ final class SvgRenderer
 
     private function group(): string
     {
+        $color = htmlspecialchars($this->color, ENT_QUOTES | ENT_XML1, 'UTF-8');
+
         return $this->opacity < 1.0
-            ? sprintf('<g fill="%s" fill-opacity="%s">', $this->color, self::n($this->opacity))
-            : sprintf('<g fill="%s">', $this->color);
+            ? sprintf('<g fill="%s" fill-opacity="%s">', $color, self::n($this->opacity))
+            : sprintf('<g fill="%s">', $color);
     }
 
     /**

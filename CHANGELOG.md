@@ -10,6 +10,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - `PngRenderer` in papercut/math draws a formula as a PNG with a transparent background, for places that cannot show SVG, such as email. `render($box, $pad, $scale)` takes a scale in pixels per point, and `baselineOffset()` gives the baseline row so an inline image can be aligned. It needs ext-imagick (`PngRenderer::available()`; without it `render()` throws `MissingExtension`). Glyphs are drawn at four times the size and reduced, which matches the SVG's weight more closely than rasterizing the SVG with Imagick.
 - `TrueTypeFont::outlinePath()` is now public API: a glyph's outline as absolute M, L, Q and Z path data in font units, y up, for custom backends.
 
+### Fixed
+
+- Math: `SvgRenderer` escapes its colour. A colour with quotes or markup in it was written into the SVG as given.
+
 ## [0.15.0] - 2026-11-17
 
 ### Added
