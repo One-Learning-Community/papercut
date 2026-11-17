@@ -180,6 +180,23 @@ final class OmmlWriterTest extends TestCase
         self::assertStringContainsString('<m:sSub>', OmmlWriter::oMath(Math::sub('x', '1')));
     }
 
+    public function test_middle_delimiters_become_separators(): void
+    {
+        $xml = self::oMath(Math::fenced('{', '}', 'x', Math::middle('|'), Math::frac('a', 'b')));
+        self::assertStringContainsString('<m:begChr m:val="{"/><m:sepChr m:val="|"/><m:endChr m:val="}"/>', $xml);
+        self::assertSame(2, substr_count($xml, '<m:e>'), 'one m:e per part, the fraction has none of its own');
+        self::assertStringNotContainsString('<m:t xml:space="preserve">|</m:t>', $xml);
+    }
+
+    public function test_mixed_middle_delimiters_stay_runs(): void
+    {
+        $xml = self::oMath(Math::fenced('(', ')', 'x', Math::middle('|'), 'y', Math::middle('/'), 'z'));
+        self::assertStringNotContainsString('sepChr', $xml);
+        self::assertSame(1, substr_count($xml, '<m:e>'));
+        self::assertStringContainsString('|</m:t>', $xml);
+        self::assertStringContainsString('/</m:t>', $xml);
+    }
+
     public function test_math_italic_written_plain(): void
     {
         $xml = OmmlWriter::oMath(new Identifier("\u{1D465}"));

@@ -48,6 +48,33 @@ final class Stretcher
     }
 
     /**
+     * A size variant (or assembly) of $gid at least $targetUnits tall, centred on the math axis, with $lead before it and
+     * $trail after it (both pt). $char is the text a backend sets for a single glyph; $italic gives the box the glyph's
+     * italics correction.
+     */
+    public static function axisCentred(Context $c, string $char, int $gid, float $targetUnits, float $lead, float $trail, bool $italic = false): Box
+    {
+        $u = $c->unit();
+        $m = $c->font->math();
+        $s = self::vertical($c->font, $gid, $targetUnits);
+        $shift = $m->constant('axisHeight') - ($s['ymin'] + $s['ymax']) / 2;
+        $single = count($s['pieces']) === 1;
+        $b = new Box($lead + $s['advance'] * $u + $trail, ($s['ymax'] + $shift) * $u, -($s['ymin'] + $shift) * $u);
+        $b->trail = $trail;
+        foreach ($s['pieces'] as [$pg, $off]) {
+            $b->add(new Glyph($pg, $single ? $char : null, $lead, -($off + $shift) * $u, $c->size()));
+        }
+        if ($single) {
+            $b->firstGid = $b->lastGid = $s['pieces'][0][0];
+            if ($italic) {
+                $b->italic = $m->italicsCorrection($s['pieces'][0][0]) * $u;
+            }
+        }
+
+        return $b;
+    }
+
+    /**
      * @return array{pieces: list<array{int,float}>, xmin: float, xmax: float, ascent: float, descent: float}
      *         pieces: [gid, x origin offset in font units], left to right. xmin/xmax are always the ink extent of the
      *         result along x, relative to the first piece's origin (a glyph's bbox x-range, or the min/max of the

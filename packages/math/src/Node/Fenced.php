@@ -44,6 +44,9 @@ final class Fenced extends Node
 
         $out = new Box();
         $x = 0.0;
+        if (self::hasMiddles($this->content)) {
+            $inner = self::stretchMiddles($this->content, $req)->layout($c);
+        }
         $asc = $inner->ascent;
         $desc = $inner->descent;
         if ($this->open !== '') {
@@ -62,6 +65,39 @@ final class Fenced extends Node
         $out->descent = $desc;
 
         return $out;
+    }
+
+    /** Whether the content is a Row with a Middle among its own children. */
+    private static function hasMiddles(Node $content): bool
+    {
+        $row = Fallback::unwrap($content);
+
+        return $row instanceof Row && array_filter($row->children, static fn (Node $n): bool => Fallback::unwrap($n) instanceof Middle) !== [];
+    }
+
+    /**
+     * A copy of the content with each top-level Middle told to stretch to $req pt.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function stretchMiddles(Node $n, float $req): Node
+    {
+        return match (true) {
+            $n instanceof Row => new Row(array_map(static fn (Node $child): Node => self::stretchMiddle($child, $req), $n->children)),
+            $n instanceof Fallback && $n->content !== null => new Fallback(self::stretchMiddles($n->content, $req), $n->note),
+            $n instanceof DisplayStyle => new DisplayStyle(self::stretchMiddles($n->content, $req), $n->display),
+            default => $n,
+        };
+    }
+
+    private static function stretchMiddle(Node $n, float $req): Node
+    {
+        return match (true) {
+            $n instanceof Middle => new Middle($n->char, $req),
+            $n instanceof Fallback && $n->content !== null => new Fallback(self::stretchMiddle($n->content, $req), $n->note),
+            $n instanceof DisplayStyle => new DisplayStyle(self::stretchMiddle($n->content, $req), $n->display),
+            default => $n,
+        };
     }
 
     /** @return array{float, float, float} new x, ascent, descent */

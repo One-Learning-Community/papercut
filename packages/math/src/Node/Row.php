@@ -46,8 +46,9 @@ final class Row extends Node
         foreach ($this->children as $i => $child) {
             // A fraction next to an operand (mixed number "3 1/2", "2 x/y") gets a thin space so it does not read as one blob.
             $seen = Fallback::unwrap($child);
-            if ($prev !== null && ! ($prev instanceof Operator) && ! ($prev instanceof Space) && ! ($seen instanceof Space)) {
-                if (! ($seen instanceof Operator) && ($seen instanceof Fraction || $prev instanceof Fraction)) {
+            // A Middle spaces itself like an operator.
+            if ($prev !== null && ! ($prev instanceof Operator) && ! ($prev instanceof Middle) && ! ($prev instanceof Space) && ! ($seen instanceof Space)) {
+                if (! ($seen instanceof Operator) && ! ($seen instanceof Middle) && ($seen instanceof Fraction || $prev instanceof Fraction)) {
                     $x += $c->mu(3);
                 }
             }

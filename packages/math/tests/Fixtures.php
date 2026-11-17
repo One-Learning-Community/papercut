@@ -34,6 +34,7 @@ final class Fixtures
             'density' => Math::row(Math::text('density'), '=', Math::frac(Math::text('mass'), Math::text('volume'))),
             'paren-frac-squared' => Math::sup(Math::fenced('(', ')', Math::frac('a', 'b')), '2'),
             'one-plus-1-over-n' => Math::sup(Math::fenced('(', ')', Math::row('1 +', Math::frac('1', 'n'))), 'n'),
+            'set-builder-middle' => Math::fenced('{', '}', 'x', Math::middle('|'), Math::frac('a', 'b')),
             'x1-squared' => Math::subSup('x', '1', '2'),
             'e-to-minus-kt' => Math::sup('e', '−kt'),
             'unicode-script-digits' => Math::row('b² + x₂ = c'),

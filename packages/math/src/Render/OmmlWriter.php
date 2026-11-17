@@ -12,6 +12,7 @@ use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
+use Papercut\Math\Node\Middle;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
@@ -80,6 +81,7 @@ final class OmmlWriter
             $n instanceof Identifier => self::run($n->upright ? $n->name : self::plain($n->name), $rPr, $n->upright ? 'p' : ''),
             $n instanceof Number => self::run($n->text, $rPr),
             $n instanceof Operator => self::run($n->char, $rPr, preg_match('/^\\p{L}+$/u', $n->char) === 1 ? 'p' : ''),
+            $n instanceof Middle => self::run($n->char, $rPr),
             $n instanceof Text => self::run($n->text, $rPr, 'nor'),
             $n instanceof Space => self::space($n->em, $rPr),
             $n instanceof Phantom => '<m:phant><m:phantPr><m:show m:val="0"/></m:phantPr><m:e>' . self::node($n->content, $rPr) . '</m:e></m:phant>',
@@ -107,12 +109,58 @@ final class OmmlWriter
     {
         $open = self::single($f->open);
         $close = self::single($f->close);
+        $parts = [];
+        $sep = self::separator($f->content, $parts);
+        $first = $open || $f->open === '' ? '' : self::run($f->open, $rPr);
+        $last = $close || $f->close === '' ? '' : self::run($f->close, $rPr);
+        $body = $sep === null
+            ? '<m:e>' . $first . self::node($f->content, $rPr) . $last . '</m:e>'
+            : implode('', array_map(
+                static fn (array $part, int $i): string => '<m:e>' . ($i === 0 ? $first : '') . self::sequence($part, $rPr) . ($i === count($parts) - 1 ? $last : '') . '</m:e>',
+                $parts,
+                array_keys($parts),
+            ));
 
-        return '<m:d><m:dPr><m:begChr m:val="' . ($open ? Xml::text($f->open) : '') . '"/><m:endChr m:val="' . ($close ? Xml::text($f->close) : '') . '"/></m:dPr><m:e>'
-            . ($open || $f->open === '' ? '' : self::run($f->open, $rPr))
-            . self::node($f->content, $rPr)
-            . ($close || $f->close === '' ? '' : self::run($f->close, $rPr))
-            . '</m:e></m:d>';
+        return '<m:d><m:dPr><m:begChr m:val="' . ($open ? Xml::text($f->open) : '') . '"/>'
+            . ($sep === null ? '' : '<m:sepChr m:val="' . Xml::text($sep) . '"/>')
+            . '<m:endChr m:val="' . ($close ? Xml::text($f->close) : '') . '"/></m:dPr>' . $body . '</m:d>';
+    }
+
+    /**
+     * The one character that separates a fence's parts when its content is a Row with top-level Middles that all
+     * share a single-unit character (Word's m:sepChr holds one for all separators). Null leaves the Middles as runs.
+     *
+     * @param list<list<Node>> $parts the children between the Middles
+     */
+    private static function separator(Node $content, array &$parts): ?string
+    {
+        $row = Fallback::unwrap($content);
+        if (! $row instanceof Row) {
+            return null;
+        }
+        $sep = null;
+        $current = [];
+        $found = [];
+        foreach ($row->children as $child) {
+            $m = Fallback::unwrap($child);
+            if (! $m instanceof Middle) {
+                $current[] = $child;
+                continue;
+            }
+            if (! self::single($m->char) || ($sep !== null && $sep !== $m->char)) {
+                return null;
+            }
+            $sep = $m->char;
+            $found[] = $current;
+            $current = [];
+        }
+        if ($sep === null) {
+            return null;
+        }
+        $found[] = $current;
+        $parts = $found;
+
+        return $sep;
     }
 
     /** Word's matrix. Row alignment and display style have no counterpart in OMML and are not written. */

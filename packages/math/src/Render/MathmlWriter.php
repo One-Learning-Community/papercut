@@ -12,6 +12,7 @@ use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
+use Papercut\Math\Node\Middle;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
@@ -48,6 +49,8 @@ final class MathmlWriter
                 : '<mroot>' . self::slot($n->radicand) . self::slot($n->index) . '</mroot>',
             $n instanceof Scripts => self::scripts($n),
             $n instanceof UnderOver => self::underOver($n),
+            // Only a Middle that Fenced stretches does so in the PDF; a browser must not stretch the others.
+            $n instanceof Middle => self::operator(new Operator($n->char, $n->stretches(), lspace: 3, rspace: 3), OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX),
             $n instanceof Fenced => self::fenced($n),
             $n instanceof Grid => self::grid($n),
             $n instanceof Row => self::row($n),
@@ -237,7 +240,7 @@ final class MathmlWriter
         if ($f->open !== '') {
             $out .= self::operator(new Operator($f->open), OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_PREFIX, true);
         }
-        $out .= self::node($f->content);
+        $out .= self::node(Fenced::stretchMiddles($f->content, 0.0));
         if ($f->close !== '') {
             $out .= self::operator(new Operator($f->close), OperatorDictionary::FORM_POSTFIX, OperatorDictionary::FORM_POSTFIX, true);
         }

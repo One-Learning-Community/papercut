@@ -14,6 +14,7 @@ use Papercut\Math\Node\Fraction;
 use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
+use Papercut\Math\Node\Middle;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
@@ -275,6 +276,15 @@ final class Math
         $braced = new UnderOver(self::row($base), new Operator("\u{23DF}"), null);
 
         return $label === null ? $braced : new UnderOver($braced, self::row($label), null);
+    }
+
+    /** A delimiter inside Math::fenced() content that stretches with the fence (TeX's \middle). */
+    public static function middle(string $delimiter): Node
+    {
+        $bad = false;
+        $delimiter = self::scrub($delimiter, $bad);
+
+        return self::flagged(new Middle($delimiter), $bad);
     }
 
     public static function fenced(string $open, string $close, string|Node ...$content): Fenced

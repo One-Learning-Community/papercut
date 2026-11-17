@@ -12,6 +12,7 @@ use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
+use Papercut\Math\Node\Middle;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
@@ -43,6 +44,7 @@ final class TextWriter
             $n instanceof Identifier => self::plain($n->name),
             $n instanceof Number => $n->text,
             $n instanceof Operator => $n->char,
+            $n instanceof Middle => ' ' . $n->char . ' ',
             $n instanceof Text => $n->text,
             $n instanceof Fraction => self::fraction($n),
             $n instanceof Root => self::root($n),

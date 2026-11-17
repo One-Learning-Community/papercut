@@ -103,6 +103,22 @@ final class MathmlWriterTest extends TestCase
         self::assertStringContainsString('<mo stretchy="true">(</mo>', MathmlWriter::write(Math::fenced('(', ')', 'a')));
     }
 
+    public function test_middle_delimiter_stretches_with_its_spacing(): void
+    {
+        $xml = MathmlWriter::write(Math::fenced('{', '}', 'x', Math::middle('|'), Math::frac('a', 'b')));
+        self::assertStringContainsString('<mo stretchy="true" lspace="0.1667em" rspace="0.1667em">|</mo>', $xml);
+    }
+
+    public function test_middle_outside_a_fence_does_not_stretch(): void
+    {
+        $xml = MathmlWriter::write(Math::row('a', Math::middle('|'), 'b'));
+        self::assertStringContainsString('<mo stretchy="false" lspace="0.1667em" rspace="0.1667em">|</mo>', $xml);
+        // Only top-level Middles stretch: one inside a fraction does not.
+        $xml = MathmlWriter::write(Math::fenced('(', ')', Math::frac(Math::middle('|'), 'b')));
+        self::assertStringNotContainsString('stretchy="true">|', $xml);
+        self::assertStringContainsString('<mo stretchy="false" lspace', $xml);
+    }
+
     public function test_strips_characters_xml_cannot_hold(): void
     {
         $xml = MathmlWriter::write(Math::text("a\x01b\x00c\u{FFFE}d\u{FFFF}e\x0Bf"));

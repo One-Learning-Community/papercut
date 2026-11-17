@@ -6,7 +6,6 @@ namespace Papercut\Math\Node;
 
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Run;
 use Papercut\Math\Layout\Stretcher;
 use Papercut\Math\OperatorDictionary;
@@ -106,7 +105,7 @@ final class Operator extends Node
     {
         $gid = $c->font->gid(mb_ord($this->char));
 
-        return $gid === 0 ? null : $this->axisCentred($c, $gid, (float) $c->font->math()->constant('displayOperatorMinHeight'), $lead, $trail, true);
+        return $gid === 0 ? null : Stretcher::axisCentred($c, $this->char, $gid, (float) $c->font->math()->constant('displayOperatorMinHeight'), $lead, $trail, true);
     }
 
     /**
@@ -128,29 +127,6 @@ final class Operator extends Node
             $target = min($target, $this->maxSize * $f->unitsPerEm);
         }
 
-        return $this->axisCentred($c, $gid, $target, $lead, $trail, false);
-    }
-
-    /** A size variant (or assembly) of $gid at least $targetUnits tall, centred on the math axis, with $trail after it. */
-    private function axisCentred(Context $c, int $gid, float $targetUnits, float $lead, float $trail, bool $italic): Box
-    {
-        $u = $c->unit();
-        $m = $c->font->math();
-        $s = Stretcher::vertical($c->font, $gid, $targetUnits);
-        $shift = $m->constant('axisHeight') - ($s['ymin'] + $s['ymax']) / 2;
-        $single = count($s['pieces']) === 1;
-        $b = new Box($lead + $s['advance'] * $u + $trail, ($s['ymax'] + $shift) * $u, -($s['ymin'] + $shift) * $u);
-        $b->trail = $trail;
-        foreach ($s['pieces'] as [$pg, $off]) {
-            $b->add(new Glyph($pg, $single ? $this->char : null, $lead, -($off + $shift) * $u, $c->size()));
-        }
-        if ($single) {
-            $b->firstGid = $b->lastGid = $s['pieces'][0][0];
-            if ($italic) {
-                $b->italic = $m->italicsCorrection($s['pieces'][0][0]) * $u;
-            }
-        }
-
-        return $b;
+        return Stretcher::axisCentred($c, $this->char, $gid, $target, $lead, $trail, false);
     }
 }
