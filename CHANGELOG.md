@@ -7,7 +7,17 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- `Math::xarrow()`, an extensible arrow with optional labels above and below. An arrow (or `=`) stretched over or under labels is now drawn at least 1.469 em long and reaches 0.5 em past its widest label on each side, as in KaTeX; braces and accents still span exactly their base.
+- TeX input. `Math::tex($string)` reads LaTeX math into the same formula the builder makes, and never throws. `TexReader::read()` also returns whether the source asked for display style and a list of notes. It covers what KaTeX supports for math, including `\frac`, roots, scripts, `\left`/`\right`/`\middle`, `\big` sizes, accents, `\overbrace`, extensible arrows, matrices, `cases`, `aligned` and `array`, font and text commands, and macros (`\newcommand`, `\renewcommand`, `\providecommand`, `\def`, `\DeclareMathOperator`, scoped to groups). Colour, `\boxed`, `\fbox`, `\cancel`, `\hline` and column rules, `\tag` and `\newenvironment` are not drawn and are noted. Input is limited to 16 KB, nesting to 256 and cells to 10,000; hitting a limit gives an approximated note, never an exception. See [Equations](https://one-learning-community.github.io/papercut/guide/equations.html#tex-input).
+- TeX output. `TexWriter::write($node)` writes a formula as standard TeX that KaTeX accepts, so a formula can go from MathML to TeX, or from TeX to MathML and Word, and TeX written back reads as the same formula. Details MathML has and TeX has no word for are written as the nearest TeX.
+- `Math::aligned($rows)` lines equations up on their alignment points, as TeX's `aligned` does. `Math::middle($delimiter)` is a delimiter inside `Math::fenced()` that stretches with it, `Math::big($delimiter, $size)` draws a delimiter at a fixed size from 1 to 4 (`Math::BIG_SIZES`), and `Math::xarrow()` is an extensible arrow with optional labels above and below.
+- Laravel: a `tex` attribute on `<x-doc::equation>` and `<x-doc::math>`, an alternative to `math` (give exactly one). Blade reads `{{` in a static attribute as an echo, so TeX that contains it needs a bound value, `:tex="'…'"`.
+- MathML `columnspacing` on `mtable` is now drawn, and so are `minsize` and `maxsize` on a stretchy `mo`. `Grid` takes a `columnSpacing` argument, the gap in em between columns. Word writes `aligned` as a native equation array.
+
+### Changed
+
+- An arrow (or `=`) stretched over or under labels is now drawn at least 1.469 em long and reaches 0.5 em past its widest label on each side, as in KaTeX; braces and accents still span exactly their base.
+- Layout is much faster on deeply nested formulas. Coordinates in nested fractions and scripts may differ by up to 0.001 pt.
+- A tall delimiter, brace or arrow is drawn with one scaled extender instead of a stack of copies, so SVG and PDF output is smaller. A stretched delimiter or arrow is capped at 100 em.
 
 ### Fixed
 

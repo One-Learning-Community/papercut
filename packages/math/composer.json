@@ -1,6 +1,6 @@
 {
     "name": "papercut/math",
-    "description": "Math layout for PHP: fractions, roots, scripts and stretchy delimiters from an OpenType MATH font, with SVG, MathML and Word OMML writers.",
+    "description": "Math layout for PHP: fractions, roots, scripts and stretchy delimiters from an OpenType MATH font, read from MathML and TeX, with SVG, MathML, TeX and Word OMML writers.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://github.com/One-Learning-Community/papercut",
@@ -18,6 +18,8 @@
         "math",
         "equations",
         "mathml",
+        "tex",
+        "latex",
         "omml",
         "svg",
         "opentype",
