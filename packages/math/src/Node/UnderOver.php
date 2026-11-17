@@ -6,6 +6,7 @@ namespace Papercut\Math\Node;
 
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
+use Papercut\Math\Layout\DisplayItem;
 use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Rule;
 use Papercut\Math\Layout\Stretcher;
@@ -371,13 +372,13 @@ final class UnderOver extends Node
     private static function inkBottom(Context $c, Box $b): float
     {
         $low = null;
-        foreach ($b->items as $i) {
+        $b->each(static function (DisplayItem $i, float $dx, float $dy) use ($c, &$low): void {
             if ($i instanceof Glyph) {
                 $bb = $c->font->bbox($i->gid);
-                $h = -$i->y + $bb[1] * $i->size / $c->font->unitsPerEm;
+                $h = -($i->y + $dy) + $bb[1] * $i->sy * $i->size / $c->font->unitsPerEm;
                 $low = $low === null ? $h : min($low, $h);
             }
-        }
+        });
 
         return $low ?? -$b->descent;
     }
@@ -431,8 +432,9 @@ final class UnderOver extends Node
         $s = Stretcher::horizontal($f, $gid, $required / $u);
         $single = count($s['pieces']) === 1;
         $b = new Box(($s['xmax'] - $s['xmin']) * $u, $s['ascent'] * $u, $s['descent'] * $u);
-        foreach ($s['pieces'] as [$pg, $off]) {
-            $b->add(new Glyph($pg, $single && $pg === $gid ? $char : null, ($off - $s['xmin']) * $u, 0.0, $c->size()));
+        foreach ($s['pieces'] as $pc) {
+            [$pg, $off] = $pc;
+            $b->add(new Glyph($pg, $single && $pg === $gid ? $char : null, ($off - $s['xmin']) * $u, 0.0, $c->size(), $pc[2] ?? 1.0));
         }
         $att = $single ? $f->math()->topAccentAttachment($s['pieces'][0][0]) : null;
 

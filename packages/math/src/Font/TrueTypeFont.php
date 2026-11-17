@@ -31,6 +31,8 @@ final class TrueTypeFont
     private array $contourCache = [];
     /** @var array<int, array{int,int,int,int}> */
     private array $bboxCache = [];
+    /** @var array<int, bool> straightness by gid * 2 + (vertical ? 1 : 0) */
+    private array $straightCache = [];
     private ?MathTable $math = null;
     private ?Gsub $gsub = null;
 
@@ -245,6 +247,33 @@ final class TrueTypeFont
         }
 
         return [$this->tables['glyf'][0] + $a, $z - $a];
+    }
+
+    /**
+     * Whether every outline point lies on the glyph's bounding box minimum or maximum along an axis (y when $vertical, else x):
+     * a prism along it, which scaling along that axis only lengthens. False for an empty glyph.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function straightAlong(int $gid, bool $vertical): bool
+    {
+        $key = $gid * 2 + ($vertical ? 1 : 0);
+        if (isset($this->straightCache[$key])) {
+            return $this->straightCache[$key];
+        }
+        $bb = $this->bbox($gid);
+        [$i, $lo, $hi] = $vertical ? [1, $bb[1], $bb[3]] : [0, $bb[0], $bb[2]];
+        $ok = $hi > $lo;
+        foreach ($this->contours($gid) as $pts) {
+            foreach ($pts as $pt) {
+                if (abs($pt[$i] - $lo) > 2 && abs($pt[$i] - $hi) > 2) {
+                    $ok = false;
+                    break 2;
+                }
+            }
+        }
+
+        return $this->straightCache[$key] = $ok;
     }
 
     /**

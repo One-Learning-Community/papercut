@@ -68,9 +68,10 @@ final class Root extends Node
             $out->place($index, $indexX, $indexY);
         }
 
-        foreach ($surd['pieces'] as [$gid, $off]) {
+        foreach ($surd['pieces'] as $pc) {
+            [$gid, $off] = $pc;
             $single = count($surd['pieces']) === 1 && $gid === $f->gid(0x221A);
-            $out->add(new Glyph($gid, $single ? '√' : null, $x, $dy - $off * $u, $c->size()));
+            $out->add(new Glyph($gid, $single ? '√' : null, $x, $dy - $off * $u, $c->size(), 1.0, $pc[2] ?? 1.0));
         }
         $x += $surdW;
         $out->place($rad, $x, 0);

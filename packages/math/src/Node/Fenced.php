@@ -135,8 +135,9 @@ final class Fenced extends Node
         $axisU = $f->math()->constant('axisHeight');
         $shift = $axisU - ($s['ymin'] + $s['ymax']) / 2; // centre on the math axis
         $single = count($s['pieces']) === 1 && $s['pieces'][0][0] === $gid;
-        foreach ($s['pieces'] as [$pg, $off]) {
-            $out->add(new Glyph($pg, $single ? $ch : null, $x, -($off + $shift) * $u, $c->size()));
+        foreach ($s['pieces'] as $pc) {
+            [$pg, $off] = $pc;
+            $out->add(new Glyph($pg, $single ? $ch : null, $x, -($off + $shift) * $u, $c->size(), 1.0, $pc[2] ?? 1.0));
         }
         $asc = max($asc, ($s['ymax'] + $shift) * $u);
         $desc = max($desc, -($s['ymin'] + $shift) * $u);

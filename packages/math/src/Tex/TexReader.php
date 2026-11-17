@@ -43,7 +43,7 @@ final class TexReader
     /** Input beyond this many bytes is dropped. */
     public const int MAX_INPUT = 16_384;
     /** Nesting (groups, arguments, environments) beyond this is drawn flat. */
-    public const int MAX_DEPTH = 48;
+    public const int MAX_DEPTH = 256;
     /** Macro expansions per formula. */
     public const int MAX_EXPANSIONS = 10_000;
     /**

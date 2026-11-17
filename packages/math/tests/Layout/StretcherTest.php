@@ -71,10 +71,19 @@ final class StretcherTest extends TestCase
             $byGid[$p->gid] = $p;
         }
         $out = [];
+        // A merged run is drawn once, scaled: its start is where the first repeat began and its end where the last one ended.
+        $span = static function (array $piece) use ($font, $byGid): array {
+            [$g, $x, $k] = $piece + [2 => 1.0];
+            $bb = $font->bbox($g);
+            $start = $x - $bb[0] + $bb[0] * $k;
+            $ink = $bb[2] - $bb[0];
+
+            return [$start, $start + ($k - 1.0) * $ink + $byGid[$g]->fullAdvance];
+        };
         for ($i = 1; $i < count($r['pieces']); $i++) {
-            [$pg, $px] = $r['pieces'][$i - 1];
-            [$ng, $nx] = $r['pieces'][$i];
-            $overlap = $px + $byGid[$pg]->fullAdvance - $nx;
+            $ng = $r['pieces'][$i][0];
+            $pg = $r['pieces'][$i - 1][0];
+            $overlap = $span($r['pieces'][$i - 1])[1] - $span($r['pieces'][$i])[0];
             $out[] = [max($font->math()->minConnectorOverlap, min($byGid[$pg]->endConnector, $byGid[$ng]->startConnector)), $overlap];
         }
 
@@ -108,6 +117,54 @@ final class StretcherTest extends TestCase
                 self::assertGreaterThanOrEqual($font->math()->minConnectorOverlap - 0.001, $overlap);
             }
         }
+    }
+
+    public function test_a_very_tall_parenthesis_is_a_handful_of_scaled_pieces(): void
+    {
+        $font = $this->font();
+        $gid = $font->gid(0x28);
+        $r = Stretcher::vertical($font, $gid, 100.0 * $font->unitsPerEm);
+        self::assertLessThanOrEqual(5, count($r['pieces']));
+        self::assertGreaterThan(1, count($r['pieces']));
+        // Ink is where the unmerged assembly put it: bottom of the lowest piece at 0, top of the highest at ymax.
+        $lo = INF;
+        $hi = -INF;
+        foreach ($r['pieces'] as $pc) {
+            [$g, $off] = $pc;
+            $k = $pc[2] ?? 1.0;
+            $bb = $font->bbox($g);
+            $lo = min($lo, $off + $bb[1] * $k);
+            $hi = max($hi, $off + $bb[3] * $k);
+        }
+        self::assertEqualsWithDelta(0.0, $lo, 0.01);
+        self::assertEqualsWithDelta($r['ymax'], $hi, 2.0); // the top piece's side bearing, as before
+        self::assertEqualsWithDelta(100.0 * $font->unitsPerEm, $r['ymax'], 2.0);
+    }
+
+    public function test_a_stretched_arrow_scales_its_shaft_along_x(): void
+    {
+        $font = $this->font();
+        $r = Stretcher::horizontal($font, $font->gid(0x2192), 20.0 * $font->unitsPerEm);
+        self::assertLessThanOrEqual(5, count($r['pieces']));
+        self::assertGreaterThan(1.0, max([1.0, ...array_map(static fn (array $p): float => $p[2] ?? 1.0, $r['pieces'])]));
+        // The ink is shorter than the origin-to-origin length by the end bearings.
+        self::assertEqualsWithDelta(20.0 * $font->unitsPerEm, $r['xmax'] - $r['xmin'], 0.1 * $font->unitsPerEm);
+    }
+
+    public function test_only_a_straight_glyph_may_be_scaled(): void
+    {
+        $font = $this->font();
+        $bar = $font->math()->vertical($font->gid(0x28))->parts ?? self::fail('no parts');
+        $ext = null;
+        foreach ($bar as $p) {
+            if ($p->extender) {
+                $ext = $p->gid;
+            }
+        }
+        self::assertTrue(Stretcher::isStraight($font, $ext ?? self::fail('no extender'), true));
+        // A letter has curved sides along both axes: scaling it would distort it, so it must be repeated instead.
+        self::assertFalse(Stretcher::isStraight($font, $font->gid(0x61), true));
+        self::assertFalse(Stretcher::isStraight($font, $font->gid(0x61), false));
     }
 
     public function test_arrow_head_is_at_the_pointing_end(): void

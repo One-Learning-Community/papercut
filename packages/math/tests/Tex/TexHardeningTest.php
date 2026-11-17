@@ -15,19 +15,23 @@ use PHPUnit\Framework\TestCase;
 final class TexHardeningTest extends TestCase
 {
     /**
-     * Items in the laid-out box per byte of (expanded) input. The worst measured is 8.6 (MAX_INPUT of
-     * `\left(x\middle|x^{` siblings at depth 24, each 100 em middle drawn in pieces); 16 leaves about 1.9x headroom.
+     * Items in the laid-out box per byte of (expanded) input. The worst measured is 0.66 (MAX_INPUT of nested `\sqrt{x+`
+     * at MAX_DEPTH; a flat run of `x+` is 1.0): a stretched delimiter is a few scaled pieces, not a hundred repeated
+     * ones. 2 leaves about 2x headroom.
      * Layout places each item once per enclosing level and levels stop at MAX_DEPTH, so this bounds the work as well as
      * the output.
      */
-    private const int ITEMS_PER_BYTE = 16;
+    private const int ITEMS_PER_BYTE = 2;
+
+    /** Two levels per `\left(x^{` style unit: the deepest nest of them that reads without a nesting note. */
+    private const int UNIT_DEPTH = (TexReader::MAX_DEPTH >> 1) - 1;
 
     /** @return iterable<string, array{string, string|list<string>}> */
     public static function hostile(): iterable
     {
         yield 'self-recursive macro' => ['\def\a{\a}\a', 'macro'];
         yield 'doubling macro' => ['\def\a#1{\a{#1#1}}\a{x}', 'macro'];
-        yield 'nested braces' => [str_repeat('{', 300) . 'x' . str_repeat('}', 300), 'nesting'];
+        yield 'nested braces' => [str_repeat('{', 600) . 'x' . str_repeat('}', 600), 'nesting'];
         yield 'long input' => [str_repeat('x+', 500_000), 'input'];
         yield 'huge matrix' => ['\begin{matrix}' . str_repeat(str_repeat('&', 149) . '\\\\', 100) . '\end{matrix}', 'cells'];
         yield 'huge matrix with content' => ['\begin{matrix}' . str_repeat(implode('&', array_fill(0, 200, 'x')) . '\\\\', 200) . '\end{matrix}', ''];
@@ -35,17 +39,18 @@ final class TexHardeningTest extends TestCase
         yield 'alternating scripts' => ['x' . str_repeat('^_', 20_000), ''];
         yield 'nested fractions' => [str_repeat('\frac', 2000) . 'x', ['\frac', 'nesting']];
         yield 'nested fences with scripts' => [str_repeat('\left(x^{', 80) . 'x' . str_repeat('}\right)', 80), ''];
+        yield 'fences with scripts past the limit' => [str_repeat('\left(x^{', 200) . 'x' . str_repeat('}\right)', 200), 'nesting'];
         yield 'nested fences with fractions' => [str_repeat('\left(\frac{1}{', 120) . 'x' . str_repeat('}\right)', 120), ''];
         yield 'macro of repeated text' => ['\def\e{' . str_repeat('x', 2000) . '}' . str_repeat('\e', 99), 'macro'];
         yield 'macro of long arrow labels' => ['\def\e{\xrightarrow{' . str_repeat('y', 6000) . '}}' . str_repeat('\e', 100), 'macro'];
         // Small inputs whose macros build what a raw MAX_INPUT of siblings would: expansion stops at the same size.
-        foreach (['fences with scripted middles' => ['\left(x\middle|x^{', '}\right)', 24], 'fences with scripts' => ['\left(x^{', '}\right)', 24], 'arrows' => ['\xrightarrow{', '}', 24], 'fences with continued fractions' => ['\left(\cfrac{1}{x\middle|', '}\right)', 12]] as $what => [$open, $close, $d]) {
+        foreach (['fences with scripted middles' => ['\left(x\middle|x^{', '}\right)', self::UNIT_DEPTH + 1], 'fences with scripts' => ['\left(x^{', '}\right)', self::UNIT_DEPTH + 1], 'arrows' => ['\xrightarrow{', '}', self::UNIT_DEPTH + 1], 'fences with continued fractions' => ['\left(\cfrac{1}{x\middle|', '}\right)', intdiv(TexReader::MAX_DEPTH, 3)]] as $what => [$open, $close, $d]) {
             $e = '\def\e{' . str_repeat($open, $d) . 'x' . str_repeat($close, $d) . '}\def\f{' . str_repeat('\e', 10) . '}';
-            $notes = $d === 24 ? ['macro', 'nesting'] : ['\\middle', 'macro'];
+            $notes = $d > self::UNIT_DEPTH ? ['macro', 'nesting'] : ['\\middle', 'macro'];
             yield 'macro of nested ' . $what => [$e . '\def\g{' . str_repeat('\f', 10) . '}' . str_repeat('\g', 10), $notes];
         }
         foreach ([100, 300] as $units) {
-            yield 'macro repeating nested fences ' . $units . ' times' => ['\def\e{' . str_repeat('\left(x\middle|x^{', 24) . 'x' . str_repeat('}\right)', 24) . '}\def\f{' . str_repeat('\e', 10) . '}' . str_repeat('\f', intdiv($units, 10)), ['macro', 'nesting']];
+            yield 'macro repeating nested fences ' . $units . ' times' => ['\def\e{' . str_repeat('\left(x\middle|x^{', self::UNIT_DEPTH) . 'x' . str_repeat('}\right)', self::UNIT_DEPTH) . '}\def\f{' . str_repeat('\e', 10) . '}' . str_repeat('\f', intdiv($units, 10)), ['macro']];
         }
         yield 'one huge row' => ['\begin{matrix}' . str_repeat('&', 12_000) . 'x\end{matrix}', 'cells'];
         yield 'macro-built row' => ['\def\r{' . str_repeat('&', 1000) . '}\begin{matrix}' . str_repeat('\r', 11) . 'x\end{matrix}', 'cells'];
@@ -57,9 +62,9 @@ final class TexHardeningTest extends TestCase
         yield 'deep fences with sums' => [str_repeat('\left(\sum_{', 200) . 'x' . str_repeat('}\right)', 200), 'nesting'];
         // The worst a MAX_INPUT of siblings can do: each unit nested as deep as MAX_DEPTH reaches, and half that.
         foreach (['\\left(x\\middle|x^{' => '}\\right)', '\\left(x^{' => '}\\right)', '\\left(\\sum_{' => '}\\right)', '\\sqrt{x+' => '}', '\\overline{x+' => '}', '\\frac{1}{' => '}'] as $open => $close) {
-            foreach ([12, 24] as $d) {
+            foreach ([intdiv(self::UNIT_DEPTH, 2), self::UNIT_DEPTH] as $d) {
                 $one = str_repeat($open, $d) . 'x' . str_repeat($close, $d);
-                yield 'siblings of ' . $open . ' at depth ' . $d => [str_repeat($one, intdiv(TexReader::MAX_INPUT, strlen($one))), ''];
+                yield 'siblings of ' . $open . ' at depth ' . $d => [str_repeat($one, intdiv(TexReader::MAX_INPUT, strlen($one))), []];
             }
         }
         yield 'nested sqrt' => [str_repeat('\sqrt[', 2000), ['\sqrt', 'nesting']];
@@ -117,24 +122,24 @@ final class TexHardeningTest extends TestCase
 
     public function test_nesting_past_the_limit_is_drawn_as_text(): void
     {
-        $tex = str_repeat('{', 300) . 'x+y' . str_repeat('}', 300);
+        $tex = str_repeat('{', 600) . 'x+y' . str_repeat('}', 600);
         $r = TexReader::read($tex);
         self::assertStringContainsString('x+y', print_r($r->node, true));
         self::assertCount(1, $r->notes());
-        $env = TexReader::read(str_repeat('\\begin{matrix}', 300) . 'x' . str_repeat('\\end{matrix}', 300));
+        $env = TexReader::read(str_repeat('\\begin{matrix}', 600) . 'x' . str_repeat('\\end{matrix}', 600));
         self::assertCount(1, array_filter($env->notes(), static fn ($n): bool => $n->element === 'nesting'));
         self::assertSame([], array_filter($env->notes(), static fn ($n): bool => $n->element === '\\end'));
     }
 
     public function test_a_stray_end_after_an_overflow_is_still_noted(): void
     {
-        $notes = TexReader::read(str_repeat('{', 300) . 'x' . str_repeat('}', 300) . '\\end{matrix}')->notes();
+        $notes = TexReader::read(str_repeat('{', 600) . 'x' . str_repeat('}', 600) . '\\end{matrix}')->notes();
         self::assertCount(1, array_filter($notes, static fn ($n): bool => $n->element === '\\end'));
     }
 
     public function test_flattened_left_swallows_its_right(): void
     {
-        $r = TexReader::read(str_repeat('\\left(', 300) . 'x' . str_repeat('\\right)', 300));
+        $r = TexReader::read(str_repeat('\\left(', 600) . 'x' . str_repeat('\\right)', 600));
         self::assertCount(1, $r->notes());
         self::assertSame('nesting', $r->notes()[0]->element);
     }

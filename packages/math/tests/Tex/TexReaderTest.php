@@ -405,6 +405,13 @@ final class TexReaderTest extends TestCase
         self::assertCount(1, self::notes('{\left( x} y'));
     }
 
+    public function test_nesting_well_past_the_old_limit_reads_without_a_note(): void
+    {
+        // Each \left( x^{ unit is two levels; 100 units is 200 levels, over the old limit of 48.
+        $tex = str_repeat('\left(x^{', 100) . 'x' . str_repeat('}\right)', 100);
+        self::assertSame([], self::notes($tex));
+    }
+
     public function test_deep_left_nesting_is_bounded(): void
     {
         $tex = str_repeat('\left( ', 1000) . 'x' . str_repeat(' \right)', 1000);

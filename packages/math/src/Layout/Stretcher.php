@@ -19,8 +19,8 @@ final class Stretcher
     public const float MAX_STRETCH_EM = 100.0;
 
     /**
-     * @return array{pieces: list<array{int,float}>, ymin: float, ymax: float, advance: float}
-     *         pieces: [gid, y origin offset in font units, up]. Assemblies span ymin = 0 .. ymax = size.
+     * @return array{pieces: list<array{int,float,float}|array{int,float}>, ymin: float, ymax: float, advance: float}
+     *         pieces: [gid, y origin offset in font units, up, scale along y (assembly pieces only; 1.0 unless a run of one straight extender is drawn once)]. Assemblies span ymin = 0 .. ymax = size.
      */
     public static function vertical(TrueTypeFont $font, int $gid, float $requiredUnits): array
     {
@@ -65,8 +65,9 @@ final class Stretcher
         $single = count($s['pieces']) === 1;
         $b = new Box($lead + $s['advance'] * $u + $trail, ($s['ymax'] + $shift) * $u, -($s['ymin'] + $shift) * $u);
         $b->trail = $trail;
-        foreach ($s['pieces'] as [$pg, $off]) {
-            $b->add(new Glyph($pg, $single ? $char : null, $lead, -($off + $shift) * $u, $c->size()));
+        foreach ($s['pieces'] as $pc) {
+            [$pg, $off] = $pc;
+            $b->add(new Glyph($pg, $single ? $char : null, $lead, -($off + $shift) * $u, $c->size(), 1.0, $pc[2] ?? 1.0));
         }
         if ($single) {
             $b->firstGid = $b->lastGid = $s['pieces'][0][0];
@@ -79,8 +80,8 @@ final class Stretcher
     }
 
     /**
-     * @return array{pieces: list<array{int,float}>, xmin: float, xmax: float, ascent: float, descent: float}
-     *         pieces: [gid, x origin offset in font units], left to right. xmin/xmax are always the ink extent of the
+     * @return array{pieces: list<array{int,float,float}|array{int,float}>, xmin: float, xmax: float, ascent: float, descent: float}
+     *         pieces: [gid, x origin offset in font units, scale along x (assembly pieces only)], left to right. xmin/xmax are always the ink extent of the
      *         result along x, relative to the first piece's origin (a glyph's bbox x-range, or the min/max of the
      *         pieces' bbox x-ranges at their offsets); ascent and descent are the ink extent above and below the
      *         baseline. An assembly can come out wider than requested when the parts cannot overlap enough to shrink
@@ -114,11 +115,11 @@ final class Stretcher
         $descent = -INF;
         $xmin = INF;
         $xmax = -INF;
-        foreach ($placed as [$p, $x]) {
+        foreach (self::merge($font, $placed, false) as [$p, $x, $k]) {
             $gb = $font->bbox($p->gid);
-            $pieces[] = [$p->gid, $x];
+            $pieces[] = [$p->gid, $x + $gb[0] - $gb[0] * $k, $k]; // the scaled ink still starts at $x + $gb[0]
             $xmin = min($xmin, $x + $gb[0]);
-            $xmax = max($xmax, $x + $gb[2]);
+            $xmax = max($xmax, $x + $gb[0] + ($gb[2] - $gb[0]) * $k);
             $ascent = max($ascent, (float) $gb[3]);
             $descent = max($descent, (float) -$gb[1]);
         }
@@ -127,17 +128,54 @@ final class Stretcher
     }
 
     /**
+     * Whether a glyph's outline is a prism along the stretch axis: every point sits at the minimum or the maximum of its
+     * bounding box on that axis, so scaling it along the axis only lengthens it. The extenders of a font's assemblies are,
+     * and a glyph that is not must be repeated, not scaled. Cached per glyph on the font.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function isStraight(TrueTypeFont $font, int $gid, bool $vertical): bool
+    {
+        return $font->straightAlong($gid, $vertical);
+    }
+
+    /**
+     * Each run of one repeated straight extender becomes one piece: [part, start of the run, scale of its ink along the axis].
+     * The scale is 1.0 for everything else, so the ink of the run is where the repeated pieces' ink was, minus the seams.
+     *
+     * @param list<array{\Papercut\Math\Font\AssemblyPart, float}> $placed
+     * @return list<array{\Papercut\Math\Font\AssemblyPart, float, float}>
+     */
+    private static function merge(TrueTypeFont $font, array $placed, bool $vertical): array
+    {
+        $out = [];
+        $last = -1;
+        foreach ($placed as [$p, $pos]) {
+            if ($last >= 0 && $out[$last][0] === $p && $p->extender && self::isStraight($font, $p->gid, $vertical)) {
+                $bb = $font->bbox($p->gid);
+                $ink = $vertical ? $bb[3] - $bb[1] : $bb[2] - $bb[0];
+                $out[$last][2] = ($pos - $out[$last][1] + $ink) / $ink;
+                continue;
+            }
+            $out[] = [$p, $pos, 1.0];
+            $last++;
+        }
+
+        return $out;
+    }
+
+    /**
      * @param list<\Papercut\Math\Font\AssemblyPart> $parts bottom to top
-     * @return array{pieces: list<array{int,float}>, ymin: float, ymax: float, advance: float}
+     * @return array{pieces: list<array{int,float,float}|array{int,float}>, ymin: float, ymax: float, advance: float}
      */
     private static function assemble(TrueTypeFont $font, array $parts, float $required): array
     {
         [$placed, $size] = self::solveParts($parts, $required, $font->math()->minConnectorOverlap);
         $pieces = [];
         $adv = 0.0;
-        foreach ($placed as [$p, $y]) {
+        foreach (self::merge($font, $placed, true) as [$p, $y, $k]) {
             $gb = $font->bbox($p->gid);
-            $pieces[] = [$p->gid, $y - $gb[1]];
+            $pieces[] = [$p->gid, $y - $gb[1] * $k, $k];
             $adv = max($adv, (float) $font->advance($p->gid));
         }
 
