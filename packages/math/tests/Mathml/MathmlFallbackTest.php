@@ -241,4 +241,89 @@ final class MathmlFallbackTest extends TestCase
         $wrapped = new Row([$sum, new Fallback(new Space(1), self::note()), new Identifier('x')]);
         self::assertSame(OmmlWriter::oMath($plain), OmmlWriter::oMath($wrapped));
     }
+
+    /** @return list<string> the reason of every note, in order */
+    private static function reasons(\Papercut\Math\Mathml\MathmlResult $r): array
+    {
+        return array_map(static fn (MathNote $n): string => $n->level->name . " " . $n->element . ": " . $n->reason, $r->notes());
+    }
+
+    public function test_text_limit_keeps_the_first_characters(): void
+    {
+        $r = MathmlReader::read("<math><mi>x</mi><mo>=</mo><mtext>" . str_repeat("a", MathmlReader::MAX_TEXT) . "</mtext><mi>y</mi></math>");
+        self::assertSame(["Approximated math: formula too large; the rest is dropped"], self::reasons($r));
+        $text = TextWriter::write($r->node);
+        self::assertSame(MathmlReader::MAX_TEXT, mb_substr_count($text, "a") + mb_substr_count($text, "x") + mb_substr_count($text, "="));
+        self::assertStringNotContainsString("y", $text);
+    }
+
+    public function test_text_limit_counts_across_tokens(): void
+    {
+        $r = MathmlReader::read("<math>" . str_repeat("<mi>b</mi>", MathmlReader::MAX_TEXT + 10) . "</math>");
+        self::assertSame(["Approximated math: formula too large; the rest is dropped"], self::reasons($r));
+        self::assertSame(MathmlReader::MAX_TEXT, mb_substr_count(TextWriter::write($r->node), "b"));
+    }
+
+    public function test_text_under_the_limit_is_not_noted(): void
+    {
+        self::assertSame([], MathmlReader::read("<math><mtext>" . str_repeat("a", MathmlReader::MAX_TEXT) . "</mtext></math>")->notes());
+    }
+
+    public function test_element_limit_counts_empty_table_cells(): void
+    {
+        $side = (int) ceil(sqrt(MathmlReader::MAX_ELEMENTS)) + 1;
+        $r = MathmlReader::read("<math><mtable>" . str_repeat("<mtr>" . str_repeat("<mtd></mtd>", $side) . "</mtr>", $side) . "</mtable></math>");
+        $reasons = self::reasons($r);
+        self::assertContains("Approximated math: formula too large; the rest is dropped", $reasons);
+        self::assertSame(count($reasons), count(array_unique($reasons)));
+        $grid = self::find($r->node, Grid::class);
+        self::assertInstanceOf(Grid::class, $grid);
+        self::assertLessThan($side, count($grid->rows));
+        Math::layout($r->node);
+    }
+
+    public function test_element_limit_on_empty_rows(): void
+    {
+        $r = MathmlReader::read("<math>" . str_repeat("<mrow></mrow>", MathmlReader::MAX_ELEMENTS + 5) . "<mi>z</mi></math>");
+        self::assertSame(["Approximated math: formula too large; the rest is dropped"], self::reasons($r));
+        self::assertStringNotContainsString("z", TextWriter::write($r->node));
+    }
+
+    public function test_input_limit_cuts_long_strings(): void
+    {
+        $r = MathmlReader::read("<math><mi>x</mi>" . str_repeat("<!-- padding -->", intdiv(MathmlReader::MAX_INPUT, 16) + 1) . "<mi>y</mi></math>");
+        self::assertSame(["Approximated math: formula too large; the rest is dropped"], self::reasons($r));
+        self::assertSame("x", TextWriter::write($r->node));
+    }
+
+    public function test_limits_apply_to_a_parsed_element(): void
+    {
+        $doc = \Dom\HTMLDocument::createFromString("<!DOCTYPE html><html><body><math><mtext>" . str_repeat("w ", MathmlReader::MAX_TEXT) . "</mtext></math>", LIBXML_NOERROR, "UTF-8");
+        $math = $doc->body?->firstElementChild;
+        self::assertInstanceOf(\Dom\Element::class, $math);
+        $r = MathmlReader::read($math);
+        self::assertSame(["Approximated math: formula too large; the rest is dropped"], self::reasons($r));
+        // The cut falls on a space, which the text form trims.
+        self::assertSame(MathmlReader::MAX_TEXT - 1, mb_strlen(TextWriter::write($r->node)));
+    }
+
+    /** The first node of $class in the tree, looking through Fallbacks and Rows. */
+    private static function find(\Papercut\Math\Node\Node $n, string $class): ?\Papercut\Math\Node\Node
+    {
+        if ($n instanceof $class) {
+            return $n;
+        }
+        if ($n instanceof Fallback) {
+            return $n->content === null ? null : self::find($n->content, $class);
+        }
+        if ($n instanceof Row) {
+            foreach ($n->children as $c) {
+                if (($found = self::find($c, $class)) !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
 }

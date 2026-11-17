@@ -49,6 +49,17 @@ final class MathmlReader
 
     private const MAX_DEPTH = 256;
 
+    /** The longest string read, in bytes; the rest is dropped (and noted). */
+    public const int MAX_INPUT = 1_048_576;
+
+    /** The most text a formula keeps, in characters across all its tokens, as much as 16 KB of TeX could draw. */
+    public const int MAX_TEXT = 16_384;
+
+    /** The most elements a formula reads; the rest is dropped (and noted). */
+    public const int MAX_ELEMENTS = 32_768;
+
+    private const string TOO_LARGE = 'formula too large; the rest is dropped';
+
     /** Table attributes that are noted, not drawn, per element (columnalign/rowalign on the mtable itself are honoured). */
     private const IGNORED = [
         'mtable' => ['columnlines', 'rowlines', 'frame', 'rowspacing', 'columnwidth', 'equalrows', 'equalcolumns', 'align', 'groupalign'],
@@ -61,6 +72,13 @@ final class MathmlReader
 
     private int $depth = 0;
 
+    private int $elements = 0;
+
+    private int $text = 0;
+
+    /** A limit was reached: nothing more is read. */
+    private bool $full = false;
+
     private function __construct()
     {
     }
@@ -69,11 +87,18 @@ final class MathmlReader
     {
         $reader = new self();
         $lost = null;
+        $cut = is_string($input) && strlen($input) > self::MAX_INPUT;
+        if ($cut) {
+            $input = mb_strcut($input, 0, self::MAX_INPUT);
+        }
         $math = is_string($input) ? self::parse($input, $lost) : $input;
         if ($math === null) {
             return new MathmlResult(new Row([]), false);
         }
         $node = $reader->map($math, self::name($math)) ?? new Row([]);
+        if ($cut) {
+            $node = $reader->note('#size', $node, NoteLevel::Approximated, 'math', self::TOO_LARGE, 'math') ?? $node;
+        }
         if ($lost !== null) {
             $node = new Fallback($node, $lost);
         }
@@ -187,8 +212,57 @@ final class MathmlReader
 
     private function map(\Dom\Element $e, string $where): ?Node
     {
+        if ($this->full) {
+            return null;
+        }
+        if (! $this->count()) {
+            return $this->note('#size', null, NoteLevel::Approximated, 'math', self::TOO_LARGE, $where);
+        }
+        $node = $this->mapWithin($e, $where);
+        if ($this->full) {
+            $node = $this->note('#size', $node, NoteLevel::Approximated, 'math', self::TOO_LARGE, $where);
+        }
+
+        return $node;
+    }
+
+    /**
+     * Counts one more element read; false, and stops the reading, past MAX_ELEMENTS (or once a limit was reached).
+     *
+     * @phpstan-impure
+     */
+    private function count(): bool
+    {
+        if (! $this->full && ++$this->elements > self::MAX_ELEMENTS) {
+            $this->full = true;
+        }
+
+        return ! $this->full;
+    }
+
+    /**
+     * $text cut to what is left of MAX_TEXT, counting it; reaching the limit stops the reading.
+     *
+     * @phpstan-impure
+     */
+    private function budget(string $text): string
+    {
+        $len = mb_strlen($text);
+        $left = self::MAX_TEXT - $this->text;
+        if ($len > $left) {
+            $this->full = true;
+            $text = mb_substr($text, 0, $left);
+            $len = $left;
+        }
+        $this->text += $len;
+
+        return $text;
+    }
+
+    private function mapWithin(\Dom\Element $e, string $where): ?Node
+    {
         if ($this->depth >= self::MAX_DEPTH) {
-            $text = self::collapse((string) $e->textContent);
+            $text = $this->budget(self::collapse((string) $e->textContent));
 
             return $text === '' ? null : $this->note('#depth', new Text($text), NoteLevel::Approximated, 'math', 'nesting deeper than 256 levels (flattened)', $where);
         }
@@ -262,12 +336,18 @@ final class MathmlReader
         $labelled = false;
         $i = 0;
         foreach (self::elements($e) as $tr) {
+            if (! $this->count()) {
+                break;
+            }
             $rowWhere = $this->at($where, $tr, $i++);
             $trName = self::name($tr);
             array_push($rowNotes, ...self::ignoredOn($tr, 'mtr', $rowWhere, $trName));
             $cells = [];
             $j = 0;
             foreach (self::elements($tr) as $td) {
+                if (! $this->count()) {
+                    break;
+                }
                 $cellWhere = $this->at($rowWhere, $td, $j++);
                 if ($trName === 'mlabeledtr' && $j === 1) {
                     $labelled = true;
@@ -438,9 +518,9 @@ final class MathmlReader
     {
         $node = match ($name) {
             'mi' => $this->identifier($e),
-            'mn' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Number(self::variantText($e, $t)),
-            'mtext' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Text(self::variantText($e, $t)),
-            'ms' => new Text('"' . self::variantText($e, self::collapse((string) $e->textContent)) . '"'),
+            'mn' => ($t = $this->budget(self::collapse((string) $e->textContent))) === '' ? null : new Number(self::variantText($e, $t)),
+            'mtext' => ($t = $this->budget(self::collapse((string) $e->textContent))) === '' ? null : new Text(self::variantText($e, $t)),
+            'ms' => new Text('"' . self::variantText($e, $this->budget(self::collapse((string) $e->textContent))) . '"'),
             default => $this->operator($e, $where),
         };
         $i = 0;
@@ -468,7 +548,7 @@ final class MathmlReader
 
     private function identifier(\Dom\Element $e): ?Node
     {
-        $text = self::collapse((string) $e->textContent);
+        $text = $this->budget(self::collapse((string) $e->textContent));
         if ($text === '') {
             return null;
         }
@@ -502,7 +582,7 @@ final class MathmlReader
         if ($nbsp > 0 && preg_match('/^[ \t\n\r\f\x{00A0}]*$/u', $raw) === 1) {
             return new Space(0.25 * $nbsp);
         }
-        $text = self::collapse($raw);
+        $text = $this->budget(self::collapse($raw));
         if (preg_match('/^[\s\x{00A0}\x{2061}-\x{2064}]*$/u', $text) === 1) {
             return null;
         }

@@ -136,7 +136,9 @@ What a string may look like:
   `«math…«/math»` run (byte offset and length) in a larger text.
 
 A bare fragment without a `math` element (`<mi>x</mi><mo>+</mo><mn>1</mn>`) is read as if wrapped in one, and empty
-input gives an empty formula. The reader never throws.
+input gives an empty formula. The reader never throws. A string is cut off at `MathmlReader::MAX_INPUT` (1 MB), and a formula keeps at
+most `MAX_TEXT` (16,384) characters of text and `MAX_ELEMENTS` (32,768) elements; past a limit the rest is dropped with
+an approximated note.
 
 ### What is approximated or dropped
 

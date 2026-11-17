@@ -206,6 +206,8 @@ Not all of MathML has a counterpart yet. The reader draws what it can and record
 
 `Math::mathml()` never expands entities. MathML that carries a DOCTYPE, in any encoding, is read as HTML would read it, so an entity declaration in it does nothing.
 
+**Limits.** A MathML string is cut off at 1 MB. A formula keeps at most 16,384 characters of text across its tokens (as much as 16 KB of TeX could draw) and reads at most 32,768 elements, table rows and cells included. Nesting deeper than 256 levels is drawn as flat text. A formula that hits a limit is drawn as far as it got and gets an approximated note, `math (formula too large; the rest is dropped)`; it never throws.
+
 Notes reach the [`onWarning`](./rich-text.md#conversion-warnings) callback as the document is exported. A formula with approximated parts exports normally in strict mode. One with dropped parts makes strict mode fail, like any other content an output can't draw.
 
 ```php
