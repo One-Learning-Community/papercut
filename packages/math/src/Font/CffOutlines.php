@@ -590,7 +590,14 @@ final class CffOutlines
             return [0, 0, 0, 0];
         }
 
-        return [(int) floor(min($xs)), (int) floor(min($ys)), (int) ceil(max($xs)), (int) ceil(max($ys))];
+        // The extrema come from a quadratic root, so one that is mathematically an integer can land a hair above it;
+        // snap within 1e-6 before rounding outward so float noise does not widen the box by a unit.
+        return [
+            (int) floor(min($xs) + 1e-6),
+            (int) floor(min($ys) + 1e-6),
+            (int) ceil(max($xs) - 1e-6),
+            (int) ceil(max($ys) - 1e-6),
+        ];
     }
 
     /** @return list<float> the values of one coordinate of a cubic, at the interior points where its derivative is zero */

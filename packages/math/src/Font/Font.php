@@ -54,7 +54,12 @@ final class Font
         }
         for ($i = 0; $i < $n; $i++) {
             $o = 12 + $i * 16;
-            $this->tables[substr($data, $o, 4)] = [$this->b->u32($o + 8), $this->b->u32($o + 12)];
+            $tag4 = substr($data, $o, 4);
+            [$at, $length] = [$this->b->u32($o + 8), $this->b->u32($o + 12)];
+            if ($at + $length > strlen($data)) {
+                throw new UnsupportedFont($path, "$path has a $tag4 table that lies outside the file; the file is cut short or damaged");
+            }
+            $this->tables[$tag4] = [$at, $length];
         }
         if (isset($this->tables['CFF2'])) {
             throw UnsupportedFont::cff($path);
@@ -65,7 +70,7 @@ final class Font
         $outlines = isset($this->tables['CFF ']) ? ['CFF '] : ['loca', 'glyf'];
         foreach (['head', 'hhea', 'maxp', 'hmtx', 'cmap', ...$outlines] as $t) {
             if (! isset($this->tables[$t])) {
-                throw new \RuntimeException("Font has no $t table");
+                throw new UnsupportedFont($path, "$path has no $t table, so it is not a usable font");
             }
         }
         $head = $this->tables['head'][0];
@@ -80,7 +85,7 @@ final class Font
         }
         $this->numGlyphs = $this->b->u16($this->tables['maxp'][0] + 4);
         $this->numHMetrics = $this->b->u16($this->tables['hhea'][0] + 34);
-        $this->readCmap();
+        $this->readCmap($path);
     }
 
     /** Fonts opened by fromFile(), by real path, so a font checked once (a config check, then the render) is parsed once. */
@@ -155,7 +160,7 @@ final class Font
         return $this->b->u16($hm + $i * 4);
     }
 
-    private function readCmap(): void
+    private function readCmap(string $path): void
     {
         $c = $this->tables['cmap'][0];
         $n = $this->b->u16($c + 2);
@@ -178,7 +183,7 @@ final class Font
             }
         }
         if ($best === null) {
-            throw new \RuntimeException('No usable cmap (need format 4 or 12)');
+            throw new UnsupportedFont($path, "$path has no usable cmap (need format 4 or 12)");
         }
         [$fmt, $o] = $best;
         if ($fmt === 12) {

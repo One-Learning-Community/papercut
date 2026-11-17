@@ -14,7 +14,7 @@ final class UnsupportedFont extends \InvalidArgumentException
 
     public static function cff(string $path): self
     {
-        return new self($path, "$path is a CFF2 (variable CFF) font, which quoin/math does not read; use a static font");
+        return new self($path, "$path is a CFF2 (variable CFF) font, which the math font reader does not read; use a static font");
     }
 
     public static function noMathTable(string $path): self

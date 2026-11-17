@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Quoin\Math\Tests\Font;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Quoin\Math\Exception\UnsupportedFont;
 use Quoin\Math\Font\Binary;
@@ -239,15 +240,68 @@ final class CffFontTest extends TestCase
         self::assertSame([], $warnings);
     }
 
-    public function test_hintmask_does_not_skip_past_the_end_of_its_charstring(): void
+    // Curve operators, checked against fontTools.
+
+    /** @return array<string, array{string, list<array{string, list<float>}>}> */
+    public static function curveOperators(): array
     {
-        // 16 stem hints make a two-byte mask; the charstring ends after the operator, and a second glyph follows it.
-        $stems = str_repeat(self::num(1), 32) . "\x01";
-        $first = $stems . "\x13";
-        $second = self::cs(self::num(5), self::num(5), self::RMOVETO, self::END);
-        $outlines = self::outlines([$first, $second]);
-        self::assertSame([], $outlines->path(0));
-        self::assertSame('M', $outlines->path(1)[0][0]);
+        $ops = static fn (int ...$v): string => self::cs(...array_map(self::num(...), $v));
+        $start = $ops(0, 0) . self::RMOVETO;
+
+        return [
+            'flex' => [
+                $start . $ops(10, 20, 30, 40, 50, 0, 60, -40, 70, -20, 80, 0, 50) . "\x0c\x23" . self::END,
+                [['M', [0, 0]], ['C', [10, 20, 40, 60, 90, 60]], ['C', [150, 20, 220, 0, 300, 0]], ['Z', []]],
+            ],
+            'hflex' => [
+                $start . $ops(10, 30, 15, 40, 40, 30, 10) . "\x0c\x22" . self::END,
+                [['M', [0, 0]], ['C', [10, 0, 40, 15, 80, 15]], ['C', [120, 15, 150, 0, 160, 0]], ['Z', []]],
+            ],
+            'hflex1' => [
+                $start . $ops(10, 5, 30, 10, 40, 40, 30, -7, 10) . "\x0c\x24" . self::END,
+                [['M', [0, 0]], ['C', [10, 5, 40, 15, 80, 15]], ['C', [120, 15, 150, 8, 160, 0]], ['Z', []]],
+            ],
+            'flex1, horizontal' => [
+                $start . $ops(10, 1, 30, 5, 40, 0, 40, 0, 30, -5, 10) . "\x0c\x25" . self::END,
+                [['M', [0, 0]], ['C', [10, 1, 40, 6, 80, 6]], ['C', [120, 6, 150, 1, 160, 0]], ['Z', []]],
+            ],
+            'flex1, vertical' => [
+                $start . $ops(0, 10, 5, 30, 0, 40, 0, 40, -5, 30, 10) . "\x0c\x25" . self::END,
+                [['M', [0, 0]], ['C', [0, 10, 5, 40, 5, 80]], ['C', [5, 120, 0, 150, 0, 160]], ['Z', []]],
+            ],
+        ];
+    }
+
+    /**
+     * @param list<array{string, list<float>}> $expected
+     */
+    #[DataProvider('curveOperators')]
+    public function test_flex_operators_draw_the_curves_fonttools_draws(string $charString, array $expected): void
+    {
+        self::assertEquals($expected, self::outlines([$charString])->path(0));
+    }
+
+    public function test_a_local_subroutine_is_called_through_the_private_dict(): void
+    {
+        // The subroutine draws a line and returns; the glyph moves, calls it (bias 107), then draws a second line.
+        $sub = self::cs(self::num(30), self::num(40), "\x05", "\x0b");
+        $glyph = self::cs(self::num(10), self::num(10), self::RMOVETO, self::num(-107), "\x0a", self::num(5), "\x06", self::END);
+        $path = self::outlines([$glyph], [], [$sub])->path(0);
+        self::assertEquals([['M', [10, 10]], ['L', [40, 50]], ['L', [45, 50]], ['Z', []]], $path);
+    }
+
+    /** A bounding box whose true extreme is an integer must not be rounded up by float noise. */
+    public function test_a_curve_extreme_that_is_exactly_an_integer_is_not_rounded_up(): void
+    {
+        // Cubic (202,566) C (197,568) (191,567) (187,563): its exact yMax is 567.
+        $glyph = self::cs(
+            "\x1c" . pack('n', 202), "\x1c" . pack('n', 566), self::RMOVETO,
+            self::num(-5), self::num(2), self::num(-6), self::num(-1), self::num(-4), self::num(-4), "\x08", // rrcurveto
+            self::END,
+        );
+        $outlines = self::outlines([$glyph]);
+        self::assertEquals([['M', [202, 566]], ['C', [197, 568, 191, 567, 187, 563]], ['Z', []]], $outlines->path(0));
+        self::assertSame([187, 563, 202, 567], $outlines->bbox(0));
     }
 
     // Builders.
@@ -373,10 +427,11 @@ final class CffFontTest extends TestCase
     /**
      * @param list<string> $charStrings
      * @param list<string> $gsubrs
+     * @param list<string> $lsubrs
      */
-    private static function outlines(array $charStrings, array $gsubrs = []): CffOutlines
+    private static function outlines(array $charStrings, array $gsubrs = [], array $lsubrs = []): CffOutlines
     {
-        $cff = self::cff($charStrings, $gsubrs);
+        $cff = self::cff($charStrings, $gsubrs, $lsubrs);
 
         return new CffOutlines(new Binary($cff), 0, strlen($cff), 1000, count($charStrings));
     }
