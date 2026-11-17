@@ -12,6 +12,7 @@ use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
+use Papercut\Math\Node\Middle;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
@@ -32,7 +33,59 @@ final class MathmlWriter
             . self::node($root) . '</math>';
     }
 
+    /** Set for the one node about to be written as the base of a script or limit: ApplyFunction goes after the whole of it. */
+    private static bool $bare = false;
+
+    /** A function name, alone or as the base of scripts or limits: what MathML's invisible function application follows. */
+    private static function isFunction(Node $n): bool
+    {
+        while ($n instanceof Fallback && $n->content !== null) {
+            $n = $n->content;
+        }
+        if ($n instanceof Scripts || $n instanceof UnderOver) {
+            return self::isFunction($n->base);
+        }
+
+        return $n instanceof Identifier && $n->function;
+    }
+
+    private static function bare(Node $n): string
+    {
+        self::$bare = true;
+        $out = self::slot($n);
+        self::$bare = false;
+
+        return $out;
+    }
+
     private static function node(Node $n): string
+    {
+        $bare = self::$bare;
+        self::$bare = false;
+
+        $xml = self::plain0($n);
+        // A name with no sibling after it, outside the standard table, keeps its flag through an mrow that holds the mark; a
+        // standard name is flagged by the reader anyway, and nothing is added (a slot takes exactly one element).
+        if (! $bare && self::isFunction($n) && ! self::isStandardName($n)) {
+            return '<mrow>' . $xml . '<mo>&#x2061;</mo></mrow>';
+        }
+
+        return $xml;
+    }
+
+    private static function isStandardName(Node $n): bool
+    {
+        while ($n instanceof Fallback && $n->content !== null) {
+            $n = $n->content;
+        }
+        if ($n instanceof Scripts || $n instanceof UnderOver) {
+            return self::isStandardName($n->base);
+        }
+
+        return $n instanceof Identifier && in_array($n->name, OperatorDictionary::FUNCTION_NAMES, true);
+    }
+
+    private static function plain0(Node $n): string
     {
         return match (true) {
             $n instanceof Identifier => '<mi' . ($n->upright ? ' mathvariant="normal"' : '') . '>' . Xml::text($n->upright ? $n->name : self::plain($n->name)) . '</mi>',
@@ -48,11 +101,13 @@ final class MathmlWriter
                 : '<mroot>' . self::slot($n->radicand) . self::slot($n->index) . '</mroot>',
             $n instanceof Scripts => self::scripts($n),
             $n instanceof UnderOver => self::underOver($n),
+            // Only a Middle that Fenced stretches does so in the PDF; a browser must not stretch the others.
+            $n instanceof Middle => self::operator(new Operator($n->char, $n->stretches(), lspace: 3, rspace: 3), OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX),
             $n instanceof Fenced => self::fenced($n),
             $n instanceof Grid => self::grid($n),
             $n instanceof Row => self::row($n),
             $n instanceof DisplayStyle => '<mstyle displaystyle="' . ($n->display ? 'true' : 'false') . '">' . self::node($n->content) . '</mstyle>',
-            $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
+            $n instanceof Fallback => $n->content === null ? '' : self::plain0($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
     }
@@ -63,10 +118,10 @@ final class MathmlWriter
         return $n instanceof Fallback && $n->content === null ? '<mrow></mrow>' : self::node($n);
     }
 
-    /** An em width with up to 3 decimals and no trailing zeros. */
-    private static function em(float $em): string
+    /** An em width with up to $places decimals (3 by default) and no trailing zeros. */
+    private static function em(float $em, int $places = 3): string
     {
-        $s = rtrim(rtrim(number_format($em, 3, '.', ''), '0'), '.');
+        $s = rtrim(rtrim(number_format($em, $places, '.', ''), '0'), '.');
 
         return $s === '-0' || $s === '' ? '0' : $s;
     }
@@ -100,6 +155,8 @@ final class MathmlWriter
         $attrs = $form !== $inferred ? ' form="' . $form . '"' : '';
         if ($fence) {
             $attrs .= ' stretchy="true"';
+        } elseif ($o->minSize !== null || $o->maxSize !== null) {
+            $attrs .= ' stretchy="true"'; // a browser applies minsize and maxsize to stretchy operators only; a size wins over stretchy=false
         } elseif ($o->stretchy !== null) {
             $attrs .= ' stretchy="' . ($o->stretchy ? 'true' : 'false') . '"';
         } elseif (! $stretched && OperatorDictionary::lookup($o->char, $form)['stretchy']) {
@@ -111,6 +168,20 @@ final class MathmlWriter
         }
         if ($o->movablelimits !== null) {
             $attrs .= ' movablelimits="' . ($o->movablelimits ? 'true' : 'false') . '"';
+        }
+
+        if ($o->lspace !== null) {
+            $attrs .= ' lspace="' . self::em($o->lspace / 18, 4) . 'em"';
+        }
+        if ($o->rspace !== null) {
+            $attrs .= ' rspace="' . self::em($o->rspace / 18, 4) . 'em"';
+        }
+
+        if ($o->minSize !== null) {
+            $attrs .= ' minsize="' . self::em($o->minSize, 4) . 'em"';
+        }
+        if ($o->maxSize !== null) {
+            $attrs .= ' maxsize="' . self::em($o->maxSize, 4) . 'em"';
         }
 
         return '<mo' . $attrs . '>' . Xml::text($o->char) . '</mo>';
@@ -129,7 +200,14 @@ final class MathmlWriter
             // What a browser infers from the position in the mrow: first prefix, last postfix, else infix.
             $inferred = $i === 0 ? OperatorDictionary::FORM_PREFIX : ($i === $count - 1 ? OperatorDictionary::FORM_POSTFIX : OperatorDictionary::FORM_INFIX);
             $op = Fallback::unwrap($child);
-            $out .= $op instanceof Operator ? self::styled($child, self::operator($op, $resolved ?? $inferred, $inferred)) : self::node($child);
+            if ($op instanceof Operator) {
+                $out .= self::styled($child, self::operator($op, $resolved ?? $inferred, $inferred));
+            } elseif ($i < $count - 1 && self::isFunction($child)) {
+                // ApplyFunction goes between the name (with its scripts or limits) and what follows it.
+                $out .= self::plain0($child) . '<mo>&#x2061;</mo>';
+            } else {
+                $out .= self::node($child);
+            }
         }
 
         return '<mrow>' . $out . '</mrow>';
@@ -152,7 +230,7 @@ final class MathmlWriter
 
     private static function scripts(Scripts $s): string
     {
-        $base = self::slot($s->base);
+        $base = self::bare($s->base);
         if ($s->sub !== null && $s->sup !== null) {
             return '<msubsup>' . $base . self::slot($s->sub) . self::slot($s->sup) . '</msubsup>';
         }
@@ -180,7 +258,7 @@ final class MathmlWriter
             $form = $baseOp->isLargeop(OperatorDictionary::FORM_PREFIX) ? OperatorDictionary::FORM_PREFIX : OperatorDictionary::FORM_INFIX;
             $base = self::styled($u->base, self::operator($baseOp, $form, OperatorDictionary::FORM_INFIX, false, $stretches));
         } else {
-            $base = self::slot($u->base);
+            $base = self::bare($u->base);
         }
         if ($u->under !== null && $u->over !== null) {
             return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under) . $part($u->over) . '</munderover>';
@@ -200,6 +278,9 @@ final class MathmlWriter
         $attrs = '';
         if (array_any($g->columnAlign, static fn (string $a): bool => $a !== 'center')) {
             $attrs .= ' columnalign="' . implode(' ', $g->columnAlign) . '"';
+        }
+        if (array_any($g->columnSpacing, static fn (float $gap): bool => $gap !== 1.0)) {
+            $attrs .= ' columnspacing="' . implode(' ', array_map(static fn (float $gap): string => rtrim(rtrim(number_format($gap, 4, '.', ''), '0'), '.') . 'em', $g->columnSpacing)) . '"';
         }
         if ($g->rowAlign !== 'baseline') {
             $attrs .= ' rowalign="' . $g->rowAlign . '"';
@@ -221,7 +302,7 @@ final class MathmlWriter
         if ($f->open !== '') {
             $out .= self::operator(new Operator($f->open), OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_PREFIX, true);
         }
-        $out .= self::node($f->content);
+        $out .= self::node(Fenced::stretchMiddles($f->content, 0.0));
         if ($f->close !== '') {
             $out .= self::operator(new Operator($f->close), OperatorDictionary::FORM_POSTFIX, OperatorDictionary::FORM_POSTFIX, true);
         }

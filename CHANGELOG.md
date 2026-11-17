@@ -5,8 +5,30 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- TeX input. `Math::tex($string)` reads LaTeX math into the same formula the builder makes, and never throws. `TexReader::read()` also returns whether the source asked for display style and a list of notes. It covers what KaTeX supports for math, including `\frac`, roots, scripts, `\left`/`\right`/`\middle`, `\big` sizes, accents, `\overbrace`, extensible arrows, matrices, `cases`, `aligned` and `array`, font and text commands, and macros (`\newcommand`, `\renewcommand`, `\providecommand`, `\def`, `\DeclareMathOperator`, scoped to groups). Colour, `\boxed`, `\fbox`, `\cancel`, `\hline` and column rules, `\tag` and `\newenvironment` are not drawn and are noted. Input is limited to 16 KB, nesting to 256 and cells to 10,000; hitting a limit gives an approximated note, never an exception. See [Equations](https://one-learning-community.github.io/papercut/guide/equations.html#tex-input).
+- TeX output. `TexWriter::write($node)` writes a formula as standard TeX that KaTeX accepts, so a formula can go from MathML to TeX, or from TeX to MathML and Word, and TeX written back reads as the same formula. Details MathML has and TeX has no word for are written as the nearest TeX.
+- `Math::aligned($rows)` lines equations up on their alignment points, as TeX's `aligned` does. `Math::middle($delimiter)` is a delimiter inside `Math::fenced()` that stretches with it, `Math::big($delimiter, $size)` draws a delimiter at a fixed size from 1 to 4 (`Math::BIG_SIZES`), and `Math::xarrow()` is an extensible arrow with optional labels above and below.
+- Laravel: a `tex` attribute on `<x-doc::equation>` and `<x-doc::math>`, an alternative to `math` (give exactly one). Blade reads `{{` in a static attribute as an echo, so TeX that contains it needs a bound value, `:tex="'…'"`; and it turns the value into a PHP string, so TeX's `\\` line break is written `\\\\` there (or pass the TeX in a variable).
+- MathML `lspace` and `rspace` on `mo` are now read (as the MathML writer writes them), so `\mathbin`, `\mathrel` and the like keep their spacing from TeX through MathML and back.
+- MathML `columnspacing` on `mtable` is now drawn, and so are `minsize` and `maxsize` on a stretchy `mo`. `Grid` takes a `columnSpacing` argument, the gap in em between columns. Word writes `aligned` as a native equation array.
+
+### Known differences
+
+- Word does not stretch `=` in an OMML group character, so `\xlongequal` (and any labelled stretchy `=`) is drawn at the normal `=` width, with its labels above and below as usual; the PDF stretches it, and Word stretches the other extensible arrows.
+
+### Changed
+
+- An arrow (or `=`) stretched over or under labels is now drawn at least 1.469 em long and reaches 0.5 em past its widest label on each side, as in KaTeX; braces and accents still span exactly their base.
+- Layout is much faster on deeply nested formulas. Coordinates in nested fractions and scripts may differ by up to 0.001 pt.
+- The thin space after a function name (`sin`, `log`) is trailing space, as an operator's is: a script, as in `\sin^2 x`, sits right after the name and the space follows it. In script style an operator's explicit spacing is dropped per side, and the space of an `op` class atom (`\mathop`) is kept.
+- A tall delimiter, brace or arrow is drawn with one scaled extender instead of a stack of copies, so SVG and PDF output is smaller. A stretched delimiter or arrow is capped at 100 em.
+- For backend authors: `Glyph` has `sx` and `sy` scale factors that a backend drawing glyphs itself must apply (a merged extender is one glyph scaled along the stretch), and `Box::$items` is flattened on every read, so read it once or walk the tree with `Box::each()`; `$box->items[] = …` no longer works.
+
 ### Fixed
 
+- Integral limits sat far to the right of the integral sign; they now hug it as in TeX. A script on any operator (an integral, a sum, `=`, or a row ending in `+`) now starts at the operator's own width, with the operator's trailing space after the script instead of before it, so scripts on an operator such as `=` move left by that space and the total width is unchanged. Large operators also keep their italic correction in inline style: the superscript of an inline integral or sum sits one italic correction right of its subscript, and limits stacked above and below an inline large operator (`movablelimits="false"`) are nudged apart by half of it, as in display style.
 - A radio marker made bigger by a variant (one that sets the marker's width and height but not its radius) stays a circle. The default theme's radio radius is now far past half the marker, which every output clamps to a circle, so the PDF and HTML no longer draw a large radio as a rounded square, and Word writes it as ○ or ◉ instead of ☐ or ▣. In Word, a marker counts as round once its corner radius is more than a third of its side.
 - Word: choice markers are written in Segoe UI Symbol, so ○ ◉ ☐ ▣ come from one font at one size (the text font has ○ but not the others, so ○ came out smaller); the font table lists it with its PANOSE number so a reader without it picks a close stand-in, and each sits centred on the capitals of its label's first line at any marker size instead of hanging low once it is bigger than the text. The centring is exact when Word has the label's font; give a font readers may not have a Word name (`FontSet::withWordName()`) to keep it close.
 

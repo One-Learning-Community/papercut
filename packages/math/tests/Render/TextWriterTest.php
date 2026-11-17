@@ -37,6 +37,7 @@ final class TextWriterTest extends TestCase
         yield 'script with an operator' => [Math::sup('x', 'n + m'), 'x^(n + m)'];
         yield 'single token script without parens' => [Math::sup('x', Math::text('max')), 'x^max'];
         yield 'function name' => [Math::row('sin', 'x'), 'sin x'];
+        yield 'middle bar' => [Math::fenced('{', '}', 'x', Math::middle('|'), Math::frac('a', 'b')), '{x | a/b}'];
         yield 'plain root' => [Math::sqrt('2'), '√2'];
     }
 

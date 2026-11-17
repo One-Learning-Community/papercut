@@ -103,6 +103,22 @@ final class MathmlWriterTest extends TestCase
         self::assertStringContainsString('<mo stretchy="true">(</mo>', MathmlWriter::write(Math::fenced('(', ')', 'a')));
     }
 
+    public function test_middle_delimiter_stretches_with_its_spacing(): void
+    {
+        $xml = MathmlWriter::write(Math::fenced('{', '}', 'x', Math::middle('|'), Math::frac('a', 'b')));
+        self::assertStringContainsString('<mo stretchy="true" lspace="0.1667em" rspace="0.1667em">|</mo>', $xml);
+    }
+
+    public function test_middle_outside_a_fence_does_not_stretch(): void
+    {
+        $xml = MathmlWriter::write(Math::row('a', Math::middle('|'), 'b'));
+        self::assertStringContainsString('<mo stretchy="false" lspace="0.1667em" rspace="0.1667em">|</mo>', $xml);
+        // Only top-level Middles stretch: one inside a fraction does not.
+        $xml = MathmlWriter::write(Math::fenced('(', ')', Math::frac(Math::middle('|'), 'b')));
+        self::assertStringNotContainsString('stretchy="true">|', $xml);
+        self::assertStringContainsString('<mo stretchy="false" lspace', $xml);
+    }
+
     public function test_strips_characters_xml_cannot_hold(): void
     {
         $xml = MathmlWriter::write(Math::text("a\x01b\x00c\u{FFFE}d\u{FFFF}e\x0Bf"));
@@ -185,5 +201,26 @@ final class MathmlWriterTest extends TestCase
             self::assertStringContainsString('lim', $out, $src);
             self::assertStringNotContainsString('<mo movablelimits="true"></mo>', $out, $src);
         }
+    }
+
+    public function test_mathml_writes_lspace_rspace(): void
+    {
+        self::assertStringContainsString(
+            '<mo lspace="0.2778em" rspace="0.2778em">x</mo>',
+            MathmlWriter::write(Math::row('a', new Operator('x', lspace: 5, rspace: 5), 'b')),
+        );
+    }
+
+    public function test_mathml_writes_minsize(): void
+    {
+        $out = MathmlWriter::write(Math::row(Math::big('(', 2), 'a'));
+        self::assertStringContainsString('minsize="1.8em" maxsize="1.8em"', $out);
+    }
+
+    public function test_size_wins_over_stretchy_false(): void
+    {
+        $out = MathmlWriter::write(Math::row(new Operator('(', stretchy: false, minSize: 1.8, maxSize: 1.8), 'a'));
+        self::assertStringNotContainsString('stretchy="false"', $out);
+        self::assertStringContainsString('minsize="1.8em"', $out);
     }
 }

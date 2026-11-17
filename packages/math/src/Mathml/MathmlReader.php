@@ -51,7 +51,7 @@ final class MathmlReader
 
     /** Table attributes that are noted, not drawn, per element (columnalign/rowalign on the mtable itself are honoured). */
     private const IGNORED = [
-        'mtable' => ['columnlines', 'rowlines', 'frame', 'columnspacing', 'rowspacing', 'columnwidth', 'equalrows', 'equalcolumns', 'align', 'groupalign'],
+        'mtable' => ['columnlines', 'rowlines', 'frame', 'rowspacing', 'columnwidth', 'equalrows', 'equalcolumns', 'align', 'groupalign'],
         'mtr' => ['columnalign', 'rowalign'],
         'mtd' => ['rowspan', 'columnspan', 'columnalign', 'rowalign'],
     ];
@@ -224,7 +224,7 @@ final class MathmlReader
             'semantics' => $this->slots($e, $where, 1)[0] ?? new Row([]),
             'annotation', 'annotation-xml', 'mprescripts', 'none' => null,
             'mi', 'mn', 'mtext', 'ms', 'mo' => $this->token($e, $name, $where),
-            'mspace' => $this->space(self::width($e->getAttribute('width')), $where),
+            'mspace' => $this->space(self::width($e->getAttribute('width')) ?? 0.0, $where),
             'mphantom' => new Phantom($this->children($e, $where)),
             'msqrt' => new Root($this->children($e, $where)),
             'mfrac' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new Fraction($a[0], $a[1], ! self::zeroThickness($e->getAttribute('linethickness')))),
@@ -289,11 +289,24 @@ final class MathmlReader
             $align[] = $tokens[$k % count($tokens)];
         }
 
+        $spacing = [];
+        foreach (preg_split('/\s+/', trim($e->getAttribute('columnspacing') ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
+            $em = self::width($token);
+            if ($em !== null) {
+                $spacing[] = max(0.0, $em);
+            } else {
+                $spacing[] = 1.0;
+                $ignored[] = ['mtable', 'columnspacing', $where];
+            }
+        }
+        $ignored = array_values(array_unique($ignored, SORT_REGULAR));
+
         $grid = new Grid(
             $rows,
             $align,
             self::rowAlign($e->getAttribute('rowalign')),
             self::bool($e, 'displaystyle') ?? false,
+            $spacing,
         );
         $node = $grid;
         if ($labelled) {
@@ -428,7 +441,7 @@ final class MathmlReader
             'mn' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Number(self::variantText($e, $t)),
             'mtext' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Text(self::variantText($e, $t)),
             'ms' => new Text('"' . self::variantText($e, self::collapse((string) $e->textContent)) . '"'),
-            default => $this->operator($e),
+            default => $this->operator($e, $where),
         };
         $i = 0;
         foreach (self::elements($e) as $child) {
@@ -460,14 +473,29 @@ final class MathmlReader
             return null;
         }
         $variant = strtolower(trim($e->getAttribute('mathvariant') ?? ''));
+        // A multi-letter name is a function when it is a standard one (any variant), or the invisible function application follows it
+        // (or the script or limit element it is the base of).
+        $function = mb_strlen($text) > 1 && (in_array($text, OperatorDictionary::FUNCTION_NAMES, true) || self::applied($e));
         if ($variant === 'normal') {
-            return new Identifier($text, false);
+            return new Identifier($text, false, $function);
         }
 
-        return in_array($variant, Styles::VARIANTS, true) ? new Identifier(self::variantText($e, $text), false) : new Identifier($text);
+        return in_array($variant, Styles::VARIANTS, true) ? new Identifier(self::variantText($e, $text), false, $function) : new Identifier($text, null, $function);
     }
 
-    private function operator(\Dom\Element $e): ?Node
+    /** Whether U+2061 (ApplyFunction) follows this element, or the msub/msup/msubsup/munder/mover/munderover it is the base of. */
+    private static function applied(\Dom\Element $e): bool
+    {
+        $parent = $e->parentElement;
+        if ($parent !== null && in_array($parent->localName, ['msub', 'msup', 'msubsup', 'munder', 'mover', 'munderover'], true) && $parent->firstElementChild === $e) {
+            $e = $parent;
+        }
+        $next = $e->nextElementSibling;
+
+        return $next !== null && $next->localName === 'mo' && trim((string) $next->textContent) === "\u{2061}";
+    }
+
+    private function operator(\Dom\Element $e, string $where): ?Node
     {
         $raw = (string) $e->textContent;
         $nbsp = preg_match_all('/\x{00A0}/u', $raw);
@@ -481,13 +509,57 @@ final class MathmlReader
 
         $form = strtolower(trim($e->getAttribute('form') ?? ''));
 
-        return new Operator(
+        $bad = [];
+        $min = self::size($e->getAttribute('minsize'), 'minsize', $bad);
+        $max = self::size($e->getAttribute('maxsize'), 'maxsize', $bad);
+        $op = new Operator(
             self::variantText($e, $text),
             self::bool($e, 'stretchy'),
             self::bool($e, 'largeop'),
             self::bool($e, 'movablelimits'),
             in_array($form, [OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_POSTFIX], true) ? $form : null,
+            lspace: self::spacing($e->getAttribute('lspace')),
+            rspace: self::spacing($e->getAttribute('rspace')),
+            minSize: $min,
+            maxSize: $max,
         );
+
+        $node = $op;
+        foreach ($bad as $attr) {
+            $node = $this->note('#opsize-' . $attr, $node, NoteLevel::Approximated, 'mo', $attr . ' is not drawn', $where) ?? $node;
+        }
+
+        return $node;
+    }
+
+    /** An lspace or rspace in mu (1/18 em); null when absent or unusable, so the operator dictionary decides. */
+    private static function spacing(?string $v): ?float
+    {
+        $em = self::width($v);
+
+        return $em === null ? null : max(0.0, min($em, 100.0)) * 18;
+    }
+
+    /**
+     * A minsize/maxsize in em; null when absent, infinity, or unusable (relative to the natural size, zero or negative),
+     * which adds the attribute name to $bad.
+     *
+     * @param list<string> $bad
+     */
+    private static function size(?string $v, string $attr, array &$bad): ?float
+    {
+        $v = strtolower(trim($v ?? ''));
+        if ($v === '' || $v === 'infinity') {
+            return null;
+        }
+        $em = self::width($v);
+        if ($em === null || $em <= 0) {
+            $bad[] = $attr;
+
+            return null;
+        }
+
+        return min($em, 100.0);
     }
 
     private function space(float $em, string $where): Node
@@ -500,19 +572,22 @@ final class MathmlReader
         return $this->note('#space', $space, NoteLevel::Approximated, 'mspace', 'width limited to 100em', $where) ?? $space;
     }
 
-    /** A width in em (12pt basis); 0 when missing or unparseable. */
-    private static function width(?string $w): float
+    /** A length in em (12pt basis): a number with a unit, a named mathspace or a bare 0; null when missing or unparseable. */
+    private static function width(?string $w): ?float
     {
         $w = strtolower(trim($w ?? ''));
+        if ($w === '0') {
+            return 0.0;
+        }
         if (preg_match('/^(negative)?(veryverythin|verythin|thin|medium|thick|verythick|veryverythick)mathspace$/', $w, $m) === 1) {
             return (($m[1] === '' ? 1 : -1) * self::NAMED_SPACES[$m[2]]) / 18;
         }
         if (preg_match('/^([+-]?(?:\d+\.?\d*|\.\d+))\s*(em|ex|pt|px|mm|cm|in)$/', $w, $m) !== 1) {
-            return 0.0;
+            return null;
         }
         $v = (float) $m[1];
         if (! is_finite($v)) {
-            return 0.0;
+            return null;
         }
 
         return match ($m[2]) {

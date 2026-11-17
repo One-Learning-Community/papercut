@@ -123,6 +123,22 @@ final class UnderOverTest extends TestCase
         }
     }
 
+    public function test_inline_limits_on_a_large_operator_are_nudged_apart_by_its_italic_correction(): void
+    {
+        // An inline integral with limits above and below: the over limit sits half its italic correction right of centre, the under limit half left, as in display.
+        $f = Math::stixTwoMath();
+        foreach ([false, true] as $display) {
+            $box = Math::layout(new UnderOver(new Operator('∫'), Math::row('1'), Math::row('1')), self::SIZE, $display);
+            $int = self::glyphs($box)[0];
+            $limits = array_values(array_filter(self::glyphs($box), static fn (Glyph $g): bool => $g->text === '1'));
+            [$over, $under] = $limits[0]->y < $limits[1]->y ? [$limits[0], $limits[1]] : [$limits[1], $limits[0]];
+            $delta = $f->math()->italicsCorrection($int->gid) * $int->size / $f->unitsPerEm;
+
+            self::assertGreaterThan(0.0, $delta);
+            self::assertEqualsWithDelta($delta, $over->x - $under->x, 0.01, $display ? 'display' : 'inline');
+        }
+    }
+
     public function test_limit_operator_flags_override_dictionary(): void
     {
         $stackedInline = new UnderOver(new Operator('∑', false, null, false), Math::row('i'), Math::row('n'));
@@ -252,6 +268,118 @@ final class UnderOverTest extends TestCase
         self::assertGreaterThanOrEqual($base->width - 0.5, $braceRight - $braceLeft);
     }
 
+    /**
+     * Ink left and right, in em, of the glyphs of a box that pass a filter.
+     *
+     * @param callable(Glyph): bool $pick
+     * @return array{float, float}
+     */
+    private static function inkSpanEm(Box $b, callable $pick): array
+    {
+        $gs = array_values(array_filter(self::glyphs($b), $pick));
+        self::assertNotEmpty($gs);
+
+        return [
+            min([INF, ...array_map(fn (Glyph $g) => self::inkX($g)[0], $gs)]) / self::SIZE,
+            max([-INF, ...array_map(fn (Glyph $g) => self::inkX($g)[1], $gs)]) / self::SIZE,
+        ];
+    }
+
+    /**
+     * The arrow's glyphs are the ones set at the base size; labels are in script size.
+     *
+     * @return array{float, float}
+     */
+    private static function arrowSpan(Box $b): array
+    {
+        return self::inkSpanEm($b, fn (Glyph $g) => $g->size === self::SIZE);
+    }
+
+    /** @return array{float, float} */
+    private static function labelSpan(Box $b): array
+    {
+        return self::inkSpanEm($b, fn (Glyph $g) => $g->size < self::SIZE);
+    }
+
+    #[DataProvider('minimumWidthArrows')]
+    public function test_xarrow_has_minimum_width(string $arrow): void
+    {
+        [$l, $r] = self::arrowSpan(Math::layout(Math::xarrow($arrow, 'f'), self::SIZE));
+        self::assertGreaterThanOrEqual(UnderOver::ARROW_MIN_WIDTH, $r - $l);
+    }
+
+    /** @return array<string, array{string}> */
+    public static function minimumWidthArrows(): array
+    {
+        return ['right' => ['→'], 'double' => ['⇒'], 'mapsto' => ['↦'], 'harpoons' => ['⥎']];
+    }
+
+    public function test_xarrow_extends_past_label(): void
+    {
+        $box = Math::layout(Math::xarrow('→', 'n → ∞'), self::SIZE);
+        [$al, $ar] = self::arrowSpan($box);
+        [$ll, $lr] = self::labelSpan($box);
+        $pad = UnderOver::ARROW_LABEL_PAD;
+        self::assertLessThanOrEqual($ll - $pad + 0.001, $al, 'arrow starts a pad before the label');
+        self::assertGreaterThanOrEqual($lr + $pad - 0.001, $ar, 'arrow ends a pad after the label');
+    }
+
+    public function test_xlongequal_stretches_past_its_label(): void
+    {
+        $box = Math::layout(Math::xarrow('=', 'a long label'), self::SIZE);
+        [$ll, $lr] = self::labelSpan($box);
+        $rules = [];
+        $box->each(static function ($i, float $dx) use (&$rules): void {
+            if ($i instanceof \Papercut\Math\Layout\Rule) {
+                $rules[] = [$i->x + $dx, $i->x + $dx + $i->w];
+            }
+        });
+        self::assertCount(2, $rules, 'two bars');
+        self::assertLessThanOrEqual($ll * self::SIZE + 0.001, $rules[0][0]);
+        self::assertGreaterThanOrEqual($lr * self::SIZE - 0.001, $rules[0][1]);
+        self::assertSame($rules[0], $rules[1]);
+    }
+
+    /** Every stretchy operator of the arrow blocks that STIX Two Math can stretch horizontally is in the arrow list. */
+    public function test_arrow_list_covers_every_horizontal_construction_in_the_font(): void
+    {
+        $font = Math::stixTwoMath();
+        $table = require __DIR__ . '/../../resources/operators.php';
+        $missing = [];
+        foreach ($table as $key => $entry) {
+            $char = substr((string) $key, 0, (int) strrpos((string) $key, '|'));
+            $cp = mb_ord($char);
+            $inBlock = ($cp >= 0x2190 && $cp <= 0x21FF) || ($cp >= 0x27F0 && $cp <= 0x27FF) || ($cp >= 0x2900 && $cp <= 0x297F) || ($cp >= 0x2B00 && $cp <= 0x2BFF);
+            if (! $inBlock || ! $entry['stretchy']) {
+                continue;
+            }
+            $gid = $font->gid($cp);
+            if ($gid !== 0 && $font->math()->horizontal($gid) !== null && ! UnderOver::isArrow($char)) {
+                $missing[$char] = true;
+            }
+        }
+        self::assertSame([], array_keys($missing), 'stretchy horizontal in the font but missing from UnderOver::ARROWS');
+    }
+
+    public function test_vertical_arrow_is_not_padded(): void
+    {
+        self::assertFalse(UnderOver::isArrow('↑'));
+        foreach ([Math::over('↑', 'f'), Math::under('↑', 'f')] as $node) {
+            [$l, $r] = self::arrowSpan(Math::layout($node, self::SIZE));
+            self::assertLessThan(0.7, $r - $l);
+        }
+    }
+
+    public function test_brace_does_not_pad(): void
+    {
+        $base = Math::layout(Math::row('a+b'), self::SIZE);
+        $box = Math::layout(Math::overbrace('a+b'), self::SIZE);
+        $braceGlyphs = array_filter(self::glyphs($box), fn (Glyph $g) => self::inkY($g)[1] < -$base->ascent);
+        $w = max([-INF, ...array_map(fn (Glyph $g) => self::inkX($g)[1], $braceGlyphs)]) - min([INF, ...array_map(fn (Glyph $g) => self::inkX($g)[0], $braceGlyphs)]);
+        // Padding would add 2 x 0.5 em (12 pt) to the brace; it stays within a variant step of the base.
+        self::assertLessThan($base->width + 6.0, $w);
+    }
+
     public function test_both_parts_null_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -298,8 +426,10 @@ final class UnderOverTest extends TestCase
 
     public function test_arrow_base_with_labels_uses_stretch_stack_shifts(): void
     {
-        $over = self::glyphs(Math::layout(Math::over('→', 'f'), self::SIZE))[1];
-        $under = self::glyphs(Math::layout(Math::under('→', 'f'), self::SIZE))[1];
+        // The arrow may now be several assembled pieces, so find the label by its text.
+        $label = fn (Box $b): Glyph => array_values(array_filter(self::glyphs($b), fn (Glyph $g) => $g->text === '𝑓'))[0];
+        $over = $label(Math::layout(Math::over('→', 'f'), self::SIZE));
+        $under = $label(Math::layout(Math::under('→', 'f'), self::SIZE));
 
         self::assertEqualsWithDelta(-self::k('stretchStackTopShiftUp'), $over->y, 1e-9);
         self::assertEqualsWithDelta(self::k('stretchStackBottomShiftDown'), $under->y, 1e-9);
@@ -542,5 +672,76 @@ final class UnderOverTest extends TestCase
             return $w;
         };
         self::assertEqualsWithDelta($arrow($natural), $arrow($wide), 0.01);
+    }
+
+    /** @return list<array{float, float, float}> x, y, height of each rule */
+    private static function rulesOf(Box $box): array
+    {
+        $rules = [];
+        $box->each(static function ($i, float $dx, float $dy) use (&$rules): void {
+            if ($i instanceof \Papercut\Math\Layout\Rule) {
+                $rules[] = [$i->w, $i->y + $dy, $i->h];
+            }
+        });
+
+        return $rules;
+    }
+
+    public function test_stretchy_equals_is_never_narrower_than_the_glyph(): void
+    {
+        $font = Math::stixTwoMath();
+        $c = new \Papercut\Math\Layout\Context($font, self::SIZE);
+        $bb = $font->bbox($font->gid(mb_ord('=')));
+        $natural = ($bb[2] - $bb[0]) * $c->unit();
+        foreach (['¯', '^', '→'] as $mark) {
+            $node = new UnderOver(new \Papercut\Math\Node\Operator('=', stretchy: true), null, new \Papercut\Math\Node\Operator($mark));
+            $rules = self::rulesOf($node->layout($c));
+            self::assertNotEmpty($rules, $mark);
+            self::assertGreaterThanOrEqual($natural - 0.001, $rules[0][0], $mark);
+        }
+    }
+
+    public function test_equals_is_drawn_as_rules_only_without_a_font_construction(): void
+    {
+        $c = new \Papercut\Math\Layout\Context(Math::stixTwoMath(), self::SIZE);
+        self::assertTrue(UnderOver::drawsEqualsAsRules($c, new \Papercut\Math\Node\Operator('=', stretchy: true)));
+        self::assertFalse(UnderOver::drawsEqualsAsRules($c, new \Papercut\Math\Node\Operator('=')));
+        self::assertFalse(UnderOver::drawsEqualsAsRules($c, new \Papercut\Math\Node\Operator('→', stretchy: true)));
+    }
+
+    #[DataProvider('scriptLevels')]
+    public function test_drawn_equals_bars_match_the_plain_equals_at_script_levels(int $level): void
+    {
+        $font = Math::stixTwoMath();
+        $c = new \Papercut\Math\Layout\Context($font, self::SIZE, $level);
+        $plain = (new \Papercut\Math\Node\Operator('=', stretchy: false))->layout($c);
+        $gid = null;
+        $plain->each(static function ($i) use (&$gid): void {
+            if ($i instanceof Glyph) {
+                $gid = $i->gid;
+            }
+        });
+        self::assertNotNull($gid);
+        $u = $c->unit();
+        $expected = [];
+        foreach ($font->contours($gid) as $contour) {
+            $ys = array_map(static fn (array $p): float => $p[1], $contour);
+            $expected[] = [-max([-INF, ...$ys]) * $u, (max([-INF, ...$ys]) - min([INF, ...$ys])) * $u];
+        }
+        sort($expected);
+        $drawn = self::rulesOf((new UnderOver(new \Papercut\Math\Node\Operator('=', stretchy: true), null, \Papercut\Math\Math::row('d')))->layout($c));
+        $got = array_map(static fn (array $r): array => [$r[1], $r[2]], $drawn);
+        sort($got);
+        self::assertCount(2, $got);
+        foreach ($expected as $k => $e) {
+            self::assertEqualsWithDelta($e[0], $got[$k][0], 0.001);
+            self::assertEqualsWithDelta($e[1], $got[$k][1], 0.001);
+        }
+    }
+
+    /** @return array<string, array{int}> */
+    public static function scriptLevels(): array
+    {
+        return ['display' => [0], 'script' => [1], 'scriptscript' => [2]];
     }
 }

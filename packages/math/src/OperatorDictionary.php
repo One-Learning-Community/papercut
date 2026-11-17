@@ -22,6 +22,12 @@ final class OperatorDictionary
     /** Function names whose limits move like a sum's; as operators they take MathML 3's spacing for them (0, 3/18 em). */
     public const LIMIT_NAMES = ['lim', 'max', 'min', 'sup', 'inf', 'det', 'gcd', 'Pr', 'liminf', 'limsup'];
 
+    /** The other standard function names (limits stay beside them). */
+    public const PLAIN_FUNCTION_NAMES = ['arccos', 'arcsin', 'arctan', 'arg', 'cos', 'cosh', 'cot', 'coth', 'csc', 'deg', 'dim', 'exp', 'hom', 'ker', 'lg', 'ln', 'log', 'sec', 'sin', 'sinh', 'tan', 'tanh', 'sgn'];
+
+    /** Every standard function name: the one table behind the TeX reader's function commands and the MathML reader's known names. */
+    public const FUNCTION_NAMES = [...self::PLAIN_FUNCTION_NAMES, ...self::LIMIT_NAMES];
+
     /** @var array<string, array{form: string, lspace: int, rspace: int, stretchy: bool, symmetric: bool, largeop: bool, movablelimits: bool, fence: bool}>|null */
     private static ?array $table = null;
 

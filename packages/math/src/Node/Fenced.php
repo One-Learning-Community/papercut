@@ -36,7 +36,16 @@ final class Fenced extends Node
     /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
-        $inner = $this->content->layout($c);
+        // A row with Middles is laid out once; only its Middles are laid out again, at the stretched size.
+        $row = self::middleRow($this->content);
+        $boxes = [];
+        $rc = $c;
+        if ($row !== null) {
+            foreach (Fallback::displays($this->content) as $display) {
+                $rc = $rc->withDisplay($display);
+            }
+        }
+        $inner = $row !== null ? $row->build($rc, [], $boxes) : $this->content->layout($c);
         $axis = $c->k('axisHeight');
         $req = 2 * max($inner->ascent - $axis, $inner->descent + $axis);
         // TeX's delimiterfactor (0.901) and delimitershortfall (5pt at 10pt): not stretched to the full height.
@@ -44,6 +53,17 @@ final class Fenced extends Node
 
         $out = new Box();
         $x = 0.0;
+        if ($row !== null) {
+            /** @var array<int, Box> $reuse */
+            $reuse = $boxes ?? [];
+            foreach ($row->children as $i => $child) {
+                if (Fallback::unwrap($child) instanceof Middle) {
+                    $reuse[$i] = self::stretchMiddle($child, $req)->layout($rc);
+                }
+            }
+            $boxes = [];
+            $inner = $row->build($rc, $reuse, $boxes);
+        }
         $asc = $inner->ascent;
         $desc = $inner->descent;
         if ($this->open !== '') {
@@ -64,6 +84,47 @@ final class Fenced extends Node
         return $out;
     }
 
+    /** The Row the content is (through notes and display switches) when a Middle is among its children, else null. */
+    private static function middleRow(Node $content): ?Row
+    {
+        $content = Fallback::unwrap($content);
+        if (! $content instanceof Row) {
+            return null;
+        }
+        foreach ($content->children as $n) {
+            if (Fallback::unwrap($n) instanceof Middle) {
+                return $content;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A copy of the content with each top-level Middle told to stretch to $req pt.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function stretchMiddles(Node $n, float $req): Node
+    {
+        return match (true) {
+            $n instanceof Row => new Row(array_map(static fn (Node $child): Node => self::stretchMiddle($child, $req), $n->children)),
+            $n instanceof Fallback && $n->content !== null => new Fallback(self::stretchMiddles($n->content, $req), $n->note),
+            $n instanceof DisplayStyle => new DisplayStyle(self::stretchMiddles($n->content, $req), $n->display),
+            default => $n,
+        };
+    }
+
+    private static function stretchMiddle(Node $n, float $req): Node
+    {
+        return match (true) {
+            $n instanceof Middle => new Middle($n->char, $req),
+            $n instanceof Fallback && $n->content !== null => new Fallback(self::stretchMiddle($n->content, $req), $n->note),
+            $n instanceof DisplayStyle => new DisplayStyle(self::stretchMiddle($n->content, $req), $n->display),
+            default => $n,
+        };
+    }
+
     /** @return array{float, float, float} new x, ascent, descent */
     private function delimiter(Context $c, Box $out, string $ch, float $req, float $x, float $asc, float $desc): array
     {
@@ -74,8 +135,9 @@ final class Fenced extends Node
         $axisU = $f->math()->constant('axisHeight');
         $shift = $axisU - ($s['ymin'] + $s['ymax']) / 2; // centre on the math axis
         $single = count($s['pieces']) === 1 && $s['pieces'][0][0] === $gid;
-        foreach ($s['pieces'] as [$pg, $off]) {
-            $out->add(new Glyph($pg, $single ? $ch : null, $x, -($off + $shift) * $u, $c->size()));
+        foreach ($s['pieces'] as $pc) {
+            [$pg, $off] = $pc;
+            $out->add(new Glyph($pg, $single ? $ch : null, $x, -($off + $shift) * $u, $c->size(), 1.0, $pc[2]));
         }
         $asc = max($asc, ($s['ymax'] + $shift) * $u);
         $desc = max($desc, -($s['ymin'] + $shift) * $u);

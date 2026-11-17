@@ -31,6 +31,37 @@ final class SvgRendererTest extends TestCase
         self::assertSame('14', $root->getAttribute('height'));
     }
 
+    public function test_a_scaled_glyph_is_drawn_stretched_along_its_axis(): void
+    {
+        $font = Math::stixTwoMath();
+        $svg = static function (Glyph $g) use ($font): string {
+            return (new SvgRenderer($font))->glyphPaths([$g], new Box(20.0, 10.0, 4.0));
+        };
+        $extent = static function (string $s, int $axis): float {
+            preg_match('/<path d="([^"]+)"/', $s, $m);
+            if (! isset($m[1])) {
+                self::fail('no path');
+            }
+            $d = $m[1];
+            preg_match_all('/(-?[\d.]+) (-?[\d.]+)/', $d, $pts, PREG_SET_ORDER);
+            $v = array_map(static fn (array $p): float => (float) $p[1 + $axis], $pts);
+
+            if ($v === []) {
+                self::fail('no points');
+            }
+
+            return max($v) - min($v);
+        };
+        $gid = $font->gid(0x7C);
+        $plain = $svg(new Glyph($gid, null, 0.0, 0.0, 12.0));
+        $tall = $svg(new Glyph($gid, null, 0.0, 0.0, 12.0, 1.0, 3.0));
+        $wide = $svg(new Glyph($gid, null, 0.0, 0.0, 12.0, 3.0, 1.0));
+        self::assertEqualsWithDelta(3 * $extent($plain, 1), $extent($tall, 1), 0.01);
+        self::assertEqualsWithDelta($extent($plain, 0), $extent($tall, 0), 0.01);
+        self::assertEqualsWithDelta(3 * $extent($plain, 0), $extent($wide, 0), 0.01);
+        self::assertEqualsWithDelta($extent($plain, 1), $extent($wide, 1), 0.01);
+    }
+
     public function test_render_parses(): void
     {
         $box = Math::layout(Math::frac('a', Math::sqrt('b')), 12.0);

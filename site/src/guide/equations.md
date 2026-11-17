@@ -53,7 +53,7 @@ Math::row('det', Math::matrix([['a', 'b'], ['c', 'd']], 'bar'), '=', 'ad − bc'
 Math::row('|x|', '=', Math::cases([['x', Math::text('if x ≥ 0')], ['−x', Math::text('otherwise')]]));
 ```
 
-No rows, or a row with no cells, throws `InvalidArgumentException`, as does an unknown fence or alignment. In MathML input, `<mtable>` is read as the same grid, with `columnalign`, `rowalign` and `displaystyle` honoured on the table, and a lone opening bracket such as `{` before a table becomes a stretching fence. Attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) are reported as approximated, for example `math <mtable> (rowlines is not drawn)`. In Word a grid is a live matrix (`m:m`).
+No rows, or a row with no cells, throws `InvalidArgumentException`, as does an unknown fence or alignment. In MathML input, `<mtable>` is read as the same grid, with `columnalign`, `rowalign` and `displaystyle` honoured on the table, and a lone opening bracket such as `{` before a table becomes a stretching fence. Attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) are reported as approximated, for example `math <mtable> (rowlines is not drawn)`. `columnspacing` is drawn, and noted only when its value can't be read. In Word a grid is a live matrix (`m:m`).
 
 ### Limits, accents and bars
 
@@ -75,6 +75,10 @@ Math::row(Math::integral('0', '1'), 'x dx');
 | `Math::overbrace($base, $label)`, `Math::underbrace($base, $label)` | A brace stretched across the base, with an optional label on its far side. |
 | `Math::binom($top, $bottom)` | A binomial coefficient: two lines between parentheses. |
 | `Math::stack($top, $bottom)` | Two lines like a fraction, without the rule. |
+| `Math::aligned($rows)` | Equations lined up on their alignment points, as in TeX's `aligned`. |
+| `Math::middle($delimiter)` | A delimiter inside `Math::fenced()` that stretches with it, such as the bar in a set. |
+| `Math::big($delimiter, $size)` | A delimiter at a fixed size, 1 to 4 (`Math::BIG_SIZES`). |
+| `Math::xarrow($arrow, $over, $under)` | An extensible arrow with optional labels above and below. |
 | `Math::space($em)` | Horizontal space of that many ems. A negative value pulls the next item back. |
 | `Math::phantom(...$content)` | Takes the size of its content and draws nothing. |
 | `Math::styled($text, $variant)` | Text in a MathML `mathvariant`, such as `bold` or `double-struck`. |
@@ -85,6 +89,15 @@ Math::underbrace(Math::row('a + b + c'), 'three terms');
 Math::row(Math::binom('n', 'k'), '=', Math::frac('n!', Math::row('k!', '(n − k)!')));
 Math::row(Math::styled('R', 'double-struck'), '∋', Math::styled('x', 'bold'));
 ```
+
+```php
+Math::aligned([['x + 2', '= 5'], ['x', '= 3']]);
+Math::fenced('{', '}', 'x', Math::middle('|'), 'x > 0');
+Math::row(Math::big('(', 2), 'a + b', Math::big(')', 2));
+Math::xarrow('→', Math::text('heat'), Math::text('catalyst'));
+```
+
+In Word, `aligned()` is written as a native equation array. In `aligned()`, cells alternate right- and left-aligned, so the second cell of each row starts at the alignment point (`= 5`). A pair has no gap inside it, and two em separate pairs. An arrow made with `xarrow()` is at least as long as KaTeX draws it and reaches past its labels.
 
 `styled()` accepts `normal`, `bold`, `italic`, `bold-italic`, `double-struck`, `script`, `bold-script`, `fraktur`, `bold-fraktur`, `sans-serif`, `bold-sans-serif`, `sans-serif-italic`, `sans-serif-bold-italic` and `monospace`. An unknown variant, or empty text, throws `InvalidArgumentException`.
 
@@ -102,7 +115,7 @@ Math::row(Math::styled('R', 'double-struck'), '∋', Math::styled('x', 'bold'));
 <x-doc::equation :math="$node" text-align="center" />
 ```
 
-`math` takes a string, or a node you built with `Math` in PHP and passed to the view. A string that starts with `<math` is read as [MathML](#mathml-input) instead.
+`math` takes a string, or a node you built with `Math` in PHP and passed to the view. A string that starts with `<math` is read as [MathML](#mathml-input) instead. To write TeX, use the `tex` attribute (see [TeX input](#tex-input)).
 
 ## An equation in a line of text
 
@@ -204,6 +217,49 @@ $document->toPdf(new PdfOptions(onWarning: fn (string $message) => error_log($me
 
 To read the notes yourself, `Math::notes($node)` returns them as a list of `MathNote`, each with a `level`, the `element` name, a `reason` and where it was found. The `papercut/math` package's README describes the reader in full.
 
+## TeX input
+
+Most formulas in the wild are written in TeX. Papercut reads math-mode LaTeX into the same formula the builder makes, so it is set, exported and edited like any other. Anything it can't draw is reported, and it never throws.
+
+**In PHP.** `Math::tex($string)` returns a node you can use anywhere a node goes.
+
+```php
+use Papercut\Equation;
+use Papercut\Math\Math;
+use Papercut\Span;
+
+Equation::of(Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}'))->center();
+Span::math(Math::tex('\alpha + \beta'));
+```
+
+**In Blade.** Use the `tex` attribute on `<x-doc::equation>` and `<x-doc::math>`. Give exactly one of `math` and `tex`.
+
+```blade
+<x-doc::equation tex="\int_0^1 x^2 \, dx = \frac{1}{3}" />
+<x-doc::p>The mean is <x-doc::math tex="\bar{x}" />.</x-doc::p>
+```
+
+Two things to know about Blade. A static attribute is read with HTML rules, so `&lt;` and `&amp;` are decoded before Papercut sees them. And Blade treats `{{` as the start of an echo, which TeX uses for nested groups such as `\frac{{a}}{b}`. Bind the string instead, `:tex="'\frac{{a}}{b}'"`, or pass a variable. In any `tex` attribute, static or bound, Blade turns the value into a PHP string, so TeX's `\\` line break must be written `\\\\`, or the TeX passed in a PHP variable (`:tex="$formula"`). Quote style on a static attribute (`tex="…"` or `tex='…'`) makes no difference. In a bound attribute the expression is PHP, so never write the TeX in a double-quoted PHP string (`:tex='"\frac{a}{b}"'`): PHP turns `\f`, `\n`, `\t`, `\v`, `\r` and `\e` into control characters and the formula is silently garbled, and a double-quoted string also interpolates `$` variables (a `$x` in the TeX would be replaced). Use single quotes, `:tex="'…'"`.
+
+```blade
+<x-doc::equation tex="\begin{aligned}a &= b \\\\ c &= d\end{aligned}" />
+```
+
+**What it reads.** The input is math mode, with or without a `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper. `$$…$$`, `\[…\]`, a top-level `\displaystyle` and display environments such as `align`, `gather` and `equation` ask for display style (not `aligned`, which is used inside a formula), and a block equation is always display style anyway. The set is what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and text commands, spacing, and the environments `matrix` (and its bracketed variants), `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, scoped to the group they are in.
+
+**Limits.** A formula is cut off at 16 KB. Nesting deeper than 256 levels is cut off, macro expansion may not grow a formula past what 16 KB of raw TeX could, and a formula's environments have at most 10,000 cells between them. Past the nesting limit the rest is drawn as its TeX source text. Macro expansion is also capped at 10,000 expansions. A formula that hits a limit is drawn as far as it got and reports it. A stretched delimiter or arrow is never longer than 100 em. Under Xdebug's develop mode (its default) the call stack is limited too (`xdebug.max_nesting_level`, 512), so Papercut lowers the nesting limit to fit, and deep nesting gets the nesting note sooner; raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full 256 levels.
+
+**Reading the notes.** `TexReader::read($tex)` returns the formula, whether it asked for display style, and the notes, in the same form as for MathML. See [What is approximated or dropped](#what-is-approximated-or-dropped) for how they reach `onWarning`.
+
+```php
+use Papercut\Math\Tex\TexReader;
+
+$result = TexReader::read('\boxed{x}');
+$result->notes();   // approximated: \boxed (the box is not drawn)
+```
+
+**TeX out.** `TexWriter::write($node)` writes any formula as standard TeX that KaTeX accepts, so a formula read from MathML can go back out as TeX. Reading the TeX gives the same formula again. Details that MathML carries and TeX has no word for are dropped and the nearest TeX is written.
+
 ## The math font
 
 Equations are set in a math font. Papercut bundles STIX Two Math and uses it unless you say otherwise. To use another, point the font set at the file:
@@ -234,5 +290,10 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 
 These are not supported yet:
 
-- Table lines, spacing and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like).
+- Table lines, row spacing and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like), and `\hline` and column rules in TeX `array`.
+- Colour inside a formula (`\color`, `mathcolor`). A formula takes its colour from the text around it.
+- Boxes around parts of a formula (`\boxed`, `\fbox`, `\cancel`, `<menclose>`), and equation numbers (`\tag`).
+- TeX found inside HTML or text. Papercut reads a TeX string you hand it; it does not scan rich text for `$…$`. Convert the formula first with `Math::tex()`.
+- Commutative diagrams (`CD`) and TeX commands that define environments, such as `\newenvironment`.
+- A few more TeX constructs, each of which is noted: `\sideset`, `\tensor`, `\prescript`, `\mathchoice`, `\scriptstyle` and `\scriptscriptstyle` (drawn in text style), `p{…}` and `@{…}` columns in `array`, and `smallmatrix` (drawn at normal size).
 - Math fonts with CFF outlines.

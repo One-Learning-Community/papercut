@@ -96,7 +96,7 @@ final class MathmlGridTest extends TestCase
     public static function ignored(): array
     {
         $out = [];
-        foreach (['columnlines' => 'solid', 'rowlines' => 'solid', 'frame' => 'solid', 'columnspacing' => '2em', 'rowspacing' => '2em', 'columnwidth' => 'auto', 'equalrows' => 'true', 'equalcolumns' => 'true', 'align' => 'top', 'groupalign' => 'left'] as $a => $v) {
+        foreach (['columnlines' => 'solid', 'rowlines' => 'solid', 'frame' => 'solid', 'rowspacing' => '2em', 'columnwidth' => 'auto', 'equalrows' => 'true', 'equalcolumns' => 'true', 'align' => 'top', 'groupalign' => 'left'] as $a => $v) {
             $out["mtable $a"] = ['mtable', $a, $v];
         }
         foreach (['rowspan' => '2', 'columnspan' => '2'] as $a => $v) {
@@ -108,6 +108,14 @@ final class MathmlGridTest extends TestCase
         }
 
         return $out;
+    }
+
+    public function test_mathml_columnspacing_read(): void
+    {
+        $r = MathmlReader::read('<math>' . self::table('columnspacing="0em 2em"') . '</math>');
+        self::assertSame([2.0], self::grid('<math>' . self::table('columnspacing="2em"') . '</math>')->columnSpacing);
+        self::assertSame([0.0], self::grid('<math>' . self::table('columnspacing="0em 2em"') . '</math>')->columnSpacing);
+        self::assertSame([], $r->notes());
     }
 
     #[DataProvider('ignored')]
@@ -356,5 +364,15 @@ final class MathmlGridTest extends TestCase
     {
         $back = Math::mathml(MathmlWriter::write($node));
         self::assertSame(self::shape($node), self::shape($back));
+    }
+
+    public function test_unparseable_columnspacing_is_one_em_and_noted(): void
+    {
+        foreach (['10%' => 1.0, 'auto' => 1.0, '0em auto' => 0.0] as $v => $gap) {
+            $xml = '<math>' . self::table('columnspacing="' . $v . '"') . '</math>';
+            self::assertSame([$gap], self::grid($xml)->columnSpacing, $v);
+            self::assertSame(['columnspacing is not drawn'], array_map(static fn ($n): string => $n->reason, MathmlReader::read($xml)->notes()), $v);
+        }
+        self::assertSame([0.0], self::grid('<math>' . self::table('columnspacing="0"') . '</math>')->columnSpacing);
     }
 }

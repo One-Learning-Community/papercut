@@ -34,6 +34,7 @@ final class Fixtures
             'density' => Math::row(Math::text('density'), '=', Math::frac(Math::text('mass'), Math::text('volume'))),
             'paren-frac-squared' => Math::sup(Math::fenced('(', ')', Math::frac('a', 'b')), '2'),
             'one-plus-1-over-n' => Math::sup(Math::fenced('(', ')', Math::row('1 +', Math::frac('1', 'n'))), 'n'),
+            'set-builder-middle' => Math::fenced('{', '}', 'x', Math::middle('|'), Math::frac('a', 'b')),
             'x1-squared' => Math::subSup('x', '1', '2'),
             'e-to-minus-kt' => Math::sup('e', '−kt'),
             'unicode-script-digits' => Math::row('b² + x₂ = c'),
@@ -51,10 +52,13 @@ final class Fixtures
             'x-bar' => Math::row(Math::overline('x'), '=', Math::frac(Math::row('x₁ + x₂ + x₃'), '3')),
             'vector-ab' => Math::row(Math::vec('ab'), '=', Math::vec('a'), '+', Math::vec('b')),
             'overbrace' => Math::overbrace('a + b + c', Math::text('three terms')),
+            'xarrow-labels' => Math::row('A', Math::xarrow('→', 'f', 'n → ∞'), 'B'),
             'tall-fence' => Math::row(Math::fenced('[', ']', Math::frac(Math::frac('1', 'x'), Math::frac('1', Math::frac('1', 'y')))), '= z'),
+            'big-delimiters' => Math::row(Math::big('(', 2), 'a', Math::big(')', 2)),
             'matrix-2x2' => Math::matrix([['a', 'b'], ['c', 'd']]),
             'determinant' => Math::matrix([['a', 'b'], ['c', 'd']], 'bar'),
             'cases' => Math::row('f(x) =', Math::cases([['−x', 'x < 0'], ['x', 'x ≥ 0']])),
+            'aligned-derivation' => Math::aligned([[Math::sup('(a + b)', '2'), '= (a + b)(a + b)'], ['', Math::row('= ', Math::sup('a', '2'), '+ 2ab +', Math::sup('b', '2'))]]),
             'matrix-equals' => Math::row('A =', Math::matrix([['1', '0'], ['0', '1']], 'bracket')),
         ];
     }

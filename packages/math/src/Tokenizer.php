@@ -25,12 +25,12 @@ use Papercut\Math\Node\Scripts;
  */
 final class Tokenizer
 {
-    private const FUNCTIONS = ['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'sinh', 'cosh', 'tanh', 'log', 'ln', 'exp', 'lim', 'min', 'max', 'det', 'arcsin', 'arccos', 'arctan'];
+    public const FUNCTIONS = ['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'sinh', 'cosh', 'tanh', 'log', 'ln', 'exp', 'lim', 'min', 'max', 'det', 'arcsin', 'arccos', 'arctan'];
     private const CLOSING = [')' => '(', ']' => '[', '}' => '{'];
     /** Symbols that behave as operands, not operators. */
-    private const ORDINARY = '∞∂∇ℓℏ∅′″°';
+    private const ORDINARY = '∞∂∇ℓℏ∅′″‴⁗°';
     private const BARS = ['|', '‖'];
-    private const PRIMES = ['′', '″'];
+    private const PRIMES = ['′', '″', '‴', '⁗'];
     private const OP_MAP = ['-' => '−', '*' => '∗'];
 
     /** @return list<Node> */
@@ -81,7 +81,7 @@ final class Tokenizer
                 }
                 $run = array_slice($chars, $i, $j - $i);
                 if (in_array(implode('', $run), self::FUNCTIONS, true)) {
-                    $out[] = new Identifier(implode('', $run), false);
+                    $out[] = new Identifier(implode('', $run), false, true);
                 } else {
                     foreach ($run as $letter) {
                         $out[] = new Identifier($letter);

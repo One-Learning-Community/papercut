@@ -8,12 +8,14 @@ use Papercut\Math\Font\TrueTypeFont;
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
 use Papercut\Math\Mathml\MathmlReader;
+use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
 use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
+use Papercut\Math\Node\Middle;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
@@ -22,6 +24,7 @@ use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
 use Papercut\Math\Node\UnderOver;
+use Papercut\Math\Tex\TexReader;
 
 /**
  * Builder API. Wherever a Node is expected a plain string works too and is tokenized
@@ -41,6 +44,20 @@ final class Math
     public static function stixTwoMath(): TrueTypeFont
     {
         return self::$stix ??= TrueTypeFont::fromFile(self::stixTwoMathPath());
+    }
+
+    /** Total heights in em of the four fixed delimiter sizes (TeX's \big to \Bigg). */
+    public const BIG_SIZES = [1.2, 1.8, 2.4, 3.0];
+
+    /** A delimiter drawn at a fixed size, 1 (big) to 4 (Bigg), centred on the math axis. */
+    public static function big(string $delimiter, int $size): Operator
+    {
+        if ($size < 1 || $size > 4) {
+            throw new \InvalidArgumentException('Delimiter size must be 1 to 4, got ' . $size);
+        }
+        $em = self::BIG_SIZES[$size - 1];
+
+        return new Operator($delimiter, minSize: $em, maxSize: $em);
     }
 
     public static function row(string|Node ...$items): Node
@@ -126,6 +143,12 @@ final class Math
     public static function mathml(string|\Dom\Element $input): Node
     {
         return MathmlReader::read($input)->node;
+    }
+
+    /** A formula read from TeX (math mode, as KaTeX reads it). Never throws: what it cannot draw carries a note, see {@see TexReader::read()}. */
+    public static function tex(string $tex): Node
+    {
+        return TexReader::read($tex)->node;
     }
 
     public static function sqrt(string|Node ...$content): Root
@@ -255,12 +278,33 @@ final class Math
         return $label === null ? $braced : new UnderOver($braced, null, self::row($label));
     }
 
+    /** An extensible arrow with optional labels above and below (TeX's \xrightarrow): it reaches past its labels and has a minimum length.
+     * An arrow the font has no horizontal construction for (such as ⟶ or ⥂ in STIX Two Math) is drawn at its natural width, with no pad or minimum.
+     * A stretchy = (\xlongequal) has none either, so it is drawn as two rules. */
+    public static function xarrow(string $arrow = '→', string|Node|null $over = null, string|Node|null $under = null): UnderOver
+    {
+        return new UnderOver(
+            new Operator($arrow, stretchy: UnderOver::isStretchy(new Operator($arrow)) ? null : true), // set only where the dictionary does not already stretch it (=)
+            $under === null ? null : self::row($under),
+            $over === null ? null : self::row($over),
+        );
+    }
+
     /** A brace under the base, stretched to its width, with an optional label below the brace. */
     public static function underbrace(string|Node $base, string|Node|null $label = null): UnderOver
     {
         $braced = new UnderOver(self::row($base), new Operator("\u{23DF}"), null);
 
         return $label === null ? $braced : new UnderOver($braced, self::row($label), null);
+    }
+
+    /** A delimiter inside Math::fenced() content that stretches with the fence (TeX's \middle). */
+    public static function middle(string $delimiter): Node
+    {
+        $bad = false;
+        $delimiter = self::scrub($delimiter, $bad);
+
+        return self::flagged(new Middle($delimiter), $bad);
     }
 
     public static function fenced(string $open, string $close, string|Node ...$content): Fenced
@@ -301,6 +345,77 @@ final class Math
         $grid = new Grid(self::gridCells('matrix', $rows), $align);
 
         return $fence === 'none' ? $grid : new Fenced($fences[$fence][0], $fences[$fence][1], $grid);
+    }
+
+    /**
+     * Equations lined up on their alignment points, as TeX's aligned does: cells alternate right- and left-aligned,
+     * with no gap inside a pair (so `x` `= 1` meet at the relation) and two em between pairs.
+     * The leading operator of each left-hand cell keeps infix spacing, so `= 3` is spaced as a relation.
+     *
+     * @param list<list<string|Node>> $rows
+     * @param float $pairGap em between pairs of columns; 0 for TeX's alignat, which leaves the spacing to the author.
+     *                       TeX output keeps only 0 (written as alignedat) and the default 2 em; other gaps read back as 2.
+     *
+     * @throws \InvalidArgumentException for no cells
+     */
+    public static function aligned(array $rows, float $pairGap = 2.0): Grid
+    {
+        $cells = self::gridCells('aligned', $rows);
+        $columns = 0;
+        foreach ($cells as $row) {
+            $columns = max($columns, count($row));
+        }
+        $align = [];
+        $gaps = [];
+        for ($j = 0; $j < $columns; $j++) {
+            $align[] = $j % 2 === 0 ? 'right' : 'left';
+            if ($j > 0) {
+                $gaps[] = $j % 2 === 1 ? 0.0 : $pairGap;
+            }
+        }
+        foreach ($cells as &$row) {
+            foreach ($row as $j => &$cell) {
+                if ($j % 2 === 1) {
+                    $cell = self::infixLead($cell);
+                }
+            }
+            unset($cell);
+        }
+        unset($row);
+
+        return new Grid($cells, $align, 'baseline', true, $gaps, true);
+    }
+
+    /** $cell with its leading operator, if the cell starts with one (seen through Fallback and DisplayStyle), given the infix form. */
+    private static function infixLead(Node $cell): Node
+    {
+        if ($cell instanceof Fallback && $cell->content !== null) {
+            return new Fallback(self::infixLead($cell->content), $cell->note);
+        }
+        if ($cell instanceof DisplayStyle) {
+            return new DisplayStyle(self::infixLead($cell->content), $cell->display);
+        }
+        if ($cell instanceof Operator) {
+            return new Operator(
+                $cell->char,
+                stretchy: $cell->stretchy,
+                largeop: $cell->largeop,
+                movablelimits: $cell->movablelimits,
+                form: 'infix',
+                lspace: $cell->lspace,
+                rspace: $cell->rspace,
+                minSize: $cell->minSize,
+                maxSize: $cell->maxSize,
+            );
+        }
+        if ($cell instanceof Row && $cell->children !== [] && Fallback::unwrap($cell->children[0]) instanceof Operator) {
+            $children = $cell->children;
+            $children[0] = self::infixLead($children[0]);
+
+            return new Row($children);
+        }
+
+        return $cell;
     }
 
     /**

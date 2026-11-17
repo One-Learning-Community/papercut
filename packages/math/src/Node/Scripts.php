@@ -64,21 +64,23 @@ final class Scripts extends Node
 
         $out = new Box(0.0, $b->ascent, $b->descent);
         $out->place($b, 0, 0);
-        $w = $b->width;
+        $bw = $b->width - $b->trail; // the base's own trailing space goes after the scripts, not between it and them
+        $w = $bw;
         if ($sup !== null) {
-            $x = $b->width + $b->italic; // italics correction pushes the superscript clear of a slanted base
+            $x = $bw + $b->italic; // italics correction pushes the superscript clear of a slanted base
             $x += $this->kern($c, $b, $sup, true, $up);
             $out->place($sup, $x, -$up);
             $w = max($w, $x + $sup->width);
             $out->ascent = max($out->ascent, $up + $sup->ascent);
         }
         if ($sub !== null) {
-            $sx = $b->width + $this->kern($c, $b, $sub, false, $down);
+            $sx = $bw + $this->kern($c, $b, $sub, false, $down);
             $out->place($sub, $sx, $down);
             $w = max($w, $sx + $sub->width);
             $out->descent = max($out->descent, $down + $sub->descent);
         }
-        $out->width = $w + $c->k('spaceAfterScript');
+        $out->width = $w + $c->k('spaceAfterScript') + $b->trail;
+        $out->trail = $b->trail;
 
         return $out;
     }

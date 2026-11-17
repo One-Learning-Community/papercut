@@ -6,6 +6,7 @@ namespace Papercut\Math\Render;
 
 use Papercut\Math\Font\TrueTypeFont;
 use Papercut\Math\Layout\Box;
+use Papercut\Math\Layout\DisplayItem;
 use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Rule;
 
@@ -36,16 +37,16 @@ final class SvgRenderer
             self::n($w), self::n($h), self::n($w), self::n($h),
         );
         $svg .= $this->group();
-        foreach ($box->items as $item) {
+        $box->each(function (DisplayItem $item, float $dx, float $dy) use (&$svg, $ox, $oy): void {
             if ($item instanceof Glyph) {
-                $d = $this->glyphPath($item, $ox, $oy);
+                $d = $this->glyphPath($item, $ox + $dx, $oy + $dy);
                 if ($d !== '') {
                     $svg .= '<path d="' . $d . '"/>';
                 }
             } elseif ($item instanceof Rule) {
-                $svg .= sprintf('<rect x="%s" y="%s" width="%s" height="%s"/>', self::n($ox + $item->x), self::n($oy + $item->y), self::n($item->w), self::n($item->h));
+                $svg .= sprintf('<rect x="%s" y="%s" width="%s" height="%s"/>', self::n($ox + $dx + $item->x), self::n($oy + $dy + $item->y), self::n($item->w), self::n($item->h));
             }
-        }
+        });
 
         return $svg . '</g></svg>';
     }
@@ -88,6 +89,8 @@ final class SvgRenderer
     private function glyphPath(Glyph $g, float $ox, float $oy): string
     {
         $s = $g->size / $this->font->unitsPerEm;
+        $sx = $s * $g->sx;
+        $sy = $s * $g->sy;
         $x0 = $ox + $g->x;
         $y0 = $oy + $g->y;
         $d = '';
@@ -113,7 +116,7 @@ final class SvgRenderer
                 $start = [$pts[$startIdx][0], $pts[$startIdx][1]];
                 $seq = array_merge(array_slice($pts, $startIdx + 1), array_slice($pts, 0, $startIdx));
             }
-            $f = fn (float $x, float $y): string => self::n($x0 + $x * $s) . ' ' . self::n($y0 - $y * $s);
+            $f = fn (float $x, float $y): string => self::n($x0 + $x * $sx) . ' ' . self::n($y0 - $y * $sy);
             $d .= 'M' . $f($start[0], $start[1]);
             $ctrl = null;
             foreach ($seq as [$x, $y, $on]) {

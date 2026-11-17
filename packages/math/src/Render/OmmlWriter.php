@@ -12,6 +12,7 @@ use Papercut\Math\Node\Grid;
 use Papercut\Math\Node\Identifier;
 use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Number;
+use Papercut\Math\Node\Middle;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Phantom;
 use Papercut\Math\Node\Root;
@@ -80,6 +81,7 @@ final class OmmlWriter
             $n instanceof Identifier => self::run($n->upright ? $n->name : self::plain($n->name), $rPr, $n->upright ? 'p' : ''),
             $n instanceof Number => self::run($n->text, $rPr),
             $n instanceof Operator => self::run($n->char, $rPr, preg_match('/^\\p{L}+$/u', $n->char) === 1 ? 'p' : ''),
+            $n instanceof Middle => self::run($n->char, $rPr),
             $n instanceof Text => self::run($n->text, $rPr, 'nor'),
             $n instanceof Space => self::space($n->em, $rPr),
             $n instanceof Phantom => '<m:phant><m:phantPr><m:show m:val="0"/></m:phantPr><m:e>' . self::node($n->content, $rPr) . '</m:e></m:phant>',
@@ -107,19 +109,85 @@ final class OmmlWriter
     {
         $open = self::single($f->open);
         $close = self::single($f->close);
+        $parts = [];
+        $sep = self::separator($f->content, $parts);
+        $first = $open || $f->open === '' ? '' : self::run($f->open, $rPr);
+        $last = $close || $f->close === '' ? '' : self::run($f->close, $rPr);
+        $body = $sep === null
+            ? '<m:e>' . $first . self::node($f->content, $rPr) . $last . '</m:e>'
+            : implode('', array_map(
+                static fn (array $part, int $i): string => '<m:e>' . ($i === 0 ? $first : '') . self::sequence($part, $rPr) . ($i === count($parts) - 1 ? $last : '') . '</m:e>',
+                $parts,
+                array_keys($parts),
+            ));
 
-        return '<m:d><m:dPr><m:begChr m:val="' . ($open ? Xml::text($f->open) : '') . '"/><m:endChr m:val="' . ($close ? Xml::text($f->close) : '') . '"/></m:dPr><m:e>'
-            . ($open || $f->open === '' ? '' : self::run($f->open, $rPr))
-            . self::node($f->content, $rPr)
-            . ($close || $f->close === '' ? '' : self::run($f->close, $rPr))
-            . '</m:e></m:d>';
+        return '<m:d><m:dPr><m:begChr m:val="' . ($open ? Xml::text($f->open) : '') . '"/>'
+            . ($sep === null ? '' : '<m:sepChr m:val="' . Xml::text($sep) . '"/>')
+            . '<m:endChr m:val="' . ($close ? Xml::text($f->close) : '') . '"/></m:dPr>' . $body . '</m:d>';
     }
 
-    /** Word's matrix. Row alignment and display style have no counterpart in OMML and are not written. */
+    /**
+     * The one character that separates a fence's parts when its content is a Row with top-level Middles that all
+     * share a single-unit character (Word's m:sepChr holds one for all separators). Null leaves the Middles as runs.
+     *
+     * @param list<list<Node>> $parts the children between the Middles
+     */
+    private static function separator(Node $content, array &$parts): ?string
+    {
+        $row = Fallback::unwrap($content);
+        if (! $row instanceof Row) {
+            return null;
+        }
+        $sep = null;
+        $current = [];
+        $found = [];
+        foreach ($row->children as $child) {
+            $m = Fallback::unwrap($child);
+            if (! $m instanceof Middle) {
+                $current[] = $child;
+                continue;
+            }
+            if (! self::single($m->char) || ($sep !== null && $sep !== $m->char)) {
+                return null;
+            }
+            $sep = $m->char;
+            $found[] = $current;
+            $current = [];
+        }
+        if ($sep === null) {
+            return null;
+        }
+        $found[] = $current;
+        $parts = $found;
+
+        return $sep;
+    }
+
+    /** Word's matrix. Row alignment, display style and column spacing have no counterpart in OMML and are not written. */
     private static function grid(Grid $g, string $rPr): string
     {
         if ($g->columns === 0) {
             return '';
+        }
+        if ($g->alignment) {
+            // Word's equation array: one line per row, the alignment points marked by `&` runs. Between two
+            // column pairs (the odd gaps) Word has no spacing of its own, so em-space runs carry the gap.
+            $out = '<m:eqArr>';
+            $seps = [];
+            for ($j = 0; $j < $g->columns - 1; $j++) {
+                $gap = $j % 2 === 1 ? $g->columnSpacing[$j] ?? 0.0 : 0.0;
+                $seps[$j] = self::run('&', $rPr) . self::space($gap, $rPr);
+            }
+            foreach ($g->rows as $row) {
+                $content = '';
+                foreach ($row as $j => $cell) {
+                    $content .= ($j > 0 ? $seps[$j - 1] ?? self::run('&', $rPr) : '') . self::node($cell, $rPr);
+                }
+                // As in the matrix: LibreOffice shows a red "¿" for an empty m:e.
+                $out .= '<m:e>' . ($content === '' ? self::run(' ', $rPr) : $content) . '</m:e>';
+            }
+
+            return $out . '</m:eqArr>';
         }
         $out = '<m:m><m:mPr><m:plcHide m:val="1"/><m:mcs>';
         foreach ($g->columnAlign as $align) {
@@ -278,6 +346,10 @@ final class OmmlWriter
         if ($nary !== null) {
             return self::naryXml($nary, null, $rPr);
         }
+        $arrow = UnderOver::operatorOf($u->base);
+        if ($arrow !== null && $u->base === $arrow && UnderOver::isStretchy($arrow) && UnderOver::isArrow($arrow->char) && ($u->over !== null || $u->under !== null) && self::single($arrow->char)) {
+            return self::labelledArrow($u, $arrow->char, $rPr);
+        }
         $out = self::node($u->base, $rPr);
         if ($u->under !== null) {
             $op = UnderOver::operatorOf($u->under);
@@ -299,6 +371,32 @@ final class OmmlWriter
         }
 
         return $out;
+    }
+
+    /**
+     * A stretchy arrow with labels. Word stretches a group character to the width of its content, and puts the
+     * content on the baseline at full size, so the arrow is grouped over an invisible copy of the wider label
+     * (zero height, width kept) and the real labels, at script size, are limits around it.
+     */
+    private static function labelledArrow(UnderOver $u, string $char, string $rPr): string
+    {
+        $over = $u->over === null ? null : self::node($u->over, $rPr);
+        $under = $u->under === null ? null : self::node($u->under, $rPr);
+        $wide = $under === null || ($over !== null && self::textLength($over) >= self::textLength($under)) ? $over : $under;
+        $out = self::groupChr('<m:phant><m:phantPr><m:show m:val="0"/><m:zeroAsc m:val="1"/><m:zeroDesc m:val="1"/></m:phantPr><m:e>' . $wide . '</m:e></m:phant>', $char, 'top', 'bot', $rPr);
+        if ($over !== null) {
+            $out = '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . $over . '</m:lim></m:limUpp>';
+        }
+
+        return $under === null ? $out : '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . $under . '</m:lim></m:limLow>';
+    }
+
+    /** Characters of text in a piece of OMML: a rough width for choosing the longer label. */
+    private static function textLength(string $xml): int
+    {
+        preg_match_all('#<m:t[^>]*>([^<]*)</m:t>#', $xml, $m);
+
+        return mb_strlen(html_entity_decode(implode('', $m[1]), ENT_QUOTES | ENT_XML1));
     }
 
     private static function bar(string $e, string $pos): string

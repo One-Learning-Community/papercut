@@ -1,7 +1,8 @@
 # papercut/math
 
 Math layout for PHP: fractions, roots, scripts and stretchy delimiters laid out from an OpenType MATH font, with SVG,
-MathML and Word OMML writers. It needs PHP 8.4 and nothing else. Part of the
+MathML, TeX and Word OMML writers. It reads MathML and TeX, so a formula can go from MathML to TeX or from TeX to MathML
+and Word. It needs PHP 8.4 and nothing else. Part of the
 [Papercut](https://github.com/One-Learning-Community/papercut) monorepo, but it does not depend on Papercut.
 
 ```
@@ -80,6 +81,19 @@ $choose = Math::row(Math::binom('n', 'k'), '=', Math::frac('n!', Math::row('k!',
 $field = Math::row(Math::styled('R', 'double-struck'), '∋', Math::styled('x', 'bold'));
 ```
 
+`aligned(rows)` (a native equation array in Word) lines equations up on their alignment points, as TeX's `aligned` does: cells alternate right- and
+left-aligned, with no gap inside a pair and two em between pairs. `middle(delimiter)` is a delimiter inside `fenced`
+that stretches with it (TeX's `\middle`). `big(delimiter, size)` draws a delimiter at a fixed size from 1 to 4
+(`Math::BIG_SIZES` lists the sizes in em). `xarrow(arrow, over, under)` is an extensible arrow with optional labels
+above and below. It has a minimum length and reaches past its labels.
+
+```php
+$steps = Math::aligned([['x + 2', '= 5'], ['x', '= 3']]);
+$set = Math::fenced('{', '}', 'x', Math::middle('|'), 'x > 0');
+$bracket = Math::row(Math::big('(', 2), 'a + b', Math::big(')', 2));
+$reaction = Math::xarrow('→', Math::text('heat'), Math::text('catalyst'));
+```
+
 `space(em)` adds horizontal space of that many ems (negative pulls the next item back). `phantom(...)` takes the size of
 its content and draws nothing.
 
@@ -145,13 +159,73 @@ A `MathNote` has `level`, `element` (the MathML element name), `reason` (plain w
 formula).
 
 - `NoteLevel::Approximated`: the content is drawn, but not the way the source meant. This covers `mtable` attributes
-  that are not drawn (`rowlines`, `columnlines`, `frame`, `columnspacing`, `rowspacing`, `columnwidth`, `equalrows`,
+  that are not drawn (`rowlines`, `columnlines`, `frame`, `rowspacing`, `columnwidth`, `equalrows`,
   `equalcolumns`, `align`, `groupalign`, `columnalign` and `rowalign` on `mtr`, `rowspan`, `columnspan`, `columnalign`
-  and `rowalign` on `mtd`; a plain table is drawn as a grid and gives no note), `menclose`, `mmultiscripts`, `maction`
+  and `rowalign` on `mtd`; a plain table is drawn as a grid and gives no note, and `columnspacing` is drawn, noted only when its value can't be read), `menclose`, `mmultiscripts`, `maction`
   (its first choice is drawn) and elements the reader does not know.
 - `NoteLevel::Dropped`: the content is not drawn. This covers images and other media inside the math (`img`, `svg`,
   `video`, `mglyph` and the like), and content that an HTML tag pushed out of the `math` element: in HTML5 parsing a
   stray tag such as `<p>` inside math ends it, and what follows is lost.
+
+## Reading TeX
+
+Most formulas in the wild are TeX. `Math::tex()` reads math-mode LaTeX into the same node tree the builder makes.
+
+```php
+$formula = Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}');
+$box = Math::layout($formula);
+```
+
+Write TeX in single-quoted PHP strings or a nowdoc (`<<<'TEX'`), never in double quotes: PHP would turn `\f`, `\n`,
+`\t`, `\v`, `\r` and `\e` into control characters and `\frac` or `\nabla` would read as garbage, and a double-quoted
+string also interpolates `$` variables (a `$x` in the TeX would be replaced). In single
+quotes write TeX's `\\` line break as `\\\\`.
+
+`Math::tex(string $tex): Node` never throws. To also learn whether the source asked for display style, or what was
+lost, use the reader:
+
+```php
+use Papercut\Math\Tex\TexReader;
+
+$result = TexReader::read('$$\sum_{n=1}^{\infty} \frac{1}{n^2}$$');
+$result->node;      // the formula
+$result->display;   // true for $$…$$, \[…\], a top-level \displaystyle, and display environments (align, gather, equation; not aligned)
+$result->notes();   // list<MathNote>, as for MathML
+```
+
+The input is math mode. A wrapper (`$…$`, `$$…$$`, `\(…\)` or `\[…\]`) is optional and removed. The reader covers
+what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions and binomials, roots, scripts and
+primes, `\left`, `\right` and `\middle`, `\big` sizes, accents, over- and underbraces, extensible arrows,
+large operators with limits, font and style commands, `\text`, spacing, and the environments `matrix` and its
+variants, `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work too: `\newcommand`,
+`\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, scoped to the group they appear in.
+
+What it does not draw: colour (`\color`, `\textcolor`), boxes (`\boxed`, `\fbox`, `\cancel`), `\hline` and column
+rules in `array`, `\tag`, commutative diagrams (`CD` is drawn as a flat row), and `\newenvironment` and the like, plus a few more: `\sideset`, `\tensor`, `\prescript`, `\mathchoice`, `\scriptstyle` and
+`\scriptscriptstyle` (drawn in text style), `p{…}` and `@{…}` columns in `array`, and `smallmatrix` (drawn at normal
+size). Each one gives a note, and an unknown command is drawn as its own name, as KaTeX shows it in its error colour.
+
+Notes work as they do for MathML (see [What is approximated or dropped](#what-is-approximated-or-dropped)): one per
+element and reason, with a level of approximated or dropped. For TeX, `element` is the command with its backslash
+(`\boxed`), the environment name or the limit that was hit, and `where` is `offset N`, a byte offset into the input.
+
+Limits keep a hostile or runaway formula cheap. They are constants on `TexReader`:
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `MAX_INPUT` | 16,384 bytes | Input beyond this is dropped. |
+| `MAX_DEPTH` | 256 | Nesting (groups, arguments, environments) beyond this is drawn as its TeX source text. |
+| `MAX_EXPANSIONS` | 10,000 | Macro expansions per formula. |
+| `MAX_EXPANSION_BYTES` | 16,384 | What macro expansion may produce, in source bytes with the input included (equal to `MAX_INPUT`). |
+| `MAX_CELLS` | 10,000 | Cells in all environments of a formula; rows past it are dropped and a long row is cut. |
+
+Macro expansion is counted in source bytes against the same 16 KB, with the input included, so expanded text never
+exceeds the size of a maximum raw formula. Hitting a limit gives an approximated note, never an exception. Stretched
+delimiters and arrows are capped at 100 em.
+
+With Xdebug's develop mode on, the call stack itself is limited (`xdebug.max_nesting_level`, 512 by default), and the
+reader lowers `MAX_DEPTH` to what fits under it, so deep nesting gets its note sooner than 256 levels (with the default
+about 45 levels). Raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full depth.
 
 ## Lay it out
 
@@ -179,7 +253,18 @@ points. The origin is the baseline at the left edge, and y points down, so items
   variants and assembly pieces of a stretched symbol; those have no code point, so draw them by `gid`. For `ssty` script
   alternates `text` is the base character, but `gid` differs from the font's cmap entry for it. So a backend may set a
   glyph as text only when `text` is one code point and the font's cmap maps it to `gid`; draw every other glyph by `gid`.
+  `Glyph` also has `sx` and `sy` (both 1.0 for an ordinary glyph): factors that scale the glyph's outline along x and y
+  about its origin `(x, y)`. A stretched symbol draws a run of identical straight pieces as one glyph scaled along the
+  stretch, so a backend that draws glyphs itself must apply them (an SVG `transform="translate(x y) scale(sx sy)"`, or
+  the same in your PDF matrix); ignoring them draws one unscaled piece where a long run should be. `size` still scales
+  uniformly.
 - `Rule(x, y, w, h)`: a filled rectangle (fraction bar, radical overbar), `(x, y)` its top-left corner.
+
+`$box->items` is built on each read: a box keeps the boxes placed in it (so laying out deeply nested formulas stays
+fast) and flattens them, shifting every item to its absolute position, whenever you read the property. Read it once into
+a variable, or walk the tree without building the list with `$box->each(fn (DisplayItem $item, float $dx, float $dy) => …)`,
+which gives each item as laid out in its own box plus the offset `(dx, dy)` to add to its `x` and `y`. Writing to the list
+in place (`$box->items[] = …`) no longer works; assign a whole list, or leave a laid-out box alone.
 
 ## Writers
 
@@ -205,6 +290,19 @@ use Papercut\Math\Render\MathmlWriter;
 echo MathmlWriter::write($formula, display: true);
 ```
 
+### Writing TeX
+
+```php
+use Papercut\Math\Render\TexWriter;
+
+echo TexWriter::write($formula);   // \frac{1}{2}
+```
+
+`TexWriter::write(Node $root): string` writes standard TeX, with no package-specific commands, so KaTeX and MathJax
+accept it. Reading the output with `Math::tex()` gives the same formula back, for formulas read from TeX and for those
+made with the builder. MathML has details TeX has no word for (a `mathvariant` TeX has no font for, an attribute the
+tree does not keep); those are dropped, and the nearest TeX is written.
+
 Word OMML, always in Cambria Math (the configured font does not apply), with letters written as plain letters (Word
 italicizes them) and `Math::text` as `m:nor` runs:
 
@@ -216,6 +314,9 @@ echo OmmlWriter::oMath($formula);                                         // inl
 echo OmmlWriter::oMathPara($formula, 'center');                           // block; jc is left, center or right
 echo OmmlWriter::oMath($formula, new RunFormat(colorHex: 'C00000', sizeHalfPoints: 24));
 ```
+
+Word does not stretch `=` in a group character, so `\xlongequal` is drawn at the normal `=` width in Word, with its
+labels in place. The PDF stretches it, and Word stretches the other extensible arrows.
 
 `oMathPara` output goes inside a `<w:p>` that holds nothing else. Empty slots (`Math::frac('', '2')`) lay out and write
 empty containers.

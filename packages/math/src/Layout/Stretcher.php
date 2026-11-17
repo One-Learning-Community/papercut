@@ -15,15 +15,19 @@ use Papercut\Math\Font\TrueTypeFont;
  */
 final class Stretcher
 {
+    /** The most a glyph is stretched, in em of the font: nested fences otherwise double each level and grow without bound. */
+    public const float MAX_STRETCH_EM = 100.0;
+
     /**
-     * @return array{pieces: list<array{int,float}>, ymin: float, ymax: float, advance: float}
-     *         pieces: [gid, y origin offset in font units, up]. Assemblies span ymin = 0 .. ymax = size.
+     * @return array{pieces: list<array{int,float,float}>, ymin: float, ymax: float, advance: float}
+     *         pieces: [gid, y origin offset in font units, up, scale along y (assembly pieces only; 1.0 unless a run of one straight extender is drawn once)]. Assemblies span ymin = 0 .. ymax = size.
      */
     public static function vertical(TrueTypeFont $font, int $gid, float $requiredUnits): array
     {
+        $requiredUnits = min($requiredUnits, self::MAX_STRETCH_EM * $font->unitsPerEm);
         $con = $font->math()->vertical($gid);
         $bb = $font->bbox($gid);
-        $natural = ['pieces' => [[$gid, 0.0]], 'ymin' => (float) $bb[1], 'ymax' => (float) $bb[3], 'advance' => (float) $font->advance($gid)];
+        $natural = ['pieces' => [[$gid, 0.0, 1.0]], 'ymin' => (float) $bb[1], 'ymax' => (float) $bb[3], 'advance' => (float) $font->advance($gid)];
         if ($con === null) {
             return $natural;
         }
@@ -34,22 +38,50 @@ final class Stretcher
             if ($adv >= $requiredUnits) {
                 $vb = $font->bbox($vg);
 
-                return ['pieces' => [[$vg, 0.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
+                return ['pieces' => [[$vg, 0.0, 1.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
             }
         }
         if ($con->parts === null || $con->parts === []) {
             [$vg] = $con->variants[count($con->variants) - 1];
             $vb = $font->bbox($vg);
 
-            return ['pieces' => [[$vg, 0.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
+            return ['pieces' => [[$vg, 0.0, 1.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
         }
 
         return self::assemble($font, $con->parts, $requiredUnits);
     }
 
     /**
-     * @return array{pieces: list<array{int,float}>, xmin: float, xmax: float, ascent: float, descent: float}
-     *         pieces: [gid, x origin offset in font units], left to right. xmin/xmax are always the ink extent of the
+     * A size variant (or assembly) of $gid at least $targetUnits tall, centred on the math axis, with $lead before it and
+     * $trail after it (both pt). $char is the text a backend sets for a single glyph; $italic gives the box the glyph's
+     * italics correction.
+     */
+    public static function axisCentred(Context $c, string $char, int $gid, float $targetUnits, float $lead, float $trail, bool $italic = false): Box
+    {
+        $u = $c->unit();
+        $m = $c->font->math();
+        $s = self::vertical($c->font, $gid, $targetUnits);
+        $shift = $m->constant('axisHeight') - ($s['ymin'] + $s['ymax']) / 2;
+        $single = count($s['pieces']) === 1;
+        $b = new Box($lead + $s['advance'] * $u + $trail, ($s['ymax'] + $shift) * $u, -($s['ymin'] + $shift) * $u);
+        $b->trail = $trail;
+        foreach ($s['pieces'] as $pc) {
+            [$pg, $off] = $pc;
+            $b->add(new Glyph($pg, $single ? $char : null, $lead, -($off + $shift) * $u, $c->size(), 1.0, $pc[2]));
+        }
+        if ($single) {
+            $b->firstGid = $b->lastGid = $s['pieces'][0][0];
+            if ($italic) {
+                $b->italic = $m->italicsCorrection($s['pieces'][0][0]) * $u;
+            }
+        }
+
+        return $b;
+    }
+
+    /**
+     * @return array{pieces: list<array{int,float,float}>, xmin: float, xmax: float, ascent: float, descent: float}
+     *         pieces: [gid, x origin offset in font units, scale along x (assembly pieces only)], left to right. xmin/xmax are always the ink extent of the
      *         result along x, relative to the first piece's origin (a glyph's bbox x-range, or the min/max of the
      *         pieces' bbox x-ranges at their offsets); ascent and descent are the ink extent above and below the
      *         baseline. An assembly can come out wider than requested when the parts cannot overlap enough to shrink
@@ -57,11 +89,12 @@ final class Stretcher
      */
     public static function horizontal(TrueTypeFont $font, int $gid, float $requiredUnits): array
     {
+        $requiredUnits = min($requiredUnits, self::MAX_STRETCH_EM * $font->unitsPerEm);
         $con = $font->math()->horizontal($gid);
         $single = static function (int $g) use ($font): array {
             $b = $font->bbox($g);
 
-            return ['pieces' => [[$g, 0.0]], 'xmin' => (float) $b[0], 'xmax' => (float) $b[2], 'ascent' => (float) $b[3], 'descent' => (float) -$b[1]];
+            return ['pieces' => [[$g, 0.0, 1.0]], 'xmin' => (float) $b[0], 'xmax' => (float) $b[2], 'ascent' => (float) $b[3], 'descent' => (float) -$b[1]];
         };
         // A combining accent has no advance of its own: its construction's first variant is the natural width.
         $naturalWidth = $con !== null && $con->variants !== [] ? $con->variants[0][1] : $font->advance($gid);
@@ -82,11 +115,11 @@ final class Stretcher
         $descent = -INF;
         $xmin = INF;
         $xmax = -INF;
-        foreach ($placed as [$p, $x]) {
+        foreach (self::merge($font, $placed, false) as [$p, $x, $k]) {
             $gb = $font->bbox($p->gid);
-            $pieces[] = [$p->gid, $x];
+            $pieces[] = [$p->gid, $x + $gb[0] - $gb[0] * $k, $k]; // the scaled ink still starts at $x + $gb[0]
             $xmin = min($xmin, $x + $gb[0]);
-            $xmax = max($xmax, $x + $gb[2]);
+            $xmax = max($xmax, $x + $gb[0] + ($gb[2] - $gb[0]) * $k);
             $ascent = max($ascent, (float) $gb[3]);
             $descent = max($descent, (float) -$gb[1]);
         }
@@ -95,17 +128,42 @@ final class Stretcher
     }
 
     /**
+     * Each run of one repeated straight extender becomes one piece: [part, start of the run, scale of its ink along the axis].
+     * The scale is 1.0 for everything else, so the ink of the run is where the repeated pieces' ink was, minus the seams.
+     *
+     * @param list<array{\Papercut\Math\Font\AssemblyPart, float}> $placed
+     * @return list<array{\Papercut\Math\Font\AssemblyPart, float, float}>
+     */
+    private static function merge(TrueTypeFont $font, array $placed, bool $vertical): array
+    {
+        $out = [];
+        $last = -1;
+        foreach ($placed as [$p, $pos]) {
+            if ($last >= 0 && $out[$last][0] === $p && $p->extender && $font->straightAlong($p->gid, $vertical)) {
+                $bb = $font->bbox($p->gid);
+                $ink = $vertical ? $bb[3] - $bb[1] : $bb[2] - $bb[0];
+                $out[$last][2] = ($pos - $out[$last][1] + $ink) / $ink;
+                continue;
+            }
+            $out[] = [$p, $pos, 1.0];
+            $last++;
+        }
+
+        return $out;
+    }
+
+    /**
      * @param list<\Papercut\Math\Font\AssemblyPart> $parts bottom to top
-     * @return array{pieces: list<array{int,float}>, ymin: float, ymax: float, advance: float}
+     * @return array{pieces: list<array{int,float,float}>, ymin: float, ymax: float, advance: float}
      */
     private static function assemble(TrueTypeFont $font, array $parts, float $required): array
     {
         [$placed, $size] = self::solveParts($parts, $required, $font->math()->minConnectorOverlap);
         $pieces = [];
         $adv = 0.0;
-        foreach ($placed as [$p, $y]) {
+        foreach (self::merge($font, $placed, true) as [$p, $y, $k]) {
             $gb = $font->bbox($p->gid);
-            $pieces[] = [$p->gid, $y - $gb[1]];
+            $pieces[] = [$p->gid, $y - $gb[1] * $k, $k];
             $adv = max($adv, (float) $font->advance($p->gid));
         }
 
