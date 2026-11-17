@@ -16,6 +16,12 @@ use Papercut\Math\Font\TrueTypeFont;
  */
 final readonly class Context
 {
+    /** Font size at this level, in points (asked for on every glyph, so worked out once). */
+    private float $size;
+
+    /** Points per font unit at this level. */
+    private float $unit;
+
     public function __construct(
         public TrueTypeFont $font,
         public float $baseSize,
@@ -27,24 +33,25 @@ final readonly class Context
         /** @var (\Closure(string, float): ?float)|null advance in points of a character the font lacks, at a size; null keeps the .notdef advance */
         public ?\Closure $fallbackAdvance = null,
     ) {
+        $m = $font->math();
+        $this->size = $baseSize * match (true) {
+            $level <= 0 => 1.0,
+            $level === 1 => $m->constant('scriptPercentScaleDown') / 100,
+            default => $m->constant('scriptScriptPercentScaleDown') / 100,
+        };
+        $this->unit = $this->size / $font->unitsPerEm;
     }
 
     /** Font size for this script level, in points. */
     public function size(): float
     {
-        $m = $this->font->math();
-
-        return $this->baseSize * match (true) {
-            $this->level <= 0 => 1.0,
-            $this->level === 1 => $m->constant('scriptPercentScaleDown') / 100,
-            default => $m->constant('scriptScriptPercentScaleDown') / 100,
-        };
+        return $this->size;
     }
 
     /** Points per font unit at this level. */
     public function unit(): float
     {
-        return $this->size() / $this->font->unitsPerEm;
+        return $this->unit;
     }
 
     /** A MATH constant in points at this level. */

@@ -31,6 +31,8 @@ final class TrueTypeFont
     private array $contourCache = [];
     /** @var array<int, array{int,int,int,int}> */
     private array $bboxCache = [];
+    /** @var array<int, int> glyph id by code point, for the code points asked for */
+    private array $gidCache = [];
     /** @var array<int, bool> straightness by gid * 2 + (vertical ? 1 : 0) */
     private array $straightCache = [];
     private ?MathTable $math = null;
@@ -198,6 +200,11 @@ final class TrueTypeFont
 
     /** Glyph id for a codepoint, or 0 when the font has none. */
     public function gid(int $cp): int
+    {
+        return $this->gidCache[$cp] ??= $this->lookupGid($cp);
+    }
+
+    private function lookupGid(int $cp): int
     {
         if ($this->grp12 !== []) {
             $lo = 0;
