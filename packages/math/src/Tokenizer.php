@@ -28,9 +28,9 @@ final class Tokenizer
     private const FUNCTIONS = ['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'sinh', 'cosh', 'tanh', 'log', 'ln', 'exp', 'lim', 'min', 'max', 'det', 'arcsin', 'arccos', 'arctan'];
     private const CLOSING = [')' => '(', ']' => '[', '}' => '{'];
     /** Symbols that behave as operands, not operators. */
-    private const ORDINARY = '∞∂∇ℓℏ∅′″°';
+    private const ORDINARY = '∞∂∇ℓℏ∅′″‴⁗°';
     private const BARS = ['|', '‖'];
-    private const PRIMES = ['′', '″'];
+    private const PRIMES = ['′', '″', '‴', '⁗'];
     private const OP_MAP = ['-' => '−', '*' => '∗'];
 
     /** @return list<Node> */

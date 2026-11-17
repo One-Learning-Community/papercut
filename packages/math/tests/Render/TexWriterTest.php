@@ -204,6 +204,50 @@ final class TexWriterTest extends TestCase
         self::assertSame('\begin{dcases}1 & x\end{dcases}', self::tex($cases));
     }
 
+    public function test_display_grids_stay_display_grids(): void
+    {
+        self::assertSame('\begin{gathered}a \\\\ b\end{gathered}', self::tex(new Grid([[Math::row('a')], [Math::row('b')]], ['center'], display: true)));
+        self::assertSame('\begin{darray}{ll}a & b\end{darray}', self::tex(new Grid([[Math::row('a'), Math::row('b')]], ['left', 'left'], display: true)));
+    }
+
+    public function test_primes_are_apostrophes_and_negations_are_not(): void
+    {
+        self::assertSame("f'''", self::tex(Math::tex("f'''")));
+        self::assertSame("f''", self::tex(Math::tex("f''")));
+        self::assertSame("f''''^2", self::tex(Math::tex("f''''^2")));
+        self::assertSame("f''^2_a", self::tex(Math::tex("f''_a^2")));
+        self::assertSame('\prime\prime', self::tex(new Operator('″')));
+        self::assertSame('\not\subset', self::tex(new Operator('⊄')));
+        self::assertSame('a \not\equiv b', self::tex(Math::row('a', new Operator('≢'), 'b')));
+        self::assertSame('\neq', self::tex(new Operator('≠')));
+    }
+
+    public function test_double_primes_round_trip_wherever_they_stand(): void
+    {
+        foreach (["\\lim\\nolimits'' x", "f\u{2033}", "\u{2033} + 1"] as $src) {
+            $a = Math::tex($src);
+            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, Math::tex(self::tex($a)));
+        }
+        \Papercut\Math\Tests\TreeAssert::assertSameTree(new Identifier('″', false), Math::tex(self::tex(new Operator('″'))));
+        self::assertSame('\prime\prime', self::tex(Math::tex('\prime\prime')));
+    }
+
+    public function test_wide_display_grids_are_darrays(): void
+    {
+        $wide = new Grid([[Math::row('a'), Math::row('b')]], ['center', 'center'], display: true);
+        self::assertSame('\begin{darray}{cc}a & b\end{darray}', self::tex($wide));
+        \Papercut\Math\Tests\TreeAssert::assertSameTree($wide, Math::tex(self::tex($wide)));
+    }
+
+    public function test_symbol_commands_and_primes_round_trip(): void
+    {
+        self::assertSame('\Re z', self::tex(Math::tex('\Re z')));
+        foreach (['\Re z + \Im w', "f''' + g'''", "f'''^2", "f''_a^2", '\not\subset \not\equiv'] as $src) {
+            $a = Math::tex($src);
+            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, Math::tex(self::tex($a)));
+        }
+    }
+
     public function test_aligned(): void
     {
         self::assertSame('\begin{aligned}x &= 1\end{aligned}', self::tex(Math::aligned([['x', '= 1']])));
@@ -348,5 +392,14 @@ final class TexWriterTest extends TestCase
         self::assertSame('{\ulcorner x}^2', self::tex(Math::sup(Math::fenced('⌜', '', 'x'), '2')));
         self::assertSame('\left( x \right)^2', self::tex(Math::sup(Math::fenced('(', ')', 'x'), '2')));
         self::assertSame('\binom{n}{k}^2', self::tex(Math::sup(Math::binom('n', 'k'), '2')));
+    }
+
+    public function test_fix_round_one_negated_symbol_without_a_negated_form(): void
+    {
+        self::assertSame('\\not|', self::tex(new Operator("|\u{0338}")));
+        self::assertSame('\\not\\perp', self::tex(new Operator("⊥\u{0338}")));
+        foreach (['\\not|', '\\not\\perp'] as $tex) {
+            self::assertSame($tex, TexWriter::write(Math::tex($tex)));
+        }
     }
 }

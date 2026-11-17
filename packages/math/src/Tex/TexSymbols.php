@@ -58,7 +58,7 @@ final class TexSymbols
         'rightthreetimes' => '⋌', 'intercal' => '⊺', 'circledcirc' => '⊚', 'circledast' => '⊛', 'circleddash' => '⊝',
         'centerdot' => '⋅', 'Cap' => '⋒', 'Cup' => '⋓', 'doublecap' => '⋒', 'doublecup' => '⋓',
         // relations
-        'ne' => '≠', 'neq' => '≠', 'equiv' => '≡', 'approx' => '≈', 'sim' => '∼', 'simeq' => '≃', 'cong' => '≅',
+        'lt' => '<', 'gt' => '>', 'ne' => '≠', 'neq' => '≠', 'equiv' => '≡', 'approx' => '≈', 'sim' => '∼', 'simeq' => '≃', 'cong' => '≅',
         'propto' => '∝', 'varpropto' => '∝', 'le' => '≤', 'leq' => '≤', 'ge' => '≥', 'geq' => '≥', 'll' => '≪', 'gg' => '≫',
         'lll' => '⋘', 'ggg' => '⋙', 'prec' => '≺', 'succ' => '≻', 'preceq' => '⪯', 'succeq' => '⪰', 'subset' => '⊂',
         'supset' => '⊃', 'subseteq' => '⊆', 'supseteq' => '⊇', 'sqsubset' => '⊏', 'sqsupset' => '⊐', 'sqsubseteq' => '⊑',
@@ -123,6 +123,15 @@ final class TexSymbols
         'lgroup' => '⟮', 'rgroup' => '⟯', 'lmoustache' => '⎰', 'rmoustache' => '⎱',
     ];
 
+    /** Delimiter names that are plain symbols elsewhere: \left\lt is an angle bracket, as in KaTeX. */
+    private const DELIM_ALIASES = ['lt' => '⟨', 'gt' => '⟩'];
+
+    /** The delimiter a name after \left, \right, \middle or \big stands for (`(`, `langle`, `lt`), or null when it is none. */
+    public static function delimiterChar(string $name): ?string
+    {
+        return self::DELIMS[$name] ?? self::DELIM_ALIASES[$name] ?? null;
+    }
+
     /** \hat etc.: command to combining mark. */
     public const ACCENTS = [
         'hat' => "\u{0302}", 'widehat' => "\u{0302}", 'tilde' => "\u{0303}", 'widetilde' => "\u{0303}", 'bar' => "\u{0304}",
@@ -159,6 +168,18 @@ final class TexSymbols
         'leftrightarrow' => '↮', 'Leftrightarrow' => '⇎', 'to' => '↛', 'sqsubseteq' => '⋢', 'sqsupseteq' => '⋣',
     ];
 
+    /** What follows \not to give a precomposed negated symbol (`\subset`, `=`), or null when the character is not one. */
+    public static function negation(string $char): ?string
+    {
+        $key = array_search($char, self::NEGATED, true);
+        if ($key === false) {
+            return null;
+        }
+        $key = (string) $key;
+
+        return ctype_alpha($key) ? '\\' . $key : $key;
+    }
+
     /** Text-mode escapes inside \text{}. */
     public const TEXT_ESC = [
         '&' => '&', '%' => '%', '$' => '$', '#' => '#', '_' => '_', '{' => '{', '}' => '}', ' ' => ' ', ',' => "\u{2009}",
@@ -167,7 +188,7 @@ final class TexSymbols
         'textemdash' => '—', 'textquoteleft' => '‘', 'textquoteright' => '’', 'textdegree' => '°', 'textminus' => '−',
         'textbullet' => '•', 'texttimes' => '×', 'textdollar' => '$', 'textpercent' => '%', 'copyright' => '©', 'S' => '§',
         'P' => '¶', 'dag' => '†', 'ddag' => '‡', 'ss' => 'ß', 'ae' => 'æ', 'AE' => 'Æ', 'oe' => 'œ', 'o' => 'ø', 'aa' => 'å',
-        'LaTeX' => 'LaTeX', 'TeX' => 'TeX', '\\' => ' ', '-' => '', '/' => '', '@' => '',
+        'i' => 'ı', 'j' => 'ȷ', 'LaTeX' => 'LaTeX', 'TeX' => 'TeX', '\\' => ' ', '-' => '', '/' => '', '@' => '',
         'textless' => '<', 'textgreater' => '>', 'textasciicircum' => '^', 'textunderscore' => '_',
     ];
 
@@ -204,6 +225,15 @@ final class TexSymbols
         '⇌' => 'xrightleftharpoons', '⇋' => 'xleftrightharpoons', '↠' => 'xtwoheadrightarrow', '↞' => 'xtwoheadleftarrow',
         '⇄' => 'xtofrom', '⟶' => 'xrightarrow', '⟵' => 'xleftarrow', '⟷' => 'xleftrightarrow', '⟹' => 'xRightarrow',
         '⟸' => 'xLeftarrow', '⟺' => 'xLeftrightarrow',
+    ];
+
+    /** The extensible-arrow commands the reader knows, to their arrow (the first listed arrow of each command). */
+    public const array XARROW_CHARS = [
+        'xrightarrow' => '→', 'xleftarrow' => '←', 'xleftrightarrow' => '↔', 'xRightarrow' => '⇒', 'xLeftarrow' => '⇐',
+        'xLeftrightarrow' => '⇔', 'xlongequal' => '=', 'xmapsto' => '↦', 'xhookleftarrow' => '↩', 'xhookrightarrow' => '↪',
+        'xrightharpoonup' => '⇀', 'xrightharpoondown' => '⇁', 'xleftharpoonup' => '↼', 'xleftharpoondown' => '↽',
+        'xrightleftharpoons' => '⇌', 'xleftrightharpoons' => '⇋', 'xtwoheadrightarrow' => '↠', 'xtwoheadleftarrow' => '↞',
+        'xtofrom' => '⇄',
     ];
 
     /** Math variant to the font command the writer uses (nearest standard TeX where the variant has none). */

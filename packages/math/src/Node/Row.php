@@ -38,6 +38,22 @@ final class Row extends Node
     /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
+        $boxes = null;
+
+        return $this->build($c, [], $boxes);
+    }
+
+    /**
+     * The row laid out, with the box of every child in `$boxes` and, for a child index in `$reuse`, that box in place of
+     * laying the child out again (a fence re-places its Middles at their stretched size without redoing the rest).
+     *
+     * @param array<int, Box> $reuse
+     * @param ?array<int, Box> $boxes filled when given as an array, left alone when null
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function build(Context $c, array $reuse, ?array &$boxes): Box
+    {
         $out = new Box();
         $x = 0.0;
         $prev = null;
@@ -58,7 +74,10 @@ final class Row extends Node
             foreach (Fallback::displays($child) as $display) {
                 $ctx = $ctx->withDisplay($display);
             }
-            $b = $seen instanceof Operator ? $seen->layoutAs($ctx, $form ?? throw new \LogicException('Forms::of gave an operator no form')) : $child->layout($c);
+            $b = $reuse[$i] ?? ($seen instanceof Operator ? $seen->layoutAs($ctx, $form ?? throw new \LogicException('Forms::of gave an operator no form')) : $child->layout($c));
+            if ($boxes !== null) {
+                $boxes[$i] = $b;
+            }
             $out->place($b, $x, 0.0);
             $x += $b->width;
             $out->ascent = max($out->ascent, $b->ascent);

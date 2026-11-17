@@ -15,12 +15,16 @@ use Papercut\Math\Font\TrueTypeFont;
  */
 final class Stretcher
 {
+    /** The most a glyph is stretched, in em of the font: nested fences otherwise double each level and grow without bound. */
+    public const float MAX_STRETCH_EM = 100.0;
+
     /**
      * @return array{pieces: list<array{int,float}>, ymin: float, ymax: float, advance: float}
      *         pieces: [gid, y origin offset in font units, up]. Assemblies span ymin = 0 .. ymax = size.
      */
     public static function vertical(TrueTypeFont $font, int $gid, float $requiredUnits): array
     {
+        $requiredUnits = min($requiredUnits, self::MAX_STRETCH_EM * $font->unitsPerEm);
         $con = $font->math()->vertical($gid);
         $bb = $font->bbox($gid);
         $natural = ['pieces' => [[$gid, 0.0]], 'ymin' => (float) $bb[1], 'ymax' => (float) $bb[3], 'advance' => (float) $font->advance($gid)];
@@ -84,6 +88,7 @@ final class Stretcher
      */
     public static function horizontal(TrueTypeFont $font, int $gid, float $requiredUnits): array
     {
+        $requiredUnits = min($requiredUnits, self::MAX_STRETCH_EM * $font->unitsPerEm);
         $con = $font->math()->horizontal($gid);
         $single = static function (int $g) use ($font): array {
             $b = $font->bbox($g);

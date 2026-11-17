@@ -160,4 +160,33 @@ final class StretcherTest extends TestCase
         self::assertLessThan(0.0, $r['descent']);
         self::assertGreaterThan(0.0, $r['ascent']);
     }
+
+    public function test_a_stretch_request_is_capped(): void
+    {
+        $font = $this->font();
+        $paren = $font->gid(0x28);
+        $cap = Stretcher::vertical($font, $paren, Stretcher::MAX_STRETCH_EM * $font->unitsPerEm);
+        $huge = Stretcher::vertical($font, $paren, 1e9);
+        self::assertSame($cap, $huge);
+        $arrow = $font->gid(0x2192);
+        self::assertSame(
+            Stretcher::horizontal($font, $arrow, Stretcher::MAX_STRETCH_EM * $font->unitsPerEm),
+            Stretcher::horizontal($font, $arrow, 1e9),
+        );
+    }
+
+    public function test_nested_fences_do_not_grow_without_bound(): void
+    {
+        memory_reset_peak_usage();
+        $mem = memory_get_usage();
+        $t = microtime(true);
+        $n = Math::sup('x', '1');
+        for ($i = 0; $i < 60; $i++) {
+            $n = Math::fenced('(', ')', Math::sup($n, 'x'));
+        }
+        $box = Math::layout($n);
+        self::assertLessThan(1.0, microtime(true) - $t);
+        self::assertLessThan(64 * 1024 * 1024, memory_get_peak_usage() - $mem);
+        self::assertLessThan(60 * 100 * 12.0 * 2, $box->ascent + $box->descent);
+    }
 }

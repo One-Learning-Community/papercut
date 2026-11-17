@@ -24,6 +24,7 @@ use Papercut\Math\Node\Scripts;
 use Papercut\Math\Node\Space;
 use Papercut\Math\Node\Text;
 use Papercut\Math\Node\UnderOver;
+use Papercut\Math\Tex\TexReader;
 
 /**
  * Builder API. Wherever a Node is expected a plain string works too and is tokenized
@@ -142,6 +143,12 @@ final class Math
     public static function mathml(string|\Dom\Element $input): Node
     {
         return MathmlReader::read($input)->node;
+    }
+
+    /** A formula read from TeX (math mode, as KaTeX reads it). Never throws: what it cannot draw carries a note, see {@see TexReader::read()}. */
+    public static function tex(string $tex): Node
+    {
+        return TexReader::read($tex)->node;
     }
 
     public static function sqrt(string|Node ...$content): Root

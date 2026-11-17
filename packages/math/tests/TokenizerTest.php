@@ -75,6 +75,24 @@ final class TokenizerTest extends TestCase
         self::assertSame(['t', 'o', 't', 'a', 'l', 'c', 'o', 's', 't', Operator::class, Number::class], $names('total cost = 5'));
     }
 
+    public function test_triple_primes_take_their_base_like_double_ones(): void
+    {
+        foreach (['″', '‴', '⁗'] as $prime) {
+            $row = Tokenizer::tokenize('f' . $prime . '²');
+            self::assertCount(1, $row, $prime);
+            self::assertInstanceOf(Scripts::class, $row[0]);
+            self::assertInstanceOf(Row::class, $row[0]->base);
+        }
+    }
+
+    public function test_triple_and_quadruple_primes_are_ordinary_like_single_ones(): void
+    {
+        foreach (['′', '″', '‴', '⁗'] as $prime) {
+            $node = Tokenizer::tokenize($prime)[0] ?? null;
+            self::assertInstanceOf(Identifier::class, $node, $prime);
+        }
+    }
+
     public function test_unicode_superscript_becomes_a_real_superscript(): void
     {
         $t = Tokenizer::tokenize('x²');

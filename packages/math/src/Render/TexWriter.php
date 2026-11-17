@@ -158,9 +158,19 @@ final class TexWriter
         if ($char === '−') {
             return '-';
         }
+        // What \not builds for a symbol with no negated form: the symbol and a combining slash.
+        if (mb_strlen($char) === 2 && str_ends_with($char, "\u{0338}")) {
+            return '\not' . self::symbol(mb_substr($char, 0, 1));
+        }
         $cmd = TexSymbols::command($char);
         if ($cmd !== null) {
             return $cmd;
+        }
+        if (isset(self::MULTI_PRIMES[$char])) {
+            return str_repeat('\prime', self::MULTI_PRIMES[$char]);
+        }
+        if (($negated = TexSymbols::negation($char)) !== null) {
+            return '\not' . $negated;
         }
 
         return mb_strlen($char) > 1 ? self::functionName($char) : (self::MATH_ESCAPES[$char] ?? $char);
@@ -253,10 +263,11 @@ final class TexWriter
     private static function italicSingle(string $ch): string
     {
         $u = TexSymbols::unstyle($ch);
-        if ($u !== null) {
+        $cmd = TexSymbols::command($ch);
+        // \Re and \Im are the fraktur capitals of Unicode's gaps: they have commands of their own, which read back as the same symbol.
+        if ($u !== null && $cmd === null) {
             return '\\' . TexSymbols::VARIANT_WRITE[$u[0]] . '{' . self::letter($u[1]) . '}';
         }
-        $cmd = TexSymbols::command($ch);
         if ($cmd !== null && preg_match('/^[\x{391}-\x{3A9}]$/u', $ch) === 1) {
             return '\var' . substr($cmd, 1); // an italic capital Greek letter: \varGamma
         }
@@ -271,6 +282,12 @@ final class TexWriter
             return '\\' . TexSymbols::VARIANT_WRITE[$u[0]] . '{' . self::letter($u[1]) . '}';
         }
         $cmd = TexSymbols::command($ch);
+        if ($cmd === null && isset(self::MULTI_PRIMES[$ch])) {
+            return str_repeat('\prime', self::MULTI_PRIMES[$ch]);
+        }
+        if ($cmd === null && ($negated = TexSymbols::negation($ch)) !== null) {
+            return '\not' . $negated;
+        }
         $letterLike = preg_match('/^[\p{L}\p{N}]$/u', $ch) === 1;
         if ($cmd !== null && (! $letterLike || self::isOrdinaryCommand($ch) || preg_match('/^[\x{391}-\x{3A9}]$/u', $ch) === 1)) {
             return $cmd; // \infty, \Gamma: upright by themselves
@@ -416,8 +433,29 @@ final class TexWriter
         $op = UnderOver::operatorOf($s->base);
         $nolimits = UnderOver::isLimitName($s->base) || ($op !== null && $op->isLargeop(OperatorDictionary::FORM_PREFIX) && $op->hasMovableLimits(OperatorDictionary::FORM_PREFIX));
 
-        return self::base($s->base) . ($nolimits ? '\nolimits' : '') . self::scriptParts($s->sub, $s->sup);
+        // Primes are written as apostrophes: KaTeX and LaTeX have no raw ″ ‴ ⁗.
+        $sup = $s->sup;
+        $primes = '';
+        if ($sup !== null && ! $nolimits) {
+            $parts = $sup instanceof Row ? $sup->children : [$sup];
+            $first = $parts[0] ?? null;
+            if ($first instanceof Identifier && isset(self::MULTI_PRIMES[$first->name])) {
+                $primes = str_repeat("'", self::MULTI_PRIMES[$first->name]);
+                $rest = array_slice($parts, 1);
+                $sup = $rest === [] ? null : (count($rest) === 1 ? $rest[0] : new Row($rest));
+            }
+        }
+
+        if ($primes !== '' && $sup !== null) {
+            // KaTeX takes a superscript after primes only straight after them: f'^2_a, not f'_a^2.
+            return self::base($s->base) . $primes . '^' . self::arg($sup) . self::scriptParts($s->sub, null);
+        }
+
+        return self::base($s->base) . $primes . ($nolimits ? '\nolimits' : '') . self::scriptParts($s->sub, $sup);
     }
+
+    /** Prime characters TeX has no symbol for, and how many apostrophes make them. */
+    private const array MULTI_PRIMES = ['″' => 2, '‴' => 3, '⁗' => 4];
 
     /**
      * @return array{string, bool} the TeX, and whether it is a single atom (no braces needed before a script)
@@ -545,12 +583,13 @@ final class TexWriter
         if ($g->alignment) {
             return self::environment($g, 'aligned');
         }
-        if ($bare && ($g->columns === 0 || count(array_unique($g->columnAlign)) === 1 && $g->columnAlign[0] === 'center')) {
-            return self::environment($g, 'matrix');
+        // gathered has one column (amsmath rejects an & in it), so a wider display grid is a darray.
+        if ($bare && ($g->columns === 0 || count(array_unique($g->columnAlign)) === 1 && $g->columnAlign[0] === 'center') && (! $g->display || $g->columns <= 1)) {
+            return self::environment($g, $g->display ? 'gathered' : 'matrix');
         }
         $spec = implode('', array_map(static fn (string $a): string => $a[0], $g->columnAlign));
 
-        return self::environment($g, 'array', '{' . $spec . '}');
+        return self::environment($g, $g->display ? 'darray' : 'array', '{' . $spec . '}');
     }
 
     private static function environment(Grid $g, string $env, string $args = ''): string

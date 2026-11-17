@@ -36,7 +36,16 @@ final class Fenced extends Node
     /** @internal Engine detail, not part of papercut/math's public API. */
     public function layout(Context $c): Box
     {
-        $inner = $this->content->layout($c);
+        // A row with Middles is laid out once; only its Middles are laid out again, at the stretched size.
+        $row = self::middleRow($this->content);
+        $boxes = [];
+        $rc = $c;
+        if ($row !== null) {
+            foreach (Fallback::displays($this->content) as $display) {
+                $rc = $rc->withDisplay($display);
+            }
+        }
+        $inner = $row !== null ? $row->build($rc, [], $boxes) : $this->content->layout($c);
         $axis = $c->k('axisHeight');
         $req = 2 * max($inner->ascent - $axis, $inner->descent + $axis);
         // TeX's delimiterfactor (0.901) and delimitershortfall (5pt at 10pt): not stretched to the full height.
@@ -44,8 +53,16 @@ final class Fenced extends Node
 
         $out = new Box();
         $x = 0.0;
-        if (self::hasMiddles($this->content)) {
-            $inner = self::stretchMiddles($this->content, $req)->layout($c);
+        if ($row !== null) {
+            /** @var array<int, Box> $reuse */
+            $reuse = $boxes ?? [];
+            foreach ($row->children as $i => $child) {
+                if (Fallback::unwrap($child) instanceof Middle) {
+                    $reuse[$i] = self::stretchMiddle($child, $req)->layout($rc);
+                }
+            }
+            $boxes = [];
+            $inner = $row->build($rc, $reuse, $boxes);
         }
         $asc = $inner->ascent;
         $desc = $inner->descent;
@@ -67,12 +84,20 @@ final class Fenced extends Node
         return $out;
     }
 
-    /** Whether the content is a Row with a Middle among its own children. */
-    private static function hasMiddles(Node $content): bool
+    /** The Row the content is (through notes and display switches) when a Middle is among its children, else null. */
+    private static function middleRow(Node $content): ?Row
     {
-        $row = Fallback::unwrap($content);
+        $content = Fallback::unwrap($content);
+        if (! $content instanceof Row) {
+            return null;
+        }
+        foreach ($content->children as $n) {
+            if (Fallback::unwrap($n) instanceof Middle) {
+                return $content;
+            }
+        }
 
-        return $row instanceof Row && array_filter($row->children, static fn (Node $n): bool => Fallback::unwrap($n) instanceof Middle) !== [];
+        return null;
     }
 
     /**
