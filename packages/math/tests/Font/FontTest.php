@@ -11,22 +11,6 @@ use PHPUnit\Framework\TestCase;
 
 final class FontTest extends TestCase
 {
-    public function test_rejects_cff_font(): void
-    {
-        $path = tempnam(sys_get_temp_dir(), 'cff') ?: self::fail('no temp file');
-        // A minimal sfnt: tag OTTO, one table directory entry named "CFF ".
-        file_put_contents($path, 'OTTO' . pack('nnnn', 1, 16, 0, 0) . 'CFF ' . pack('NNN', 0, 28, 0));
-        try {
-            Font::fromFile($path);
-            self::fail('Expected UnsupportedFont');
-        } catch (UnsupportedFont $e) {
-            self::assertStringContainsString('CFF', $e->getMessage());
-            self::assertSame($path, $e->path);
-        } finally {
-            unlink($path);
-        }
-    }
-
     public function test_the_same_unchanged_file_is_opened_once(): void
     {
         $path = Math::stixTwoMathPath();

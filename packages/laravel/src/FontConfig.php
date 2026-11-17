@@ -56,7 +56,7 @@ final class FontConfig
         return $out;
     }
 
-    /** The `quoin.math_font` path (resolved like a face path), checked to be a TrueType math font; null = bundled. */
+    /** The `quoin.math_font` path (resolved like a face path), checked to be an OpenType math font; null = bundled. */
     public static function mathFont(): ?string
     {
         $path = config('quoin.math_font');
@@ -64,7 +64,7 @@ final class FontConfig
             return null;
         }
         if (!is_string($path) || $path === '') {
-            throw self::invalid('quoin.math_font', 'expected the path of a TrueType math font, or null for the bundled one');
+            throw self::invalid('quoin.math_font', 'expected the path of an OpenType math font, or null for the bundled one');
         }
         $path = self::resolve($path);
         try {

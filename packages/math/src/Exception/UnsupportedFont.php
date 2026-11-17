@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Quoin\Math\Exception;
 
-/** The font file cannot be used for math layout: it is CFF-flavored or has no MATH table. */
+/** The font file cannot be used for math layout: it is a collection, CFF2 or CID-keyed, malformed, or has no MATH table. */
 final class UnsupportedFont extends \InvalidArgumentException
 {
     public function __construct(public readonly string $path, string $reason)
@@ -14,7 +14,7 @@ final class UnsupportedFont extends \InvalidArgumentException
 
     public static function cff(string $path): self
     {
-        return new self($path, "$path is a CFF (OpenType/PostScript) font; quoin/math reads TrueType math fonts only for now");
+        return new self($path, "$path is a CFF2 (variable CFF) font, which quoin/math does not read; use a static font");
     }
 
     public static function noMathTable(string $path): self
