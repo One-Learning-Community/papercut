@@ -35,6 +35,25 @@ echo '<p>The area of a circle is ' . inlineMath($svg, '\pi r^2') . '.</p>';
 
 With a `pad`, add it to the shift: `$box->descent + $pad`.
 
+## The LaTeX look
+
+The look of a LaTeX document is Latin Modern Math. It is not bundled; download `latinmodern-math.otf` from CTAN or the GUST site (GUST Font License). Its outlines are CFF, which the math package reads like any other.
+
+```php
+use Quoin\Math\Font\Font;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
+
+$font = Font::fromFile('/fonts/latinmodern-math.otf');
+
+$box = Math::layout(Math::tex('\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}'), size: 18.0, display: true, font: $font);
+echo (new SvgRenderer($font, 'currentColor'))->render($box, pad: 2.0);
+```
+
+Load the font once and pass the same object to the layout and the renderer. SVG, PNG and MathML output carry no font, so the file costs nothing there. In a PDF the font is embedded whole, which adds about 400 KB; see [Fonts](/guide/fonts.md#the-math-font).
+
+Other math fonts with CFF outlines load the same way: New Computer Modern Math, the TeX Gyre math fonts, Fira Math, Libertinus Math and XITS Math. In a document, point the font set at the file with `withMathFont()`, or set `math_font` in Laravel.
+
 ## Accessible formulas
 
 Screen readers can't read paths. Label the SVG with the linear text from `TextWriter`:

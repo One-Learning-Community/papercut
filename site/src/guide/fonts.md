@@ -136,9 +136,11 @@ A short right-to-left run, such as an Arabic or Hebrew name in an English docume
 $fonts = (new FontSet())->withMathFont('/fonts/MyMath-Regular.ttf');
 ```
 
-In Laravel, set `math_font` in `config/quoin.php`. The font must be a TrueType math font; a CFF one is rejected with `UnsupportedFont`. It applies to PDF and HTML. Word equations always use Cambria Math.
+In Laravel, set `math_font` in `config/quoin.php`. The font must be an OpenType math font, with TrueType or CFF outlines. It applies to PDF and HTML. Word equations always use Cambria Math.
 
-In plain PHP, `withMathFont()` only stores the path. A path that doesn't exist throws `FontNotFound`, and a font that isn't a TrueType math font throws `UnsupportedFont`, both when a document is exported. In Laravel, either failure is reported as an error about the `quoin.math_font` config key.
+In plain PHP, `withMathFont()` only stores the path. A path that doesn't exist throws `FontNotFound`, and a font that can't be used as a math font (no `MATH` table, CFF2, CID-keyed CFF, a font collection, or not a font) throws `UnsupportedFont`, both when a document is exported. In Laravel, either failure is reported as an error about the `quoin.math_font` config key.
+
+A PDF embeds a CFF math font whole, where it subsets a TrueType one, so a large font makes a large file. A page with one equation is 135 KB in Fira Math (a 175 KB font) and 471 KB in Latin Modern Math (716 KB), against 71 KB with the bundled STIX Two Math. Where PDF size matters, keep the bundled font.
 
 ## Kerning and ligatures
 

@@ -27,7 +27,7 @@ There are two kinds of item.
 
 ## Drawing a glyph
 
-`Font::outlinePath($gid)` returns the glyph's outline as path data: absolute `M`, `L`, `Q` and `Z` commands in font units, with y pointing up, cached per glyph. An empty glyph, such as a space, gives an empty string.
+`Font::outlinePath($gid)` returns the glyph's outline as path data: absolute `M`, `L`, `Q`, `C` and `Z` commands in font units, with y pointing up, cached per glyph. An empty glyph, such as a space, gives an empty string.
 
 To place it, scale by `size / unitsPerEm`, multiply by `sx` and `sy`, and flip y:
 
@@ -47,13 +47,14 @@ $box->each(function (DisplayItem $item, float $dx, float $dy) use ($font, $canva
     $x = static fn (float $u): float => $dx + $item->x + $u * $k * $item->sx;
     $y = static fn (float $v): float => $dy + $item->y - $v * $k * $item->sy;
 
-    preg_match_all('/([MLQZ])([^MLQZ]*)/', $font->outlinePath($item->gid), $commands, PREG_SET_ORDER);
+    preg_match_all('/([MLQCZ])([^MLQCZ]*)/', $font->outlinePath($item->gid), $commands, PREG_SET_ORDER);
     foreach ($commands as [, $op, $args]) {
         $n = array_map('floatval', preg_split('/ /', trim($args), -1, PREG_SPLIT_NO_EMPTY));
         match ($op) {
             'M' => $canvas->moveTo($x($n[0]), $y($n[1])),
             'L' => $canvas->lineTo($x($n[0]), $y($n[1])),
             'Q' => $canvas->quadTo($x($n[0]), $y($n[1]), $x($n[2]), $y($n[3])),
+            'C' => $canvas->curveTo($x($n[0]), $y($n[1]), $x($n[2]), $y($n[3]), $x($n[4]), $y($n[5])),
             'Z' => $canvas->closePath(),
         };
     }
@@ -61,7 +62,7 @@ $box->each(function (DisplayItem $item, float $dx, float $dy) use ($font, $canva
 });
 ```
 
-`$canvas` stands for your drawing API. Cache the parsed commands per glyph if you draw many formulas. If your API has only cubic curves, a quadratic from `p0` through control point `q` to `p1` is the cubic with control points `p0 + ⅔(q − p0)` and `p1 + ⅔(q − p1)`.
+`$canvas` stands for your drawing API. Cache the parsed commands per glyph if you draw many formulas. `Q` is a quadratic curve and `C` a cubic one. A TrueType font writes only `Q`; a font with CFF outlines writes only `C`, so a backend that accepts any math font handles both. If your API has only cubic curves, a quadratic from `p0` through control point `q` to `p1` is the cubic with control points `p0 + ⅔(q − p0)` and `p1 + ⅔(q − p1)`.
 
 ## Glyphs as text
 
@@ -73,6 +74,8 @@ A PDF backend can set ordinary letters as real text, so they can be selected and
 
 STIX Two Math is bundled and is the default. Load another math font with `Font::fromFile($path)` and pass it to both `Math::layout(..., font: $font)` and the writer.
 
-The font needs an OpenType `MATH` table and TrueType outlines. Fonts with CFF outlines are not read yet. A font that can't be used throws `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason.
+The font needs an OpenType `MATH` table. Its outlines may be TrueType or CFF, so Latin Modern Math and the other `.otf` math fonts load the same way as a `.ttf`. The reader refuses CFF2 (variable) fonts, CID-keyed CFF fonts, a CFF font whose `FontMatrix` disagrees with its units per em, font collections, and fonts without a `MATH` table. A file that is not a font at all says so. A font that can't be used throws `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason.
+
+`TrueTypeFont` is the old name of `Font`. It remains as a deprecated alias until 1.0.
 
 A character the font has no glyph for is laid out with the font's `.notdef` glyph. If your backend draws such characters in another font, pass `fallbackAdvance` to `Math::layout()` so the layout leaves room for them.

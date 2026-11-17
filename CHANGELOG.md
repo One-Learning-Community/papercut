@@ -3,6 +3,23 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- CFF math fonts. `Font::fromFile()` reads OpenType math fonts with CFF outlines, such as Latin Modern Math, New Computer Modern Math, the TeX Gyre math fonts, Fira Math, Libertinus Math and XITS Math, as well as TrueType ones. Refused with `UnsupportedFont`: CFF2 (variable) fonts, CID-keyed CFF, a `FontMatrix` that disagrees with the units per em, font collections, and fonts without a `MATH` table. A glyph that uses `seac` or the Type 2 arithmetic operators draws without the part they would add; no common math font uses them. The math font setting in core and Laravel accepts these fonts, and HTML export labels a CFF font as `font/otf` with `format("opentype")`. See [Fonts](https://one-learning-community.github.io/quoin/guide/fonts.html#the-math-font).
+- A recipe for the LaTeX look with Latin Modern Math.
+
+### Changed
+
+- `Quoin\Math\Font\TrueTypeFont` is renamed `Font`, since it reads both outline formats. `TrueTypeFont` remains as a deprecated alias until 1.0.
+- `Font::outlinePath()` may return `C` (cubic) commands for a CFF font, so its contract is M, L, Q, C and Z. A TrueType font never produces `C`. A custom backend must handle `C`.
+- `UnsupportedFont` gives new reasons (CFF2, CID-keyed CFF, `FontMatrix`), and a file that is not a font now says so instead of reporting a missing `MATH` table.
+
+### Known differences
+
+- A PDF embeds a CFF math font whole instead of subsetting it, so a large font makes a large file. A page with one equation is 135 KB in Fira Math (a 175 KB font) and 471 KB in Latin Modern Math (716 KB), against 71 KB with the bundled STIX Two Math. SVG, PNG and MathML output carry no font.
+
 ## [0.16.0] - 2026-11-17
 
 ### Changed

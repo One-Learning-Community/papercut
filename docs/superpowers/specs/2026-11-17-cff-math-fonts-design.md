@@ -75,8 +75,9 @@ Guards:
 
 ## PDF size
 
-php-pdf embeds a CFF font whole instead of subsetting it. A PDF with one equation in Latin Modern Math is about 475 to
-620 KB, against about 75 KB with the bundled TrueType STIX Two Math. SVG, PNG and MathML output carry no font, so they
+php-pdf embeds a CFF font whole instead of subsetting it, so a large font makes a large PDF. With one
+equation, Fira Math (175 KB file) gives 135 KB against 71 KB with the bundled TrueType STIX Two Math; Latin Modern Math
+(716 KB file) gives 471 KB. SVG, PNG and MathML output carry no font, so they
 are unaffected. The fonts guide states this plainly and recommends the bundled font where PDF size matters. Subsetting
 CFF in php-pdf would be an upstream change and is not part of this work.
 

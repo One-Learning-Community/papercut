@@ -262,7 +262,7 @@ $result->notes();   // approximated: \boxed (the box is not drawn)
 
 ## The math font
 
-Equations are set in a math font. STIX Two Math is bundled and used by default. To use another, point the font set at the file:
+Equations are set in a math font. STIX Two Math is bundled and used by default. To use another, such as Latin Modern Math for the LaTeX look (see the [recipe](/math/recipes.md#the-latex-look)), point the font set at the file:
 
 ```php
 use Quoin\Export\PdfOptions;
@@ -274,7 +274,7 @@ $document->toPdf(new PdfOptions(fonts: $fonts));
 
 In Laravel, set `math_font` in `config/quoin.php` to the file's path, or leave it `null` for the bundled font.
 
-The font must be a TrueType math font, with a `MATH` table. A font with CFF outlines, such as Latin Modern Math, is rejected with `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason. The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
+The font must be an OpenType math font with a `MATH` table. Its outlines may be TrueType (`.ttf`) or CFF (`.otf`), so Latin Modern Math works. A CFF2 (variable) font, a CID-keyed CFF font, a font collection or a font without a `MATH` table is rejected with `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason. A PDF embeds a CFF font whole, so it grows by about the size of the font file; see [Fonts](./fonts.md#the-math-font). The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
 
 A character the math font has no glyph for, such as a CJK ideograph or an emoji, is drawn with the document's [fallback fonts](./fonts.md#fallback-fonts).
 
@@ -294,4 +294,3 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 - TeX found inside HTML or text. A TeX string you hand it is read; rich text is not scanned for `$…$`. Convert the formula first with `Math::tex()`.
 - Commutative diagrams (`CD`) and TeX commands that define environments, such as `\newenvironment`.
 - A few more TeX constructs, each of which is noted: `\sideset`, `\tensor`, `\prescript`, `\mathchoice`, `\scriptstyle` and `\scriptscriptstyle` (drawn in text style), `p{…}` and `@{…}` columns in `array`, and `smallmatrix` (drawn at normal size).
-- Math fonts with CFF outlines.
