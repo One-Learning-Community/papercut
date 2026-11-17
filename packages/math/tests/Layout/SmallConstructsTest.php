@@ -158,4 +158,51 @@ final class SmallConstructsTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         Math::styled('R', 'wobbly');
     }
+
+    public function test_big_paren_is_taller_than_natural(): void
+    {
+        $nat = Math::layout(new Operator('('), 12.0);
+        $prev = $nat->ascent + $nat->descent;
+        foreach ([1, 2, 3, 4] as $size) {
+            $b = Math::layout(Math::big('(', $size), 12.0);
+            $h = $b->ascent + $b->descent;
+            self::assertGreaterThan($prev, $h, "size $size");
+            $prev = $h;
+        }
+        self::assertGreaterThanOrEqual(3.0 * 12.0 * 0.9, $prev);
+    }
+
+    public function test_big_is_centred_on_axis(): void
+    {
+        $axis = Math::stixTwoMath()->math()->constant('axisHeight') * 12.0 / 1000;
+        foreach ([1, 2, 3, 4] as $size) {
+            $b = Math::layout(Math::big('(', $size), 12.0);
+            self::assertEqualsWithDelta($axis, ($b->ascent - $b->descent) / 2, 0.05, "size $size");
+        }
+    }
+
+    public function test_big_rejects_other_sizes(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Math::big('(', 5);
+    }
+
+    public function test_sized_operator_keeps_its_spacing(): void
+    {
+        $f = Math::stixTwoMath();
+        $box = Math::layout(Math::big('(', 1), 12.0);
+        $glyph = array_values(array_filter($box->items, static fn ($i): bool => $i instanceof \Papercut\Math\Layout\Glyph))[0];
+        $adv = $f->advance($glyph->gid) * 12.0 / $f->unitsPerEm;
+        $entry = \Papercut\Math\OperatorDictionary::lookup('(', 'prefix');
+        $spacing = (($entry['lspace'] + $entry['rspace']) / 18) * 12.0;
+        self::assertEqualsWithDelta($spacing, $box->width - $adv, 1e-6);
+        self::assertEqualsWithDelta(($entry['rspace'] / 18) * 12.0, $box->trail, 1e-6);
+    }
+
+    public function test_size_wins_over_display_large_operator(): void
+    {
+        $plain = Math::layout(new Operator('∑'), 12.0, true);
+        $sized = Math::layout(new Operator('∑', minSize: 0.5, maxSize: 0.5), 12.0, true);
+        self::assertGreaterThan($sized->ascent + $sized->descent, $plain->ascent + $plain->descent);
+    }
 }

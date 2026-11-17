@@ -104,4 +104,46 @@ final class MathmlTokenTest extends TestCase
         self::assertLessThan(2.0, microtime(true) - $start);
         self::assertStringContainsString('x', \Papercut\Math\Render\TextWriter::write($r->node));
     }
+
+    public function test_minsize_reads_from_mathml(): void
+    {
+        $o = self::unwrapped('<math><mo minsize="1.8em" maxsize="1.8em">(</mo></math>');
+        self::assertInstanceOf(Operator::class, $o);
+        self::assertSame(1.8, $o->minSize);
+        self::assertSame(1.8, $o->maxSize);
+        self::assertSame([], MathmlReader::read('<math><mo minsize="1.8em">(</mo></math>')->notes());
+        $pt = self::unwrapped('<math><mo minsize="12pt">(</mo></math>');
+        self::assertInstanceOf(Operator::class, $pt);
+        self::assertSame(1.0, $pt->minSize);
+    }
+
+    public function test_relative_minsize_is_noted(): void
+    {
+        $r = MathmlReader::read('<math><mo minsize="2">(</mo></math>');
+        $notes = $r->notes();
+        self::assertCount(1, $notes);
+        self::assertSame(NoteLevel::Approximated, $notes[0]->level);
+        self::assertSame('minsize is not drawn', $notes[0]->reason);
+        $o = Fallback::unwrap($r->node);
+        self::assertInstanceOf(Operator::class, $o);
+        self::assertNull($o->minSize);
+    }
+
+    public function test_bad_size_names_its_attribute(): void
+    {
+        foreach (['minsize="2"' => 'minsize', 'maxsize="150%"' => 'maxsize', 'maxsize="-1em"' => 'maxsize', 'minsize="0em"' => 'minsize'] as $attr => $name) {
+            $notes = MathmlReader::read('<math><mo ' . $attr . '>(</mo></math>')->notes();
+            self::assertCount(1, $notes, $attr);
+            self::assertSame($name . ' is not drawn', $notes[0]->reason, $attr);
+        }
+    }
+
+    public function test_maxsize_infinity_is_absent(): void
+    {
+        $r = MathmlReader::read('<math><mo maxsize="infinity">(</mo></math>');
+        self::assertSame([], $r->notes());
+        $o = Fallback::unwrap($r->node);
+        self::assertInstanceOf(Operator::class, $o);
+        self::assertNull($o->maxSize);
+    }
 }

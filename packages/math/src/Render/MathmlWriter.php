@@ -63,10 +63,10 @@ final class MathmlWriter
         return $n instanceof Fallback && $n->content === null ? '<mrow></mrow>' : self::node($n);
     }
 
-    /** An em width with up to 3 decimals and no trailing zeros. */
-    private static function em(float $em): string
+    /** An em width with up to $places decimals (3 by default) and no trailing zeros. */
+    private static function em(float $em, int $places = 3): string
     {
-        $s = rtrim(rtrim(number_format($em, 3, '.', ''), '0'), '.');
+        $s = rtrim(rtrim(number_format($em, $places, '.', ''), '0'), '.');
 
         return $s === '-0' || $s === '' ? '0' : $s;
     }
@@ -100,6 +100,8 @@ final class MathmlWriter
         $attrs = $form !== $inferred ? ' form="' . $form . '"' : '';
         if ($fence) {
             $attrs .= ' stretchy="true"';
+        } elseif ($o->minSize !== null || $o->maxSize !== null) {
+            $attrs .= ' stretchy="true"'; // a browser applies minsize and maxsize to stretchy operators only; a size wins over stretchy=false
         } elseif ($o->stretchy !== null) {
             $attrs .= ' stretchy="' . ($o->stretchy ? 'true' : 'false') . '"';
         } elseif (! $stretched && OperatorDictionary::lookup($o->char, $form)['stretchy']) {
@@ -111,6 +113,20 @@ final class MathmlWriter
         }
         if ($o->movablelimits !== null) {
             $attrs .= ' movablelimits="' . ($o->movablelimits ? 'true' : 'false') . '"';
+        }
+
+        if ($o->lspace !== null) {
+            $attrs .= ' lspace="' . self::em($o->lspace / 18, 4) . 'em"';
+        }
+        if ($o->rspace !== null) {
+            $attrs .= ' rspace="' . self::em($o->rspace / 18, 4) . 'em"';
+        }
+
+        if ($o->minSize !== null) {
+            $attrs .= ' minsize="' . self::em($o->minSize, 4) . 'em"';
+        }
+        if ($o->maxSize !== null) {
+            $attrs .= ' maxsize="' . self::em($o->maxSize, 4) . 'em"';
         }
 
         return '<mo' . $attrs . '>' . Xml::text($o->char) . '</mo>';

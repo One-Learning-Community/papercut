@@ -28,6 +28,12 @@ final class Operator extends Node
      * @param ?bool $largeop null reads the operator dictionary
      * @param ?bool $movablelimits null reads the operator dictionary
      * @param ?string $form prefix, infix or postfix when the source fixes it (mo form=); null infers it from the position
+     * @param ?float $lspace space before the operator in mu (1/18 em); null reads the operator dictionary
+     * @param ?float $rspace space after the operator in mu (1/18 em); null reads the operator dictionary
+     * @param ?float $minSize target total height in em, clamping the natural height from below; null leaves it free
+     * @param ?float $maxSize target total height in em, clamping the natural height from above; null leaves it free.
+     *        A size is a target met by the smallest font variant (or assembly) at least that tall, as TeX's \big does,
+     *        so the drawn height may overshoot it. An explicit size wins over display-style large-operator sizing.
      */
     public function __construct(
         string $char,
@@ -35,6 +41,10 @@ final class Operator extends Node
         public readonly ?bool $largeop = null,
         public readonly ?bool $movablelimits = null,
         public readonly ?string $form = null,
+        public readonly ?float $lspace = null,
+        public readonly ?float $rspace = null,
+        public readonly ?float $minSize = null,
+        public readonly ?float $maxSize = null,
     ) {
         $this->char = Utf8::clean($char);
     }
@@ -65,12 +75,16 @@ final class Operator extends Node
     public function layoutAs(Context $c, string $form): Box
     {
         $entry = OperatorDictionary::lookup($this->char, $form);
-        [$l, $r] = [$entry['lspace'], $entry['rspace']];
-        if ($c->tight && OperatorDictionary::dropsSpacingInScripts($this->char)) {
+        [$l, $r] = [$this->lspace ?? $entry['lspace'], $this->rspace ?? $entry['rspace']];
+        $explicit = $this->lspace !== null || $this->rspace !== null;
+        if ($c->tight && ($explicit || OperatorDictionary::dropsSpacingInScripts($this->char))) {
             [$l, $r] = [0, 0];
         }
-        if ($c->display && $this->isLargeop($form) && mb_strlen($this->char) === 1) {
-            $big = $this->displaySize($c, $c->mu($l), $c->mu($r));
+        if (mb_strlen($this->char) === 1) {
+            // An explicit size wins over the display-style size of a large operator.
+            $big = $this->minSize !== null || $this->maxSize !== null
+                ? $this->sizedBox($c, $c->mu($l), $c->mu($r))
+                : ($c->display && $this->isLargeop($form) ? $this->displaySize($c, $c->mu($l), $c->mu($r)) : null);
             if ($big !== null) {
                 return $big;
             }
@@ -90,14 +104,39 @@ final class Operator extends Node
      */
     private function displaySize(Context $c, float $lead, float $trail): ?Box
     {
+        $gid = $c->font->gid(mb_ord($this->char));
+
+        return $gid === 0 ? null : $this->axisCentred($c, $gid, (float) $c->font->math()->constant('displayOperatorMinHeight'), $lead, $trail, true);
+    }
+
+    /**
+     * The glyph drawn at minSize/maxSize (em) clamping its natural height. Null when the font has no glyph for it.
+     */
+    private function sizedBox(Context $c, float $lead, float $trail): ?Box
+    {
         $f = $c->font;
         $gid = $f->gid(mb_ord($this->char));
         if ($gid === 0) {
             return null;
         }
+        $bb = $f->bbox($gid);
+        $target = (float) ($bb[3] - $bb[1]);
+        if ($this->minSize !== null) {
+            $target = max($target, $this->minSize * $f->unitsPerEm);
+        }
+        if ($this->maxSize !== null) {
+            $target = min($target, $this->maxSize * $f->unitsPerEm);
+        }
+
+        return $this->axisCentred($c, $gid, $target, $lead, $trail, false);
+    }
+
+    /** A size variant (or assembly) of $gid at least $targetUnits tall, centred on the math axis, with $trail after it. */
+    private function axisCentred(Context $c, int $gid, float $targetUnits, float $lead, float $trail, bool $italic): Box
+    {
         $u = $c->unit();
-        $m = $f->math();
-        $s = Stretcher::vertical($f, $gid, (float) $m->constant('displayOperatorMinHeight'));
+        $m = $c->font->math();
+        $s = Stretcher::vertical($c->font, $gid, $targetUnits);
         $shift = $m->constant('axisHeight') - ($s['ymin'] + $s['ymax']) / 2;
         $single = count($s['pieces']) === 1;
         $b = new Box($lead + $s['advance'] * $u + $trail, ($s['ymax'] + $shift) * $u, -($s['ymin'] + $shift) * $u);
@@ -107,7 +146,9 @@ final class Operator extends Node
         }
         if ($single) {
             $b->firstGid = $b->lastGid = $s['pieces'][0][0];
-            $b->italic = $m->italicsCorrection($s['pieces'][0][0]) * $u;
+            if ($italic) {
+                $b->italic = $m->italicsCorrection($s['pieces'][0][0]) * $u;
+            }
         }
 
         return $b;

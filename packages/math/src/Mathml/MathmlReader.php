@@ -428,7 +428,7 @@ final class MathmlReader
             'mn' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Number(self::variantText($e, $t)),
             'mtext' => ($t = self::collapse((string) $e->textContent)) === '' ? null : new Text(self::variantText($e, $t)),
             'ms' => new Text('"' . self::variantText($e, self::collapse((string) $e->textContent)) . '"'),
-            default => $this->operator($e),
+            default => $this->operator($e, $where),
         };
         $i = 0;
         foreach (self::elements($e) as $child) {
@@ -467,7 +467,7 @@ final class MathmlReader
         return in_array($variant, Styles::VARIANTS, true) ? new Identifier(self::variantText($e, $text), false) : new Identifier($text);
     }
 
-    private function operator(\Dom\Element $e): ?Node
+    private function operator(\Dom\Element $e, string $where): ?Node
     {
         $raw = (string) $e->textContent;
         $nbsp = preg_match_all('/\x{00A0}/u', $raw);
@@ -481,13 +481,50 @@ final class MathmlReader
 
         $form = strtolower(trim($e->getAttribute('form') ?? ''));
 
-        return new Operator(
+        $bad = null;
+        $min = self::size($e->getAttribute('minsize'), 'minsize', $bad);
+        $max = self::size($e->getAttribute('maxsize'), 'maxsize', $bad);
+        $op = new Operator(
             self::variantText($e, $text),
             self::bool($e, 'stretchy'),
             self::bool($e, 'largeop'),
             self::bool($e, 'movablelimits'),
             in_array($form, [OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_POSTFIX], true) ? $form : null,
+            minSize: $min,
+            maxSize: $max,
         );
+
+        return $bad !== null ? ($this->note('#opsize', $op, NoteLevel::Approximated, 'mo', $bad . ' is not drawn', $where) ?? $op) : $op;
+    }
+
+    /**
+     * A minsize/maxsize in em; null when absent, infinity, or unusable (relative to the natural size, zero or negative),
+     * which sets $bad to the attribute name.
+     */
+    private static function size(?string $v, string $attr, ?string &$bad): ?float
+    {
+        $v = strtolower(trim($v ?? ''));
+        if ($v === '' || $v === 'infinity') {
+            return null;
+        }
+        if (preg_match('/^(\d+\.?\d*|\.\d+)\s*(em|ex|pt|px|mm|cm|in)$/', $v, $m) !== 1) {
+            $bad ??= $attr;
+
+            return null;
+        }
+        $em = match ($m[2]) {
+            'em' => (float) $m[1],
+            'ex' => (float) $m[1] / 2,
+            default => (float) $m[1] * self::UNIT_PT[$m[2]] / 12,
+        };
+
+        if (! is_finite($em) || $em <= 0) {
+            $bad ??= $attr;
+
+            return null;
+        }
+
+        return min($em, 100.0);
     }
 
     private function space(float $em, string $where): Node

@@ -9,6 +9,7 @@ use Papercut\Math\Layout\Rule;
 use Papercut\Math\Math;
 use Papercut\Math\MathNote;
 use Papercut\Math\Node\Fallback;
+use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Row;
 use Papercut\Math\NoteLevel;
 use PHPUnit\Framework\TestCase;
@@ -112,5 +113,35 @@ final class RowTest extends TestCase
         $wrapped = Math::layout(Math::row('3', new Fallback(Math::frac('1', '2'), $note)), 18, false);
 
         self::assertEqualsWithDelta($plain->width, $wrapped->width, 1e-9);
+    }
+
+    /** @return list<float> x of each drawn glyph with text, in order */
+    private static function glyphXs(\Papercut\Math\Node\Node $n, float $size): array
+    {
+        $xs = [];
+        foreach (Math::layout($n, $size, false)->items as $i) {
+            if ($i instanceof Glyph) {
+                $xs[] = $i->x;
+            }
+        }
+
+        return $xs;
+    }
+
+    public function test_explicit_spacing_overrides_dictionary(): void
+    {
+        $c = new \Papercut\Math\Layout\Context(Math::stixTwoMath(), 12);
+        $plain = self::glyphXs(Math::row('a', new Operator('x', lspace: 0, rspace: 0), 'b'), 12);
+        $spaced = self::glyphXs(Math::row('a', new Operator('x', lspace: 5, rspace: 5), 'b'), 12);
+        self::assertCount(3, $spaced);
+        self::assertEqualsWithDelta($c->mu(5), $spaced[1] - $plain[1], 0.01);
+        self::assertEqualsWithDelta($c->mu(10), $spaced[2] - $plain[2], 0.01);
+    }
+
+    public function test_explicit_spacing_dropped_in_scripts(): void
+    {
+        $plain = Math::layout(Math::sup('y', Math::row('a', new Operator('x', lspace: 0, rspace: 0), 'b')), 12)->width;
+        $spaced = Math::layout(Math::sup('y', Math::row('a', new Operator('x', lspace: 5, rspace: 5), 'b')), 12)->width;
+        self::assertEqualsWithDelta($plain, $spaced, 0.001);
     }
 }

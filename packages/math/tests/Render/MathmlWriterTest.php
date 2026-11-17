@@ -186,4 +186,25 @@ final class MathmlWriterTest extends TestCase
             self::assertStringNotContainsString('<mo movablelimits="true"></mo>', $out, $src);
         }
     }
+
+    public function test_mathml_writes_lspace_rspace(): void
+    {
+        self::assertStringContainsString(
+            '<mo lspace="0.2778em" rspace="0.2778em">x</mo>',
+            MathmlWriter::write(Math::row('a', new Operator('x', lspace: 5, rspace: 5), 'b')),
+        );
+    }
+
+    public function test_mathml_writes_minsize(): void
+    {
+        $out = MathmlWriter::write(Math::row(Math::big('(', 2), 'a'));
+        self::assertStringContainsString('minsize="1.8em" maxsize="1.8em"', $out);
+    }
+
+    public function test_size_wins_over_stretchy_false(): void
+    {
+        $out = MathmlWriter::write(Math::row(new Operator('(', stretchy: false, minSize: 1.8, maxSize: 1.8), 'a'));
+        self::assertStringNotContainsString('stretchy="false"', $out);
+        self::assertStringContainsString('minsize="1.8em"', $out);
+    }
 }

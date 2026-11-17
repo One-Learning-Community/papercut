@@ -43,6 +43,20 @@ final class Math
         return self::$stix ??= TrueTypeFont::fromFile(self::stixTwoMathPath());
     }
 
+    /** Total heights in em of the four fixed delimiter sizes (TeX's \big to \Bigg). */
+    public const BIG_SIZES = [1.2, 1.8, 2.4, 3.0];
+
+    /** A delimiter drawn at a fixed size, 1 (big) to 4 (Bigg), centred on the math axis. */
+    public static function big(string $delimiter, int $size): Operator
+    {
+        if ($size < 1 || $size > 4) {
+            throw new \InvalidArgumentException('Delimiter size must be 1 to 4, got ' . $size);
+        }
+        $em = self::BIG_SIZES[$size - 1];
+
+        return new Operator($delimiter, minSize: $em, maxSize: $em);
+    }
+
     public static function row(string|Node ...$items): Node
     {
         $nodes = [];
