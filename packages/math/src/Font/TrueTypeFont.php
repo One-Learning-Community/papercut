@@ -37,6 +37,7 @@ final class TrueTypeFont
     private array $gidCache = [];
     /** @var array<int, bool> straightness by gid * 2 + (vertical ? 1 : 0) */
     private array $straightCache = [];
+    private ?CffOutlines $cff = null;
     private ?MathTable $math = null;
     private ?Gsub $gsub = null;
 
@@ -44,9 +45,6 @@ final class TrueTypeFont
     {
         $this->b = new Binary($data);
         $tag = substr($data, 0, 4);
-        if ($tag === 'OTTO') {
-            throw UnsupportedFont::cff($path);
-        }
         if ($tag === 'ttcf') {
             throw new UnsupportedFont($path, "$path is a font collection; pass a single font file");
         }
@@ -58,13 +56,14 @@ final class TrueTypeFont
             $o = 12 + $i * 16;
             $this->tables[substr($data, $o, 4)] = [$this->b->u32($o + 8), $this->b->u32($o + 12)];
         }
-        if (isset($this->tables['CFF ']) || isset($this->tables['CFF2'])) {
+        if (isset($this->tables['CFF2'])) {
             throw UnsupportedFont::cff($path);
         }
         if (! isset($this->tables['MATH'])) {
             throw UnsupportedFont::noMathTable($path);
         }
-        foreach (['head', 'hhea', 'maxp', 'hmtx', 'cmap', 'loca', 'glyf'] as $t) {
+        $outlines = isset($this->tables['CFF ']) ? ['CFF '] : ['loca', 'glyf'];
+        foreach (['head', 'hhea', 'maxp', 'hmtx', 'cmap', ...$outlines] as $t) {
             if (! isset($this->tables[$t])) {
                 throw new \RuntimeException("Font has no $t table");
             }
@@ -72,6 +71,9 @@ final class TrueTypeFont
         $head = $this->tables['head'][0];
         $this->unitsPerEm = $this->b->u16($head + 18);
         $this->locaFormat = $this->b->i16($head + 50);
+        if (isset($this->tables['CFF '])) {
+            $this->cff = new CffOutlines($this->b, $this->tables['CFF '][0], $this->tables['CFF '][1]);
+        }
         $this->numGlyphs = $this->b->u16($this->tables['maxp'][0] + 4);
         $this->numHMetrics = $this->b->u16($this->tables['hhea'][0] + 34);
         $this->readCmap();
@@ -295,6 +297,9 @@ final class TrueTypeFont
         if (isset($this->bboxCache[$gid])) {
             return $this->bboxCache[$gid];
         }
+        if ($this->cff !== null) {
+            return $this->bboxCache[$gid] = $this->cff->bbox($gid);
+        }
         [$o, $len] = $this->glyphRange($gid);
         if ($len <= 0) {
             return $this->bboxCache[$gid] = [0, 0, 0, 0];
@@ -316,6 +321,9 @@ final class TrueTypeFont
     {
         if (isset($this->contourCache[$gid])) {
             return $this->contourCache[$gid];
+        }
+        if ($this->cff !== null) {
+            return $this->contourCache[$gid] = $this->cff->contours($gid);
         }
         [$o, $len] = $this->glyphRange($gid);
         if ($len <= 0 || $depth > 6) {
