@@ -28,8 +28,8 @@ Laravel discovers the service provider and the `Papercut` facade, so there's not
 
 Papercut suggests these; none is required:
 
-- `phiki/phiki` colours the syntax in code blocks.
-- `bacon/bacon-qr-code` draws styled QR codes (dotted or rounded modules, eye shapes, colours, gradients).
+- `phiki/phiki` colors the syntax in code blocks.
+- `bacon/bacon-qr-code` draws styled QR codes (dotted or rounded modules, eye shapes, colors, gradients).
 - `rsvg-convert` (librsvg, a command-line program) draws SVG in Word export, without Imagick and more faithfully than most Imagick builds. Install it and [give Papercut its path](/guide/word-export.md#svg-in-word), in Laravel with `PAPERCUT_RSVG_CONVERT` in `.env`.
 - `ext-imagick` draws styled QR codes (with `bacon/bacon-qr-code`) in Word export, and SVG when `rsvg-convert` isn't set up; SVG needs an Imagick build that reads SVG. PDF and HTML don't use it.
 - `ext-gd` also helps in Word export, for WebP and AVIF images, image `cover`, opacity and plain QR codes.

@@ -58,7 +58,7 @@ In Laravel, one command downloads a family from Google Fonts:
 php artisan papercut:fonts:install "Merriweather" --weights=400,700 --italic
 ```
 
-This saves the font files to `resources/fonts/Merriweather/`, along with the family's licence (`OFL.txt` for the SIL Open Font License, or `LICENSE.txt` or `UFL.txt`), and prints the entry to paste into `fonts` in your config:
+This saves the font files to `resources/fonts/Merriweather/`, along with the family's license (`OFL.txt` for the SIL Open Font License, or `LICENSE.txt` or `UFL.txt`), and prints the entry to paste into `fonts` in your config:
 
 ```php
 'Merriweather' => [
@@ -67,7 +67,7 @@ This saves the font files to `resources/fonts/Merriweather/`, along with the fam
 ],
 ```
 
-The fonts are downloaded once and then live in your app, so commit them with your code, licence included: the licences ask for a copy to go wherever the fonts do. If the licence can't be downloaded, the command says so and installs the fonts anyway; get it from the family's page on fonts.google.com. Rendering never goes to the network.
+The fonts are downloaded once and then live in your app, so commit them with your code, license included: the licenses ask for a copy to go wherever the fonts do. If the license can't be downloaded, the command says so and installs the fonts anyway; get it from the family's page on fonts.google.com. Rendering never goes to the network.
 
 | Option | Default | What it does |
 |---|---|---|

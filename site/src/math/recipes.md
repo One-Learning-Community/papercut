@@ -17,7 +17,7 @@ $box = Math::layout(Math::tex('\sum_{n=1}^\infty \frac{1}{n^2} = \frac{\pi^2}{6}
 echo '<p class="equation">' . $svg->render($box, pad: 2.0) . '</p>';
 ```
 
-`'currentColor'` takes the parent's text colour, so the formula follows a dark theme. Any CSS colour works.
+`'currentColor'` takes the parent's text color, so the formula follows a dark theme. Any CSS color works.
 
 Inside a line of text, use text style, which keeps fractions and limits small. The SVG's bottom edge sits the formula's descent below its baseline; shift it down by that much:
 

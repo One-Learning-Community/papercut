@@ -52,7 +52,7 @@ The title can be a string or any component, and it always stays on the same page
 
 ## Callout
 
-A tinted box with a coloured bar down the left side, for notes and warnings.
+A tinted box with a colored bar down the left side, for notes and warnings.
 
 ::: code-tabs#style
 @tab Blade
@@ -192,7 +192,7 @@ Without a label, style attributes apply to the box. With a label, they apply to 
 
 ## Choice list
 
-A list of options with checkboxes or radio buttons, some of them ticked.
+A list of options with checkboxes or radio buttons, some of them checked.
 
 ::: code-tabs#style
 @tab Blade
@@ -273,7 +273,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The tones are `neutral` (the default), `note`, `tip`, `warning` and `danger`, matching the callout colours. A badge is a block that's only as wide as its text. For a lighter look, `variant="outline"` draws a border in the tone's colour instead of filling the badge.
+The tones are `neutral` (the default), `note`, `tip`, `warning` and `danger`, matching the callout colors. A badge is a block that's only as wide as its text. For a lighter look, `variant="outline"` draws a border in the tone's color instead of filling the badge.
 
 ### Inline badges
 
@@ -331,7 +331,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The value is the tag's content, and it takes inline tags, so `<span color="emerald-600">+4.2%</span>` colours it. `label` and `note` also work as slots. On its own a stat spans the width like any box. In a row each one is as wide as its content, so give each `grow="1"` to share the width evenly.
+The value is the tag's content, and it takes inline tags, so `<span color="emerald-600">+4.2%</span>` colors it. `label` and `note` also work as slots. On its own a stat spans the width like any box. In a row each one is as wide as its content, so give each `grow="1"` to share the width evenly.
 
 ## Totals
 
@@ -360,7 +360,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The rows are the same `<x-doc::kv>` tags as a key-value list, and `total` marks the ones to emphasise. Any row can be a total, so a total followed by "Amount paid" and a second total for the balance works too. The block is 45% of the width and sits at the right; change that with `width`, for example `width="2.75in"` or `width="100%"`. Next to a paragraph with `grow="1"` in a row, such as payment notes, the totals keep their width and the paragraph takes the rest.
+The rows are the same `<x-doc::kv>` tags as a key-value list, and `total` marks the ones to emphasize. Any row can be a total, so a total followed by "Amount paid" and a second total for the balance works too. The block is 45% of the width and sits at the right; change that with `width`, for example `width="2.75in"` or `width="100%"`. Next to a paragraph with `grow="1"` in a row, such as payment notes, the totals keep their width and the paragraph takes the rest.
 
 ## Signature
 
@@ -473,7 +473,7 @@ A few variants are built in, and your theme can restyle them like any other name
 | Variant | Look |
 |---|---|
 | `<x-doc::field variant="line">` | A form line: only a rule along the bottom, no box. |
-| `<x-doc::badge variant="outline">` | A border in the tone's colour, with no fill. |
+| `<x-doc::badge variant="outline">` | A border in the tone's color, with no fill. |
 | `<x-doc::card variant="flat">` | A tinted panel with no border. |
 | `<x-doc::section variant="large">` | A bigger number and title, with more room around them. |
 

@@ -39,11 +39,11 @@ Because the reader lays out the pages, a page break can land a line or two away 
 
 Papercut writes the layout in a form all three understand. Columns flow as paragraphs. A row of short inline items (text, links, badges) that the PDF sets on one line becomes one paragraph; any other row becomes a table with no borders, at the widths the PDF uses. A box with padding, a border or a background becomes a table with one cell. Lists are real Word numbering. Tables, links, headings, page numbers and pagination rules such as keep-together carry over. Each run of pages with the same size, margins, header, footer and layers becomes a Word section of its own, so a landscape page or a page without the header comes out as it does in the PDF.
 
-Headers and footers carry over, including first-page and even-page ones (Word's "Different First Page" and "Different Odd & Even Pages") and mirrored margins. A kept-together table, or a kept-together box that Word draws as a table, stays on one page. A heading gets keep-with-next, so it isn't left alone at the bottom of a page. Code blocks come out as shaded paragraphs or tables in the mono font; the colours need `phiki/phiki`. A table too wide for its box gets the same shrunk column widths as the PDF, and the export reports each such table at its own path.
+Headers and footers carry over, including first-page and even-page ones (Word's "Different First Page" and "Different Odd & Even Pages") and mirrored margins. A kept-together table, or a kept-together box that Word draws as a table, stays on one page. A heading gets keep-with-next, so it isn't left alone at the bottom of a page. Code blocks come out as shaded paragraphs or tables in the mono font; the colors need `phiki/phiki`. A table too wide for its box gets the same shrunk column widths as the PDF, and the export reports each such table at its own path.
 
-Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as paragraphs or tables, boxes as one-cell tables, header and footer distances, fonts by name, colours with transparency blended onto white) applies to every document, so it isn't reported each time.
+Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as paragraphs or tables, boxes as one-cell tables, header and footer distances, fonts by name, colors with transparency blended onto white) applies to every document, so it isn't reported each time.
 
-Word has no opacity, so each colour of a faded node is blended onto what lies beneath it (the fill around it, else white). Text backgrounds keep their exact colour.
+Word has no opacity, so each color of a faded node is blended onto what lies beneath it (the fill around it, else white). Text backgrounds keep their exact color.
 
 | In the PDF | In Word |
 |---|---|
@@ -67,14 +67,14 @@ Word has no opacity, so each colour of a faded node is blended onto what lies be
 | Styled QR codes without Imagick | ≈ plain squares |
 | SVG text | ≈ in the system's fonts |
 | Alt text on an image or SVG | the picture's description in Word; empty for a decorative one. An image without alt text gets an empty description, not "image" |
-| Equations | in Cambria Math, whatever the PDF's math font; LibreOffice ignores their colour and size ([below](#equations-in-word)) |
+| Equations | in Cambria Math, whatever the PDF's math font; LibreOffice ignores their color and size ([below](#equations-in-word)) |
 | Pictures without the PHP extension they need (below) | ✗ left out |
 
 ### Columns
 
 A [column flow](./layout.md#column-flow) that sits on the page, with only plain wrappers (boxes with no border, background, padding, width, height or alignment) around it, becomes a section of its own that starts on the same page, with real Word columns: the count, the widths, the gaps and the rule. They stay editable in Word. Full-width content before and after it sits in one-column sections of its own. A `ColumnBreak` becomes a Word column break. Content in a flow is sized to the column, as it is in the PDF.
 
-Word levels columns itself before a section break, so the columns end level in Word as in the PDF. The rule in Word is Word's plain line: the width and colour the PDF uses don't carry over.
+Word levels columns itself before a section break, so the columns end level in Word as in the PDF. The rule in Word is Word's plain line: the width and color the PDF uses don't carry over.
 
 A flow inside a box (a bordered or padded view, a card) comes out as one column, since Word has no columns inside boxes. It's reported as approximated, with the flow's path.
 
@@ -82,7 +82,7 @@ A flow inside a box (a bordered or padded view, a card) comes out as one column,
 
 A [table of contents](./pages.md#tables-of-contents) becomes a real Word table of contents field. Papercut fills it in with the entries and the page numbers from the PDF layout, so readers see them on opening the file. Word paginates a little differently from the PDF, so a number can be a page off. Right-click the table and choose Update Field for exact numbers.
 
-An updated field rebuilds itself from Word's Heading 1 to Heading 4 styles, so two things aren't honoured after an update: `toc(false)` and markup's `toc` option (the headings come back), and a level set with `bookmark($title, $level)` (the heading's own level is used).
+An updated field rebuilds itself from Word's Heading 1 to Heading 4 styles, so two things aren't honored after an update: `toc(false)` and markup's `toc` option (the headings come back), and a level set with `bookmark($title, $level)` (the heading's own level is used).
 
 To get those page numbers, Word export lays out the pages as for a PDF, but only for a document that has a table of contents. That costs about as much as a PDF export. If the page layout can't run, for instance because a font isn't registered, the export still succeeds and the field is written without page numbers; Update Field in Word fills them in.
 
@@ -124,7 +124,7 @@ In Laravel, set the names in `config/papercut.php`:
 'font_word_names' => ['Inter' => 'Arial'],
 ```
 
-A Word name also keeps layout that Papercut measures from the font, such as choice markers centred on their labels, exact in Word. The bundled Cousine is written as Courier New without any setting. These pairs are metric-compatible, so lines break in the same places whichever one a reader has:
+A Word name also keeps layout that Papercut measures from the font, such as choice markers centered on their labels, exact in Word. The bundled Cousine is written as Courier New without any setting. These pairs are metric-compatible, so lines break in the same places whichever one a reader has:
 
 | Papercut font | Word name |
 |---|---|
@@ -143,7 +143,7 @@ A family the font set does not know is written as it is, with an unspecified fam
 Editors differ:
 
 - Word and Google Docs open and show them.
-- LibreOffice shows them but ignores the colour and size set on math runs.
+- LibreOffice shows them but ignores the color and size set on math runs.
 - Apple Pages can't open a Word file that has equations. Send such documents to Pages users as PDF.
 
 ### Pictures
@@ -156,7 +156,7 @@ Word shows PNG, JPEG, GIF and BMP as they are. Everything else is drawn into a p
 | Image `cover` | cropped to the box from the middle | `ext-gd` (else ≈ `contain`) |
 | Opacity on an image, QR code or SVG | faded in the picture | `ext-gd` |
 | QR codes | sharp squares at 300 dpi | `ext-gd` |
-| Styled QR codes (shapes, eyes, colours, gradients) | drawn as in the PDF at 300 dpi | `ext-imagick` and `bacon/bacon-qr-code` |
+| Styled QR codes (shapes, eyes, colors, gradients) | drawn as in the PDF at 300 dpi | `ext-imagick` and `bacon/bacon-qr-code` |
 | SVG | drawn at 300 dpi; nothing outside the file is loaded | `rsvg-convert` (recommended) or `ext-imagick` that reads SVG ([below](#svg-in-word)) |
 
 Only Word export uses Imagick, for styled QR codes and for SVG without `rsvg-convert`. PDF and HTML don't.

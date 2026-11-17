@@ -1,6 +1,6 @@
 # Configuration
 
-To customise Papercut, publish the config file to `config/papercut.php`:
+To customize Papercut, publish the config file to `config/papercut.php`:
 
 ```bash
 php artisan vendor:publish --tag=papercut-config

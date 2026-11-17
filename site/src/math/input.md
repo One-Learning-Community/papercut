@@ -44,7 +44,7 @@ Write TeX in single-quoted strings or a nowdoc (`<<<'TEX'`). In double quotes PH
 
 The input is math mode. A `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper is optional. The reader covers what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts and primes, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and style commands, `\text`, spacing, and the environments `matrix` and its variants, `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, each scoped to its group.
 
-These are read but not drawn, and each one is reported: colour (`\color`, `\textcolor`), boxes (`\boxed`, `\fbox`, `\cancel`), `\hline` and column rules, `\tag`, commutative diagrams, `\newenvironment`, `\sideset`, `\tensor`, `\prescript` and `\mathchoice`. `\scriptstyle` and `\scriptscriptstyle` are drawn in text style, and `smallmatrix` at normal size. An unknown command is drawn as its own name, as KaTeX shows it.
+These are read but not drawn, and each one is reported: color (`\color`, `\textcolor`), boxes (`\boxed`, `\fbox`, `\cancel`), `\hline` and column rules, `\tag`, commutative diagrams, `\newenvironment`, `\sideset`, `\tensor`, `\prescript` and `\mathchoice`. `\scriptstyle` and `\scriptscriptstyle` are drawn in text style, and `smallmatrix` at normal size. An unknown command is drawn as its own name, as KaTeX shows it.
 
 The reader also returns the display style and the notes:
 

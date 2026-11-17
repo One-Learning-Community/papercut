@@ -41,7 +41,7 @@ if (PngRenderer::available()) {
 
 `PngRenderer` draws with the Imagick extension. `scale` is pixels per point; the image is `(width + 2 × pad) × scale` pixels wide, with a transparent background. It is drawn at four times that size and scaled down, which keeps strokes as fine as a browser's. `PngRenderer::baselineOffset($box, $pad, $scale)` gives the baseline in pixels. Without Imagick, `render()` throws `Papercut\Math\Exception\MissingExtension`. A large image is drawn at a smaller multiple to stay under `PngRenderer::MAX_PIXELS` (8 million); one over it even at its own size throws `InvalidArgumentException`.
 
-The colour is an ImageMagick colour: `#rrggbb`, `rgb(…)` or a name. `currentColor` means nothing outside a browser, so it works only for SVG.
+The color is an ImageMagick color: `#rrggbb`, `rgb(…)` or a name. `currentColor` means nothing outside a browser, so it works only for SVG.
 
 To rasterize the SVG yourself, use `rsvg-convert`. ImageMagick's SVG reader draws glyphs noticeably bolder.
 

@@ -14,7 +14,7 @@ Headings keep with the next block by default, so a heading isn't left alone at t
 
 To make text a heading without the `h1` to `h4` look, use `Text::make('…')->asHeading(2)` (PHP only). It gets a bookmark and a [table of contents](./pages.md#tables-of-contents) entry, an `h2` tag in HTML and a Heading 2 style in Word, but keeps its own style. Unlike the presets, it doesn't keep with the next block unless you add `->keepWithNext()`. `headingLevel()` returns a text's level, 1 to 4, or `null` when it isn't a heading.
 
-Font, size, weight, colour and alignment are inherited, so text follows what you set on its box:
+Font, size, weight, color and alignment are inherited, so text follows what you set on its box:
 
 ::: code-tabs#style
 @tab Blade
@@ -84,7 +84,7 @@ The result is identical to `<x-doc::code>` and to `<code>` in markup, in the PDF
 
 ## Code blocks
 
-A code block is a `pre` block with a language: it is coloured by a TextMate theme and carries a small label with the language's name. Highlighting uses [Phiki](https://github.com/phikiphp/phiki), which is optional:
+A code block is a `pre` block with a language: it is colored by a TextMate theme and carries a small label with the language's name. Highlighting uses [Phiki](https://github.com/phikiphp/phiki), which is optional:
 
 ```bash
 composer require phiki/phiki
@@ -124,7 +124,7 @@ The label is the language's display name in upper case, so `language="php"` show
 <x-doc::pre language="json" :label="false">{ "name": "acme/app" }</x-doc::pre>
 ```
 
-In PHP, that is `->label('composer.json')` and `->label(false)`. The plain words `text`, `plaintext`, `txt` and `plain` give a `TEXT` label and no colours. `nohighlight` and `no-highlight` give neither a label nor colours.
+In PHP, that is `->label('composer.json')` and `->label(false)`. The plain words `text`, `plaintext`, `txt` and `plain` give a `TEXT` label and no colors. `nohighlight` and `no-highlight` give neither a label nor colors.
 
 ### Looks
 
@@ -149,9 +149,9 @@ A block that would straddle a page break is split like any other text. To move i
 
 A block taller than a page still splits. In Word the default look keeps its lines together, and `strip` keeps its header bar with the code.
 
-### Themes and colours
+### Themes and colors
 
-The colours come from the TextMate theme: the block's background and text, and every token. The default theme is `papercut-light`. Pick another per block, or for all of them:
+The colors come from the TextMate theme: the block's background and text, and every token. The default theme is `papercut-light`. Pick another per block, or for all of them:
 
 ::: code-tabs#style
 @tab Blade
@@ -174,7 +174,7 @@ Phiki bundles many themes and languages, among them `github-light`, `github-dark
 
 A document or page can set the default for blocks that don't name a theme: `codeTheme` in a `ThemeOverride`, or `code_theme` in a Laravel `:theme`. See [Changing the theme for one document or page](./styles.md#changing-the-theme-for-one-document-or-page).
 
-The muted label and border colours are worked out from the brightness of the theme's background, so a dark theme gets a light label. Geometry (padding, radius, the label's size) comes from the `code-block` [named styles](/reference/decorator-styles.md), and the block's own style, such as `->background()` or `background="…"`, overrides the theme's colours. To recolour every block, pick or write a theme.
+The muted label and border colors are worked out from the brightness of the theme's background, so a dark theme gets a light label. Geometry (padding, radius, the label's size) comes from the `code-block` [named styles](/reference/decorator-styles.md), and the block's own style, such as `->background()` or `background="…"`, overrides the theme's colors. To recolor every block, pick or write a theme.
 
 ### Your own grammars and themes
 
@@ -221,7 +221,7 @@ An injection grammar (VS Code style, with an `injectionSelector` and `patterns`)
 
 ### Word and HTML
 
-In Word, the default look is shaded, bordered paragraphs, and `strip` and `caption` are tables. In HTML, a code block is a `<pre><code>` with coloured spans, and `class="language-php"` on the `<code>` when there is a language.
+In Word, the default look is shaded, bordered paragraphs, and `strip` and `caption` are tables. In HTML, a code block is a `<pre><code>` with colored spans, and `class="language-php"` on the `<code>` when there is a language.
 
 Word can't round corners, so the default look's `radius` is reported as dropped (`strip` has it too; `caption` has none). Strict Word export throws for it unless you set `radius: 0` on the block. The label's weight of 600 is reported as approximated, which strict export allows.
 

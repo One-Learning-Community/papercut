@@ -22,7 +22,7 @@ $document = Document::make(
 
 The named sizes are `a0` to `a6`, `b4`, `b5`, `letter`, `legal`, `tabloid` and `executive` (`Page::sizeNames()` returns the list). In PHP, the common ones have shortcuts (`Page::a4()`, `a3()`, `a5()`, `a6()`, `letter()` and `legal()`), `Page::named('tabloid')` covers the rest, and `Page::size($width, $height)` takes any custom size. In Blade, write a custom size as `size="210mm 297mm"` (or `size="8.5in 14in"`).
 
-Use whichever of `letter` (8.5 × 11 in) and `a4` (210 × 297 mm) suits your readers. Lengths take any unit (`pt`, `mm`, `cm`, `in` or `px`), so `20mm` and `0.8in` are equally valid margins. The examples in this guide mix US Letter with inches and A4 with millimetres; swap one for the other wherever you like.
+Use whichever of `letter` (8.5 × 11 in) and `a4` (210 × 297 mm) suits your readers. Lengths take any unit (`pt`, `mm`, `cm`, `in` or `px`), so `20mm` and `0.8in` are equally valid margins. The examples in this guide mix US Letter with inches and A4 with millimeters; swap one for the other wherever you like.
 
 Margins that meet or cross, leaving no room for content, throw `InvalidValue` when you export.
 
@@ -207,7 +207,7 @@ When a first page has a tall header, the body has less room on it. A block that 
 
 ### In Word and HTML
 
-Word export ticks the matching boxes in the page setup: "Different First Page" for first-page versions, "Different Odd & Even Pages" for even-page versions, and "Mirror margins" for mirrored margins. Different First Page is set per page run. The other two apply to the whole document. Runs without even-page versions repeat their normal header and footer on even pages, so they look the same. Mixing a mirrored run with a run that isn't, when that run's left and right margins differ, is reported as approximated. In Word, a first-page header or footer you don't set shows the normal one, even when that page falls on an even page.
+Word export checks the matching boxes in the page setup: "Different First Page" for first-page versions, "Different Odd & Even Pages" for even-page versions, and "Mirror margins" for mirrored margins. Different First Page is set per page run. The other two apply to the whole document. Runs without even-page versions repeat their normal header and footer on even pages, so they look the same. Mixing a mirrored run with a run that isn't, when that run's left and right margins differ, is reported as approximated. In Word, a first-page header or footer you don't set shows the normal one, even when that page falls on an even page.
 
 HTML export shows the first-page header at the top of the page (or nothing, if you set it empty) and the normal footer at the bottom. If the page has a first-page footer but no normal footer, the first-page footer is shown. If it has both, the normal one is shown and the export reports the first-page footer as approximated. Even-page versions aren't shown, and the export reports that as approximated. Mirrored margins apply only when the page is printed, and only from the first page run. The fragment output, the one you embed in another view, doesn't mirror.
 
@@ -271,11 +271,11 @@ The anchor says which point of the content sits at that spot:
 | `top`, `bottom` | The middle of the top or bottom edge. `top-center` and `bottom-center` work too |
 | `top-right`, `bottom-left`, `bottom-right` | That corner |
 | `left`, `right` | The middle of the left or right edge. `center-left` and `center-right` work too |
-| `center` | The centre |
+| `center` | The center |
 
 In PHP, `anchor()` takes the `Anchor` case or its string, such as `->anchor('top')`. `Anchor::TopCenter`, `Anchor::BottomCenter`, `Anchor::CenterLeft` and `Anchor::CenterRight` are the same cases under their other names.
 
-With `anchor="top"`, `x` is the middle of the content, so a short name and a long one both stay centred on the same point.
+With `anchor="top"`, `x` is the middle of the content, so a short name and a long one both stay centered on the same point.
 
 Without a `width`, a place is as wide as its content needs, up to the width of the page, and longer text wraps at the page edge. With a `width`, either a length or a percentage of the page width, the content is laid out in that width, and percentages inside the place are of the place's width. That's how the QR code above fills a box 12% of the page wide.
 

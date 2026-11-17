@@ -45,7 +45,7 @@ Math::row(Math::text('speed'), '=', Math::text('distance'), '/', Math::text('tim
 
 ### Matrices and cases
 
-`Math::matrix()` takes a list of rows, each a list of cells (strings or nodes). The fence is one of `paren` (the default), `bracket`, `brace`, `bar`, `doublebar` or `none`, and it stretches to the height of the grid. `$align` is `center` (the default), `left` or `right` for every column, or a list with one value per column (a short list repeats its last value). `Math::cases()` is a left brace around columns that are all left-aligned. A grid sits on the same line as a neighbouring `=`, centred on the math axis.
+`Math::matrix()` takes a list of rows, each a list of cells (strings or nodes). The fence is one of `paren` (the default), `bracket`, `brace`, `bar`, `doublebar` or `none`, and it stretches to the height of the grid. `$align` is `center` (the default), `left` or `right` for every column, or a list with one value per column (a short list repeats its last value). `Math::cases()` is a left brace around columns that are all left-aligned. A grid sits on the same line as a neighboring `=`, centered on the math axis.
 
 ```php
 Math::row('A', '=', Math::matrix([['1', '0'], ['0', '1']], 'bracket'));
@@ -53,7 +53,7 @@ Math::row('det', Math::matrix([['a', 'b'], ['c', 'd']], 'bar'), '=', 'ad − bc'
 Math::row('|x|', '=', Math::cases([['x', Math::text('if x ≥ 0')], ['−x', Math::text('otherwise')]]));
 ```
 
-No rows, or a row with no cells, throws `InvalidArgumentException`, as does an unknown fence or alignment. In MathML input, `<mtable>` is read as the same grid, with `columnalign`, `rowalign` and `displaystyle` honoured on the table, and a lone opening bracket such as `{` before a table becomes a stretching fence. Attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) are reported as approximated, for example `math <mtable> (rowlines is not drawn)`. `columnspacing` is drawn, and noted only when its value can't be read. In Word a grid is a live matrix (`m:m`).
+No rows, or a row with no cells, throws `InvalidArgumentException`, as does an unknown fence or alignment. In MathML input, `<mtable>` is read as the same grid, with `columnalign`, `rowalign` and `displaystyle` honored on the table, and a lone opening bracket such as `{` before a table becomes a stretching fence. Attributes that are not drawn (`rowlines`, `columnlines`, `frame`, `rowspacing`, `columnwidth`, `equalrows`, `equalcolumns`, `align`, `groupalign`, `rowspan`, `columnspan`, and `columnalign` and `rowalign` on rows and cells) are reported as approximated, for example `math <mtable> (rowlines is not drawn)`. `columnspacing` is drawn, and noted only when its value can't be read. In Word a grid is a live matrix (`m:m`).
 
 ### Limits, accents and bars
 
@@ -103,7 +103,7 @@ In Word, `aligned()` is written as a native equation array. In `aligned()`, cell
 
 ## A block equation
 
-`Equation::of(...$parts)` takes strings and nodes, like `Math::row()`. It sits on a line of its own, in display style: fractions and scripts are drawn large, and the equation takes the surrounding text's size and colour.
+`Equation::of(...$parts)` takes strings and nodes, like `Math::row()`. It sits on a line of its own, in display style: fractions and scripts are drawn large, and the equation takes the surrounding text's size and color.
 
 - It uses the theme's `equation` style, which by default is a bottom margin of 6 pt. Change that style, or style the equation itself, like any other box.
 - It aligns with text alignment: `->center()` or `->right()` in PHP, `text-align="center"` in Blade. The default is left.
@@ -140,7 +140,7 @@ In Blade, `<x-doc::math>` inside a text tag is the inline form:
 </x-doc::p>
 ```
 
-Outside a text tag, `<x-doc::math>` is the same as `<x-doc::equation>`, a block equation. A block `<x-doc::equation>` inside a text tag throws. An inline `<x-doc::math>` takes no style attributes; set the size and colour on the surrounding text. Inside a raw inline HTML tag such as `<b>` or `<a>` it throws an error naming `<x-doc::math>`, because Blade hands the tag's two halves to the markup parser separately. Put the equation beside the tag.
+Outside a text tag, `<x-doc::math>` is the same as `<x-doc::equation>`, a block equation. A block `<x-doc::equation>` inside a text tag throws. An inline `<x-doc::math>` takes no style attributes; set the size and color on the surrounding text. Inside a raw inline HTML tag such as `<b>` or `<a>` it throws an error naming `<x-doc::math>`, because Blade hands the tag's two halves to the markup parser separately. Put the equation beside the tag.
 
 ## How text becomes math
 
@@ -153,7 +153,7 @@ A string is split into pieces, one per symbol:
 - A leading `−` or `±`, at the start of a formula or after another operator, is a sign and gets no space after it. `Math::row('-b')` is a negative `b`.
 - An ASCII hyphen `-` is drawn as a true minus sign, `−`.
 - Two vertical bars `|` pair up as opening and closing, so `|x|` is an absolute value.
-- Unicode superscript and subscript characters become real scripts on what comes before them: `x²` is `Math::sup('x', '2')`, `x₁²` has both, `x⁻¹` is x to the −1, `e⁻ˣ` has a letter in the exponent, `aₙ₊₁` is a with the subscript n+1, and `(a+b)²` raises the whole bracket. The characters that count are the digits, `+ − = ( )`, and these letters. Superscript: `ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ⁱ ʲ ᵏ ˡ ᵐ ⁿ ᵒ ᵖ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ`. Subscript: `ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ`. After `|` or `‖` the script goes on the whole pair, so `|x|²` squares the absolute value. After a prime `′` or `″` it goes on the symbol and its primes, so `f′²` is (f′)². A script also attaches across the arguments of `Math::row()`, so `Math::row(Math::frac('a', 'b'), '²')` squares the fraction. In a run, one superscript and one subscript attach, in either order; a kind that comes round again (the `³` in `x²₁³`) stays a plain character. A script with nothing before it, as in `² = 4` or `² ³`, stays the character. They are sized and placed like any script, read as powers by screen readers and edited as scripts in Word.
+- Unicode superscript and subscript characters become real scripts on what comes before them: `x²` is `Math::sup('x', '2')`, `x₁²` has both, `x⁻¹` is x to the −1, `e⁻ˣ` has a letter in the exponent, `aₙ₊₁` is a with the subscript n+1, and `(a+b)²` raises the whole group in parentheses. The characters that count are the digits, `+ − = ( )`, and these letters. Superscript: `ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ⁱ ʲ ᵏ ˡ ᵐ ⁿ ᵒ ᵖ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ`. Subscript: `ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ`. After `|` or `‖` the script goes on the whole pair, so `|x|²` squares the absolute value. After a prime `′` or `″` it goes on the symbol and its primes, so `f′²` is (f′)². A script also attaches across the arguments of `Math::row()`, so `Math::row(Math::frac('a', 'b'), '²')` squares the fraction. In a run, one superscript and one subscript attach, in either order; a kind that comes round again (the `³` in `x²₁³`) stays a plain character. A script with nothing before it, as in `² = 4` or `² ³`, stays the character. They are sized and placed like any script, read as powers by screen readers and edited as scripts in Word.
 
 ## MathML input
 
@@ -193,7 +193,7 @@ A literal `math` attribute that holds MathML (it starts with `<math`, `<mml:math
 
 ### What a formula takes from its text
 
-A formula read from MathML takes its colour, size, background and link from the text around it. It is never underlined, struck through, bold or italic because the text is: letters are math italic and digits upright, as in any other equation. The colour, size and background attributes in the MathML itself (`mathcolor`, `mathsize`, `mathbackground`) are ignored.
+A formula read from MathML takes its color, size, background and link from the text around it. It is never underlined, struck through, bold or italic because the text is: letters are math italic and digits upright, as in any other equation. The color, size and background attributes in the MathML itself (`mathcolor`, `mathsize`, `mathbackground`) are ignored.
 
 ### What is approximated or dropped
 
@@ -289,7 +289,7 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 ## Not yet
 
 - Table lines, row spacing and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like), and `\hline` and column rules in TeX `array`.
-- Colour inside a formula (`\color`, `mathcolor`). A formula takes its colour from the text around it.
+- Color inside a formula (`\color`, `mathcolor`). A formula takes its color from the text around it.
 - Boxes around parts of a formula (`\boxed`, `\fbox`, `\cancel`, `<menclose>`), and equation numbers (`\tag`).
 - TeX found inside HTML or text. Papercut reads a TeX string you hand it; it does not scan rich text for `$…$`. Convert the formula first with `Math::tex()`.
 - Commutative diagrams (`CD`) and TeX commands that define environments, such as `\newenvironment`.

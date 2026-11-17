@@ -132,7 +132,7 @@ Named styles in an override merge onto the existing style. Blade checks style na
 
 Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. Papercut stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data behind the fragment and render the fragment each time.
 
-This isn't always detected. Papercut recognises markers it made earlier in the same process; a fragment cached across workers, or kept long after, can instead show up as literal marker text (`[[pc:…]]`) in the output, or as a "can only contain" error whose message adds a note about the marker.
+This isn't always detected. Papercut recognizes markers it made earlier in the same process; a fragment cached across workers, or kept long after, can instead show up as literal marker text (`[[pc:…]]`) in the output, or as a "can only contain" error whose message adds a note about the marker.
 
 ## The tag prefix
 
@@ -140,7 +140,7 @@ Tags use the `doc` prefix by default. If it clashes with something in your app, 
 
 ## When something goes wrong
 
-If a tag has an attribute it doesn't recognise, the render stops with an `UnknownAttribute` error that names the tag and suggests what you probably meant:
+If a tag has an attribute it doesn't recognize, the render stops with an `UnknownAttribute` error that names the tag and suggests what you probably meant:
 
 ```
 Unknown attribute "colour" on <x-doc::text>. Did you mean "color"?

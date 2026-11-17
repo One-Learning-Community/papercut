@@ -23,7 +23,7 @@ The [style attributes reference](/reference/style-attributes.md) lists every Bla
 
 ## The theme
 
-The theme sets the document's default font, size, colour and line height, and holds your named styles. By default, text is Inter at 10pt, weight 400, in `slate-900` with a line height of 1.4.
+The theme sets the document's default font, size, color and line height, and holds your named styles. By default, text is Inter at 10pt, weight 400, in `slate-900` with a line height of 1.4.
 
 ```php
 use Papercut\{Document, Page, Text};
@@ -97,7 +97,7 @@ Every document shares the theme above. To change it for one document or one page
 
 The levels, from the bottom: the base theme (`PdfOptions(theme:)` or the config), the document, then the page. A later level wins for each value. Named styles merge: overriding `callout.warning` with only a background keeps its border and padding.
 
-An override can set the font family, font size, colour, line height, mono family, the [code theme](./text.md#themes-and-colours) and named styles. In PHP it can also set font weight, cell padding and minimum lines, as `Theme::with()` does.
+An override can set the font family, font size, color, line height, mono family, the [code theme](./text.md#themes-and-colors) and named styles. In PHP it can also set font weight, cell padding and minimum lines, as `Theme::with()` does.
 
 `Merriweather` is not bundled: a font family in an override must be bundled or registered (see [Fonts](./fonts.md)). To try this, swap in `Inter` or a family you have registered. The report sets the body at 11pt, puts its cover page in another font, and shrinks the appendix:
 
@@ -144,7 +144,7 @@ Calling `theme()` again on the same document or page merges with the earlier ove
 
 A page's override applies to its body, headers, footers, background and overlay. In the PDF each page is laid out with its own theme. In HTML the page's section carries the differences. In Word the document's values become Word's defaults, and a page's values are written on that page's paragraphs.
 
-In Laravel, call `->theme()` on the pending document to change it from a controller, such as a brand colour per customer:
+In Laravel, call `->theme()` on the pending document to change it from a controller, such as a brand color per customer:
 
 ```php
 Papercut::view('pdf.invoice', $data)
@@ -154,7 +154,7 @@ Papercut::view('pdf.invoice', $data)
 
 The keys are `font_family`, `mono_family`, `font_size` (points, a number), `color`, `line_height`, `code_theme` and `styles` (in the shape of `papercut.styles`); the first five work as in `papercut.theme`. The order is: config, the view's `<x-doc::document :theme>`, the controller's `->theme()`, then the page's `:theme`.
 
-Unlike `papercut.styles`, which replaces a built-in style of the same name, a named style in an override merges onto the existing one. A bad value, such as an unknown colour, throws an error. In Laravel, so does a font family that isn't bundled or registered, and the error names the tag or call it came from. In PHP the PDF export fails with `FontNotFound` without naming the override, and HTML and Word accept the name.
+Unlike `papercut.styles`, which replaces a built-in style of the same name, a named style in an override merges onto the existing one. A bad value, such as an unknown color, throws an error. In Laravel, so does a font family that isn't bundled or registered, and the error names the tag or call it came from. In PHP the PDF export fails with `FontNotFound` without naming the override, and HTML and Word accept the name.
 
 ::: warning New style names
 Blade checks style names while it renders the view, before the controller's `->theme()` runs. A controller's `->theme()` can change values and restyle names that already exist. A new style name that the view uses must be defined in `papercut.styles` or in a `:theme` in the view.

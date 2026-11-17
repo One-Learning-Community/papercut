@@ -111,13 +111,13 @@ In Blade, give the tag exactly one source: a `src` file, a `data` string of SVG 
 
 An SVG is sized like an image. Its `width` and `height` attributes give it a natural size. If it only has a `viewBox`, each unit counts as a pixel (0.75pt), and if it has neither, it's 300 by 150 pixels, as in a browser. Set `width` or `height` and the other side follows the aspect ratio. It's scaled down to fit the page width, and it never splits across pages.
 
-If you set both `width` and `height`, the SVG's own `preserveAspectRatio` decides where the drawing sits in that box, as in a browser: centred and whole by default, cropped to fill with `slice`, or stretched with `none`. Anything drawn outside the box is cut off.
+If you set both `width` and `height`, the SVG's own `preserveAspectRatio` decides where the drawing sits in that box, as in a browser: centered and whole by default, cropped to fill with `slice`, or stretched with `none`. Anything drawn outside the box is cut off.
 
 ### What's drawn
 
 Papercut draws paths (including arcs and curves), rectangles with rounded corners, circles, ellipses, lines, polylines and polygons. Groups with transforms (nested ones too), `<use>` and `<defs>`, `<style>` rules for tags, classes and ids, and fill, stroke and opacity all work, including a fill or stroke set on a group. Linear and radial gradients fill any shape.
 
-`fill-rule="evenodd"` is honoured on the shape itself, in its `style`, in a style sheet or on a group. It's what keeps the hole in a ring, a letter O or a five-point star when the inner outline is drawn the same way round as the outer one.
+`fill-rule="evenodd"` is honored on the shape itself, in its `style`, in a style sheet or on a group. It's what keeps the hole in a ring, a letter O or a five-point star when the inner outline is drawn the same way round as the outer one.
 
 A few things aren't drawn yet: `<clipPath>`, `<mask>`, `<filter>`, `<pattern>`, `<image>`, `<marker>`, `<symbol>`, `<textPath>`, `<tspan>`, links and nested `<svg>` elements. An SVG that uses any of them gets a warning naming them, and the rest of the drawing still appears.
 
@@ -201,7 +201,7 @@ $document = Document::make(Page::letter()->body(
 
 A QR code is always square. Set `width` (or `height`) to size it; without one it's about 1in across, which scans comfortably from a phone. The blank margin scanners need around the code, four modules wide, is included in that size.
 
-The squares use the text colour, so `color="indigo-700"` works. Keep the contrast high, and set `background` if the code sits on something dark. Padding, borders and rounded corners work as they do on any box.
+The squares use the text color, so `color="indigo-700"` works. Keep the contrast high, and set `background` if the code sits on something dark. Padding, borders and rounded corners work as they do on any box.
 
 | Attribute | PHP | What it does |
 |---|---|---|
@@ -215,7 +215,7 @@ In HTML exports, a QR code becomes an inline SVG.
 
 ### Styled QR codes
 
-A QR code can have round dots, different eyes (the three squares in the corners), an eye colour or a gradient. Styled codes are drawn by [BaconQrCode](https://github.com/Bacon/BaconQrCode), which is optional, so install it first:
+A QR code can have round dots, different eyes (the three squares in the corners), an eye color or a gradient. Styled codes are drawn by [BaconQrCode](https://github.com/Bacon/BaconQrCode), which is optional, so install it first:
 
 ```bash
 composer require bacon/bacon-qr-code
@@ -256,11 +256,11 @@ $document = Document::make(Page::letter()->body(
 |---|---|---|
 | `shape` | `->shape(QrShape::Dots)` | How the modules are drawn: `square` (the default), `rounded` or `dots`. Rounded and dots raise `level` to `Q`. |
 | `eyes` | `->eyes(QrEyes::Dot)` | How the corner eyes are drawn: `square` (the default), `dot` (a square ring around a round dot) or `pointy` (a rounded ring with one square corner facing the middle). |
-| `eye-color` | `->eyeColor('rose-600')` | A colour for the eyes. Without it they match the modules. |
-| `gradient` | `->gradient('indigo-600', 'cyan-700')` | Two colours, separated by a space, that the modules fade between instead of using the text colour. |
-| `gradient-type` | `->gradient($from, $to, QrGradient::Radial)` | Which way the gradient runs: `diagonal` (the default, from the top left), `inverse-diagonal`, `horizontal`, `vertical` or `radial` (from the centre outwards). |
+| `eye-color` | `->eyeColor('rose-600')` | A color for the eyes. Without it they match the modules. |
+| `gradient` | `->gradient('indigo-600', 'cyan-700')` | Two colors, separated by a space, that the modules fade between instead of using the text color. |
+| `gradient-type` | `->gradient($from, $to, QrGradient::Radial)` | Which way the gradient runs: `diagonal` (the default, from the top left), `inverse-diagonal`, `horizontal`, `vertical` or `radial` (from the center outwards). |
 
-The code still encodes the same modules as a plain one; only the drawing changes. Dots and rounded modules leave less ink for a scanner to find, so they raise the error correction level to `Q`, unless you've chosen `H`. That holds less text: up to 151 characters instead of 213, and a longer value throws an error that explains why. Eye shapes, eye colours and gradients leave the level alone. Keep every colour dark against the background, and test a printed code with a few phones before you send it out.
+The code still encodes the same modules as a plain one; only the drawing changes. Dots and rounded modules leave less ink for a scanner to find, so they raise the error correction level to `Q`, unless you've chosen `H`. That holds less text: up to 151 characters instead of 213, and a longer value throws an error that explains why. Eye shapes, eye colors and gradients leave the level alone. Keep every color dark against the background, and test a printed code with a few phones before you send it out.
 
 In HTML exports, a styled code becomes an SVG image with the value as its alt text.
 

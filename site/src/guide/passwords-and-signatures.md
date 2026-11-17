@@ -47,7 +47,7 @@ In Laravel, pass it to `encrypt()` in place of the password string.
 
 Leaving out the user password makes a document anyone can open but nobody can, say, copy from. If you don't set an owner password, Papercut generates a random one, so the restrictions can't be lifted at all.
 
-Permissions are honoured by well-behaved PDF readers, not enforced by the encryption itself, so treat them as a deterrent. The password needed to open the document is real protection. Whatever the permissions, screen readers can always read the text.
+Permissions are honored by well-behaved PDF readers, not enforced by the encryption itself, so treat them as a deterrent. The password needed to open the document is real protection. Whatever the permissions, screen readers can always read the text.
 
 Only PDFs are encrypted. Calling `encrypt()` doesn't affect `->html()` or `->docx()`.
 

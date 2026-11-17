@@ -110,7 +110,7 @@ In PHP, `Markup::flatten()` does the same, merging the converted content into a 
 | `pre` | a block in the `pre` style: monospace, with spaces, tabs and line breaks kept. `<pre><code>` gives one block. With `class="language-x"` (or `lang-x`, on the `code` or the `pre`) it becomes a [code block](/guide/text.md#code-blocks) with syntax highlighting; turn that off with `MarkupOptions(code: false)` |
 | `code`, `kbd`, `samp`, `tt` | inline monospace text in the `code` style |
 | `table`, `caption`, `thead`, `tbody`, `tfoot`, `tr`, `td`, `th` | a table: header rows repeat on every page, `colspan` and `rowspan` are kept, and columns are sized by their content. In `original` mode a `width` on a cell sets its column and a `width` on the table sets the table; a table width is kept as written but never wider than its container, and columns wider than the space they have are scaled down to fit (percentages over 100% are scaled to 100%, with a note). Nested tables are flattened into paragraphs, with a note |
-| `hr` | a horizontal rule; in `original` mode `border-color` or `color` sets its colour |
+| `hr` | a horizontal rule; in `original` mode `border-color` or `color` sets its color |
 | other block tags, like `section` | the tag is dropped, and its content kept as paragraphs |
 | anything else | the tag is dropped, and its content kept inline |
 
@@ -119,7 +119,7 @@ In PHP, `Markup::flatten()` does the same, merging the converted content into a 
 ## Style modes
 
 - **`theme`** (the default): the HTML provides the structure, and your theme decides how it looks. Inline `style="…"` attributes are ignored.
-- **`original`**: inline styles are applied on top of the theme. Colour, font size, weight, italic and text decoration work everywhere. `background-color` works on spans too. Alignment, margin, padding and sizes work on block elements only. Column properties on a `div` make a [column flow](#columns). Anything else is dropped and reported.
+- **`original`**: inline styles are applied on top of the theme. Color, font size, weight, italic and text decoration work everywhere. `background-color` works on spans too. Alignment, margin, padding and sizes work on block elements only. Column properties on a `div` make a [column flow](#columns). Anything else is dropped and reported.
 
 Pasted CSS is never rejected, but it is limited to what a page can hold. A `font-size` is clamped to 1 to 400pt and every other length to plus or minus 2000pt, and each clamp is reported as an approximation. A value that isn't a finite number is dropped. A `height` smaller than its content acts as a `min-height`, so nothing is cut off, and a `max-height` is not applied; both are reported. Negative margins are kept.
 
@@ -134,7 +134,7 @@ In `original` style mode, a `div` (or a block tag that would otherwise be droppe
 ```
 
 - `column-count` sets the number of columns. `columns` sets it too: only its count is read, and a width in it is ignored. A count that would make the columns narrower than 72pt on the page is reduced until they are at least that wide, with one note. PDF, HTML and Word all use the reduced count.
-- `column-gap` sets the gap and `column-rule` the width and colour of the rule, but only beside a count: without `column-count` or `columns`, they're dropped with a note and the content stays in one column.
+- `column-gap` sets the gap and `column-rule` the width and color of the rule, but only beside a count: without `column-count` or `columns`, they're dropped with a note and the content stays in one column.
 - `column-span`, `column-width` and `column-fill` are dropped, with a note. The flow has no way to span columns, work out a count from a width, or leave columns unbalanced.
 - On `p`, headings, lists and tables the column properties are dropped, with a note.
 - Box styles on the same `div`, such as a border, background or padding, go on a box around the flow.

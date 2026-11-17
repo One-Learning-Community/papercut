@@ -78,12 +78,12 @@ $document = Document::make(Page::letter()->margin(in(0.6))->body(
 
 ## Units
 
-Lengths always need a unit. A bare `12` isn't accepted: it could mean points, pixels or millimetres.
+Lengths always need a unit. A bare `12` isn't accepted: it could mean points, pixels or millimeters.
 
 | Unit | PHP | Blade |
 |---|---|---|
 | points | `pt(12)` | `12pt` |
-| millimetres, centimetres, inches | `mm(20)`, `cm(2)`, `in(1)` | `20mm`, `2cm`, `1in` |
+| millimeters, centimeters, inches | `mm(20)`, `cm(2)`, `in(1)` | `20mm`, `2cm`, `1in` |
 | CSS pixels (0.75pt each) | `px(16)` | `16px` |
 | the element's font size | `Length::em(0.5)` | `0.5em` |
 | the element's line height | `Length::lh(4)` | `4lh` |
@@ -92,7 +92,7 @@ Lengths always need a unit. A bare `12` isn't accepted: it could mean points, pi
 
 `em` and `lh` scale with the theme. A box `4lh` tall stays four lines tall when the body font size changes.
 
-Colours can be Tailwind palette names like `slate-500` or `indigo-600`, or hex codes like `#336699`.
+Colors can be Tailwind palette names like `slate-500` or `indigo-600`, or hex codes like `#336699`.
 
 ## Column flow
 
@@ -138,7 +138,7 @@ $document = Document::make(Page::letter()->body(
 | `columns(3)` | `columns="3"` | The number of equal columns, from 1 to 45. |
 | `columnWidths(2, 1)` | `widths="2 1"` | Unequal columns, as ratios of the space left after the gaps. The number of widths is the number of columns, so with `columns` too the two must agree. |
 | `columnGap(pt(24))` | `column-gap="24pt"` | The space between columns. Give one length for every gap, or one per space (`columnGap(pt(24), pt(12))`) when the gaps differ. |
-| `columnRule()` | `rule` | A thin line in each gap. `columnRule(pt(1), Color::parse('slate-400'))` and `rule="1pt slate-400"` set the width (default 0.5pt) and the colour (default black). |
+| `columnRule()` | `rule` | A thin line in each gap. `columnRule(pt(1), Color::parse('slate-400'))` and `rule="1pt slate-400"` set the width (default 0.5pt) and the color (default black). |
 
 Gaps can't be negative and a rule needs a width above zero. If the gaps leave no room for the columns (four columns with 36pt gaps in a 100pt box), it's a layout overflow like any other: an error by default, a warning and a single column when clipping.
 

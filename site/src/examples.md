@@ -4,7 +4,7 @@ sidebar: false
 
 # Examples
 
-The repository includes eight example documents, each written twice: once as a Blade view and once in plain PHP. Compare the two to see how Blade tags map to the PHP API. The invoice, transcript, integration guide and certificate use US Letter and inches; the report, form responses, knowledge base article and academic paper use A4 and millimetres.
+The repository includes eight example documents, each written twice: once as a Blade view and once in plain PHP. Compare the two to see how Blade tags map to the PHP API. The invoice, transcript, integration guide and certificate use US Letter and inches; the report, form responses, knowledge base article and academic paper use A4 and millimeters.
 
 | Document | What it shows | Blade | PHP |
 |---|---|---|---|
@@ -131,7 +131,7 @@ This example builds something specific to an app from the decorators. Papercut k
 @endforeach
 ```
 
-An unanswered question shows "No response" in a grey box instead of a gap, and selected options get a filled checkbox and a bold label. All the colours come from the theme, so the form matches every other document the app produces.
+An unanswered question shows "No response" in a gray box instead of a gap, and selected options get a filled checkbox and a bold label. All the colors come from the theme, so the form matches every other document the app produces.
 
 ## The integration guide example
 
@@ -211,7 +211,7 @@ Page::template(PdfPage::file($assets . '/certificate-template.pdf'))->overlay(
 
 :::
 
-The template is drawn as vector content: its text and borders stay sharp at any zoom, and the name stays selectable text. With `anchor="bottom"` (`Anchor::Bottom` in PHP), the bottom edge of each piece of content sits at its point, so the name rests on its line whatever its length. The name and course are centred on the page because `x` is the middle of the content when the anchor is `bottom`.
+The template is drawn as vector content: its text and borders stay sharp at any zoom, and the name stays selectable text. With `anchor="bottom"` (`Anchor::Bottom` in PHP), the bottom edge of each piece of content sits at its point, so the name rests on its line whatever its length. The name and course are centered on the page because `x` is the middle of the content when the anchor is `bottom`.
 
 Overlay positions ignore the page margins. They are measured from the top-left corner of the sheet, so the numbers match what you'd read off the design. In Blade, a relative `template` or `src` is resolved inside `papercut.image_path`; the example points that at `examples/assets`, where the template and `signature.svg` live. `examples/core/certificate-template.php` draws the blank template with Papercut so that it can be rebuilt, but any PDF from a design tool works the same way.
 

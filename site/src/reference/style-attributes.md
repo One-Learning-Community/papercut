@@ -4,7 +4,7 @@ Every tag marked **Style** in the [tag reference](./blade-tags.md) accepts these
 
 A bad value, such as a negative width or an `opacity` of 2, throws `InvalidValue` naming the attribute and what it accepts. An attribute bound to `null` (`:width="$maybeNull"`) is the same as leaving it off; an array or object throws.
 
-**Lengths** can be `pt`, `mm`, `cm`, `in` or `px`, or relative to the element: `em` for its font size and `lh` for its line height. **Colours** are Tailwind palette names like `slate-500`, or hex codes. **Booleans** can be written on their own (`bold`) or as `true`, `1`, `false` or `0`.
+**Lengths** can be `pt`, `mm`, `cm`, `in` or `px`, or relative to the element: `em` for its font size and `lh` for its line height. **Colors** are Tailwind palette names like `slate-500`, or hex codes. **Booleans** can be written on their own (`bold`) or as `true`, `1`, `false` or `0`.
 
 ## Box
 
@@ -13,7 +13,7 @@ A bad value, such as a negative width or an `opacity` of 2, throws `InvalidValue
 | `width`, `height`, `basis` | `width="70mm"` | a length, a percentage or `auto` |
 | `min-width`, `max-width`, `min-height`, `max-height` | `max-width="80%"` | a length or a percentage |
 | `padding`, `margin`, `border-width` | `margin="6pt 0 0 0"` | one to four lengths: top, right, bottom, left |
-| `border-color`, `background` | `background="slate-50"` | a colour |
+| `border-color`, `background` | `background="slate-50"` | a color |
 | `border-style` | `border-style="dashed"` | `solid`, `dashed` |
 | `radius` | `radius="8pt"` | a length |
 | `opacity` | `opacity="0.5"` | 0 to 1 |
@@ -37,7 +37,7 @@ A bad value, such as a negative width or an `opacity` of 2, throws `InvalidValue
 | `font-size` | `font-size="9pt"` | a length above 0 |
 | `weight` | `weight="600"` | an integer from 1 to 1000 |
 | `bold`, `italic`, `underline`, `strike` | `bold` | a boolean |
-| `color` | `color="slate-600"` | a colour |
+| `color` | `color="slate-600"` | a color |
 | `line-height` | `line-height="1.4"` | a multiple of the font size, above 0 |
 | `letter-spacing` | `letter-spacing="0.6pt"` | a length |
 | `text-align` | `text-align="right"` | `left`, `right`, `center`, `justify` |

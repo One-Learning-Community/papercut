@@ -46,7 +46,7 @@ php tests/render-fixtures.php   # writes tests/out/*.svg, .png (needs rsvg-conve
 `tests/Fixtures.php` holds the sample formulas. A fixture name ending in `-inline` is laid out in text style; all
 others use display style.
 
-Spacing, stretching and large-operator behaviour come from the W3C MathML Core operator dictionary. The snapshot used
+Spacing, stretching and large-operator behavior come from the W3C MathML Core operator dictionary. The snapshot used
 is recorded in the header of `resources/operators.php`, which `bin/gen-operators.php` generates.
 
 ## Credits

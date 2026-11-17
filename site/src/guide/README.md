@@ -15,7 +15,7 @@ Most PHP PDF libraries fall into one of two camps.
 
 Low-level libraries give you a cursor and coordinates. You place each string yourself, which is precise, and you work out every line break and page break too.
 
-HTML-to-PDF tools let you write HTML and CSS instead. That's comfortable until you need print behaviour like repeating table headers, keeping a heading with its paragraph, or "page 3 of 12". Support for those is patchy and varies from one renderer to the next.
+HTML-to-PDF tools let you write HTML and CSS instead. That's comfortable until you need print behavior like repeating table headers, keeping a heading with its paragraph, or "page 3 of 12". Support for those is patchy and varies from one renderer to the next.
 
 Papercut sits in between. Its layout model is a small subset of flexbox, designed around pages from the start. It is strict: clear warnings and errors tell you when a document won't come out right.
 
