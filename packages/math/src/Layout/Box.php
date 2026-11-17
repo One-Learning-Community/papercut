@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Quoin\Math\Layout;
 
+use Quoin\Math\MathNote;
+use Quoin\Math\NoteLevel;
+
 /**
  * A laid-out formula (or part of one): advance width, ascent (height above the baseline) and
  * descent (depth below it), plus the display list. Coordinates: points, baseline at y = 0, y DOWN
@@ -118,5 +121,33 @@ final class Box
     public function height(): float
     {
         return $this->ascent + $this->descent;
+    }
+
+    /**
+     * One note for each character the font has no glyph for, in drawing order, each character once. A renderer draws such a
+     * character as the font's missing-glyph box (glyph 0). A backend that sets these characters in another font, as the
+     * `fallbackAdvance` option of `Math::layout()` allows, can ignore the notes.
+     *
+     * @return list<MathNote>
+     */
+    public function notes(): array
+    {
+        $seen = [];
+        $this->each(static function (DisplayItem $i) use (&$seen): void {
+            if ($i instanceof Glyph && $i->gid === 0 && $i->text !== null && $i->text !== '') {
+                $seen[$i->text] = true;
+            }
+        });
+        $notes = [];
+        foreach (array_keys($seen) as $char) {
+            $char = (string) $char;
+            $notes[] = new MathNote(
+                NoteLevel::Dropped,
+                $char,
+                sprintf('the font has no glyph for U+%04X, so it is drawn as a missing-glyph box', mb_ord($char, 'UTF-8')),
+            );
+        }
+
+        return $notes;
     }
 }

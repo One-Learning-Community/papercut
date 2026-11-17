@@ -9,6 +9,7 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 - CFF math fonts. `Font::fromFile()` reads OpenType math fonts with CFF outlines, such as Latin Modern Math, New Computer Modern Math, the TeX Gyre math fonts, Fira Math, Libertinus Math and XITS Math, as well as TrueType ones. Refused with `UnsupportedFont`: CFF2 (variable) fonts, CID-keyed CFF, a `FontMatrix` that disagrees with the units per em, font collections, and fonts without a `MATH` table. A glyph that uses `seac` or the Type 2 arithmetic operators draws without the part they would add; no common math font uses them. The math font setting in core and Laravel accepts these fonts, and HTML export labels a CFF font as `font/otf` with `format("opentype")`. See [Fonts](https://one-learning-community.github.io/quoin/guide/fonts.html#the-math-font).
 - A recipe for the LaTeX look with Latin Modern Math.
+- `Box::notes()` in the math package lists the characters the font has no glyph for, one `Dropped` note each. Such a character is drawn as the font's missing-glyph box.
 
 ### Changed
 

@@ -112,3 +112,15 @@ foreach (Math::notes($formula) as $note) {
 | `element` | The MathML element name, or the TeX command with its backslash, environment name or limit |
 | `reason` | Plain words, such as `the box is not drawn` |
 | `where` | A path to the element in MathML; `offset N`, a byte offset, in TeX |
+
+### Missing glyphs
+
+Some math fonts lack whole alphabets: Fira Math has no script or Fraktur letters, and Euler has no double-struck ones. A character the font has no glyph for is drawn as the font's missing-glyph box. These notes depend on the font, so they come from the laid-out box instead of the formula. `$box->notes()` returns one `Dropped` note per such character, with the character as `element`.
+
+```php
+$box = Math::layout(Math::tex('\mathcal{L}(x)'), font: $fira);
+
+foreach ($box->notes() as $note) {
+    echo $note->reason, "\n";   // the font has no glyph for U+2112, so it is drawn as a missing-glyph box
+}
+```
