@@ -4,7 +4,7 @@ The packages follow [Semantic Versioning](https://semver.org/).
 
 ## Before 1.0
 
-The current version is 0.15. Until 1.0, a minor version (0.15 to 0.16) may change the API, and the [changelog](https://github.com/One-Learning-Community/quoin/blob/main/CHANGELOG.md) lists every change. A patch version (0.15.0 to 0.15.1) only fixes bugs. Require a minor version with a caret, such as `^0.15`, and Composer won't move you past it.
+The current version is 0.16. Until 1.0, a minor version (0.16 to 0.17) may change the API, and the [changelog](https://github.com/One-Learning-Community/quoin/blob/main/CHANGELOG.md) lists every change. A patch version (0.16.0 to 0.16.1) only fixes bugs. Require a minor version with a caret, such as `^0.16`, and Composer won't move you past it.
 
 ## From 1.0
 
