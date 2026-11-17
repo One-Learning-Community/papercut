@@ -2,35 +2,35 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tex;
+namespace Quoin\Math\Tex;
 
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Fraction;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Middle;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Phantom;
-use Papercut\Math\Node\Root;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Scripts;
-use Papercut\Math\Node\Space;
-use Papercut\Math\Node\Text;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\OperatorDictionary;
-use Papercut\Math\Styles;
-use Papercut\Math\Tokenizer;
-use Papercut\Math\Utf8;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Fraction;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Middle;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Phantom;
+use Quoin\Math\Node\Root;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Scripts;
+use Quoin\Math\Node\Space;
+use Quoin\Math\Node\Text;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\OperatorDictionary;
+use Quoin\Math\Styles;
+use Quoin\Math\Tokenizer;
+use Quoin\Math\Utf8;
 
 /**
- * LaTeX math to the node tree, the inverse of {@see \Papercut\Math\Render\TexWriter}. Never throws: what it cannot draw
+ * LaTeX math to the node tree, the inverse of {@see \Quoin\Math\Render\TexWriter}. Never throws: what it cannot draw
  * becomes a Fallback with a MathNote (an unknown command is drawn as its own name, as KaTeX shows its error text), one
  * note per element and reason. Single symbols are classified by the builder's Tokenizer, so TeX and the builder read
  * the same characters the same way.
@@ -156,7 +156,7 @@ final class TexReader
     /**
      * Read with a nesting limit of $maxDepth (at most MAX_DEPTH) instead of MAX_DEPTH.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function readWithin(string $tex, int $maxDepth): TexResult
     {
@@ -171,7 +171,7 @@ final class TexReader
      * xdebug.max_nesting_level, above 0): that guard throws once the call stack passes the limit, so the depth is lowered
      * until a formula at the limit, with the $stackDepth frames already on the stack, stays under it.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function effectiveDepth(?int $nestingLimit, int $stackDepth = 0): int
     {

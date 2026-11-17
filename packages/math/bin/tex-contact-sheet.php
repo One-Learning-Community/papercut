@@ -7,9 +7,9 @@ declare(strict_types=1);
  * contact sheet (source, SVG, notes). Usage: php bin/tex-contact-sheet.php [out.html] [--png=dir]
  */
 
-use Papercut\Math\Math;
-use Papercut\Math\Render\SvgRenderer;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
+use Quoin\Math\Tex\TexReader;
 
 require __DIR__ . '/../vendor/autoload.php';
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Layout;
+namespace Quoin\Math\Layout;
 
 /**
  * A laid-out formula (or part of one): advance width, ascent (height above the baseline) and
@@ -41,7 +41,7 @@ final class Box
     /**
      * Glyph ids of the first and last glyph as drawn (an `ssty` alternate carries its own MathKernInfo), for MathKern; null when not a plain run.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public ?int $firstGid = null;
     /** @internal Engine detail, see $firstGid. */
@@ -50,7 +50,7 @@ final class Box
     /**
      * Ascent and descent of the last token of a row (null elsewhere), which is all MathKern reads of a script's base.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public ?float $lastAscent = null;
     /** @internal Engine detail, see $lastAscent. */
@@ -59,7 +59,7 @@ final class Box
     /**
      * Space after the last glyph that is part of $width (an operator's rspace); scripts attach before it and it follows them.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public float $trail = 0.0;
 
@@ -79,7 +79,7 @@ final class Box
     /**
      * Append a child's items shifted by (dx, dy); does not touch metrics.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function place(Box $child, float $dx, float $dy): void
     {
@@ -109,7 +109,7 @@ final class Box
         }
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function add(DisplayItem $i): void
     {
         $this->entries[] = $i;

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Mathml;
+namespace Quoin\Math\Tests\Mathml;
 
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Text;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Render\MathmlWriter;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Text;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Render\MathmlWriter;
 use PHPUnit\Framework\TestCase;
 
 final class MathmlTokenTest extends TestCase
@@ -102,7 +102,7 @@ final class MathmlTokenTest extends TestCase
         $start = microtime(true);
         $r = MathmlReader::read($src);
         self::assertLessThan(2.0, microtime(true) - $start);
-        self::assertStringContainsString('x', \Papercut\Math\Render\TextWriter::write($r->node));
+        self::assertStringContainsString('x', \Quoin\Math\Render\TextWriter::write($r->node));
     }
 
     public function test_minsize_reads_from_mathml(): void

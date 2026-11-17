@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 // Builds the guide Document: an API integration guide on US Letter, portrait then landscape then portrait.
 // examples/core/guide.php saves it as PDF and examples/html/render.php as HTML.
-use Papercut\Decorator\{Badge, Blockquote, Callout, Card, ChoiceList, CodeBlock, KeyValueList};
-use Papercut\{Column, Document, ListNode, Page, PageNumber, QrCode, Row, Spacer, Table, TableRow, Text};
-use Papercut\Value\Edges;
+use Quoin\Decorator\{Badge, Blockquote, Callout, Card, ChoiceList, CodeBlock, KeyValueList};
+use Quoin\{Column, Document, ListNode, Page, PageNumber, QrCode, Row, Spacer, Table, TableRow, Text};
+use Quoin\Value\Edges;
 
-use function Papercut\{in, percent, pt};
+use function Quoin\{in, percent, pt};
 
 $endpoints = [
     ['GET', '/v2/shipments', 'List shipments, newest first. Filter by status or date.', 'Key', '600 / min'],

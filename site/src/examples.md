@@ -17,22 +17,22 @@ The repository includes eight example documents, each written twice: once as a B
 | Knowledge base article | HTML from a rich text editor, converted by [Markup](/guide/rich-text.md): headings, a nested list, a table, a highlighted code block, a quotation | [article.blade.php][ar-b] | [article.php][ar-p] |
 | Academic paper | a full-width title, authors and abstract, then a body in two columns with a table, a figure and equations (displayed and inline, a sum with limits, and a formula read from MathML) that ends level, and a full-width closing note | [paper.blade.php][pa-b] | [paper.php][pa-p] |
 
-[inv-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/invoice.blade.php
-[inv-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/invoice.php
-[tr-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/transcript.blade.php
-[tr-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/transcript.php
-[rep-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/report.blade.php
-[rep-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/report.php
-[gd-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/guide.blade.php
-[gd-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/guide.php
-[ce-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/certificate.blade.php
-[ce-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/certificate.php
-[ar-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/article.blade.php
-[ar-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/article.php
-[pa-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/paper.blade.php
-[pa-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/paper.php
-[res-b]: https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php
-[res-p]: https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php
+[inv-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/invoice.blade.php
+[inv-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/invoice.php
+[tr-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/transcript.blade.php
+[tr-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/transcript.php
+[rep-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/report.blade.php
+[rep-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/report.php
+[gd-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/guide.blade.php
+[gd-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/guide.php
+[ce-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/certificate.blade.php
+[ce-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/certificate.php
+[ar-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/article.blade.php
+[ar-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/article.php
+[pa-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/paper.blade.php
+[pa-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/paper.php
+[res-b]: https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/responses.blade.php
+[res-p]: https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/responses.php
 
 ## What they look like
 
@@ -105,7 +105,7 @@ The Blade script starts a temporary Laravel app with Orchestra Testbench, so you
 
 ## The form responses example
 
-This example builds something specific to an app from the decorators. Papercut knows nothing about questions or answers; the view loops over the items and picks a decorator for each:
+This example builds something specific to an app from the decorators. The decorators know nothing about questions or answers; the view loops over the items and picks a decorator for each:
 
 ```blade
 @foreach ($items as $item)
@@ -213,13 +213,13 @@ Page::template(PdfPage::file($assets . '/certificate-template.pdf'))->overlay(
 
 The template is drawn as vector content: its text and borders stay sharp at any zoom, and the name stays selectable text. With `anchor="bottom"` (`Anchor::Bottom` in PHP), the bottom edge of each piece of content sits at its point, so the name rests on its line whatever its length. The name and course are centered on the page because `x` is the middle of the content when the anchor is `bottom`.
 
-Overlay positions ignore the page margins. They are measured from the top-left corner of the sheet, so the numbers match what you'd read off the design. In Blade, a relative `template` or `src` is resolved inside `papercut.image_path`; the example points that at `examples/assets`, where the template and `signature.svg` live. `examples/core/certificate-template.php` draws the blank template with Papercut so that it can be rebuilt, but any PDF from a design tool works the same way.
+Overlay positions ignore the page margins. They are measured from the top-left corner of the sheet, so the numbers match what you'd read off the design. In Blade, a relative `template` or `src` is resolved inside `quoin.image_path`; the example points that at `examples/assets`, where the template and `signature.svg` live. `examples/core/certificate-template.php` draws the blank template in code so that it can be rebuilt, but any PDF from a design tool works the same way.
 
 Word and HTML exports leave page templates out, so this example is PDF only. See [Filling in an existing PDF](/guide/pages.md#filling-in-an-existing-pdf) for the rest of the options.
 
 ## The knowledge base article example
 
-Help articles are often written in a rich text editor such as CKEditor 5 and saved as HTML. The article is that HTML in one string. Papercut converts it with no browser involved, and the page around it adds a header and a page-number footer:
+Help articles are often written in a rich text editor such as CKEditor 5 and saved as HTML. The article is that HTML in one string. It is converted with no browser involved, and the page around it adds a header and a page-number footer:
 
 ::: tabs#lang
 
@@ -251,11 +251,11 @@ $article = Column::make(
 
 In the example, `$html` is a heredoc holding what an editor would save: `h2` and `h3` headings, paragraphs with bold, italic and links, a list with a nested list, a table with a header row, a `<pre><code class="language-bash">` block and a blockquote. The theme styles all of it, so the article matches the rest of your documents. The code block is highlighted because of its `language-bash` class.
 
-Papercut reports anything it can't convert. The example's test turns on strict mode and checks that the article produces no warnings. See [Rich text](/guide/rich-text.md#conversion-warnings) for what gets converted and what the warnings mean.
+Anything that can't be converted is reported. The example's test turns on strict mode and checks that the article produces no warnings. See [Rich text](/guide/rich-text.md#conversion-warnings) for what gets converted and what the warnings mean.
 
 ## The academic paper example
 
-A paper puts a title and abstract across the whole page, then sets the body in two columns. In Papercut a `ColumnFlow` is the two-column part: text fills the first column, continues in the second, and carries on to the next page. The title, the abstract and the closing note around it are ordinary full-width blocks on the same page:
+A paper puts a title and abstract across the whole page, then sets the body in two columns. A `ColumnFlow` is the two-column part: text fills the first column, continues in the second, and carries on to the next page. The title, the abstract and the closing note around it are ordinary full-width blocks on the same page:
 
 ::: tabs#lang
 

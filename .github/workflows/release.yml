@@ -71,6 +71,6 @@ jobs:
           name: release-notes
       - uses: softprops/action-gh-release@v3
         with:
-          name: Papercut ${{ needs.notes.outputs.version }}
+          name: Quoin ${{ needs.notes.outputs.version }}
           body_path: release-notes.md
           prerelease: ${{ startsWith(needs.notes.outputs.version, '0.') || contains(needs.notes.outputs.version, '-') }}

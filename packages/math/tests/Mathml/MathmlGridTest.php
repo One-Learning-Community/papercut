@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Mathml;
+namespace Quoin\Math\Tests\Mathml;
 
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Render\TextWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

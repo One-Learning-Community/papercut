@@ -12,8 +12,8 @@ PNG and JPEG always work. WebP, GIF, BMP and AVIF need the `gd` extension.
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Image, Page};
-use function Papercut\{in, pt};
+use Quoin\{Column, Document, Image, Page};
+use function Quoin\{in, pt};
 
 // A 1x1 PNG keeps the example self-contained. Use Image::file('logo.png') in practice.
 $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
@@ -28,11 +28,11 @@ $document = Document::make(Page::letter()->body(
 
 `Image::bytes()` throws `ImageUnreadable` for data that is cut off or isn't an image.
 
-`fit` can be `contain`, `cover` or `fill`, and works like CSS `object-fit`. Images are scaled down to fit the page width, and an image taller than a page is scaled down to fit on one. The exception is an image with an explicit `height`: Papercut keeps that height, and if it can't fit on an empty page you'll get a `LayoutOverflow` error (see [Content that doesn't fit](./pages.md#content-that-doesn-t-fit)).
+`fit` can be `contain`, `cover` or `fill`, and works like CSS `object-fit`. Images are scaled down to fit the page width, and an image taller than a page is scaled down to fit on one. The exception is an image with an explicit `height`: that height is kept, and if it can't fit on an empty page you'll get a `LayoutOverflow` error (see [Content that doesn't fit](./pages.md#content-that-doesn-t-fit)).
 
-If a file isn't a supported image, Papercut throws `ImageUnreadable`.
+A file that isn't a supported image throws `ImageUnreadable`.
 
-In Blade, a relative `src` is looked up inside `papercut.image_path`, which defaults to `public_path()`, and `..` can't be used to escape that directory. Absolute paths are used as written. Remote URLs are never fetched.
+In Blade, a relative `src` is looked up inside `quoin.image_path`, which defaults to `public_path()`, and `..` can't be used to escape that directory. Absolute paths are used as written. Remote URLs are never fetched.
 
 ::: danger
 Never pass user input to `src`.
@@ -50,7 +50,7 @@ Never pass user input to `src`.
 ```
 @tab PHP
 ```php
-use Papercut\Image;
+use Quoin\Image;
 
 $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
 
@@ -61,7 +61,7 @@ $chart->altText();   // 'Sales by quarter, rising from 4 to 9 million'
 ```
 :::
 
-`altText()` returns the text, or an empty string when there is none. An empty string means the picture is decorative. Whitespace in alt text is collapsed and trimmed. Papercut doesn't warn about pictures without alt text.
+`altText()` returns the text, or an empty string when there is none. An empty string means the picture is decorative. Whitespace in alt text is collapsed and trimmed. There is no warning for pictures without alt text.
 
 `<img alt="…">` in HTML you convert with `Markup::html()` sets the alt text of the image it becomes.
 
@@ -91,8 +91,8 @@ An SVG is drawn as vector paths, so logos, icons and charts stay sharp at any si
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Svg};
-use function Papercut\in;
+use Quoin\{Document, Page, Svg};
+use function Quoin\in;
 
 // Svg::file('logo.svg') reads a file instead.
 $ring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
@@ -115,7 +115,7 @@ If you set both `width` and `height`, the SVG's own `preserveAspectRatio` decide
 
 ### What's drawn
 
-Papercut draws paths (including arcs and curves), rectangles with rounded corners, circles, ellipses, lines, polylines and polygons. Groups with transforms (nested ones too), `<use>` and `<defs>`, `<style>` rules for tags, classes and ids, and fill, stroke and opacity all work, including a fill or stroke set on a group. Linear and radial gradients fill any shape.
+SVG support covers paths (including arcs and curves), rectangles with rounded corners, circles, ellipses, lines, polylines and polygons. Groups with transforms (nested ones too), `<use>` and `<defs>`, `<style>` rules for tags, classes and ids, and fill, stroke and opacity all work, including a fill or stroke set on a group. Linear and radial gradients fill any shape.
 
 `fill-rule="evenodd"` is honored on the shape itself, in its `style`, in a style sheet or on a group. It's what keeps the hole in a ring, a letter O or a five-point star when the inner outline is drawn the same way round as the outer one.
 
@@ -135,7 +135,7 @@ In HTML exports, the browser sets SVG text in its own fonts by default: an SVG s
 
 ### SVGs from other people
 
-You can draw SVGs you didn't make yourself, such as an uploaded logo. Papercut never loads files, DTDs or URLs that an SVG refers to, and it refuses an SVG that declares entities. It removes scripts and event handlers, and it refuses SVGs over 10 MB, or ones that would take more than a few seconds to draw, so a crafted file can't keep your server busy for minutes. Papercut estimates that from what the SVG draws, with every `<use>` counted: one unit per path or polygon point, 15 per circle or ellipse, and 5 for any other element, up to a million. That's room for a line chart with several hundred thousand points, or a scatter plot with about 65,000 circles. A refused or broken SVG throws `ImageUnreadable` with the reason.
+You can draw SVGs you didn't make yourself, such as an uploaded logo. Files, DTDs and URLs that an SVG refers to are never loaded, and an SVG that declares entities is refused. Scripts and event handlers are removed, and SVGs over 10 MB, or ones that would take more than a few seconds to draw, are refused, so a crafted file can't keep your server busy for minutes. The time is estimated from what the SVG draws, with every `<use>` counted: one unit per path or polygon point, 15 per circle or ellipse, and 5 for any other element, up to a million. That's room for a line chart with several hundred thousand points, or a scatter plot with about 65,000 circles. A refused or broken SVG throws `ImageUnreadable` with the reason.
 
 A relative `src` in Blade follows the same rules as for images, so keep user input out of `src`.
 
@@ -169,7 +169,7 @@ A link makes everything inside it clickable. `Link::to()` accepts `http`, `https
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Link, Page, Text};
+use Quoin\{Document, Link, Page, Text};
 
 $document = Document::make(Page::letter()->body(
     Link::to('https://example.com', Text::make('example.com')->underline()->color('indigo-600')),
@@ -190,8 +190,8 @@ A QR code is drawn as vector squares, so it stays sharp at any print size and do
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, QrCode};
-use function Papercut\in;
+use Quoin\{Document, Page, QrCode};
+use function Quoin\in;
 
 $document = Document::make(Page::letter()->body(
     QrCode::make('https://acme.test/pay/INV-142')->width(in(1.25)),
@@ -237,9 +237,9 @@ If it isn't installed, styling a code throws an error with that command in it. P
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, QrCode};
-use Papercut\Barcode\{QrEyes, QrShape};
-use function Papercut\in;
+use Quoin\{Document, Page, QrCode};
+use Quoin\Barcode\{QrEyes, QrShape};
+use function Quoin\in;
 
 $document = Document::make(Page::letter()->body(
     QrCode::make('https://acme.test/pay/INV-142')
@@ -269,11 +269,11 @@ In HTML exports, a styled code becomes an SVG image with the value as its alt te
 With BaconQrCode installed, you can use its encoder, which holds up to 2,953 bytes at level `L`. Pass it as the third argument:
 
 ```php
-use Papercut\Barcode\Bacon\BaconQrEncoder;
-use Papercut\Barcode\ErrorCorrection;
-use Papercut\QrCode;
+use Quoin\Barcode\Bacon\BaconQrEncoder;
+use Quoin\Barcode\ErrorCorrection;
+use Quoin\QrCode;
 
 $qr = QrCode::make($longText, ErrorCorrection::Medium, new BaconQrEncoder());
 ```
 
-To use another encoder, implement `Papercut\Barcode\QrEncoder`, or pass a grid you've encoded yourself to `QrCode::fromModules()`.
+To use another encoder, implement `Quoin\Barcode\QrEncoder`, or pass a grid you've encoded yourself to `QrCode::fromModules()`.

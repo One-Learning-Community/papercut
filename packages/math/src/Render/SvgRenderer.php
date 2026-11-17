@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Render;
+namespace Quoin\Math\Render;
 
-use Papercut\Math\Font\TrueTypeFont;
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\DisplayItem;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
+use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\DisplayItem;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
 
 /**
  * Standalone SVG. Units are points (1 SVG user unit = 1 pt); the SVG's width/height are the box

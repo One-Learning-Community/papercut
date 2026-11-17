@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Render;
+namespace Quoin\Math\Render;
 
-use Papercut\Math\Exception\MissingExtension;
-use Papercut\Math\Font\TrueTypeFont;
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\DisplayItem;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
+use Quoin\Math\Exception\MissingExtension;
+use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\DisplayItem;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
 
 /**
  * PNG with a transparent background, drawn from the display list with Imagick. Needs ext-imagick, see available().

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\DisplayItem;
+use Quoin\Math\Layout\DisplayItem;
 
 /** A display item that counts how often it is copied. */
 final class CountedItem implements DisplayItem

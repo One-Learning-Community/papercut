@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, Table, TableCell};
-use Papercut\Value\Edges;
+use Quoin\{Document, Page, Table, TableCell};
+use Quoin\Value\Edges;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 // Each cell draws its right and bottom rule and the table its top and left, so the grid has no doubled lines.
 $grid = static fn (TableCell $c): TableCell => $c->borderWidth(Edges::of(pt(0), pt(0.75), pt(0.75), pt(0)))->borderColor('slate-300');

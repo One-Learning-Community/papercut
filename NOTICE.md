@@ -1,6 +1,6 @@
 # Third-party notices
 
-Papercut is MIT licensed (see `LICENSE`). It includes or depends on the following third-party works.
+This project is MIT licensed (see `LICENSE`). It includes or depends on the following third-party works.
 
 ## Inter typeface
 
@@ -38,14 +38,14 @@ Tailwind CSS v3.4.17 default palette by `packages/core/tools/generate-palette.ph
 
 ## dskripchenko/php-pdf
 
-`papercut/core` depends on [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf) (`^1.26`) for PDF
-object writing, font subsetting and text shaping. It is used only through `Papercut\Backend\PhpPdf\*`.
+`quoin/core` depends on [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf) (`^1.26`) for PDF
+object writing, font subsetting and text shaping. It is used only through `Quoin\Backend\PhpPdf\*`.
 
 - License: MIT (distributed via Composer, not bundled in this repository)
 
 ## dskripchenko/php-docx
 
-`papercut/docx` depends on [`dskripchenko/php-docx`](https://github.com/dskripchenko/php-docx) (`^1.17`) to write Word files. It is used only through
-`Papercut\Docx\*`.
+`quoin/docx` depends on [`dskripchenko/php-docx`](https://github.com/dskripchenko/php-docx) (`^1.17`) to write Word files. It is used only through
+`Quoin\Docx\*`.
 
 - License: MIT (distributed via Composer, not bundled in this repository)

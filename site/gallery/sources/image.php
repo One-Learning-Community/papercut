@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Papercut\{Column, Document, Image, Page, Row, Text, View};
+use Quoin\{Column, Document, Image, Page, Row, Text, View};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 // A landscape drawn with GD, so the gallery needs no photo: a wide picture shown in square frames.
 $w = 900;

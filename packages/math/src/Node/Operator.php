@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Run;
-use Papercut\Math\Layout\Stretcher;
-use Papercut\Math\OperatorDictionary;
-use Papercut\Math\Utf8;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Run;
+use Quoin\Math\Layout\Stretcher;
+use Quoin\Math\OperatorDictionary;
+use Quoin\Math\Utf8;
 
 /**
  * mo: an operator or fence character. Its form (prefix/infix/postfix) comes from its position in
@@ -71,14 +71,14 @@ final class Operator extends Node
     /**
      * On its own (not inside a Row) an operator is first in its row, so prefix.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function layout(Context $c): Box
     {
         return $this->layoutAs($c, $this->form ?? OperatorDictionary::FORM_PREFIX);
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layoutAs(Context $c, string $form): Box
     {
         $entry = OperatorDictionary::lookup($this->char, $form);

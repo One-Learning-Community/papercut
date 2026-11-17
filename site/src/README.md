@@ -1,12 +1,12 @@
 ---
 home: true
-title: Papercut
-heroImage: /papercut-mark.svg
-heroImageDark: /papercut-mark-dark.svg
-heroAlt: Papercut logo
+title: Quoin
+heroImage: /quoin-mark.svg
+heroImageDark: /quoin-mark-dark.svg
+heroAlt: Quoin logo
 heroHeight: 160
-heroText: Papercut
-tagline: Paperwork without the sting.
+heroText: Quoin
+tagline: Every line in its place.
 actions:
   - text: Get started
     link: /guide/
@@ -36,7 +36,7 @@ features:
 footer: MIT licensed. PDFs are written by php-pdf and Word files by php-docx, both by Denis Skripchenko. Inter and Cousine are bundled under the SIL Open Font License.
 ---
 
-Papercut builds PDFs, Word files and HTML from Blade or plain PHP, with page breaks that just work.
+Quoin builds PDFs, Word files and HTML from Blade or plain PHP, with page breaks that just work.
 
 ## This code makes this PDF
 
@@ -126,14 +126,14 @@ The 60 courses run over three pages. The header row repeats at the top of each o
 A Laravel route sends it to the browser as a PDF or as a Word file:
 
 ```php
-$transcript = Papercut::view('transcript', compact('student', 'courses', 'credits', 'points', 'gpa'));
+$transcript = Quoin::view('transcript', compact('student', 'courses', 'credits', 'points', 'gpa'));
 
 return $transcript->pdf()->download('transcript.pdf');
-// or, with papercut/docx installed: $transcript->docx()->download('transcript.docx');
+// or, with quoin/docx installed: $transcript->docx()->download('transcript.docx');
 ```
 
 Without Laravel, `$document->toPdf()->save('transcript.pdf')` writes the PHP version to a file, and `->stream()` sends it to the browser. See [more examples](/examples.md).
 
 ## Built on php-pdf and php-docx
 
-Papercut decides where everything goes on the page. Writing the file is the work of two libraries by [Denis Skripchenko](https://github.com/dskripchenko): [php-pdf](https://github.com/dskripchenko/php-pdf) writes every PDF, with its fonts, images, SVG, QR codes and encryption, and [php-docx](https://github.com/dskripchenko/php-docx) writes the Word files. Both are pure PHP and MIT licensed, and Papercut wouldn't exist without them.
+The layout engine decides where everything goes on the page. Writing the file is the work of two libraries by [Denis Skripchenko](https://github.com/dskripchenko): [php-pdf](https://github.com/dskripchenko/php-pdf) writes every PDF, with its fonts, images, SVG, QR codes and encryption, and [php-docx](https://github.com/dskripchenko/php-docx) writes the Word files. Both are pure PHP and MIT licensed, and this project wouldn't exist without them.

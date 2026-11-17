@@ -8,9 +8,9 @@ declare(strict_types=1);
  * A fixture whose name ends in "-inline" is laid out in text style, every other one in display style.
  */
 
-use Papercut\Math\Math;
-use Papercut\Math\Render\SvgRenderer;
-use Papercut\Math\Tests\Fixtures;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
+use Quoin\Math\Tests\Fixtures;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -23,10 +23,10 @@ if (! is_dir($out) && ! mkdir($out, 0777, true)) {
 $renderer = new SvgRenderer(Math::stixTwoMath());
 $rsvg = trim((string) shell_exec('command -v rsvg-convert 2>/dev/null'));
 
-$html = '<!doctype html><meta charset="utf-8"><title>papercut/math fixtures</title>'
+$html = '<!doctype html><meta charset="utf-8"><title>quoin/math fixtures</title>'
     . '<style>body{font:14px system-ui;margin:2rem;max-width:56rem}'
     . '.row{display:flex;align-items:center;gap:1.5rem;border-bottom:1px solid #ddd;padding:.6rem 0}'
-    . '.n{width:14rem;color:#666;font-size:12px}</style><h1>papercut/math fixtures</h1>';
+    . '.n{width:14rem;color:#666;font-size:12px}</style><h1>quoin/math fixtures</h1>';
 
 foreach (Fixtures::all() as $name => $node) {
     $display = ! str_ends_with($name, '-inline');

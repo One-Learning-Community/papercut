@@ -65,7 +65,7 @@ export const samples = [
 </section>`,
   },
   {
-    name: 'Classes on Papercut tags',
+    name: 'Classes on Quoin tags',
     source: `<x-doc::column class="gap-3 p-4 bg-slate-50 rounded-lg keep-together">
     <x-doc::text class="text-xl font-bold text-slate-900">Ada Lovelace</x-doc::text>
     <x-doc::row class="gap-2 mt-2" justify="end">

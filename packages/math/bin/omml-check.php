@@ -6,8 +6,8 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../tests/Fixtures.php';
 
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Tests\Fixtures;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Tests\Fixtures;
 
 $out = __DIR__ . '/../tests/out';
 @mkdir($out, 0777, true);

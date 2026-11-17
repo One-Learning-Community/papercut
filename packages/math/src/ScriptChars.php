@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math;
+namespace Quoin\Math;
 
 /**
- * The Unicode superscript and subscript characters papercut/math reads and writes, keyed by the plain
+ * The Unicode superscript and subscript characters quoin/math reads and writes, keyed by the plain
  * character they stand for. Shared by Tokenizer (characters to scripts) and Render\TextWriter (scripts to characters).
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class ScriptChars
 {

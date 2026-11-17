@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Render;
+namespace Quoin\Math\Tests\Render;
 
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Render\TexWriter;
-use Papercut\Math\Tests\Fixtures;
-use Papercut\Math\Tex\TexReader;
-use Papercut\Math\Tex\TexSymbols;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Render\TexWriter;
+use Quoin\Math\Tests\Fixtures;
+use Quoin\Math\Tex\TexReader;
+use Quoin\Math\Tex\TexSymbols;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -134,7 +134,7 @@ final class TexWriterTest extends TestCase
         self::assertSame('{x_1}^2', self::tex(Math::sup(Math::sub('x', '1'), '2')));
         self::assertSame('{a + b}^2', self::tex(Math::sup(Math::row('a + b'), '2')));
         self::assertSame('x^{\frac{a}{b}}', self::tex(Math::sup('x', Math::frac('a', 'b'))));
-        self::assertSame('\sum\nolimits_{i = 1}^n', self::tex(new \Papercut\Math\Node\Scripts(new Operator('∑'), Math::row('i = 1'), Math::row('n'))));
+        self::assertSame('\sum\nolimits_{i = 1}^n', self::tex(new \Quoin\Math\Node\Scripts(new Operator('∑'), Math::row('i = 1'), Math::row('n'))));
         self::assertSame('\int_0^1', self::tex(Math::integral('0', '1')));
     }
 
@@ -246,9 +246,9 @@ final class TexWriterTest extends TestCase
     {
         foreach (["\\lim\\nolimits'' x", "f\u{2033}", "\u{2033} + 1"] as $src) {
             $a = Math::tex($src);
-            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, Math::tex(self::tex($a)));
+            \Quoin\Math\Tests\TreeAssert::assertSameTree($a, Math::tex(self::tex($a)));
         }
-        \Papercut\Math\Tests\TreeAssert::assertSameTree(new Identifier('″', false), Math::tex(self::tex(new Operator('″'))));
+        \Quoin\Math\Tests\TreeAssert::assertSameTree(new Identifier('″', false), Math::tex(self::tex(new Operator('″'))));
         self::assertSame('\prime\prime', self::tex(Math::tex('\prime\prime')));
     }
 
@@ -256,7 +256,7 @@ final class TexWriterTest extends TestCase
     {
         $wide = new Grid([[Math::row('a'), Math::row('b')]], ['center', 'center'], display: true);
         self::assertSame('\begin{darray}{cc}a & b\end{darray}', self::tex($wide));
-        \Papercut\Math\Tests\TreeAssert::assertSameTree($wide, Math::tex(self::tex($wide)));
+        \Quoin\Math\Tests\TreeAssert::assertSameTree($wide, Math::tex(self::tex($wide)));
     }
 
     public function test_symbol_commands_and_primes_round_trip(): void
@@ -264,7 +264,7 @@ final class TexWriterTest extends TestCase
         self::assertSame('\Re z', self::tex(Math::tex('\Re z')));
         foreach (['\Re z + \Im w', "f''' + g'''", "f'''^2", "f''_a^2", '\not\subset \not\equiv'] as $src) {
             $a = Math::tex($src);
-            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, Math::tex(self::tex($a)));
+            \Quoin\Math\Tests\TreeAssert::assertSameTree($a, Math::tex(self::tex($a)));
         }
     }
 
@@ -434,24 +434,24 @@ final class TexWriterTest extends TestCase
 
     public function test_xlongequal_round_trips_and_is_stretchy_in_mathml(): void
     {
-        $a = \Papercut\Math\Math::tex('A \xlongequal{x} B');
+        $a = \Quoin\Math\Math::tex('A \xlongequal{x} B');
         self::assertSame('A \xlongequal{x} B', self::tex($a));
-        \Papercut\Math\Tests\TreeAssert::assertSameTree($a, \Papercut\Math\Math::tex(self::tex($a)));
-        self::assertStringContainsString('<mo stretchy="true">=</mo>', \Papercut\Math\Render\MathmlWriter::write($a));
+        \Quoin\Math\Tests\TreeAssert::assertSameTree($a, \Quoin\Math\Math::tex(self::tex($a)));
+        self::assertStringContainsString('<mo stretchy="true">=</mo>', \Quoin\Math\Render\MathmlWriter::write($a));
     }
 
     public function test_plain_labeled_equals_does_not_become_xlongequal(): void
     {
-        foreach ([\Papercut\Math\Math::over('=', 'd'), \Papercut\Math\Math::mathml('<math><mover><mo>=</mo><mi>d</mi></mover></math>')] as $a) {
+        foreach ([\Quoin\Math\Math::over('=', 'd'), \Quoin\Math\Math::mathml('<math><mover><mo>=</mo><mi>d</mi></mover></math>')] as $a) {
             $tex = self::tex($a);
             self::assertStringNotContainsString('xlongequal', $tex);
-            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, \Papercut\Math\Math::tex($tex));
+            \Quoin\Math\Tests\TreeAssert::assertSameTree($a, \Quoin\Math\Math::tex($tex));
         }
     }
 
     public function test_labeled_arrows_round_trip_to_the_same_tree(): void
     {
-        $M = \Papercut\Math\Math::class;
+        $M = \Quoin\Math\Math::class;
         $inputs = [
             $M::over('→', 'f'),
             $M::mathml('<math><mover><mo>→</mo><mi>f</mi></mover></math>'),
@@ -459,9 +459,9 @@ final class TexWriterTest extends TestCase
             $M::tex('\xlongequal{d}'),
         ];
         foreach ($inputs as $a) {
-            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, $M::tex(self::tex($a)));
+            \Quoin\Math\Tests\TreeAssert::assertSameTree($a, $M::tex(self::tex($a)));
         }
-        self::assertStringNotContainsString('stretchy', \Papercut\Math\Render\MathmlWriter::write($M::tex('\xrightarrow{f}')));
-        self::assertStringContainsString('stretchy="true"', \Papercut\Math\Render\MathmlWriter::write($M::tex('\xlongequal{d}')));
+        self::assertStringNotContainsString('stretchy', \Quoin\Math\Render\MathmlWriter::write($M::tex('\xrightarrow{f}')));
+        self::assertStringContainsString('stretchy="true"', \Quoin\Math\Render\MathmlWriter::write($M::tex('\xlongequal{d}')));
     }
 }

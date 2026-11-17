@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page};
-use Papercut\Decorator\CodeBlock;
+use Quoin\{Document, Page};
+use Quoin\Decorator\CodeBlock;
 
-use function Papercut\in;
+use function Quoin\in;
 
 $code = <<<'PHP'
 $invoice = Invoice::find($id);
 
-return Papercut::view('invoice', ['invoice' => $invoice])
+return Quoin::view('invoice', ['invoice' => $invoice])
     ->pdf()
     ->download("invoice-{$invoice->number}.pdf");
 PHP;

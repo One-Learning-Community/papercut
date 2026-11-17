@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Scripts;
-use Papercut\Math\Node\UnderOver;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Scripts;
+use Quoin\Math\Node\UnderOver;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -330,7 +330,7 @@ final class UnderOverTest extends TestCase
         [$ll, $lr] = self::labelSpan($box);
         $rules = [];
         $box->each(static function ($i, float $dx) use (&$rules): void {
-            if ($i instanceof \Papercut\Math\Layout\Rule) {
+            if ($i instanceof \Quoin\Math\Layout\Rule) {
                 $rules[] = [$i->x + $dx, $i->x + $dx + $i->w];
             }
         });
@@ -679,7 +679,7 @@ final class UnderOverTest extends TestCase
     {
         $rules = [];
         $box->each(static function ($i, float $dx, float $dy) use (&$rules): void {
-            if ($i instanceof \Papercut\Math\Layout\Rule) {
+            if ($i instanceof \Quoin\Math\Layout\Rule) {
                 $rules[] = [$i->w, $i->y + $dy, $i->h];
             }
         });
@@ -690,11 +690,11 @@ final class UnderOverTest extends TestCase
     public function test_stretchy_equals_is_never_narrower_than_the_glyph(): void
     {
         $font = Math::stixTwoMath();
-        $c = new \Papercut\Math\Layout\Context($font, self::SIZE);
+        $c = new \Quoin\Math\Layout\Context($font, self::SIZE);
         $bb = $font->bbox($font->gid(mb_ord('=')));
         $natural = ($bb[2] - $bb[0]) * $c->unit();
         foreach (['¯', '^', '→'] as $mark) {
-            $node = new UnderOver(new \Papercut\Math\Node\Operator('=', stretchy: true), null, new \Papercut\Math\Node\Operator($mark));
+            $node = new UnderOver(new \Quoin\Math\Node\Operator('=', stretchy: true), null, new \Quoin\Math\Node\Operator($mark));
             $rules = self::rulesOf($node->layout($c));
             self::assertNotEmpty($rules, $mark);
             self::assertGreaterThanOrEqual($natural - 0.001, $rules[0][0], $mark);
@@ -703,18 +703,18 @@ final class UnderOverTest extends TestCase
 
     public function test_equals_is_drawn_as_rules_only_without_a_font_construction(): void
     {
-        $c = new \Papercut\Math\Layout\Context(Math::stixTwoMath(), self::SIZE);
-        self::assertTrue(UnderOver::drawsEqualsAsRules($c, new \Papercut\Math\Node\Operator('=', stretchy: true)));
-        self::assertFalse(UnderOver::drawsEqualsAsRules($c, new \Papercut\Math\Node\Operator('=')));
-        self::assertFalse(UnderOver::drawsEqualsAsRules($c, new \Papercut\Math\Node\Operator('→', stretchy: true)));
+        $c = new \Quoin\Math\Layout\Context(Math::stixTwoMath(), self::SIZE);
+        self::assertTrue(UnderOver::drawsEqualsAsRules($c, new \Quoin\Math\Node\Operator('=', stretchy: true)));
+        self::assertFalse(UnderOver::drawsEqualsAsRules($c, new \Quoin\Math\Node\Operator('=')));
+        self::assertFalse(UnderOver::drawsEqualsAsRules($c, new \Quoin\Math\Node\Operator('→', stretchy: true)));
     }
 
     #[DataProvider('scriptLevels')]
     public function test_drawn_equals_bars_match_the_plain_equals_at_script_levels(int $level): void
     {
         $font = Math::stixTwoMath();
-        $c = new \Papercut\Math\Layout\Context($font, self::SIZE, $level);
-        $plain = (new \Papercut\Math\Node\Operator('=', stretchy: false))->layout($c);
+        $c = new \Quoin\Math\Layout\Context($font, self::SIZE, $level);
+        $plain = (new \Quoin\Math\Node\Operator('=', stretchy: false))->layout($c);
         $gid = null;
         $plain->each(static function ($i) use (&$gid): void {
             if ($i instanceof Glyph) {
@@ -729,7 +729,7 @@ final class UnderOverTest extends TestCase
             $expected[] = [-max([-INF, ...$ys]) * $u, (max([-INF, ...$ys]) - min([INF, ...$ys])) * $u];
         }
         sort($expected);
-        $drawn = self::rulesOf((new UnderOver(new \Papercut\Math\Node\Operator('=', stretchy: true), null, \Papercut\Math\Math::row('d')))->layout($c));
+        $drawn = self::rulesOf((new UnderOver(new \Quoin\Math\Node\Operator('=', stretchy: true), null, \Quoin\Math\Math::row('d')))->layout($c));
         $got = array_map(static fn (array $r): array => [$r[1], $r[2]], $drawn);
         sort($got);
         self::assertCount(2, $got);

@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 // Draws the blank certificate that the certificate example fills in. In a real project this PDF would come
-// from a design tool; here Papercut makes it so the file can be rebuilt. Run: php examples/core/certificate-template.php
+// from a design tool; here the file is built in code so it can be rebuilt. Run: php examples/core/certificate-template.php
 require __DIR__ . '/../../packages/core/vendor/autoload.php';
 
-use Papercut\{Column, Document, Page, Row, Text};
-use Papercut\Value\Edges;
+use Quoin\{Column, Document, Page, Row, Text};
+use Quoin\Value\Edges;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 // A rule with a small label under it, for the date and signature.
 $rule = fn (string $label, float $width) => Column::make(

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 // Builds the academic paper Document: a full-width title block and abstract, a two-column body that ends level, and a full-width
 // closing note. examples/core/paper.php saves it as PDF, examples/html/render.php as HTML and examples/docx/render.php as Word.
-use Papercut\{Column, ColumnFlow, Document, Equation, Page, PageNumber, Row, Span, Spacer, Svg, Table, TableCell, TableRow, Text};
-use Papercut\Markup\Markup;
-use Papercut\Math\Math;
-use Papercut\Value\Edges;
+use Quoin\{Column, ColumnFlow, Document, Equation, Page, PageNumber, Row, Span, Spacer, Svg, Table, TableCell, TableRow, Text};
+use Quoin\Markup\Markup;
+use Quoin\Math\Math;
+use Quoin\Value\Edges;
 
-use function Papercut\{mm, pt};
+use function Quoin\{mm, pt};
 
 $assets = __DIR__ . '/../../assets';
 

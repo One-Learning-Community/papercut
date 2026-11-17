@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
 
 /**
  * An equation grid (mtable): rows of cells in aligned columns, laid out the way TeX sets a matrix.
@@ -91,7 +91,7 @@ final class Grid extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
@@ -105,7 +105,7 @@ final class Grid extends Node
         return $out;
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         if ($this->columns === 0) {

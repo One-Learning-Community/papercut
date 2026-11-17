@@ -1,4 +1,4 @@
-{{-- App-side content: a certificate filled in on top of a blank PDF. papercut.image_path points at examples/assets. --}}
+{{-- App-side content: a certificate filled in on top of a blank PDF. quoin.image_path points at examples/assets. --}}
 <x-doc::document title="Certificate of Completion" author="Hivewise Academy">
     <x-doc::page template="certificate-template.pdf">
         <x-slot:overlay>

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
-use Papercut\Math\Math;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
+use Quoin\Math\Math;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
 use PHPUnit\Framework\TestCase;
 
 final class HardeningTest extends TestCase
@@ -49,7 +49,7 @@ final class HardeningTest extends TestCase
             $notes = Math::notes($node);
             self::assertCount(1, $notes, $w);
             self::assertSame('mspace', $notes[0]->element);
-            self::assertSame(\Papercut\Math\NoteLevel::Approximated, $notes[0]->level);
+            self::assertSame(\Quoin\Math\NoteLevel::Approximated, $notes[0]->level);
             self::assertLessThan(10_000, strlen(OmmlWriter::oMath($node)), $w);
             self::assertStringContainsString('width="100em"', MathmlWriter::write($node));
             self::assertLessThanOrEqual(100 * 12, Math::layout($node)->width);

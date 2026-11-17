@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Render;
+namespace Quoin\Math\Render;
 
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Fraction;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Middle;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Phantom;
-use Papercut\Math\Node\Root;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Scripts;
-use Papercut\Math\Node\Space;
-use Papercut\Math\Node\Text;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\OperatorDictionary;
-use Papercut\Math\Styles;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Fraction;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Middle;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Phantom;
+use Quoin\Math\Node\Root;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Scripts;
+use Quoin\Math\Node\Space;
+use Quoin\Math\Node\Text;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\OperatorDictionary;
+use Quoin\Math\Styles;
 
 /**
  * Serializes a formula tree as Word OMML. The output declares no namespaces: the caller

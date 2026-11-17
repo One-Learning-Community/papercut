@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
 
 /** mspace: horizontal space of $em times the font size, no height. A negative width pulls the next item back. */
 final class Space extends Node
@@ -17,7 +17,7 @@ final class Space extends Node
     {
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         return new Box($this->em * $c->size());

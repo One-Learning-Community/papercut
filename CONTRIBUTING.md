@@ -1,10 +1,10 @@
-# Contributing to Papercut
+# Contributing to Quoin
 
-Papercut is a monorepo with these Composer packages:
+This is a monorepo with these Composer packages:
 
-- `packages/core` (`papercut/core`): the layout engine and plain-PHP API.
-- `packages/math` (`papercut/math`): the equation builder, layout and renderers. It depends on nothing else; core requires it.
-- `packages/laravel` (`papercut/laravel`): Blade components on top of core. It requires core through a path
+- `packages/core` (`quoin/core`): the layout engine and plain-PHP API.
+- `packages/math` (`quoin/math`): the equation builder, layout and renderers. It depends on nothing else; core requires it.
+- `packages/laravel` (`quoin/laravel`): Blade components on top of core. It requires core through a path
   repository (`../core`, symlinked), so a change in core is visible in the Laravel package immediately.
 
 ## Development setup
@@ -29,7 +29,7 @@ composer --working-dir=packages/laravel install
 ```
 
 The Laravel and DOCX packages' path repositories pin core (and DOCX) to the current minor's `x-dev` version (`options.versions` in its `composer.json`), so it
-resolves on any branch or detached checkout. Bump that pin together with core's `branch-alias` and the `papercut/*`
+resolves on any branch or detached checkout. Bump that pin together with core's `branch-alias` and the `quoin/*`
 requirements when the minor version changes.
 
 ## Running the tests
@@ -69,7 +69,7 @@ cd packages/core
 php -d xdebug.mode=off -d opcache.enable_cli=1 bench/run.php | php bench/check.php
 ```
 
-`check.php` compares the median with `bench/baseline.json` for the machine class in `PAPERCUT_BENCH_MACHINE` (default
+`check.php` compares the median with `bench/baseline.json` for the machine class in `QUOIN_BENCH_MACHINE` (default
 `local`) and fails above 1.2x the baseline. CI runs as `ci-ubuntu-latest`; until a maintainer commits that entry
 (taken from the baseline the first CI run uploads as a build artifact), the gate checks only the page count.
 
@@ -87,15 +87,15 @@ The docs gallery's images come from the small documents in `site/gallery/sources
 ## Style
 
 - `declare(strict_types=1)` everywhere; types on every signature; components are immutable (methods return copies).
-- Only `Papercut\Backend\PhpPdf\*` may import `Dskripchenko\*` (enforced by `tests/ArchitectureTest.php`).
+- Only `Quoin\Backend\PhpPdf\*` may import `Dskripchenko\*` (enforced by `tests/ArchitectureTest.php`).
 - No new runtime dependencies without discussion.
 - Error messages say what is wrong, where, and what to do about it.
 
 ## Releasing
 
 Releases are tag-driven. Packagist reads one `composer.json` per repository, so each package is mirrored into its own
-read-only split repository: `One-Learning-Community/papercut-math`, `One-Learning-Community/papercut-core`,
-`One-Learning-Community/papercut-laravel` and `One-Learning-Community/papercut-docx`.
+read-only split repository: `One-Learning-Community/quoin-math`, `One-Learning-Community/quoin-core`,
+`One-Learning-Community/quoin-laravel` and `One-Learning-Community/quoin-docx`.
 Never commit to the split repos directly; they are overwritten on every split.
 
 | Workflow | Trigger | Does |
@@ -107,13 +107,13 @@ Never commit to the split repos directly; they are overwritten on every split.
 ### One-time setup
 
 1. Create a fine-grained personal access token (resource owner `One-Learning-Community`) with
-   **Contents: read and write** on `papercut-math`, `papercut-core`, `papercut-laravel` and `papercut-docx` only, and save it as the
-   `SPLIT_TOKEN` Actions secret on `One-Learning-Community/papercut`. Without it `split.yml` skips with a notice
+   **Contents: read and write** on `quoin-math`, `quoin-core`, `quoin-laravel` and `quoin-docx` only, and save it as the
+   `SPLIT_TOKEN` Actions secret on `One-Learning-Community/quoin`. Without it `split.yml` skips with a notice
    and `release.yml` fails at the split step.
 2. Each split repo must exist with at least one commit (a README is enough) before the first split: the split
    action can't push to an empty repository.
-3. Once the split repos have content, submit them at https://packagist.org/packages/submit (`papercut-math`
-   first, since core requires it, then `papercut-core`, `papercut-laravel` and `papercut-docx`). Packagist's GitHub integration keeps them updated on new pushes and tags.
+3. Once the split repos have content, submit them at https://packagist.org/packages/submit (`quoin-math`
+   first, since core requires it, then `quoin-core`, `quoin-laravel` and `quoin-docx`). Packagist's GitHub integration keeps them updated on new pushes and tags.
 
 ### Each release
 
@@ -121,11 +121,11 @@ Never commit to the split repos directly; they are overwritten on every split.
 2. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (`release.yml` refuses a missing or
    still-unreleased section), and add a fresh `## [Unreleased]` above it.
 3. If the minor version changed, bump the `extra.branch-alias` of `packages/math` and of core, the `versions` pin in
-   the path repos (core's, Laravel's and DOCX's for `papercut/math`, Laravel's and DOCX's for core, and Laravel's
-   for `papercut/docx`), and the requirements: core's, Laravel's and DOCX's `papercut/math`, the Laravel and DOCX
-   packages' `papercut/core`, and Laravel's `papercut/docx` (`^X.Y`). Only math and core carry a branch-alias.
-4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Papercut X.Y.Z" && git push origin main vX.Y.Z`.
-5. Verify in a scratch project: `composer require papercut/core papercut/laravel papercut/docx`, then render one
+   the path repos (core's, Laravel's and DOCX's for `quoin/math`, Laravel's and DOCX's for core, and Laravel's
+   for `quoin/docx`), and the requirements: core's, Laravel's and DOCX's `quoin/math`, the Laravel and DOCX
+   packages' `quoin/core`, and Laravel's `quoin/docx` (`^X.Y`). Only math and core carry a branch-alias.
+4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Quoin X.Y.Z" && git push origin main vX.Y.Z`.
+5. Verify in a scratch project: `composer require quoin/core quoin/laravel quoin/docx`, then render one
    document with each.
 
 The Laravel package's `repositories` and `minimum-stability` entries exist for monorepo development. Composer

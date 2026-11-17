@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Render;
+namespace Quoin\Math\Tests\Render;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\Render\TextWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

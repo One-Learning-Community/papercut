@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\OperatorDictionary;
+use Quoin\Math\OperatorDictionary;
 
 /**
  * Operator forms by position. An operator is prefix when it is first in its row or follows another
@@ -15,7 +15,7 @@ use Papercut\Math\OperatorDictionary;
  * of a kind opens (prefix) and the 2nd, 4th, ... closes (postfix, an operand for what follows). A last bar
  * with no partner ("a | b") is a relation: infix.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Forms
 {

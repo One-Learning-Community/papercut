@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Rule;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Rule;
 
 /** mfrac. Display style keeps numerator/denominator at the current size; inline style shrinks them one script level. */
 final class Fraction extends Node
@@ -18,7 +18,7 @@ final class Fraction extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
@@ -28,14 +28,14 @@ final class Fraction extends Node
     /**
      * Horizontal padding on each side of the fraction, in points.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function padding(Context $c): float
     {
         return $c->mu(1);
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         $fc = $c->fractionChild();

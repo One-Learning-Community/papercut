@@ -1,16 +1,16 @@
 # Math
 
-`papercut/math` typesets mathematics in plain PHP. It reads TeX or MathML and writes SVG, PNG, MathML, TeX, Word equations (OMML) or plain text. It needs PHP 8.4 with `ctype`, `dom` and `mbstring`. No Node, no browser, no fonts on the server.
+`quoin/math` typesets mathematics in plain PHP. It reads TeX or MathML and writes SVG, PNG, MathML, TeX, Word equations (OMML) or plain text. It needs PHP 8.4 with `ctype`, `dom` and `mbstring`. No Node, no browser, no fonts on the server.
 
-Papercut uses it for equations in PDF, Word and HTML documents, but it does not depend on Papercut.
+The rest of the monorepo uses it for equations in PDF, Word and HTML documents, but it does not depend on them.
 
 ```
-composer require papercut/math
+composer require quoin/math
 ```
 
 ```php
-use Papercut\Math\Math;
-use Papercut\Math\Render\SvgRenderer;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
 
 $box = Math::layout(Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}'), size: 16.0);
 echo (new SvgRenderer(Math::stixTwoMath()))->render($box, pad: 1.0);
@@ -43,7 +43,7 @@ Every reader produces the same tree, so the package also converts: TeX to MathML
 
 KaTeX and MathJax are the standard tools for math on the web, and they are excellent. Both are JavaScript, so a PHP site runs Node beside PHP or renders in the visitor's browser.
 
-`papercut/math` is the PHP-only alternative. It reads the TeX KaTeX reads (gaps listed under [Input](./input.md#tex)), runs in your PHP process and returns a string. It also writes Word equations, which neither JavaScript library does.
+`quoin/math` is the PHP-only alternative. It reads the TeX KaTeX reads (gaps listed under [Input](./input.md#tex)), runs in your PHP process and returns a string. It also writes Word equations, which neither JavaScript library does.
 
 Not yet supported: fonts other than STIX Two Math, line breaks inside long formulas, color and boxes within a formula, and equation numbers.
 
@@ -59,4 +59,4 @@ The readers never throw. Input that is too large or too deep is cut off at fixed
 - [Input](./input.md): the builder, TeX and MathML, and what each reader reports.
 - [Output](./output.md): the writers and their options.
 - [Custom backends](./backends.md): drawing a layout yourself, and other math fonts.
-- For equations in Papercut documents, see [Equations](/guide/equations.md).
+- For equations in documents, see [Equations](/guide/equations.md).

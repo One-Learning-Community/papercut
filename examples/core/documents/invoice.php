@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 // Builds the invoice Document; examples/core/invoice.php saves it as PDF and examples/html/render.php as HTML.
-use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, Text};
-use Papercut\Decorator\Totals;
-use Papercut\Style\Justify;
-use Papercut\Value\Edges;
+use Quoin\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, Text};
+use Quoin\Decorator\Totals;
+use Quoin\Style\Justify;
+use Quoin\Value\Edges;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $items = [
     ['Layout engine consulting', 'Flexbox-style design review and API workshop', 12, 140.00],

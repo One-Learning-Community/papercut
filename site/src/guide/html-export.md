@@ -5,7 +5,7 @@ Any document can be exported as HTML, with the same theme, fonts and named style
 ::: code-tabs#style
 @tab Laravel
 ```php
-$invoice = Papercut::view('pdf.invoice', compact('invoice'));
+$invoice = Quoin::view('pdf.invoice', compact('invoice'));
 
 return $invoice->pdf()->download('invoice.pdf');   // PDF
 return $invoice->html();                           // a full HTML page
@@ -17,13 +17,13 @@ return $invoice->html();                           // a full HTML page
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text};
-use Papercut\Export\HtmlOptions;
+use Quoin\{Document, Page, Text};
+use Quoin\Export\HtmlOptions;
 
 $document = Document::make(Page::a4()->body(Text::make('Hello')));
 
 $page     = $document->toHtml(new HtmlOptions(fullPage: true))->bytes();
-$fragment = $document->toHtml()->bytes();   // one .papercut element, no <html>
+$fragment = $document->toHtml()->bytes();   // one .quoin element, no <html>
 ```
 :::
 
@@ -39,7 +39,7 @@ Browsers don't have pages, so a few things are approximated: fraction column wid
 
 A few things are dropped, and [strict mode](./rich-text.md#strict-mode) fails an HTML export on them: PDF page templates and embedded PDF pages. Code highlighting that can't be done is dropped in every format, as [Code blocks](./text.md#code-blocks) explains. Without strict mode these are reported as warnings.
 
-A [table of contents](./pages.md#tables-of-contents) becomes a `<nav class="papercut-toc">` with nested ordered lists of links to the headings. Headings that are entries get an `id` (a slug of their text, with `-2` added on a clash). It has no page numbers or leaders, and each table of contents is reported once as approximated.
+A [table of contents](./pages.md#tables-of-contents) becomes a `<nav class="quoin-toc">` with nested ordered lists of links to the headings. Headings that are entries get an `id` (a slug of their text, with `-2` added on a clash). It has no page numbers or leaders, and each table of contents is reported once as approximated.
 
 To pick the HTML element a view exports as, call `htmlTag()` (`div`, `section`, `aside`, `blockquote`, `header`, `footer` or `figure`). PDF ignores it.
 
@@ -55,7 +55,7 @@ A PDF carries its fonts inside the file; a browser has to load them. By default 
 
 ## Equations
 
-[Equations](./equations.md) are written as MathML Core: `<math display="block">` for a block equation and `<math display="inline">` inside a line. The browser lays them out, so spacing can differ a little from the PDF. What font the browser uses depends on the [font mode](./web-fonts.md). With the default, `none`, the stylesheet still names "Papercut Math" first but defines no face for it, so the browser falls back to its own `math` font. `embed` embeds STIX Two Math (or your math font) in the page, `link` links to it, and `sources` embeds it as a `data:` URI, since no outside source serves it. A block equation is placed with margins.
+[Equations](./equations.md) are written as MathML Core: `<math display="block">` for a block equation and `<math display="inline">` inside a line. The browser lays them out, so spacing can differ a little from the PDF. What font the browser uses depends on the [font mode](./web-fonts.md). With the default, `none`, the stylesheet still names "Quoin Math" first but defines no face for it, so the browser falls back to its own `math` font. `embed` embeds STIX Two Math (or your math font) in the page, `link` links to it, and `sources` embeds it as a `data:` URI, since no outside source serves it. A block equation is placed with margins.
 
 ## Inline SVGs
 
@@ -66,14 +66,14 @@ Set `inlineSvgs` to write each SVG into the page as `<svg>` markup instead:
 ::: code-tabs#style
 @tab Laravel
 ```php
-// config/papercut.php
+// config/quoin.php
 'html' => [
     'inline_svgs' => true,
 ],
 ```
 @tab PHP
 ```php
-use Papercut\Export\HtmlOptions;
+use Quoin\Export\HtmlOptions;
 
 $options = new HtmlOptions(inlineSvgs: true);
 // or: (new HtmlOptions())->withInlineSvgs(true)
@@ -91,7 +91,7 @@ With it on:
 - An SVG with a `<foreignObject>` stays an `<img>`, since the markup inside it isn't SVG. The export reports `SVG kept as an image (<foreignObject> can't be written inline)`.
 
 ::: danger
-Inline SVG runs in the page. Turn `inlineSvgs` on only when you trust where every SVG comes from. Papercut removes scripts and event handlers, but not links (including `javascript:` links) or animations that change links, and an inlined SVG can make the browser fetch external resources (an `<image>` `href`, `feImage`, `url(...)` in a style). Leave it off for SVGs that users upload.
+Inline SVG runs in the page. Turn `inlineSvgs` on only when you trust where every SVG comes from. Scripts and event handlers are removed, but not links (including `javascript:` links) or animations that change links, and an inlined SVG can make the browser fetch external resources (an `<image>` `href`, `feImage`, `url(...)` in a style). Leave it off for SVGs that users upload.
 :::
 
 ## Fitting a narrow container

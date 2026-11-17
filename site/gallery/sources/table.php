@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, Table, TableCell, TableRow};
-use Papercut\Value\Edges;
+use Quoin\{Document, Page, Table, TableCell, TableRow};
+use Quoin\Value\Edges;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $num = static fn (string $v): TableCell => TableCell::make($v)->align('right');
 $rule = static fn (TableRow $r): TableRow => $r->borderWidth(Edges::of(pt(0), pt(0), pt(0.75), pt(0)))->borderColor('slate-200');

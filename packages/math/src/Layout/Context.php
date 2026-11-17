@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Layout;
+namespace Quoin\Math\Layout;
 
-use Papercut\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\TrueTypeFont;
 
 /**
  * Immutable layout state: font, base size, script level and math style (display or inline/text).
@@ -12,7 +12,7 @@ use Papercut\Math\Font\TrueTypeFont;
  * $scriptAlternates turns the font's `ssty` script-size glyph forms on or off.
  * $fallbackAdvance, when set, is asked for the advance of a character the font has no glyph for.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final readonly class Context
 {

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tex;
+namespace Quoin\Math\Tex;
 
-use Papercut\Math\NoteLevel;
+use Quoin\Math\NoteLevel;
 
 /**
  * Macro expansion on the token list, before the reader sees it: `\newcommand`, `\renewcommand`, `\providecommand`,
@@ -12,7 +12,7 @@ use Papercut\Math\NoteLevel;
  * expansion count and the size of what expansion produces are capped; past a cap a macro is left as its own name, as
  * text, so hostile input (`\def\a#1{\a{#1#1}}\a{x}`) cannot grow without bound.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class TexMacros
 {

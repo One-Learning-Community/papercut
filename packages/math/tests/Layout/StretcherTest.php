@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Font\AssemblyPart;
-use Papercut\Math\Font\TrueTypeFont;
-use Papercut\Math\Layout\Stretcher;
-use Papercut\Math\Math;
+use Quoin\Math\Font\AssemblyPart;
+use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Layout\Stretcher;
+use Quoin\Math\Math;
 use PHPUnit\Framework\TestCase;
 
 final class StretcherTest extends TestCase

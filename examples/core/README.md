@@ -1,6 +1,6 @@
-# Papercut core examples
+# Quoin core examples
 
-Plain-PHP documents built with `Papercut\Document`. Run from the repository root:
+Plain-PHP documents built with `Quoin\Document`. Run from the repository root:
 
 ```
 php examples/core/invoice.php      # one-page invoice with letterhead, line items and totals

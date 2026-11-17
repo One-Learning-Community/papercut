@@ -35,7 +35,7 @@ $points = array_sum(array_map(fn (array $c) => $c[3] * $grades[$c[4]], $courses)
 
 // --- report ----------------------------------------------------------------
 $prose = [
-    'Papercut starts from a simple observation: most business documents are layouts, not drawings. An invoice is a column of blocks, a letterhead is a row with a flexible gap, and a transcript is a table that happens to be long. The library therefore models documents as trees of components and leaves the coordinate arithmetic to a layout engine.',
+    'Quoin starts from a simple observation: most business documents are layouts, not drawings. An invoice is a column of blocks, a letterhead is a row with a flexible gap, and a transcript is a table that happens to be long. The library therefore models documents as trees of components and leaves the coordinate arithmetic to a layout engine.',
     'Every node is immutable. A modifier such as padding or bold returns a new instance, so a fragment can be reused in a dozen places without one caller changing what another sees. This also makes documents safe to build once and render many times, which matters in long-running workers.',
     'Layout follows a measure-then-place model. Each element reports the space it wants given the width on offer, and containers distribute the remainder using grow factors, gaps, and alignment. The vocabulary is deliberately close to flexbox, so anyone who has written modern CSS can predict the result.',
     'Text is shaped with real font metrics. Lines are broken at word boundaries, justified paragraphs stretch the gaps between words, and inline markup such as bold or italic spans is carried through the line breaker without losing its style. Widths come from the embedded font program, never from an estimate.',
@@ -226,9 +226,9 @@ $paperSections = [
     ]],
 ];
 // Nodes for the formulas the paper's view places with <x-doc::equation> and <x-doc::math>.
-$paperLogit = \Papercut\Math\Math::row('ln', \Papercut\Math\Math::fenced('(', ')', \Papercut\Math\Math::frac('p', '1 - p')), '=', \Papercut\Math\Math::sub('β', '0'), '+', \Papercut\Math\Math::sub('β', '1'), 'd');
-$paperSlope = \Papercut\Math\Math::row(\Papercut\Math\Math::sub('β', '1'), '=', '−0.04');
-$paperMean = \Papercut\Math\Math::row(\Papercut\Math\Math::overline('d'), '=', \Papercut\Math\Math::sum('i = 1', '4'), \Papercut\Math\Math::sub('w', 'i'), \Papercut\Math\Math::sub('d', 'i'));
+$paperLogit = \Quoin\Math\Math::row('ln', \Quoin\Math\Math::fenced('(', ')', \Quoin\Math\Math::frac('p', '1 - p')), '=', \Quoin\Math\Math::sub('β', '0'), '+', \Quoin\Math\Math::sub('β', '1'), 'd');
+$paperSlope = \Quoin\Math\Math::row(\Quoin\Math\Math::sub('β', '1'), '=', '−0.04');
+$paperMean = \Quoin\Math\Math::row(\Quoin\Math\Math::overline('d'), '=', \Quoin\Math\Math::sum('i = 1', '4'), \Quoin\Math\Math::sub('w', 'i'), \Quoin\Math\Math::sub('d', 'i'));
 // A sentence with a formula in MathML, as an equation editor saves it; <x-doc::markup> reads it.
 $paperOdds = '<p style="text-align: justify">Each further 10 cm multiplied the odds of survival by <math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mi>e</mi><mrow><mn>10</mn><msub><mi>β</mi><mn>1</mn></msub></mrow></msup></math>, so the effect compounds with distance. The odds at spacing <i>d</i> are therefore</p><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mfrac><mi>p</mi><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow></mfrac><mo>=</mo><msup><mi>e</mi><mrow><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><mi>d</mi></mrow></msup></mrow></math><p style="text-align: justify">and solving for the probability of survival gives</p><img class="Wirisformula" alt="survival probability" data-mathml="«math xmlns=¨http://www.w3.org/1998/Math/MathML¨ display=¨block¨»«mrow»«mi»p«/mi»«mo»=«/mo»«mfrac»«mn»1«/mn»«mrow»«mn»1«/mn»«mo»+«/mo»«msup»«mi»e«/mi»«mrow»«mo»−«/mo»«mo»(«/mo»«msub»«mi»β«/mi»«mn»0«/mn»«/msub»«mo»+«/mo»«msub»«mi»β«/mi»«mn»1«/mn»«/msub»«mi»d«/mi»«mo»)«/mo»«/mrow»«/msup»«/mrow»«/mfrac»«/mrow»«/math»">';
 $paperSurvival = [['10 cm', '24', '75%'], ['20 cm', '24', '88%'], ['30 cm', '24', '96%'], ['40 cm', '24', '100%']];
@@ -259,7 +259,7 @@ return [
     'responses' => [
         'respondent' => 'Jane Smith',
         'submitted' => '2026-03-02 14:30',
-        'course' => 'Papercut workshop, spring cohort',
+        'course' => 'Quoin workshop, spring cohort',
         'items' => $responseItems,
     ],
     'guide' => [

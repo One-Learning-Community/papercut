@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Site;
+namespace Quoin\Site;
 
 /**
  * The docs gallery's manifest (gallery.json): groups of tiles, each with optional layout variants.

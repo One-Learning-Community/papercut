@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Mathml;
+namespace Quoin\Math\Tests\Mathml;
 
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Row;
-use Papercut\Math\OperatorDictionary;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\TexWriter;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Row;
+use Quoin\Math\OperatorDictionary;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\TexWriter;
+use Quoin\Math\Tex\TexReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

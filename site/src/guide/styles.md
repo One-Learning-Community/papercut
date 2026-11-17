@@ -26,10 +26,10 @@ The [style attributes reference](/reference/style-attributes.md) lists every Bla
 The theme sets the document's default font, size, color and line height, and holds your named styles. By default, text is Inter at 10pt, weight 400, in `slate-900` with a line height of 1.4.
 
 ```php
-use Papercut\{Document, Page, Text};
-use Papercut\Export\PdfOptions;
-use Papercut\Style\Theme;
-use Papercut\Value\Color;
+use Quoin\{Document, Page, Text};
+use Quoin\Export\PdfOptions;
+use Quoin\Style\Theme;
+use Quoin\Value\Color;
 
 $theme = Theme::default()->with(fontSize: 11.0, lineHeight: 1.5, color: Color::parse('slate-800'));
 
@@ -38,7 +38,7 @@ $options = new PdfOptions(theme: $theme);
 // $document->toPdf($options)->save('out.pdf');
 ```
 
-In Laravel, set the same defaults in `config/papercut.php`:
+In Laravel, set the same defaults in `config/quoin.php`:
 
 ```php
 'theme' => ['font_family' => 'Inter', 'font_size' => 11, 'line_height' => 1.5, 'color' => 'slate-800'],
@@ -51,7 +51,7 @@ A named style is a set of properties you define once and reuse by name, like a C
 ::: code-tabs#style
 @tab Blade
 ```php
-// config/papercut.php
+// config/quoin.php
 'styles' => [
     'panel' => ['padding' => '12pt', 'background' => 'slate-50', 'radius' => '8pt'],
 ],
@@ -62,11 +62,11 @@ A named style is a set of properties you define once and reuse by name, like a C
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, Text};
-use Papercut\Export\PdfOptions;
-use Papercut\Style\{Style, Theme};
-use Papercut\Value\{Color, Edges};
-use function Papercut\pt;
+use Quoin\{Column, Document, Page, Text};
+use Quoin\Export\PdfOptions;
+use Quoin\Style\{Style, Theme};
+use Quoin\Value\{Color, Edges};
+use function Quoin\pt;
 
 $theme = Theme::default()->withStyle('panel', Style::make(
     padding: Edges::all(pt(12)),
@@ -119,10 +119,10 @@ An override can set the font family, font size, color, line height, mono family,
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text};
-use Papercut\Style\{Style, ThemeOverride};
-use Papercut\Value\Color;
-use function Papercut\pt;
+use Quoin\{Document, Page, Text};
+use Quoin\Style\{Style, ThemeOverride};
+use Quoin\Value\Color;
+use function Quoin\pt;
 
 $cover = Page::a4()
     ->theme(new ThemeOverride(
@@ -147,17 +147,17 @@ A page's override applies to its body, headers, footers, background and overlay.
 In Laravel, call `->theme()` on the pending document to change it from a controller, such as a brand color per customer:
 
 ```php
-Papercut::view('pdf.invoice', $data)
+Quoin::view('pdf.invoice', $data)
     ->theme(['color' => $customer->brand_color])
     ->pdf();
 ```
 
-The keys are `font_family`, `mono_family`, `font_size` (points, a number), `color`, `line_height`, `code_theme` and `styles` (in the shape of `papercut.styles`); the first five work as in `papercut.theme`. The order is: config, the view's `<x-doc::document :theme>`, the controller's `->theme()`, then the page's `:theme`.
+The keys are `font_family`, `mono_family`, `font_size` (points, a number), `color`, `line_height`, `code_theme` and `styles` (in the shape of `quoin.styles`); the first five work as in `quoin.theme`. The order is: config, the view's `<x-doc::document :theme>`, the controller's `->theme()`, then the page's `:theme`.
 
-Unlike `papercut.styles`, which replaces a built-in style of the same name, a named style in an override merges onto the existing one. A bad value, such as an unknown color, throws an error. In Laravel, so does a font family that isn't bundled or registered, and the error names the tag or call it came from. In PHP the PDF export fails with `FontNotFound` without naming the override, and HTML and Word accept the name.
+Unlike `quoin.styles`, which replaces a built-in style of the same name, a named style in an override merges onto the existing one. A bad value, such as an unknown color, throws an error. In Laravel, so does a font family that isn't bundled or registered, and the error names the tag or call it came from. In PHP the PDF export fails with `FontNotFound` without naming the override, and HTML and Word accept the name.
 
 ::: warning New style names
-Blade checks style names while it renders the view, before the controller's `->theme()` runs. A controller's `->theme()` can change values and restyle names that already exist. A new style name that the view uses must be defined in `papercut.styles` or in a `:theme` in the view.
+Blade checks style names while it renders the view, before the controller's `->theme()` runs. A controller's `->theme()` can change values and restyle names that already exist. A new style name that the view uses must be defined in `quoin.styles` or in a `:theme` in the view.
 :::
 
 ## Heading styles
@@ -176,16 +176,16 @@ A heading's style is layered:
 ::: code-tabs#style
 @tab Laravel
 ```php
-// config/papercut.php
+// config/quoin.php
 'styles' => [
     'h1' => ['color' => 'indigo-700', 'font-size' => '28pt'],
 ],
 ```
 @tab PHP
 ```php
-use Papercut\Style\{Style, Theme};
-use Papercut\Value\Color;
-use function Papercut\pt;
+use Quoin\Style\{Style, Theme};
+use Quoin\Value\Color;
+use function Quoin\pt;
 
 $theme = Theme::default()->withStyle('h1', Style::make(
     color: Color::parse('indigo-700'),

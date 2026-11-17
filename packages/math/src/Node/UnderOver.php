@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\DisplayItem;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
-use Papercut\Math\Layout\Stretcher;
-use Papercut\Math\OperatorDictionary;
-use Papercut\Math\Styles;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\DisplayItem;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
+use Quoin\Math\Layout\Stretcher;
+use Quoin\Math\OperatorDictionary;
+use Quoin\Math\Styles;
 
 /**
  * munder / mover / munderover in one class: a base with a part below, above, or both. Depending on the base and the
@@ -53,14 +53,14 @@ final class UnderOver extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
         return array_values(array_filter([$this->base, $this->under, $this->over], static fn (?Node $n): bool => $n !== null));
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         if (self::isLimitName($this->base)) {
@@ -82,7 +82,7 @@ final class UnderOver extends Node
     /**
      * Whether a part is a stretched brace: a brace glyph (above or below) that is not told to stay unstretched.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function isBrace(?Operator $op, bool $over): bool
     {
@@ -92,7 +92,7 @@ final class UnderOver extends Node
     /**
      * An upright function name whose limits move like a sum's: lim, max, min, ...
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function isLimitName(Node $n): bool
     {
@@ -107,7 +107,7 @@ final class UnderOver extends Node
     /**
      * The node a base stands for once wrappers that only annotate it (a Fallback, a DisplayStyle, a one-child Row) are peeled.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function nameNode(Node $n): Node
     {
@@ -122,7 +122,7 @@ final class UnderOver extends Node
     /**
      * The operator a node is: itself, or the only child of a Row.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function operatorOf(?Node $n): ?Operator
     {
@@ -301,7 +301,7 @@ final class UnderOver extends Node
     /**
      * Whether a stretchy operator is an arrow (or `=`), which an extensible-arrow stack pads and gives a minimum length.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function isArrow(string $char): bool
     {
@@ -434,7 +434,7 @@ final class UnderOver extends Node
      * Whether a stretchy = is drawn as two rules: only when the font has the glyph but no horizontal variant or
      * construction for it (STIX has none), so a font that can stretch = is asked first.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function drawsEqualsAsRules(Context $c, Operator $op): bool
     {

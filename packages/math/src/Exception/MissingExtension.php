@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Exception;
+namespace Quoin\Math\Exception;
 
 /** A PHP extension this feature needs is not loaded. */
 final class MissingExtension extends \RuntimeException

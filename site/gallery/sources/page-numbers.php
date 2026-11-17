@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, PageBreak, PageNumber, Text};
+use Quoin\{Document, Page, PageBreak, PageNumber, Text};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $para = 'Every page gets its number when the document is laid out, so the total is right however the content breaks.';
 

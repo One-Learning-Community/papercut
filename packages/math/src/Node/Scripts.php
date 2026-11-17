@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
 
 /** msub / msup / msubsup in one class: a base with a subscript, a superscript, or both. */
 final class Scripts extends Node
@@ -20,14 +20,14 @@ final class Scripts extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
         return array_values(array_filter([$this->base, $this->sub, $this->sup], static fn (?Node $n): bool => $n !== null));
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         $b = $this->base->layout($c);

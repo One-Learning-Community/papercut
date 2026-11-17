@@ -11,8 +11,8 @@
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text};
-use function Papercut\in;
+use Quoin\{Document, Page, Text};
+use function Quoin\in;
 
 $document = Document::make(
     Page::letter()->landscape()->margin(in(0.7), in(0.8))->body(Text::make('…')),
@@ -47,8 +47,8 @@ A header, footer or background is repeated on every page, and the body content f
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Text};
-use function Papercut\{mm, pt};
+use Quoin\{Column, Document, Page, PageNumber, Row, Spacer, Text};
+use function Quoin\{mm, pt};
 
 $body = [];
 for ($i = 1; $i <= 80; $i++) {
@@ -92,8 +92,8 @@ The first page shows the letterhead, and every page after it shows a short runni
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, Text};
-use function Papercut\{mm, pt};
+use Quoin\{Column, Document, Page, Text};
+use function Quoin\{mm, pt};
 
 $body = [];
 for ($i = 1; $i <= 60; $i++) {
@@ -135,8 +135,8 @@ An empty slot means there is nothing on that page. In PHP, call the method with 
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Text};
-use function Papercut\{mm, pt};
+use Quoin\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Text};
+use function Quoin\{mm, pt};
 
 $document = Document::make(
     Page::a4()->margin(mm(20))
@@ -173,8 +173,8 @@ With mirrored margins, the left margin is the inside of the page and the right m
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Text};
-use function Papercut\{mm, pt};
+use Quoin\{Column, Document, Page, PageNumber, Row, Spacer, Text};
+use function Quoin\{mm, pt};
 
 $body = [];
 for ($i = 1; $i <= 60; $i++) {
@@ -234,9 +234,9 @@ When the design already exists as a PDF, such as a certificate or a letterhead m
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, PdfPage, Place, QrCode, Text};
-use Papercut\Style\Anchor;
-use function Papercut\{percent, pt};
+use Quoin\{Document, Page, PdfPage, Place, QrCode, Text};
+use Quoin\Style\Anchor;
+use function Quoin\{percent, pt};
 
 $document = Document::make(
     Page::template(PdfPage::file('/path/to/certificates/completion.pdf'))->overlay(
@@ -255,7 +255,7 @@ See the [certificate example](/examples.md#the-certificate-example) for a comple
 
 The page takes its size from the template page, so you can't set `size` or `orientation` alongside it. The template page is drawn as it is, never as a picture, so its text and artwork stay sharp at any zoom. Anything else you put on the page, including the background, is drawn over it.
 
-In Blade, a relative `template` path stays inside `papercut.image_path`, the same as for images. If the PDF isn't a file on disk, for example when it's stored on S3, pass its bytes with `:template-data="Storage::get($path)"` instead. Use `template-page="2"` to draw a page other than the first, and `template-password` to open a password-protected template. In PHP, `PdfPage::file($path, page: 2, password: '…')` and `PdfPage::bytes($bytes)` take the same options.
+In Blade, a relative `template` path stays inside `quoin.image_path`, the same as for images. If the PDF isn't a file on disk, for example when it's stored on S3, pass its bytes with `:template-data="Storage::get($path)"` instead. Use `template-page="2"` to draw a page other than the first, and `template-password` to open a password-protected template. In PHP, `PdfPage::file($path, page: 2, password: '…')` and `PdfPage::bytes($bytes)` take the same options.
 
 `Page::template()` reads the PDF straight away to learn its size, so a missing file or a wrong password throws a `PdfUnreadable` exception there, before you render.
 
@@ -297,7 +297,7 @@ Word export leaves templates and PDF pages out too. In an overlay place, only a 
 
 ## Controlling page breaks
 
-By default Papercut splits content wherever it needs to. These options control where the breaks fall:
+By default content splits wherever it needs to. These options control where the breaks fall:
 
 | PHP | Blade | What it does |
 |---|---|---|
@@ -308,8 +308,8 @@ By default Papercut splits content wherever it needs to. These options control w
 | `PageBreak::make()` | `<x-doc::page-break />` | Starts a new page at this point. |
 
 ```php
-use Papercut\{Column, Document, Page, PageBreak, Text};
-use function Papercut\{in, pt};
+use Quoin\{Column, Document, Page, PageBreak, Text};
+use function Quoin\{in, pt};
 
 $document = Document::make(
     Page::letter()->margin(in(0.75))->body(
@@ -326,7 +326,7 @@ $document = Document::make(
 
 ## Bookmarks
 
-Papercut fills in the bookmarks panel that PDF viewers show beside the page. Every heading from `h1` to `h4` becomes a bookmark, nested by level, that jumps to that heading.
+The bookmarks panel that PDF viewers show beside the page is filled in. Every heading from `h1` to `h4` becomes a bookmark, nested by level, that jumps to that heading.
 
 To bookmark something that isn't a heading, or to change a heading's entry, set `bookmark`:
 
@@ -340,8 +340,8 @@ To bookmark something that isn't a heading, or to change a heading's entry, set 
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, Text};
-use Papercut\Decorator\Card;
+use Quoin\{Column, Document, Page, Text};
+use Quoin\Decorator\Card;
 
 $document = Document::make(Page::letter()->body(Column::make(
     Text::h1('Annual report'),
@@ -373,7 +373,7 @@ A table of contents lists your headings with the page each one lands on. Put it 
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, PageBreak, Text, Toc};
+use Quoin\{Column, Document, Page, PageBreak, Text, Toc};
 
 $document = Document::make(Page::letter()->body(Column::make(
     Text::h1('Handbook')->toc(false),
@@ -416,13 +416,13 @@ In [Word](./word-export.md#table-of-contents) it is a real table of contents fie
 
 ## Content that doesn't fit
 
-Sometimes something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). The same goes for a box with a `height` or `max-height` whose content needs more room, such as a long address in a label of fixed size. By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.
+Sometimes something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). The same goes for a box with a `height` or `max-height` whose content needs more room, such as a long address in a label of fixed size. By default a `LayoutOverflow` exception is thrown that names the component, so you find out straight away.
 
-To get the rest of the document instead, have Papercut clip the oversized content and log a warning. A box with a height keeps its size and hides what doesn't fit, so nothing draws over the content below it:
+To get the rest of the document instead, clip the oversized content and log a warning. A box with a height keeps its size and hides what doesn't fit, so nothing draws over the content below it:
 
 ```php
-use Papercut\OverflowMode;
-use Papercut\Export\PdfOptions;
+use Quoin\OverflowMode;
+use Quoin\Export\PdfOptions;
 
 $options = new PdfOptions(overflow: OverflowMode::Clip, onWarning: fn (string $message) => error_log($message));
 ```

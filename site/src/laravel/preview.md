@@ -5,19 +5,19 @@ Preview routes give each document a fixed URL that renders it with sample data. 
 Register each view with a closure that returns its data, for example in a service provider:
 
 ```php
-use Papercut\Laravel\Facades\Papercut;
+use Quoin\Laravel\Facades\Quoin;
 
-Papercut::preview('pdf.invoice', fn () => ['invoice' => Invoice::factory()->make()]);
+Quoin::preview('pdf.invoice', fn () => ['invoice' => Invoice::factory()->make()]);
 ```
 
-Then set `PAPERCUT_PREVIEW=true` in your `.env` file.
+Then set `QUOIN_PREVIEW=true` in your `.env` file.
 
 | Route | What it shows |
 |---|---|
-| `GET /_papercut` | a list of the registered views |
-| `GET /_papercut/{view}` | one view, as a PDF in the browser |
-| `GET /_papercut/{view}?format=html` | the same view as HTML |
-| `GET /_papercut/{view}?format=docx` | the same view as a Word file. Needs `papercut/docx`; without it you get a 404 with the install command |
+| `GET /_quoin` | a list of the registered views |
+| `GET /_quoin/{view}` | one view, as a PDF in the browser |
+| `GET /_quoin/{view}?format=html` | the same view as HTML |
+| `GET /_quoin/{view}?format=docx` | the same view as a Word file. Needs `quoin/docx`; without it you get a 404 with the install command |
 
 Any other `format` value is a 404.
 

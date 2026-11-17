@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Layout;
+namespace Quoin\Math\Layout;
 
 /**
  * Lays glyphs side by side on the baseline (no pair kerning). At script levels it swaps in the font's `ssty` forms.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Run
 {

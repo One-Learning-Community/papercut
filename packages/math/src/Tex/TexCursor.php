@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tex;
+namespace Quoin\Math\Tex;
 
 /**
  * A position in a token list (see {@see TexLexer}), with the small readers every part of the TeX reader shares.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class TexCursor
 {

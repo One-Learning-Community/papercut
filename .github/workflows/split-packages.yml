@@ -27,10 +27,10 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          - { dir: core, repo: papercut-core }
-          - { dir: laravel, repo: papercut-laravel }
-          - { dir: docx, repo: papercut-docx }
-          - { dir: math, repo: papercut-math }
+          - { dir: core, repo: quoin-core }
+          - { dir: laravel, repo: quoin-laravel }
+          - { dir: docx, repo: quoin-docx }
+          - { dir: math, repo: quoin-math }
     env:
       HAS_TOKEN: ${{ secrets.SPLIT_TOKEN != '' }}
     steps:

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Mathml;
+namespace Quoin\Math\Tests\Mathml;
 
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Mathml\SafeXml;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Render\SvgRenderer;
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Mathml\SafeXml;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Render\SvgRenderer;
+use Quoin\Math\Render\TextWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

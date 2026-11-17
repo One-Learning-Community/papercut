@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Tex;
+namespace Quoin\Math\Tests\Tex;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Tex\TexReader;
-use Papercut\Math\Tex\TexSymbols;
+use Quoin\Math\Math;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Tex\TexReader;
+use Quoin\Math\Tex\TexSymbols;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

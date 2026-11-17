@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Middle;
-use Papercut\Math\Node\Row;
-use Papercut\Math\NoteLevel;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Middle;
+use Quoin\Math\Node\Row;
+use Quoin\Math\NoteLevel;
 use PHPUnit\Framework\TestCase;
 
 final class MiddleTest extends TestCase

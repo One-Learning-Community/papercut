@@ -1,8 +1,8 @@
 # Laravel
 
-`papercut/laravel` lets you write documents as Blade views. Each `<x-doc::*>` tag builds a core component, and the whole view becomes one document. Loops, conditionals, slots and your own components work as in any other Blade view.
+`quoin/laravel` lets you write documents as Blade views. Each `<x-doc::*>` tag builds a core component, and the whole view becomes one document. Loops, conditionals, slots and your own components work as in any other Blade view.
 
-See [Installation](/guide/installation.md) to add the package. Laravel discovers the service provider and the `Papercut` facade automatically.
+See [Installation](/guide/installation.md) to add the package. Laravel discovers the service provider and the `Quoin` facade automatically.
 
 ## A view and a route
 
@@ -11,27 +11,27 @@ See [Installation](/guide/installation.md) to add the package. Laravel discovers
 <x-doc::document title="Hello">
   <x-doc::page>
     <x-doc::h1>Hello, {{ $name }}</x-doc::h1>
-    <x-doc::p>Rendered by Papercut.</x-doc::p>
+    <x-doc::p>Rendered by Quoin.</x-doc::p>
   </x-doc::page>
 </x-doc::document>
 ```
 
 ```php
-use Papercut\Laravel\Facades\Papercut;
+use Quoin\Laravel\Facades\Quoin;
 
-Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pdf()->download('hello.pdf'));
+Route::get('/hello', fn () => Quoin::view('pdf.hello', ['name' => 'Ada'])->pdf()->download('hello.pdf'));
 ```
 
 | Call | What you get back |
 |---|---|
-| `Papercut::view($view, $data)` | a `PendingDocument` |
+| `Quoin::view($view, $data)` | a `PendingDocument` |
 | `->pdf()` | a `PendingOutput`: `download()`, `streamDownload()`, `inline()`, `save()`, `store()`, `toString()`, `output()`, `attachment()` (see [Attaching to mail](#attaching-to-mail)) |
 | `->html()` | a `PendingHtml`; see [HTML export](/guide/html-export.md) |
-| `->docx()` | a `PendingOutput` for a Word file. Needs `papercut/docx`, or it throws `MissingExporter`; see [Word export](/guide/word-export.md) |
+| `->docx()` | a `PendingOutput` for a Word file. Needs `quoin/docx`, or it throws `MissingExporter`; see [Word export](/guide/word-export.md) |
 | `->theme($values)` | a copy with a theme override; see [Theme per document or page](#theme-per-document-or-page) |
 | `->encrypt($password)` | a copy whose PDF needs a password; see [Passwords](/guide/passwords-and-signatures.md) |
 | `->document()` | the core `Document` the view built |
-| `Papercut::make($document)` | a `PendingDocument` for a document built in PHP |
+| `Quoin::make($document)` | a `PendingDocument` for a document built in PHP |
 
 ## Attaching to mail
 
@@ -40,7 +40,7 @@ A `PendingOutput` goes straight into a mailable or notification. The document re
 ```php
 public function attachments(): array
 {
-    return [Papercut::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()];
+    return [Quoin::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()];
 }
 ```
 
@@ -49,7 +49,7 @@ In a notification, attach it in `toMail()`:
 ```php
 return (new MailMessage)
     ->subject('Your invoice')
-    ->attach(Papercut::view('pdf.invoice', ['invoice' => $invoice])->pdf());
+    ->attach(Quoin::view('pdf.invoice', ['invoice' => $invoice])->pdf());
 ```
 
 Build the document inside `attachments()` or `toMail()`, and don't store a `PendingOutput` on a queued mailable: it holds a closure, which can't be serialized.
@@ -57,21 +57,21 @@ Build the document inside `attachments()` or `toMail()`, and don't store a `Pend
 `attachment()` takes a name of your own, cleaned the way `download()` cleans it, and returns an `Illuminate\Mail\Attachment` you can chain on. Naming it does not render the document.
 
 ```php
-return [Papercut::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()->attachment('invoice-142.pdf')];
+return [Quoin::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()->attachment('invoice-142.pdf')];
 ```
 
 `->html()` attaches the full page.
 
 ## Macros
 
-`PapercutManager`, `PendingDocument`, `PendingOutput` and `PendingHtml` use Laravel's `Macroable`, so you can add shortcuts of your own. Inside the closure, `$this` is the object:
+`QuoinManager`, `PendingDocument`, `PendingOutput` and `PendingHtml` use Laravel's `Macroable`, so you can add shortcuts of your own. Inside the closure, `$this` is the object:
 
 ```php
-use Papercut\Laravel\PendingOutput;
+use Quoin\Laravel\PendingOutput;
 
 PendingOutput::macro('toArchive', fn (string $path) => $this->store($path, 'archive'));
 
-Papercut::view('pdf.invoice', $data)->pdf()->toArchive('invoices/142.pdf');
+Quoin::view('pdf.invoice', $data)->pdf()->toArchive('invoices/142.pdf');
 ```
 
 ## Your own components
@@ -121,18 +121,18 @@ Change the theme for one document with `:theme` on `<x-doc::document>`, for one 
 ```
 
 ```php
-Papercut::view('pdf.invoice', $data)->theme(['color' => $customer->brand_color])->pdf();
+Quoin::view('pdf.invoice', $data)->theme(['color' => $customer->brand_color])->pdf();
 ```
 
-The keys are `font_family`, `mono_family`, `font_size`, `color`, `line_height`, `code_theme` and `styles` (in the shape of `papercut.styles`); the first five work as in `papercut.theme`. A font family must be bundled or registered in `fonts` (see [Fonts](/guide/fonts.md)); `Merriweather` above is an example. The order is config, the view's document, the controller's `->theme()`, then the page. A theme override on a page also reaches content passed through a layout or wrapper component's slot.
+The keys are `font_family`, `mono_family`, `font_size`, `color`, `line_height`, `code_theme` and `styles` (in the shape of `quoin.styles`); the first five work as in `quoin.theme`. A font family must be bundled or registered in `fonts` (see [Fonts](/guide/fonts.md)); `Merriweather` above is an example. The order is config, the view's document, the controller's `->theme()`, then the page. A theme override on a page also reaches content passed through a layout or wrapper component's slot.
 
-Named styles in an override merge onto the existing style. Blade checks style names while it renders the view, before the controller's `->theme()` runs. So `->theme()` can change values and restyle existing names, but a new style name the view uses must be defined in `papercut.styles` or in a `:theme` in the view. See [Changing the theme for one document or page](/guide/styles.md#changing-the-theme-for-one-document-or-page).
+Named styles in an override merge onto the existing style. Blade checks style names while it renders the view, before the controller's `->theme()` runs. So `->theme()` can change values and restyle existing names, but a new style name the view uses must be defined in `quoin.styles` or in a `:theme` in the view. See [Changing the theme for one document or page](/guide/styles.md#changing-the-theme-for-one-document-or-page).
 
 ## Caching
 
-Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. Papercut stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data behind the fragment and render the fragment each time.
+Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. It stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data behind the fragment and render the fragment each time.
 
-This isn't always detected. Papercut recognizes markers it made earlier in the same process; a fragment cached across workers, or kept long after, can instead show up as literal marker text (`[[pc:…]]`) in the output, or as a "can only contain" error whose message adds a note about the marker.
+This isn't always detected. Only markers made earlier in the same process are recognized; a fragment cached across workers, or kept long after, can instead show up as literal marker text (`[[pc:…]]`) in the output, or as a "can only contain" error whose message adds a note about the marker.
 
 ## The tag prefix
 
@@ -148,4 +148,4 @@ Unknown attribute "colour" on <x-doc::text>. Did you mean "color"?
 
 Tags in the wrong place, such as an `<x-doc::tr>` outside a table or a view without an `<x-doc::document>` root, throw `InvalidStructure`.
 
-Laravel wraps any exception thrown while rendering a view in an `Illuminate\View\ViewException`. `getPrevious()` returns Papercut's original exception.
+Laravel wraps any exception thrown while rendering a view in an `Illuminate\View\ViewException`. `getPrevious()` returns the original exception.

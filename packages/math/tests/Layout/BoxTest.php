@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\DisplayItem;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
-use Papercut\Math\Math;
-use Papercut\Math\Node\Node;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\DisplayItem;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Node;
 use PHPUnit\Framework\TestCase;
 
 final class BoxTest extends TestCase

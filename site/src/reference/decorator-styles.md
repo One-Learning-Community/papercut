@@ -1,6 +1,6 @@
 # Decorator styles
 
-The named styles each decorator uses, with their built-in defaults. Every theme has them, even one you build from scratch. To change one, define a style with the same name in `config/papercut.php` or with `Theme::withStyle()`. See [Restyling](/guide/decorators.md#restyling) for an example.
+The named styles each decorator uses, with their built-in defaults. Every theme has them, even one you build from scratch. To change one, define a style with the same name in `config/quoin.php` or with `Theme::withStyle()`. See [Restyling](/guide/decorators.md#restyling) for an example.
 
 Colors are Tailwind palette names.
 

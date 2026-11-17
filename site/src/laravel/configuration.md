@@ -1,9 +1,9 @@
 # Configuration
 
-To customize Papercut, publish the config file to `config/papercut.php`:
+To customize the package, publish the config file to `config/quoin.php`:
 
 ```bash
-php artisan vendor:publish --tag=papercut-config
+php artisan vendor:publish --tag=quoin-config
 ```
 
 ## Documents
@@ -21,7 +21,7 @@ php artisan vendor:publish --tag=papercut-config
 | `font_word_names` | `[]` | The name Word uses for a family, as `'Family' => 'Word name'`. The family must be bundled or in `fonts`, and the match ignores case. Cousine is `Courier New` unless set here. See [Word font names](/guide/fonts.md#word-font-names). |
 | `bookmarks` | `true` | Builds the PDF's [bookmarks panel](/guide/pages.md#bookmarks) from headings. `false` leaves it empty. |
 | `image_path` | `null` | The base directory for relative `<x-doc::image src>` paths. `null` means `public_path()`. |
-| `cache_dir` | `null` | Where to cache parsed fonts. `null` uses `storage/framework/cache/papercut`, and `false` turns the disk cache off. |
+| `cache_dir` | `null` | Where to cache parsed fonts. `null` uses `storage/framework/cache/quoin`, and `false` turns the disk cache off. |
 
 ## Errors
 
@@ -35,7 +35,7 @@ php artisan vendor:publish --tag=papercut-config
 | Key | Default | Description |
 |---|---|---|
 | `docx.toc_page_numbers` | `true` | Lays out the pages to fill in a [table of contents](/guide/word-export.md#table-of-contents)' page numbers, which costs about as much as a PDF export. `false` skips it: entries show without numbers until the reader updates the field in Word. |
-| `docx.rsvg_convert` | `env('PAPERCUT_RSVG_CONVERT')` | Absolute path to `rsvg-convert`, which then draws SVG in Word export, so Imagick isn't needed for it. Set `PAPERCUT_RSVG_CONVERT=/usr/bin/rsvg-convert` in `.env`. `null` or empty uses Imagick. See [SVG in Word](/guide/word-export.md#svg-in-word). |
+| `docx.rsvg_convert` | `env('QUOIN_RSVG_CONVERT')` | Absolute path to `rsvg-convert`, which then draws SVG in Word export, so Imagick isn't needed for it. Set `QUOIN_RSVG_CONVERT=/usr/bin/rsvg-convert` in `.env`. `null` or empty uses Imagick. See [SVG in Word](/guide/word-export.md#svg-in-word). |
 
 ## HTML
 
@@ -57,8 +57,8 @@ Resolvers are class names, because closures can't survive `php artisan config:ca
 ```php
 namespace App\Pdf;
 
-use Papercut\Image;
-use Papercut\Laravel\Html\ImageUrlResolver;
+use Quoin\Image;
+use Quoin\Laravel\Html\ImageUrlResolver;
 
 final class CdnImageUrl implements ImageUrlResolver
 {
@@ -89,7 +89,7 @@ A resolver for a rich text editor that stores uploads on the default disk and se
 namespace App\Markup;
 
 use Illuminate\Support\Facades\Storage;
-use Papercut\Laravel\Markup\ImageResolver;
+use Quoin\Laravel\Markup\ImageResolver;
 
 final class EditorImages implements ImageResolver
 {
@@ -113,11 +113,11 @@ final class EditorImages implements ImageResolver
 'markup' => ['images' => \App\Markup\EditorImages::class],
 ```
 
-A single tag can use a different resolver with the `images` attribute: `<x-doc::markup :html="$body" images="App\Markup\LegacyImages" />`. The class must implement `Papercut\Laravel\Markup\ImageResolver`, like the config value. `images="none"` (lower case only) turns images off for that tag, so each image shows its alt text, as for a missing image.
+A single tag can use a different resolver with the `images` attribute: `<x-doc::markup :html="$body" images="App\Markup\LegacyImages" />`. The class must implement `Quoin\Laravel\Markup\ImageResolver`, like the config value. `images="none"` (lower case only) turns images off for that tag, so each image shows its alt text, as for a missing image.
 
 Within one markup conversion the resolver is called once for each distinct `src` (trimmed of surrounding whitespace); later images with the same `src` reuse the answer, including a null.
 
-Papercut builds a resolver once per request, queue job or Octane request, and every markup tag in it shares that instance, whether the class comes from the config or from a tag's `images` attribute. A cache in a property lasts that long; for longer, use Laravel's cache.
+A resolver is built once per request, queue job or Octane request, and every markup tag in it shares that instance, whether the class comes from the config or from a tag's `images` attribute. A cache in a property lasts that long; for longer, use Laravel's cache.
 
 ## Code
 
@@ -125,20 +125,20 @@ Syntax highlighting for [code blocks](/guide/text.md#code-blocks) needs `phiki/p
 
 | Key | Default | Description |
 |---|---|---|
-| `code.theme` | `null` | The default theme. `null` is `papercut-light`. A name from Phiki's bundled themes or `code.themes`. |
+| `code.theme` | `null` | The default theme. `null` is `quoin-light`. A name from Phiki's bundled themes or `code.themes`. |
 | `code.variant` | `null` | `null`, `'strip'` or `'caption'`: the look of blocks that don't set a `variant`. |
 | `code.grammars` | `[]` | `'name' => path` to a TextMate grammar JSON file. |
 | `code.themes` | `[]` | `'name' => path` to a TextMate theme JSON file. |
 | `code.aliases` | `[]` | `'alias' => 'language'`. |
 | `code.injections` | `[]` | A list of `['path' => …, 'into' => ['source.x', …]]`: a VS Code style injection grammar, merged into the grammars with those scope names. Grammars are registered first, so `into` can name one from `code.grammars`. |
 
-A path that can't be read, or a grammar or theme that isn't valid, throws an error that names the key, such as `papercut.code.grammars.demo`.
+A path that can't be read, or a grammar or theme that isn't valid, throws an error that names the key, such as `quoin.code.grammars.demo`.
 
 ## Preview
 
 | Key | Default | Description |
 |---|---|---|
-| `preview.enabled` | `env('PAPERCUT_PREVIEW', false)` | Turns on the [preview routes](./preview.md). |
-| `preview.path` | `'_papercut'` | The URL prefix for the preview routes. |
+| `preview.enabled` | `env('QUOIN_PREVIEW', false)` | Turns on the [preview routes](./preview.md). |
+| `preview.path` | `'_quoin'` | The URL prefix for the preview routes. |
 
 Mistakes in the `html.*`, `markup.*` and `code.*` settings are reported the first time they're used, not when the app boots.

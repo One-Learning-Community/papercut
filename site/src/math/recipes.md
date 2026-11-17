@@ -7,8 +7,8 @@ Each recipe starts from TeX. `Math::mathml()` or the builder can take the place 
 Use SVG on the web. It stays sharp at any zoom and needs no math font. A browser reads its units as CSS pixels, so lay the formula out at the pixel size of the surrounding text.
 
 ```php
-use Papercut\Math\Math;
-use Papercut\Math\Render\SvgRenderer;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
 
 $svg = new SvgRenderer(Math::stixTwoMath(), 'currentColor');
 
@@ -40,7 +40,7 @@ With a `pad`, add it to the shift: `$box->descent + $pad`.
 Screen readers can't read paths. Label the SVG with the linear text from `TextWriter`:
 
 ```php
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Render\TextWriter;
 
 $formula = Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}');
 $label = htmlspecialchars(TextWriter::write($formula));   // x = (−b ± √(b² − 4ac))/(2a)
@@ -55,7 +55,7 @@ Or put `MathmlWriter::write($formula, display: false)` beside the SVG, visually 
 Gmail and Outlook do not display SVG. Send PNG. `PngRenderer` needs the Imagick extension.
 
 ```php
-use Papercut\Math\Render\PngRenderer;
+use Quoin\Math\Render\PngRenderer;
 
 $box = Math::layout(Math::tex('E = mc^2'), size: 16.0, display: false);
 $png = (new PngRenderer(Math::stixTwoMath()))->render($box, scale: 2.0);
@@ -78,7 +78,7 @@ Many email clients block `data:` images: attach the PNG and reference it by `cid
 `OmmlWriter` writes Office Math, the format of Word's equation editor, so readers get live equations they can edit.
 
 ```php
-use Papercut\Math\Render\OmmlWriter;
+use Quoin\Math\Render\OmmlWriter;
 
 $inline = OmmlWriter::oMath(Math::tex('a^2 + b^2 = c^2'));                   // goes between runs in a paragraph
 $block = OmmlWriter::oMathPara(Math::tex('\int_0^1 x\,dx = \tfrac12'), 'center'); // fills a paragraph of its own
@@ -91,8 +91,8 @@ The output uses the `m:` and `w:` prefixes without declaring them, so the docume
 Every reader returns the same tree, and every writer takes it.
 
 ```php
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\TexWriter;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\TexWriter;
 
 $mathml = MathmlWriter::write(Math::tex('\sqrt{x^2 + 1}'), display: false);
 $tex = TexWriter::write(Math::mathml('<math><mfrac><mi>a</mi><mi>b</mi></mfrac></math>'));   // \frac{a}{b}
@@ -111,8 +111,8 @@ User input can be malformed, huge or hostile. The readers are built for it.
 The reader classes return the reports:
 
 ```php
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Tex\TexReader;
 
 $result = TexReader::read($userInput);
 

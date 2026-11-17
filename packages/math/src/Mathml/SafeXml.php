@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Mathml;
+namespace Quoin\Math\Mathml;
 
 /**
  * Wiris/MathType "safeXml": MathML with its markup characters swapped for ones that survive HTML attributes and

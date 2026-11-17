@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Layout;
+namespace Quoin\Math\Layout;
 
-use Papercut\Math\Font\TrueTypeFont;
+use Quoin\Math\Font\TrueTypeFont;
 
 /**
  * Picks a size variant, or builds a GlyphAssembly, for a stretchy glyph, vertically (fences, radicals) or
  * horizontally (accents, arrows, braces).
  * Results are in font units, y up, with the glyph/assembly un-shifted; callers place them.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Stretcher
 {
@@ -131,8 +131,8 @@ final class Stretcher
      * Each run of one repeated straight extender becomes one piece: [part, start of the run, scale of its ink along the axis].
      * The scale is 1.0 for everything else, so the ink of the run is where the repeated pieces' ink was, minus the seams.
      *
-     * @param list<array{\Papercut\Math\Font\AssemblyPart, float}> $placed
-     * @return list<array{\Papercut\Math\Font\AssemblyPart, float, float}>
+     * @param list<array{\Quoin\Math\Font\AssemblyPart, float}> $placed
+     * @return list<array{\Quoin\Math\Font\AssemblyPart, float, float}>
      */
     private static function merge(TrueTypeFont $font, array $placed, bool $vertical): array
     {
@@ -153,7 +153,7 @@ final class Stretcher
     }
 
     /**
-     * @param list<\Papercut\Math\Font\AssemblyPart> $parts bottom to top
+     * @param list<\Quoin\Math\Font\AssemblyPart> $parts bottom to top
      * @return array{pieces: list<array{int,float,float}>, ymin: float, ymax: float, advance: float}
      */
     private static function assemble(TrueTypeFont $font, array $parts, float $required): array
@@ -175,8 +175,8 @@ final class Stretcher
      * over the joints within each joint's connector limits. The total matches the requested size when the limits allow;
      * it is longer when every joint is at its cap, and shorter when extenders add no length or the ceiling is hit.
      *
-     * @param list<\Papercut\Math\Font\AssemblyPart> $parts in reading order along the axis
-     * @return array{0: list<array{0: \Papercut\Math\Font\AssemblyPart, 1: float}>, 1: float} parts with their start
+     * @param list<\Quoin\Math\Font\AssemblyPart> $parts in reading order along the axis
+     * @return array{0: list<array{0: \Quoin\Math\Font\AssemblyPart, 1: float}>, 1: float} parts with their start
      *         positions along the axis, and the total size
      */
     private static function solveParts(array $parts, float $required, int $minOverlap): array

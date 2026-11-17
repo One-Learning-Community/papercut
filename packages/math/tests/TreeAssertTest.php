@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Scripts;
-use Papercut\Math\NoteLevel;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Scripts;
+use Quoin\Math\NoteLevel;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\TestCase;
 
@@ -39,7 +39,7 @@ final class TreeAssertTest extends TestCase
     {
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('expected Identifier, got Number');
-        TreeAssert::assertSameTree(new Row([new Identifier('x'), new Identifier('y')]), new Row([new Identifier('x'), new \Papercut\Math\Node\Number('1')]));
+        TreeAssert::assertSameTree(new Row([new Identifier('x'), new Identifier('y')]), new Row([new Identifier('x'), new \Quoin\Math\Node\Number('1')]));
     }
 
     public function test_fallbacks_and_single_child_rows_are_normalized(): void

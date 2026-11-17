@@ -12,8 +12,8 @@ require __DIR__ . '/../../packages/core/vendor/autoload.php';
 require __DIR__ . '/Gallery.php';
 require __DIR__ . '/Raster.php';
 
-use Papercut\Document;
-use Papercut\Site\{Gallery, Raster};
+use Quoin\Document;
+use Quoin\Site\{Gallery, Raster};
 
 const DPI = 144; // twice the size it's shown at, for high-density screens and the lightbox
 
@@ -51,9 +51,9 @@ function render(string $source, string $image, int $pages): void
 {
     $document = (static fn (string $path): mixed => require $path)($source);
     if (!$document instanceof Document) {
-        throw new \RuntimeException('the source must return a Papercut\Document');
+        throw new \RuntimeException('the source must return a Quoin\Document');
     }
-    $tmp = sys_get_temp_dir() . '/papercut-gallery-' . bin2hex(random_bytes(4));
+    $tmp = sys_get_temp_dir() . '/quoin-gallery-' . bin2hex(random_bytes(4));
     mkdir($tmp);
     try {
         file_put_contents("$tmp/doc.pdf", $document->toPdf()->bytes());

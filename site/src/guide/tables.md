@@ -24,8 +24,8 @@ A table has a list of column widths, an optional header and the body rows. When 
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Table, TableRow, Text};
-use function Papercut\in;
+use Quoin\{Document, Page, Table, TableRow, Text};
+use function Quoin\in;
 
 $rows = [];
 for ($i = 1; $i <= 120; $i++) {
@@ -61,7 +61,7 @@ $table = Table::make()->columns('auto auto auto')->fillWidth()->row('Mon', 'Tue'
 
 When the columns don't fit even at their narrowest (the longest word in each, or the longest piece between hyphens and slashes), the widest `auto` and `fr` columns give way first. They're narrowed to a shared width so the table fits, and long words in them break across lines. Narrow columns keep their width. A column never gets narrower than its content can go: its cell padding plus its widest letter, or the full width of a fixed-width box or a nested table's own narrowest columns. Images, SVGs and PDF pages scale down. This is reported as an approximation through `onWarning`, with how much more room the table needed. Smaller text or less cell padding keeps words whole. Word export uses the same shrunk column widths.
 
-Length columns (`1in`) keep the width you gave them. If they, or the narrowest widths left after shrinking, still don't fit, the table can't fit its box: Papercut throws a `LayoutOverflow` or, in clip mode, draws the table too wide and warns. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). Tables from `Markup::html()` shrink their length columns too, and a markup table too wide for its page overflows with a note instead of throwing.
+Length columns (`1in`) keep the width you gave them. If they, or the narrowest widths left after shrinking, still don't fit, the table can't fit its box: a `LayoutOverflow` is thrown or, in clip mode, the table is drawn too wide with a warning. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). Tables from `Markup::html()` shrink their length columns too, and a markup table too wide for its page overflows with a note instead of throwing.
 
 A table inside a `Row` is narrowed to the space its row gives it, with the same note. If it still cannot fit, it throws `LayoutOverflow` like a table in a column; Word export reports it as a note instead.
 
@@ -101,7 +101,7 @@ In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single
 ```
 @tab PHP
 ```php
-use Papercut\{Table, TableCell};
+use Quoin\{Table, TableCell};
 
 $table = Table::make()
     ->columns('0.75in 1fr 1fr')

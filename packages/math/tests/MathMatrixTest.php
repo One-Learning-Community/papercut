@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Row;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Row;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -146,7 +146,7 @@ final class MathMatrixTest extends TestCase
         return $value;
     }
 
-    private static function grid(\Papercut\Math\Node\Node $n): Grid
+    private static function grid(\Quoin\Math\Node\Node $n): Grid
     {
         self::assertInstanceOf(Grid::class, $n);
 
@@ -160,9 +160,9 @@ final class MathMatrixTest extends TestCase
         self::assertTrue($g->display);
         self::assertSame(['right', 'left'], $g->columnAlign);
         self::assertSame([0.0], $g->columnSpacing);
-        $c = new \Papercut\Math\Layout\Context(Math::stixTwoMath(), 12);
+        $c = new \Quoin\Math\Layout\Context(Math::stixTwoMath(), 12);
         $box = Math::layout($g, 12.0, true);
-        $glyphs = array_values(array_filter($box->items, static fn ($i): bool => $i instanceof \Papercut\Math\Layout\Glyph));
+        $glyphs = array_values(array_filter($box->items, static fn ($i): bool => $i instanceof \Quoin\Math\Layout\Glyph));
         // Row 1: x, =, 1; row 2: x, +, y, =, 2 (in placement order).
         self::assertCount(8, $glyphs);
         $eq1 = $glyphs[1];
@@ -183,14 +183,14 @@ final class MathMatrixTest extends TestCase
 
     public function test_aligned_rebuilds_a_wrapped_leading_operator(): void
     {
-        $note = new \Papercut\Math\MathNote(\Papercut\Math\NoteLevel::Approximated, 'x', 'y');
-        $op = new \Papercut\Math\Node\Operator('=', stretchy: false, lspace: 1.0, rspace: 2.0);
-        $g = Math::aligned([['x', new \Papercut\Math\Node\Fallback($op, $note)]]);
+        $note = new \Quoin\Math\MathNote(\Quoin\Math\NoteLevel::Approximated, 'x', 'y');
+        $op = new \Quoin\Math\Node\Operator('=', stretchy: false, lspace: 1.0, rspace: 2.0);
+        $g = Math::aligned([['x', new \Quoin\Math\Node\Fallback($op, $note)]]);
         $cell = $g->rows[0][1];
-        self::assertInstanceOf(\Papercut\Math\Node\Fallback::class, $cell);
+        self::assertInstanceOf(\Quoin\Math\Node\Fallback::class, $cell);
         self::assertSame($note, $cell->note);
         $inner = $cell->content;
-        self::assertInstanceOf(\Papercut\Math\Node\Operator::class, $inner);
+        self::assertInstanceOf(\Quoin\Math\Node\Operator::class, $inner);
         self::assertSame('infix', $inner->form);
         self::assertFalse($inner->stretchy);
         self::assertSame(1.0, $inner->lspace);
@@ -209,11 +209,11 @@ final class MathMatrixTest extends TestCase
         $row = $g->rows[0][1];
         self::assertInstanceOf(Row::class, $row);
         $bang = $row->children[1];
-        self::assertInstanceOf(\Papercut\Math\Node\Operator::class, $bang);
+        self::assertInstanceOf(\Quoin\Math\Node\Operator::class, $bang);
         self::assertNull($bang->form);
         $lead = $g->rows[1][1];
         self::assertInstanceOf(Row::class, $lead);
-        self::assertInstanceOf(\Papercut\Math\Node\Operator::class, $lead->children[0]);
+        self::assertInstanceOf(\Quoin\Math\Node\Operator::class, $lead->children[0]);
         self::assertSame('infix', $lead->children[0]->form);
     }
 }

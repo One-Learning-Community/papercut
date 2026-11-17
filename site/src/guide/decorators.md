@@ -19,7 +19,7 @@ There are twelve of them:
 | [Signature](#signature) | `Signature` | `<x-doc::signature>` |
 | [Code block](/guide/text.md#code-blocks) | `CodeBlock` | `<x-doc::pre language="…">` |
 
-The PHP classes are in the `Papercut\Decorator` namespace. Each is built from ordinary boxes, text and tables, so it breaks across pages like anything else and looks the same in PDF and HTML. Style methods and attributes apply to the outer box, so `Card::make(...)->padding(pt(12))` changes the padding for that one card only.
+The PHP classes are in the `Quoin\Decorator` namespace. Each is built from ordinary boxes, text and tables, so it breaks across pages like anything else and looks the same in PDF and HTML. Style methods and attributes apply to the outer box, so `Card::make(...)->padding(pt(12))` changes the padding for that one card only.
 
 ## Card
 
@@ -39,8 +39,8 @@ A bordered box, with an optional title bar.
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text};
-use Papercut\Decorator\Card;
+use Quoin\{Document, Page, Text};
+use Quoin\Decorator\Card;
 
 $document = Document::make(Page::a4()->body(
     Card::make(Text::make('Jane Smith'))->title('Respondent'),
@@ -63,8 +63,8 @@ A tinted box with a colored bar down the left side, for notes and warnings.
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\Callout;
+use Quoin\{Document, Page};
+use Quoin\Decorator\Callout;
 
 $document = Document::make(Page::a4()->body(
     Callout::make('Answers cannot be changed once submitted.')->tone('warning')->title('Before you start'),
@@ -72,7 +72,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The tones are `note` (the default), `tip`, `warning` and `danger`. Papercut adds no label such as "Warning", so the wording and any translation are yours. In HTML, a callout becomes an `<aside>`.
+The tones are `note` (the default), `tip`, `warning` and `danger`. No label such as "Warning" is added, so the wording and any translation are yours. In HTML, a callout becomes an `<aside>`.
 
 ## Blockquote
 
@@ -87,8 +87,8 @@ A quotation with a bar down the side and an optional attribution.
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\Blockquote;
+use Quoin\{Document, Page};
+use Quoin\Decorator\Blockquote;
 
 $document = Document::make(Page::a4()->body(
     Blockquote::make('I came for the PDFs and stayed for the pagination.')->cite('Jane Smith, closing round'),
@@ -116,8 +116,8 @@ A heading with its content, an optional number, and an optional line under the h
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text};
-use Papercut\Decorator\Section;
+use Quoin\{Document, Page, Text};
+use Quoin\Decorator\Section;
 
 $document = Document::make(Page::a4()->body(
     Section::make(Text::p('Library catalog, then the open web.'))
@@ -129,7 +129,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The number is a string, so `3`, `3.2` and `C` all work. Papercut doesn't count sections for you or add punctuation, and the theme controls how the number looks. With `keep-together`, a section that fits on one page is never split. A longer one still breaks, but its heading always stays with the start of its content.
+The number is a string, so `3`, `3.2` and `C` all work. Sections aren't counted for you and no punctuation is added, and the theme controls how the number looks. With `keep-together`, a section that fits on one page is never split. A longer one still breaks, but its heading always stays with the start of its content.
 
 ### Titles as headings
 
@@ -149,8 +149,8 @@ A section or card title is plain text unless you give it a heading level. `headi
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text, Toc};
-use Papercut\Decorator\{Card, Section};
+use Quoin\{Document, Page, Text, Toc};
+use Quoin\Decorator\{Card, Section};
 
 $document = Document::make(Page::a4()->body(
     Toc::make(),
@@ -175,8 +175,8 @@ A bordered box showing an answer or value, with a placeholder when it's empty. F
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\Field;
+use Quoin\{Document, Page};
+use Quoin\Decorator\Field;
 
 $comments = '';
 
@@ -205,8 +205,8 @@ A list of options with checkboxes or radio buttons, some of them checked.
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\ChoiceList;
+use Quoin\{Document, Page};
+use Quoin\Decorator\ChoiceList;
 
 $document = Document::make(Page::a4()->body(
     ChoiceList::checkbox()
@@ -237,9 +237,9 @@ Labels and values in two aligned columns.
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\{Badge, KeyValueList};
-use function Papercut\percent;
+use Quoin\{Document, Page};
+use Quoin\Decorator\{Badge, KeyValueList};
+use function Quoin\percent;
 
 $document = Document::make(Page::a4()->body(
     KeyValueList::make()
@@ -264,8 +264,8 @@ A small rounded label, for statuses and tags.
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\Badge;
+use Quoin\{Document, Page};
+use Quoin\Decorator\Badge;
 
 $document = Document::make(Page::a4()->body(
     Badge::make('Overdue')->tone('warning'),
@@ -288,13 +288,13 @@ To put a badge in the middle of a line of text, use it inside a text tag. In Bla
 ```
 @tab Markup
 ```php
-use Papercut\Text;
+use Quoin\Text;
 
 Text::markup('The call returns <badge type="tip">201</badge> and the new record.');
 ```
 @tab PHP
 ```php
-use Papercut\{Span, Text};
+use Quoin\{Span, Text};
 
 Text::make('The call returns ')->append(Span::badge('201', 'tip'), ' and the new record.');
 ```
@@ -317,9 +317,9 @@ A figure on a tinted panel: a small label, the value in large type, and an optio
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Row};
-use Papercut\Decorator\Stat;
-use function Papercut\pt;
+use Quoin\{Document, Page, Row};
+use Quoin\Decorator\Stat;
+use function Quoin\pt;
 
 $document = Document::make(Page::a4()->body(
     Row::make(
@@ -348,8 +348,8 @@ The rows under an invoice or quote: labels on the left, amounts right-aligned, a
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\Totals;
+use Quoin\{Document, Page};
+use Quoin\Decorator\Totals;
 
 $document = Document::make(Page::a4()->body(
     Totals::make()
@@ -378,9 +378,9 @@ A line to sign on, with the signer's name, role and date under it.
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Row};
-use Papercut\Decorator\Signature;
-use function Papercut\pt;
+use Quoin\{Document, Page, Row};
+use Quoin\Decorator\Signature;
+use function Quoin\pt;
 
 $document = Document::make(Page::a4()->body(
     Row::make(
@@ -391,7 +391,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-Whatever the tag holds sits on the line: a signature image, a typed name, or nothing, which leaves room to sign by hand. `name`, `role` and `date` are each optional and also work as slots. Papercut doesn't format the date, so pass it the way the document needs it. A signature is 3 inches wide and never splits across pages.
+Whatever the tag holds sits on the line: a signature image, a typed name, or nothing, which leaves room to sign by hand. `name`, `role` and `date` are each optional and also work as slots. The date isn't formatted, so pass it the way the document needs it. A signature is 3 inches wide and never splits across pages.
 
 ## Restyling
 
@@ -400,18 +400,18 @@ Each decorator gets its look from named styles in the theme, such as `card`, `ca
 ::: code-tabs#style
 @tab Laravel config
 ```php
-// config/papercut.php
+// config/quoin.php
 'styles' => [
     'callout.warning' => ['border-color' => 'orange-500', 'background' => 'orange-50'],
 ],
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\Callout;
-use Papercut\Export\PdfOptions;
-use Papercut\Style\{Style, Theme};
-use Papercut\Value\Color;
+use Quoin\{Document, Page};
+use Quoin\Decorator\Callout;
+use Quoin\Export\PdfOptions;
+use Quoin\Style\{Style, Theme};
+use Quoin\Value\Color;
 
 $theme = Theme::default()->withStyle('callout.warning', Style::make(
     borderColor: Color::parse('orange-500'),
@@ -459,12 +459,12 @@ A variant restyles every part of a decorator at once. `variant="compact"` makes 
 ```
 
 ```php
-use Papercut\Decorator\Callout;
+use Quoin\Decorator\Callout;
 
 Callout::make('...')->tone('tip')->title('Shortcut')->variant('compact');
 ```
 
-Several variants can be given, separated by spaces (`variant="flat compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens, and it cannot be a word that appears in one of the decorator's own part names (`selected` or `radio` on choices, `title` on a card), because the name it produces would be an existing part's. Papercut rejects such a word with an error naming the collision. `callout` and `badge` also reject their own tone words (`note`, `tip`, `warning`, `danger`, and `neutral` on a badge) as variants. Use `tone()` for those. Variants come after the tone (`callout.title.warning`, then `callout.title.compact`) and before your own `style=""` and style modifiers, which still win on the outer box.
+Several variants can be given, separated by spaces (`variant="flat compact"`), and apply in that order. A variant is a lowercase word of letters, digits and hyphens, and it cannot be a word that appears in one of the decorator's own part names (`selected` or `radio` on choices, `title` on a card), because the name it produces would be an existing part's. Such a word is rejected with an error naming the collision. `callout` and `badge` also reject their own tone words (`note`, `tip`, `warning`, `danger`, and `neutral` on a badge) as variants. Use `tone()` for those. Variants come after the tone (`callout.title.warning`, then `callout.title.compact`) and before your own `style=""` and style modifiers, which still win on the outer box.
 
 In Blade, a variant for which the theme has no style on any part of that decorator throws an error listing the names it looked for. In PHP, a variant nothing styles does nothing, because the decorator has no theme to check against.
 
@@ -481,12 +481,12 @@ The [code block](/guide/text.md#code-blocks) also has `strip` and `caption` buil
 
 ### Your own decorator
 
-A decorator is a class that implements `Papercut\Decorator\Decorator`. The interface needs `render()`, the style methods, `variant()`, `variants()` and `partNames()`. `use HasStyle` covers the style methods, and `use HasVariants` covers `variant()` and `variants()`. You write `partNames()` (every built-in style name the decorator applies, without tones) and `render()`. Build each name with the `part()` helper, so variants work, and apply the user's own style last:
+A decorator is a class that implements `Quoin\Decorator\Decorator`. The interface needs `render()`, the style methods, `variant()`, `variants()` and `partNames()`. `use HasStyle` covers the style methods, and `use HasVariants` covers `variant()` and `variants()`. You write `partNames()` (every built-in style name the decorator applies, without tones) and `render()`. Build each name with the `part()` helper, so variants work, and apply the user's own style last:
 
 ```php
-use Papercut\{Node, Text, View};
-use Papercut\Concerns\{HasStyle, HasVariants};
-use Papercut\Decorator\Decorator;
+use Quoin\{Node, Text, View};
+use Quoin\Concerns\{HasStyle, HasVariants};
+use Quoin\Decorator\Decorator;
 
 final class Stamp implements Decorator
 {
@@ -520,4 +520,4 @@ The theme has no `stamp` style, so the export throws until you add one to your t
 
 ## A full example
 
-The `responses` example uses eight of the decorators to lay out a completed feedback form, in [Blade](https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php) and [PHP](https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php).
+The `responses` example uses eight of the decorators to lay out a completed feedback form, in [Blade](https://github.com/One-Learning-Community/quoin/blob/main/examples/laravel/views/responses.blade.php) and [PHP](https://github.com/One-Learning-Community/quoin/blob/main/examples/core/documents/responses.php).

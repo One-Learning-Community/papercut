@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Node;
-use Papercut\Math\NoteLevel;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Node;
+use Quoin\Math\NoteLevel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -65,7 +65,7 @@ final class InvalidUtf8Test extends TestCase
 
     public function test_public_node_constructors_scrub_silently(): void
     {
-        foreach ([new \Papercut\Math\Node\Identifier("a\xff"), new \Papercut\Math\Node\Text("a\xff"), new \Papercut\Math\Node\Number("1\xff"), new \Papercut\Math\Node\Fenced("\xff", ')', Math::row('x'))] as $node) {
+        foreach ([new \Quoin\Math\Node\Identifier("a\xff"), new \Quoin\Math\Node\Text("a\xff"), new \Quoin\Math\Node\Number("1\xff"), new \Quoin\Math\Node\Fenced("\xff", ')', Math::row('x'))] as $node) {
             self::assertGreaterThan(0.0, Math::layout($node)->width);
         }
     }

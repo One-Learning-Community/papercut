@@ -17,14 +17,14 @@ Every document has the same shape: a document, one or more pages, and content on
 ```
 
 ```php
-use Papercut\Laravel\Facades\Papercut;
+use Quoin\Laravel\Facades\Quoin;
 
-Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pdf()->download('hello.pdf'));
+Route::get('/hello', fn () => Quoin::view('pdf.hello', ['name' => 'Ada'])->pdf()->download('hello.pdf'));
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, Text};
-use function Papercut\{in, pt};
+use Quoin\{Column, Document, Page, Text};
+use function Quoin\{in, pt};
 
 $document = Document::make(
     Page::letter()->margin(in(0.75))->body(
@@ -55,7 +55,7 @@ In plain PHP, `toPdf()` returns an `Output` with these methods:
 
 The same document can be written as Word or HTML. `export(new DocxExporter())` and `toHtml()` return the same kind of `Output`. See [Word export](./word-export.md) and [HTML export](./html-export.md).
 
-In Laravel, `Papercut::view($view, $data)` returns a pending document, and `->pdf()` on it returns a `PendingOutput`. `->docx()` gives you one for a [Word](./word-export.md) file, and `->html()->page()` or `->html()->fragment()` one for [HTML](./html-export.md):
+In Laravel, `Quoin::view($view, $data)` returns a pending document, and `->pdf()` on it returns a `PendingOutput`. `->docx()` gives you one for a [Word](./word-export.md) file, and `->html()->page()` or `->html()->fragment()` one for [HTML](./html-export.md):
 
 | Method | What it does |
 |---|---|
@@ -68,11 +68,11 @@ In Laravel, `Papercut::view($view, $data)` returns a pending document, and `->pd
 
 The filename defaults to `document.pdf`. If you return a `PendingOutput` straight from a route, the PDF opens inline.
 
-You can mix the two styles. To send a document you built in PHP as a Laravel response, wrap it with `Papercut::make($document)->pdf()`. The other way, `Papercut::view(...)->document()` returns the core `Document` that a Blade view built.
+You can mix the two styles. To send a document you built in PHP as a Laravel response, wrap it with `Quoin::make($document)->pdf()`. The other way, `Quoin::view(...)->document()` returns the core `Document` that a Blade view built.
 
 ### Password protection
 
-To make the PDF open only with a password, call `encrypt()` before `pdf()`: `Papercut::view(...)->encrypt('open-sesame')->pdf()`. [Passwords, signatures and merging](./passwords-and-signatures.md) covers permissions.
+To make the PDF open only with a password, call `encrypt()` before `pdf()`: `Quoin::view(...)->encrypt('open-sesame')->pdf()`. [Passwords, signatures and merging](./passwords-and-signatures.md) covers permissions.
 
 ### Saving to storage
 
@@ -80,9 +80,9 @@ To make the PDF open only with a password, call `encrypt()` before `pdf()`: `Pap
 
 ```php
 use Illuminate\Support\Facades\Storage;
-use Papercut\Laravel\Facades\Papercut;
+use Quoin\Laravel\Facades\Quoin;
 
-Papercut::view('pdf.invoice', ['invoice' => $invoice])
+Quoin::view('pdf.invoice', ['invoice' => $invoice])
     ->pdf()
     ->store("invoices/{$invoice->number}.pdf", 's3');
 

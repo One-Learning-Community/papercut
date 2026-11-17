@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Scripts;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\TextWriter;
-use Papercut\Math\Tokenizer;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Scripts;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\TextWriter;
+use Quoin\Math\Tokenizer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

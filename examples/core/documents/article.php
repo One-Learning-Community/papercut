@@ -5,11 +5,11 @@ declare(strict_types=1);
 // Builds the knowledge base article Document: HTML as a rich text editor saves it, converted by Markup and wrapped in a page
 // with a header and a page-number footer. examples/core/article.php saves it as PDF, examples/html/render.php as HTML
 // and examples/docx/render.php as Word.
-use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Text};
-use Papercut\Markup\Markup;
-use Papercut\Value\Edges;
+use Quoin\{Column, Document, Page, PageNumber, Row, Spacer, Text};
+use Quoin\Markup\Markup;
+use Quoin\Value\Edges;
 
-use function Papercut\{mm, pt};
+use function Quoin\{mm, pt};
 
 // In an app this string comes from the database: what CKEditor 5 saved (its output shape: tables in a figure, quotes with a paragraph, code with a language class).
 $html = <<<'HTML'

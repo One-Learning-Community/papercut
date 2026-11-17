@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Font;
+namespace Quoin\Math\Tests\Font;
 
-use Papercut\Math\Font\Binary;
-use Papercut\Math\Font\Gsub;
-use Papercut\Math\Math;
+use Quoin\Math\Font\Binary;
+use Quoin\Math\Font\Gsub;
+use Quoin\Math\Math;
 use PHPUnit\Framework\TestCase;
 
 final class GsubTest extends TestCase

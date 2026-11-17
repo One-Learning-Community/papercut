@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Mathml;
+namespace Quoin\Math\Tests\Mathml;
 
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Fraction;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Space;
-use Papercut\Math\Node\Text;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Fraction;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Space;
+use Quoin\Math\Node\Text;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Render\TextWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

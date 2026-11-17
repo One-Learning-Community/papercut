@@ -1,6 +1,6 @@
 # Text
 
-Papercut measures text with the embedded font's own metrics, so line breaks land where they should. Lines wrap between words, justified text stretches the spaces between words, and bold or italic runs keep their style when they wrap onto the next line.
+Text is measured with the embedded font's own metrics, so line breaks land where they should. Lines wrap between words, justified text stretches the spaces between words, and bold or italic runs keep their style when they wrap onto the next line.
 
 ## Paragraphs and headings
 
@@ -26,8 +26,8 @@ Font, size, weight, color and alignment are inherited, so text follows what you 
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page, Text};
-use function Papercut\pt;
+use Quoin\{Column, Document, Page, Text};
+use function Quoin\pt;
 
 $document = Document::make(Page::letter()->body(
     Column::make(
@@ -74,7 +74,7 @@ In Blade, `<x-doc::pre>` makes a block in the `pre` style (monospace, `pre-wrap`
 In PHP, `Span::code()` makes the same inline code span, and `Text::code()` is a text that is only that span. Neither reads markup, so there is nothing to escape:
 
 ```php
-use Papercut\{Span, Text};
+use Quoin\{Span, Text};
 
 Text::make('Call ')->append(Span::code('render()'), ' once.');
 Text::code('/v2/shipments');
@@ -100,8 +100,8 @@ composer require phiki/phiki
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page};
-use Papercut\Decorator\CodeBlock;
+use Quoin\{Document, Page};
+use Quoin\Decorator\CodeBlock;
 
 $document = Document::make(Page::letter()->body(
     CodeBlock::make('$total = array_sum($prices);')->language('php'),
@@ -137,7 +137,7 @@ By default the label sits at the top right of the box, on a small line above the
 <x-doc::pre language="php" variant="strip">$a = 1;</x-doc::pre>
 ```
 
-In PHP use `->variant('strip')` or `->variant('caption')`; the two can't be combined. Set a default for every block with `papercut.code.variant` in Laravel. In plain PHP there is no document-wide default: pass `new CodeHighlighting(variant: 'caption')` to each block with `->highlighting()`, or to Markup with `new MarkupOptions(code: new CodeHighlighting(variant: 'caption'))`.
+In PHP use `->variant('strip')` or `->variant('caption')`; the two can't be combined. Set a default for every block with `quoin.code.variant` in Laravel. In plain PHP there is no document-wide default: pass `new CodeHighlighting(variant: 'caption')` to each block with `->highlighting()`, or to Markup with `new MarkupOptions(code: new CodeHighlighting(variant: 'caption'))`.
 
 ### Keeping a block on one page
 
@@ -151,7 +151,7 @@ A block taller than a page still splits. In Word the default look keeps its line
 
 ### Themes and colors
 
-The colors come from the TextMate theme: the block's background and text, and every token. The default theme is `papercut-light`. Pick another per block, or for all of them:
+The colors come from the TextMate theme: the block's background and text, and every token. The default theme is `quoin-light`. Pick another per block, or for all of them:
 
 ::: code-tabs#style
 @tab Blade
@@ -160,8 +160,8 @@ The colors come from the TextMate theme: the block's background and text, and ev
 ```
 @tab PHP
 ```php
-use Papercut\Code\CodeHighlighting;
-use Papercut\Decorator\CodeBlock;
+use Quoin\Code\CodeHighlighting;
+use Quoin\Decorator\CodeBlock;
 
 CodeBlock::make('$a = 1;')->language('php')->theme('github-dark');
 
@@ -183,7 +183,7 @@ Register a grammar (a TextMate grammar JSON file), a theme (a VS Code or TextMat
 ::: code-tabs#style
 @tab Laravel
 ```php
-// config/papercut.php
+// config/quoin.php
 'code' => [
     'theme' => 'my-theme',
     'grammars' => ['demo' => resource_path('grammars/demo.tmLanguage.json')],
@@ -196,8 +196,8 @@ Register a grammar (a TextMate grammar JSON file), a theme (a VS Code or TextMat
 ```
 @tab PHP
 ```php
-use Papercut\Code\{CodeHighlighting, PhikiHighlighter};
-use Papercut\Decorator\CodeBlock;
+use Quoin\Code\{CodeHighlighting, PhikiHighlighter};
+use Quoin\Decorator\CodeBlock;
 
 $highlighter = (new PhikiHighlighter())
     ->grammar('demo', 'grammars/demo.tmLanguage.json')
@@ -213,7 +213,7 @@ $block = CodeBlock::make('demo text')
 
 Register on your own `new PhikiHighlighter()` and pass it to `new CodeHighlighting($highlighter, ...)`, as above. Don't register on the shared default (`CodeHighlighting::default()->highlighter()`): it is one instance for the whole process, so everything you add would reach every document after it.
 
-An injection grammar (VS Code style, with an `injectionSelector` and `patterns`) is merged into each grammar listed in `into`, named by scope. It applies when one of those is the block's language, not where that grammar is only embedded inside another. Register the host grammars first (in config, `grammars` is read before `injections`); bundled ones are already there. A registered grammar can be embedded in another by its scope name. A path that doesn't exist, or a file that isn't a valid grammar or theme, throws when the highlighter is built, and in Laravel the message names the config key, such as `papercut.code.grammars.demo`.
+An injection grammar (VS Code style, with an `injectionSelector` and `patterns`) is merged into each grammar listed in `into`, named by scope. It applies when one of those is the block's language, not where that grammar is only embedded inside another. Register the host grammars first (in config, `grammars` is read before `injections`); bundled ones are already there. A registered grammar can be embedded in another by its scope name. A path that doesn't exist, or a file that isn't a valid grammar or theme, throws when the highlighter is built, and in Laravel the message names the config key, such as `quoin.code.grammars.demo`.
 
 ### In markup
 
@@ -238,7 +238,7 @@ Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline 
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text};
+use Quoin\{Document, Page, Text};
 
 $document = Document::make(Page::letter()->body(
     Text::markup('Plain, <b>bold</b>, <i>italic</i>, <span color="indigo-600">colored</span> and a <mark>highlighted</mark> word.'),
@@ -255,8 +255,8 @@ A span whose style has horizontal padding or a border, such as a `code` style yo
 In PHP you can also build the runs yourself:
 
 ```php
-use Papercut\{Document, Page, Span, Text};
-use Papercut\Style\Style;
+use Quoin\{Document, Page, Span, Text};
+use Quoin\Style\Style;
 
 $document = Document::make(Page::letter()->body(
     Text::spans(
@@ -290,8 +290,8 @@ This page is about text you write in your templates. For HTML from a rich text e
 ```
 @tab PHP
 ```php
-use Papercut\{Document, ListItem, ListNode, Page};
-use Papercut\Style\ListMarker;
+use Quoin\{Document, ListItem, ListNode, Page};
+use Quoin\Style\ListMarker;
 
 $document = Document::make(Page::letter()->body(
     ListNode::ordered(

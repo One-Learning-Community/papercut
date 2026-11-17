@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math;
+namespace Quoin\Math;
 
-use Papercut\Math\Font\TrueTypeFont;
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Fraction;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Middle;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Phantom;
-use Papercut\Math\Node\Root;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Scripts;
-use Papercut\Math\Node\Space;
-use Papercut\Math\Node\Text;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Fraction;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Middle;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Phantom;
+use Quoin\Math\Node\Root;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Scripts;
+use Quoin\Math\Node\Space;
+use Quoin\Math\Node\Text;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\Tex\TexReader;
 
 /**
  * Builder API. Wherever a Node is expected a plain string works too and is tokenized
@@ -75,7 +75,7 @@ final class Math
         return self::flagged(count($nodes) === 1 ? $nodes[0] : new Row($nodes), $bad);
     }
 
-    /** Twin of Papercut\Support\Utf8::scrub() in papercut/core (see {@see Utf8}). */
+    /** Twin of Quoin\Support\Utf8::scrub() in quoin/core (see {@see Utf8}). */
     private static function scrub(string $text, bool &$bad): string
     {
         return Utf8::scrub($text, $bad);

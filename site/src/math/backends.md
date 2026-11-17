@@ -9,9 +9,9 @@ The SVG and PNG writers are short loops over a public display list. Any API that
 Walk it with `each()`, which hands you every item with the offset of the box it sits in:
 
 ```php
-use Papercut\Math\Layout\DisplayItem;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
+use Quoin\Math\Layout\DisplayItem;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
 
 $box->each(function (DisplayItem $item, float $dx, float $dy): void {
     // the item's position on the page is ($dx + $item->x, $dy + $item->y)
@@ -65,7 +65,7 @@ $box->each(function (DisplayItem $item, float $dx, float $dy) use ($font, $canva
 
 ## Glyphs as text
 
-A PDF backend can set ordinary letters as real text, so they can be selected and searched, as Papercut's PDF output does. `Glyph::$text` holds the character a glyph stands for. Set a glyph as text only when `text` is a single code point and the font maps that code point to `gid` (`$font->gid($codePoint) === $glyph->gid`), and `sx` and `sy` are 1.0. Draw every other glyph as an outline: stretched pieces have no character, and script-size forms share a character with the full-size glyph.
+A PDF backend can set ordinary letters as real text, so they can be selected and searched, as the PDF export does. `Glyph::$text` holds the character a glyph stands for. Set a glyph as text only when `text` is a single code point and the font maps that code point to `gid` (`$font->gid($codePoint) === $glyph->gid`), and `sx` and `sy` are 1.0. Draw every other glyph as an outline: stretched pieces have no character, and script-size forms share a character with the full-size glyph.
 
 `SvgRenderer::glyphPaths($glyphs, $box)` draws just the glyphs you pass, as an SVG in the box's own coordinates (baseline at y = 0), for a backend that sets text itself and only needs the rest as shapes.
 
@@ -73,6 +73,6 @@ A PDF backend can set ordinary letters as real text, so they can be selected and
 
 STIX Two Math is bundled and is the default. Load another math font with `TrueTypeFont::fromFile($path)` and pass it to both `Math::layout(..., font: $font)` and the writer.
 
-The font needs an OpenType `MATH` table and TrueType outlines. Fonts with CFF outlines are not read yet. A font that can't be used throws `Papercut\Math\Exception\UnsupportedFont`, which names the file and the reason.
+The font needs an OpenType `MATH` table and TrueType outlines. Fonts with CFF outlines are not read yet. A font that can't be used throws `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason.
 
 A character the font has no glyph for is laid out with the font's `.notdef` glyph. If your backend draws such characters in another font, pass `fallbackAdvance` to `Math::layout()` so the layout leaves room for them.

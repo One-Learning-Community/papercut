@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Row;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Row;
 use PHPUnit\Framework\Assert;
 
 /**

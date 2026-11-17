@@ -1,10 +1,10 @@
-<x-doc::document title="Official Transcript" author="Papercut">
+<x-doc::document title="Official Transcript" author="Quoin">
     <x-doc::page size="letter" margin="0.75in">
         <x-slot:header>
             <x-doc::row>
                 <x-doc::text size="16pt" bold color="indigo-600">Official Transcript</x-doc::text>
                 <x-doc::spacer />
-                <x-doc::text color="slate-500">Papercut</x-doc::text>
+                <x-doc::text color="slate-500">Quoin</x-doc::text>
             </x-doc::row>
         </x-slot:header>
 

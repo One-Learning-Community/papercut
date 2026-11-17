@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Exception;
+namespace Quoin\Math\Exception;
 
 /** The font file cannot be used for math layout: it is CFF-flavored or has no MATH table. */
 final class UnsupportedFont extends \InvalidArgumentException
@@ -14,7 +14,7 @@ final class UnsupportedFont extends \InvalidArgumentException
 
     public static function cff(string $path): self
     {
-        return new self($path, "$path is a CFF (OpenType/PostScript) font; papercut/math reads TrueType math fonts only for now");
+        return new self($path, "$path is a CFF (OpenType/PostScript) font; quoin/math reads TrueType math fonts only for now");
     }
 
     public static function noMathTable(string $path): self

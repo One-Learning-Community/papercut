@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Render;
+namespace Quoin\Math\Render;
 
 /**
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  *
  * Escapes text for XML output, dropping the characters XML 1.0 cannot hold at all.
  */

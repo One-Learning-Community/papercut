@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Papercut\{Column, Document, Page, Svg, Text};
+use Quoin\{Column, Document, Page, Svg, Text};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 // A bar chart drawn as SVG, as a Blade component or a chart library would produce it.
 $months = ['Jan' => 42, 'Feb' => 55, 'Mar' => 48, 'Apr' => 67, 'May' => 74, 'Jun' => 88];

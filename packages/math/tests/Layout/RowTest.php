@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\NoteLevel;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\NoteLevel;
 use PHPUnit\Framework\TestCase;
 
 final class RowTest extends TestCase

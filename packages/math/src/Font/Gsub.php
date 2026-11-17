@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Font;
+namespace Quoin\Math\Font;
 
 /**
  * The part of GSUB that math layout needs: the `ssty` (script style) feature, read from single (type 1)
  * and alternate (type 3) substitution lookups, including ones wrapped in extension lookups (type 7).
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Gsub
 {

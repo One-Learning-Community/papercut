@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 // Builds the report Document; examples/core/report.php saves it as PDF and examples/html/render.php as HTML.
-use Papercut\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Table, TableRow, Text, Toc};
-use Papercut\Decorator\Stat;
-use Papercut\Value\Edges;
+use Quoin\{Column, Document, Page, PageBreak, PageNumber, Row, Spacer, Table, TableRow, Text, Toc};
+use Quoin\Decorator\Stat;
+use Quoin\Value\Edges;
 
-use function Papercut\{mm, pt};
+use function Quoin\{mm, pt};
 
 $prose = [
-    'Papercut starts from a simple observation: most business documents are layouts, not drawings. An invoice is a column of blocks, a letterhead is a row with a flexible gap, and a transcript is a table that happens to be long. The library therefore models documents as trees of components and leaves the coordinate arithmetic to a layout engine.',
+    'Quoin starts from a simple observation: most business documents are layouts, not drawings. An invoice is a column of blocks, a letterhead is a row with a flexible gap, and a transcript is a table that happens to be long. The library therefore models documents as trees of components and leaves the coordinate arithmetic to a layout engine.',
     'Every node is immutable. A modifier such as padding or bold returns a new instance, so a fragment can be reused in a dozen places without one caller changing what another sees. This also makes documents safe to build once and render many times, which matters in long-running workers.',
     'Layout follows a measure-then-place model. Each element reports the space it wants given the width on offer, and containers distribute the remainder using grow factors, gaps, and alignment. The vocabulary is deliberately close to flexbox, so anyone who has written modern CSS can predict the result.',
     'Text is shaped with real font metrics. Lines are broken at word boundaries, justified paragraphs stretch the gaps between words, and inline markup such as bold or italic spans is carried through the line breaker without losing its style. Widths come from the embedded font program, never from an estimate.',
@@ -84,7 +84,7 @@ $cards = Row::make(
 
 
 $body = [
-    Text::make('Designing Papercut')->bold()->size(pt(32))->color('slate-900'),
+    Text::make('Designing Quoin')->bold()->size(pt(32))->color('slate-900'),
     Text::make('A short report on layout, pagination, and deterministic output')->size(pt(13))->color('slate-500'),
     $cards->margin(Edges::of(pt(10), pt(0), pt(10), pt(0))),
     Toc::make()->title('Contents')->levels(1, 2),
@@ -110,9 +110,9 @@ foreach ([['Display list', 'The ordered drawing operations produced by layout.']
 
 $document = Document::make(
     Page::a4()->margin(mm(22))
-        ->header(Row::make(Text::make('Papercut Design Report')->size(pt(8))->color('slate-500'), Spacer::flex(), Text::make('Confidential')->size(pt(8))->color('slate-500')))
+        ->header(Row::make(Text::make('Quoin Design Report')->size(pt(8))->color('slate-500'), Spacer::flex(), Text::make('Confidential')->size(pt(8))->color('slate-500')))
         ->body(Column::make(...$body)->gap(pt(0)))
         ->footer(PageNumber::make('{page} / {total}')->center()->size(pt(8))->color('slate-500')),
-)->title('Designing Papercut')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
+)->title('Designing Quoin')->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));
 
 return $document;

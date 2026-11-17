@@ -2,20 +2,20 @@
 
 ## Password protection
 
-Papercut can encrypt a PDF so it opens only with a password. It uses AES-256, the strongest encryption PDF readers support.
+A PDF can be encrypted so it opens only with a password. It uses AES-256, the strongest encryption PDF readers support.
 
 ::: code-tabs#style
 @tab Laravel
 ```php
-return Papercut::view('pdf.statement', $data)
+return Quoin::view('pdf.statement', $data)
     ->encrypt('open-sesame')
     ->pdf()
     ->download('statement.pdf');
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text};
-use Papercut\Export\{Encryption, PdfOptions};
+use Quoin\{Document, Page, Text};
+use Quoin\Export\{Encryption, PdfOptions};
 
 $document = Document::make(Page::a4()->body(Text::p('Account balance: 42.00')));
 
@@ -30,7 +30,7 @@ With only a password, readers can still print the document and copy text from it
 To change what readers can do, build an `Encryption` yourself:
 
 ```php
-use Papercut\Export\Encryption;
+use Quoin\Export\Encryption;
 
 new Encryption(
     userPassword: 'open-sesame',   // needed to open the document; '' lets anyone open it
@@ -45,7 +45,7 @@ new Encryption(
 
 In Laravel, pass it to `encrypt()` in place of the password string.
 
-Leaving out the user password makes a document anyone can open but nobody can, say, copy from. If you don't set an owner password, Papercut generates a random one, so the restrictions can't be lifted at all.
+Leaving out the user password makes a document anyone can open but nobody can, say, copy from. If you don't set an owner password, a random one is generated, so the restrictions can't be lifted at all.
 
 Permissions are honored by well-behaved PDF readers, not enforced by the encryption itself, so treat them as a deterrent. The password needed to open the document is real protection. Whatever the permissions, screen readers can always read the text.
 
@@ -53,13 +53,13 @@ Only PDFs are encrypted. Calling `encrypt()` doesn't affect `->html()` or `->doc
 
 ## Digital signatures
 
-A signature proves who issued a document and that nobody has changed it since. Papercut doesn't sign documents itself. [php-pdf](https://github.com/dskripchenko/php-pdf), the library Papercut uses to write PDFs, handles certificates, timestamp servers and long-term validation. Sign a Papercut PDF once it's rendered:
+A signature proves who issued a document and that nobody has changed it since. Signing isn't built in. [php-pdf](https://github.com/dskripchenko/php-pdf), the library that writes the PDFs, handles certificates, timestamp servers and long-term validation. Sign the PDF once it's rendered:
 
 ```php
 use Dskripchenko\PhpPdf\Pdf\Signature\PdfSigner;
 use Dskripchenko\PhpPdf\Pdf\SignatureConfig;
 
-$pdf = Papercut::view('pdf.contract', $data)->pdf()->toString();
+$pdf = Quoin::view('pdf.contract', $data)->pdf()->toString();
 
 $signed = PdfSigner::fromBytes($pdf)->sign(new SignatureConfig(
     certPem: file_get_contents(storage_path('certs/signing.pem')),
@@ -72,12 +72,12 @@ In a Laravel app, [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-
 
 ## Merging and stamping
 
-php-pdf can also combine a Papercut PDF with existing ones: append your standard terms to an invoice, or print a letterhead behind every page.
+php-pdf can also combine a generated PDF with existing ones: append your standard terms to an invoice, or print a letterhead behind every page.
 
 ```php
 use Dskripchenko\PhpPdf\Pdf\Merge\{PdfMerger, PdfSource, Placement};
 
-$invoice = Papercut::view('pdf.invoice', $data)->pdf()->toString();
+$invoice = Quoin::view('pdf.invoice', $data)->pdf()->toString();
 
 $pdf = PdfMerger::create()
     ->append(PdfSource::fromBytes($invoice))

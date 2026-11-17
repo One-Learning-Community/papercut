@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Stretcher;
-use Papercut\Math\Utf8;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Stretcher;
+use Quoin\Math\Utf8;
 
 /** mfenced: open and close delimiters that stretch (size variant, then assembly) to the height of the content. */
 final class Fenced extends Node
@@ -26,14 +26,14 @@ final class Fenced extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
         return [$this->content];
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         // A row with Middles is laid out once; only its Middles are laid out again, at the stretched size.
@@ -103,7 +103,7 @@ final class Fenced extends Node
     /**
      * A copy of the content with each top-level Middle told to stretch to $req pt.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function stretchMiddles(Node $n, float $req): Node
     {

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Papercut\{Column, Document, Page, Text};
+use Quoin\{Column, Document, Page, Text};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     Column::make(

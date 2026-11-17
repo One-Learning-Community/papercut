@@ -8,11 +8,11 @@ Short answers for keeping documents on S3, making them in a queue, emailing them
 
 ```php
 use Illuminate\Support\Facades\Storage;
-use Papercut\Laravel\Facades\Papercut;
+use Quoin\Laravel\Facades\Quoin;
 
 $path = "invoices/{$invoice->number}.pdf";
 
-Papercut::view('pdf.invoice', ['invoice' => $invoice])->pdf()->store($path, 's3');
+Quoin::view('pdf.invoice', ['invoice' => $invoice])->pdf()->store($path, 's3');
 ```
 
 If the disk says the write failed, `store()` throws a `RuntimeException`.
@@ -34,7 +34,7 @@ A long report needn't hold up a request. Render it in a job, store it, and tell 
 ```php
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Papercut\Laravel\Facades\Papercut;
+use Quoin\Laravel\Facades\Quoin;
 
 class GenerateReport implements ShouldQueue
 {
@@ -48,7 +48,7 @@ class GenerateReport implements ShouldQueue
     {
         $path = "reports/{$this->report->id}.pdf";
 
-        Papercut::view('pdf.report', ['report' => $this->report])->pdf()->store($path, 's3');
+        Quoin::view('pdf.report', ['report' => $this->report])->pdf()->store($path, 's3');
 
         $this->report->update(['pdf_path' => $path]);
         $this->report->user->notify(new ReportReady($this->report));
@@ -57,7 +57,7 @@ class GenerateReport implements ShouldQueue
 ```
 
 - Give the job the model (or its id), and build the document in `handle()`. A `PendingDocument` or `PendingOutput` holds a closure, so it can't be put on the queue.
-- Workers on the same server share the parsed-font cache in `storage/framework/cache/papercut` (see `cache_dir` in the [configuration](./configuration.md)), so a font is parsed once, not once per job.
+- Workers on the same server share the parsed-font cache in `storage/framework/cache/quoin` (see `cache_dir` in the [configuration](./configuration.md)), so a font is parsed once, not once per job.
 - A very long document can take longer than the worker's default timeout. Set `public $timeout` on the job if it does.
 
 ## Email a document
@@ -67,7 +67,7 @@ Attach a `PendingOutput` in a mailable's `attachments()` or a notification's `to
 ```php
 public function attachments(): array
 {
-    return [Papercut::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()->attachment('invoice.pdf')];
+    return [Quoin::view('pdf.invoice', ['invoice' => $this->invoice])->pdf()->attachment('invoice.pdf')];
 }
 ```
 
@@ -78,11 +78,11 @@ public function attachments(): array
 A Livewire action only sends a file when it returns a streamed or file response. `download()` returns an ordinary response, which Livewire ignores without an error, so use `streamDownload()`:
 
 ```php
-use Papercut\Laravel\Facades\Papercut;
+use Quoin\Laravel\Facades\Quoin;
 
 public function downloadInvoice()
 {
-    return Papercut::view('pdf.invoice', ['invoice' => $this->invoice])
+    return Quoin::view('pdf.invoice', ['invoice' => $this->invoice])
         ->pdf()
         ->streamDownload("invoice-{$this->invoice->number}.pdf");
 }
@@ -97,7 +97,7 @@ Filament actions run through Livewire, so the same call works there:
 ```php
 Action::make('pdf')
     ->label('Download PDF')
-    ->action(fn (Invoice $record) => Papercut::view('pdf.invoice', ['invoice' => $record])
+    ->action(fn (Invoice $record) => Quoin::view('pdf.invoice', ['invoice' => $record])
         ->pdf()
         ->streamDownload("invoice-{$record->number}.pdf")),
 ```
@@ -106,7 +106,7 @@ Action::make('pdf')
 
 ## Draw charts as SVG
 
-JavaScript chart libraries need a browser, so they can't draw into a PDF made on the server. Papercut draws SVG as vector shapes instead, so a chart stays sharp when printed or zoomed. Any PHP library that writes SVG markup works: pass its output to `<x-doc::svg :data="$svg" />`.
+JavaScript chart libraries need a browser, so they can't draw into a PDF made on the server. SVG is drawn as vector shapes instead, so a chart stays sharp when printed or zoomed. Any PHP library that writes SVG markup works: pass its output to `<x-doc::svg :data="$svg" />`.
 
 For simple charts, a Blade component can write the SVG itself. This one draws a bar chart from an array of labels and values:
 

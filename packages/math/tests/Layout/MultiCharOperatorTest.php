@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
 use PHPUnit\Framework\TestCase;
 
 final class MultiCharOperatorTest extends TestCase

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 // Builds the certificate Document: text and a signature placed on top of a blank PDF (in a real app, from a design tool; here certificate-template.php draws it).
 // examples/core/certificate.php saves it as PDF. Word and HTML exports leave page templates out, so only the PDF is built.
-use Papercut\{Document, Page, PdfPage, Place, Svg, Text};
-use Papercut\Style\Anchor;
+use Quoin\{Document, Page, PdfPage, Place, Svg, Text};
+use Quoin\Style\Anchor;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $assets = __DIR__ . '/../../assets';
 

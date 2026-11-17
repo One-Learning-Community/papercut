@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Tex;
+namespace Quoin\Math\Tests\Tex;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Node;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Tests\TreeAssert;
-use Papercut\Math\Tex\TexLexer;
-use Papercut\Math\Tex\TexMacros;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Node;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Tests\TreeAssert;
+use Quoin\Math\Tex\TexLexer;
+use Quoin\Math\Tex\TexMacros;
+use Quoin\Math\Tex\TexReader;
 use PHPUnit\Framework\TestCase;
 
 final class TexMacroTest extends TestCase

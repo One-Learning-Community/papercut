@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tex;
+namespace Quoin\Math\Tex;
 
 /**
  * LaTeX source to tokens. A token is [type, value, offset] with the offset in bytes: cs (control word or symbol,
  * without its backslash), ch (one character), sp (a whitespace run), `{` `}` `^` `_` `&`, nl (a `\\` row break) and
  * param (`#1`). Comments are dropped; spaces after a control word are eaten.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class TexLexer
 {

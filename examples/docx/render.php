@@ -6,8 +6,8 @@ declare(strict_types=1);
 // (after composer install in packages/docx). The .docx files are build output and are not committed.
 require __DIR__ . '/../../packages/docx/vendor/autoload.php';
 
-use Papercut\Document;
-use Papercut\Docx\DocxExporter;
+use Quoin\Document;
+use Quoin\Docx\DocxExporter;
 
 // The document files assign their own variables, so each is loaded inside a function scope.
 $load = static function (string $name): Document {

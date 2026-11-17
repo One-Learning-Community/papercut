@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\OperatorDictionary;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\OperatorDictionary;
 
 /** mrow: children side by side on a shared baseline. Operator forms come from Forms::of(). */
 final class Row extends Node
@@ -19,7 +19,7 @@ final class Row extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
@@ -29,7 +29,7 @@ final class Row extends Node
     /**
      * @return list<?string> operator form of each child (prefix, infix, postfix) or null for non-operators
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function forms(): array
     {
@@ -55,7 +55,7 @@ final class Row extends Node
         return $n instanceof Identifier && $n->function && $n->upright && mb_strlen($n->name) > 1;
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         $boxes = null;
@@ -70,7 +70,7 @@ final class Row extends Node
      * @param array<int, Box> $reuse
      * @param ?array<int, Box> $boxes filled when given as an array, left alone when null
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function build(Context $c, array $reuse, ?array &$boxes): Box
     {

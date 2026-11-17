@@ -1,6 +1,6 @@
 # Rich text
 
-When content arrives as HTML saved from a rich text editor, or as plain text typed into a form, `Markup` converts it into Papercut components. It handles a practical subset of HTML, reports anything it couldn't convert, and needs no browser.
+When content arrives as HTML saved from a rich text editor, or as plain text typed into a form, `Markup` converts it into components. It handles a practical subset of HTML, reports anything it couldn't convert, and needs no browser.
 
 ::: code-tabs#style
 @tab Blade
@@ -11,11 +11,11 @@ When content arrives as HTML saved from a rich text editor, or as plain text typ
 ```
 @tab PHP
 ```php
-use Papercut\{Column, Document, Page};
-use Papercut\Markup\{Markup, MarkupOptions, StyleMode};
-use function Papercut\pt;
+use Quoin\{Column, Document, Page};
+use Quoin\Markup\{Markup, MarkupOptions, StyleMode};
+use function Quoin\pt;
 
-$slide = '<h2>Agenda</h2><p>Welcome to <b>Papercut</b>.</p><ol start="3"><li>Intro</li><li>Demo</li></ol>';
+$slide = '<h2>Agenda</h2><p>Welcome to <b>Quoin</b>.</p><ol start="3"><li>Intro</li><li>Demo</li></ol>';
 
 $document = Document::make(Page::letter()->body(
     Column::make(
@@ -28,7 +28,7 @@ $document = Document::make(Page::letter()->body(
 
 The [knowledge base article example](/examples.md#the-knowledge-base-article-example) converts a whole help article this way.
 
-In Blade, bind the value with `:html` rather than `html`, otherwise Blade escapes the HTML before Papercut sees it.
+In Blade, bind the value with `:html` rather than `html`, otherwise Blade escapes the HTML before it is converted.
 
 `Markup::text()` turns each newline into a line break and each blank line into a new paragraph. Characters like `<` are treated as plain text.
 
@@ -51,7 +51,7 @@ For a simple table, or a heading and a few paragraphs, you can write plain HTML 
 </x-doc::card>
 ```
 
-Blade runs first, so loops, conditions and `{{ }}` echoes work as usual, and an echoed value stays text: `{{ '<b>' }}` shows `<b>`, it doesn't make anything bold. Your own Blade components can go inside too, as long as they render HTML. Papercut tags can't, because they aren't HTML; put them next to the markup tag instead. The tag takes exactly one of: HTML in its slot, `:html` or `:text`.
+Blade runs first, so loops, conditions and `{{ }}` echoes work as usual, and an echoed value stays text: `{{ '<b>' }}` shows `<b>`, it doesn't make anything bold. Your own Blade components can go inside too, as long as they render HTML. Tags from this package can't, because they aren't HTML; put them next to the markup tag instead. The tag takes exactly one of: HTML in its slot, `:html` or `:text`.
 
 ## Headings and the table of contents
 
@@ -66,8 +66,8 @@ Headings in converted HTML are ordinary headings, so a [table of contents](/guid
 ```
 @tab PHP
 ```php
-use Papercut\{Document, Page, Text, Toc};
-use Papercut\Markup\{Markup, MarkupOptions};
+use Quoin\{Document, Page, Text, Toc};
+use Quoin\Markup\{Markup, MarkupOptions};
 
 $intro = '<h2>Warm-up</h2><p>Read the passage.</p>';
 
@@ -79,7 +79,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-Every `h1` to `h6` the tag converts is left out, wherever it sits: in a list, a table or a quote. They still look like headings and keep their PDF bookmarks, the same as `toc="false"` on a single heading. `papercut.markup.toc` sets the default for every markup tag, and `toc="true"` turns it back on for one. In Word, the headings come back if someone updates the table of contents field (see [Word export](/guide/word-export.md#table-of-contents)).
+Every `h1` to `h6` the tag converts is left out, wherever it sits: in a list, a table or a quote. They still look like headings and keep their PDF bookmarks, the same as `toc="false"` on a single heading. `quoin.markup.toc` sets the default for every markup tag, and `toc="true"` turns it back on for one. In Word, the headings come back if someone updates the table of contents field (see [Word export](/guide/word-export.md#table-of-contents)).
 
 Putting `->toc(false)` on the converted result doesn't do this: like any style on a box, it applies to the box itself, not to the headings inside it. Use the option.
 
@@ -114,7 +114,7 @@ In PHP, `Markup::flatten()` does the same, merging the converted content into a 
 | other block tags, like `section` | the tag is dropped, and its content kept as paragraphs |
 | anything else | the tag is dropped, and its content kept inline |
 
-`script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed along with everything inside them. Tables and rules take the named styles `markup.table`, `markup.th`, `markup.td` and `markup.hr`, which you can restyle through `papercut.styles`. Classes, ids and `data-*` attributes are ignored. Empty paragraphs are dropped unless you ask to keep them.
+`script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed along with everything inside them. Tables and rules take the named styles `markup.table`, `markup.th`, `markup.td` and `markup.hr`, which you can restyle through `quoin.styles`. Classes, ids and `data-*` attributes are ignored. Empty paragraphs are dropped unless you ask to keep them.
 
 ## Style modes
 
@@ -143,11 +143,11 @@ In `theme` mode, the default, author styles are ignored, so the content stays in
 
 ## Images
 
-Papercut never downloads an `<img src>` itself. You give it a resolver: a function that receives the trimmed `src` and returns the image data, or `null` if the image can't be found.
+The conversion never downloads an `<img src>` itself. You give it a resolver: a function that receives the trimmed `src` and returns the image data, or `null` if the image can't be found.
 
 ```php
-use Papercut\{Document, Page};
-use Papercut\Markup\{Markup, MarkupOptions};
+use Quoin\{Document, Page};
+use Quoin\Markup\{Markup, MarkupOptions};
 
 $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
 $markup = new MarkupOptions(images: fn (string $src): ?string => $src === 'logo.png' ? $png : null);
@@ -157,7 +157,7 @@ $document = Document::make(Page::letter()->body(
 ));
 ```
 
-Papercut calls the resolver once per distinct `src` in a conversion and reuses the answer, `null` included. When an image is missing, its `alt` text is shown in italics. Bytes that aren't a readable image, such as a cut-off download, are treated the same as `null`: the `alt` text, or a `dropped` note when there is none, and the rest of the document is made. In Laravel, set `papercut.markup.images` to a resolver class. The [Laravel configuration page](/laravel/configuration.md#markup-images) has a full example.
+The resolver is called once per distinct `src` in a conversion and its answer is reused, `null` included. When an image is missing, its `alt` text is shown in italics. Bytes that aren't a readable image, such as a cut-off download, are treated the same as `null`: the `alt` text, or a `dropped` note when there is none, and the rest of the document is made. In Laravel, set `quoin.markup.images` to a resolver class. The [Laravel configuration page](/laravel/configuration.md#markup-images) has a full example.
 
 ::: danger Treat src as user input
 Your resolver decides which files can be read. Don't pass `src` straight to the filesystem or a storage disk. Check it against the paths you expect, and reject anything containing `..`.
@@ -173,7 +173,7 @@ Markup records everything it couldn't convert exactly and passes the notes to ea
 `onWarning` gets the message. If the callback takes a second parameter, it also gets a `FidelityReport` with `level` (`FidelityLevel::Approximated` or `Dropped`), `format`, `feature` and `path`.
 
 ```php
-use Papercut\Export\{FidelityReport, PdfOptions};
+use Quoin\Export\{FidelityReport, PdfOptions};
 
 $options = new PdfOptions(onWarning: function (string $message, ?FidelityReport $report = null): void {
     if ($report !== null) {

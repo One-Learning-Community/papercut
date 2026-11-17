@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Site;
+namespace Quoin\Site;
 
 /** GD helpers for the gallery images: crop away blank page, and set pages side by side. */
 final class Raster

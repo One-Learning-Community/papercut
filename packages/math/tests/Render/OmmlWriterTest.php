@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Render;
+namespace Quoin\Math\Tests\Render;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Render\RunFormat;
-use Papercut\Math\Styles;
-use Papercut\Math\Tests\Fixtures;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Render\RunFormat;
+use Quoin\Math\Styles;
+use Quoin\Math\Tests\Fixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

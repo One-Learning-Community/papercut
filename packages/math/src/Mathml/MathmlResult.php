@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Mathml;
+namespace Quoin\Math\Mathml;
 
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Node\Node;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Node\Node;
 
 /** A formula read from MathML: the tree, and whether the source asked for display (block) style. */
 final readonly class MathmlResult

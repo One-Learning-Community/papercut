@@ -55,7 +55,7 @@ async function copy() {
       </div>
       <div class="tw-pane">
         <div class="tw-head">
-          Papercut Blade
+          Quoin Blade
           <button type="button" @click="copy">{{ copied ? 'Copied' : 'Copy' }}</button>
         </div>
         <pre class="tw-out" aria-live="polite">{{ result.error ?? result.output }}</pre>

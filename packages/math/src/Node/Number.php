@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Run;
-use Papercut\Math\Utf8;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Run;
+use Quoin\Math\Utf8;
 
 /** mn: digits with an optional decimal point, drawn upright. Also holds Unicode super/subscript digits as ordinary characters. */
 final class Number extends Node
@@ -20,7 +20,7 @@ final class Number extends Node
         $this->text = Utf8::clean($text);
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         return Run::build($c, array_map(fn ($ch) => [mb_ord($ch), $ch], mb_str_split($this->text)));

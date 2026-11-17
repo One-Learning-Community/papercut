@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Render;
+namespace Quoin\Math\Tests\Render;
 
-use Papercut\Math\Exception\MissingExtension;
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
-use Papercut\Math\Math;
-use Papercut\Math\Render\PngRenderer;
-use Papercut\Math\Render\SvgRenderer;
+use Quoin\Math\Exception\MissingExtension;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
+use Quoin\Math\Math;
+use Quoin\Math\Render\PngRenderer;
+use Quoin\Math\Render\SvgRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class PngRendererTest extends TestCase
@@ -200,7 +200,7 @@ final class PngRendererTest extends TestCase
             '\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}',
             '\sum_{k=1}^{n} k^2 = \frac{n(n+1)(2n+1)}{6}',
         ];
-        $dir = sys_get_temp_dir() . '/papercut-png-' . bin2hex(random_bytes(4));
+        $dir = sys_get_temp_dir() . '/quoin-png-' . bin2hex(random_bytes(4));
         mkdir($dir);
         try {
             foreach ($formulas as $i => $tex) {

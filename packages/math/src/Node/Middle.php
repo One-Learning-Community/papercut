@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Run;
-use Papercut\Math\Layout\Stretcher;
-use Papercut\Math\Utf8;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Run;
+use Quoin\Math\Layout\Stretcher;
+use Quoin\Math\Utf8;
 
 /**
  * A delimiter inside a fence's content (TeX's \middle) that stretches to the fence's height, centered on the math
@@ -31,7 +31,7 @@ final class Middle extends Node
     /**
      * Whether a Fenced has told this to stretch (the writers use it to tell the Middles that stretch from the plain ones).
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function stretches(): bool
     {
@@ -39,7 +39,7 @@ final class Middle extends Node
         return $this->height !== null && mb_strlen($this->char) === 1;
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         $space = $c->tight ? 0.0 : $c->mu(3);

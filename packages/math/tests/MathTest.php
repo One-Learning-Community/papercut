@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Rule;
-use Papercut\Math\Math;
-use Papercut\Math\Node\Fraction;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Render\SvgRenderer;
-use Papercut\Math\Styles;
-use Papercut\Math\Tokenizer;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Layout\Rule;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Fraction;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Render\SvgRenderer;
+use Quoin\Math\Styles;
+use Quoin\Math\Tokenizer;
 
 final class MathTest extends TestCase
 {

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 // Builds the responses Document: a feedback-form record made from eight of the decorators.
 // examples/core/responses.php saves it as PDF and examples/html/render.php as HTML.
-use Papercut\{Column, Document, Page, PageNumber, Text};
-use Papercut\Decorator\{Badge, Blockquote, Callout, Card, ChoiceList, Field, KeyValueList, Section};
+use Quoin\{Column, Document, Page, PageNumber, Text};
+use Quoin\Decorator\{Badge, Blockquote, Callout, Card, ChoiceList, Field, KeyValueList, Section};
 
-use function Papercut\{mm, percent, pt};
+use function Quoin\{mm, percent, pt};
 
 $items = [
     ['type' => 'instruction', 'prompt' => 'Before you continue', 'text' => 'Answer from your own experience in the workshop. Skip anything you did not attend.'],
@@ -29,7 +29,7 @@ $body = [
         KeyValueList::make()
             ->row('Respondent', 'Jane Smith')
             ->row('Submitted', '2026-03-02 14:30')
-            ->row('Course', 'Papercut workshop, spring cohort')
+            ->row('Course', 'Quoin workshop, spring cohort')
             ->labelWidth(percent(30)),
     )->title('Response details'),
 ];

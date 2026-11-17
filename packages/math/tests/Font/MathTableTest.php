@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Font;
+namespace Quoin\Math\Tests\Font;
 
-use Papercut\Math\Font\TrueTypeFont;
-use Papercut\Math\Math;
+use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Math;
 use PHPUnit\Framework\TestCase;
 
 final class MathTableTest extends TestCase

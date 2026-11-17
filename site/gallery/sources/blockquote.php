@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, Text};
-use Papercut\Decorator\{Blockquote};
+use Quoin\{Document, Page, Text};
+use Quoin\Decorator\{Blockquote};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     Blockquote::make(Text::make('Simplicity is not the absence of clutter. It is the result of knowing exactly what belongs on the page.'))

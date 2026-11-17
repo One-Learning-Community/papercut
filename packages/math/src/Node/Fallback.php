@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\MathNote;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\MathNote;
 
 /** Content a reader could not render faithfully: what stands in for it (or nothing) and the note saying why. */
 final class Fallback extends Node
@@ -19,7 +19,7 @@ final class Fallback extends Node
      * Sees through what only annotates a node (a Fallback with content, a DisplayStyle), so checks for an Operator or
      * a Fraction find it.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function unwrap(Node $n): Node
     {
@@ -39,7 +39,7 @@ final class Fallback extends Node
      *
      * @return list<bool>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public static function displays(Node $n): array
     {
@@ -59,14 +59,14 @@ final class Fallback extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
         return $this->content === null ? [] : [$this->content];
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         return $this->content === null ? new Box() : $this->content->layout($c);

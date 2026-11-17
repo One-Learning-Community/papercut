@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tex;
+namespace Quoin\Math\Tex;
 
-use Papercut\Math\Styles;
+use Quoin\Math\Styles;
 
 /**
  * LaTeX command to Unicode tables, shared by the TeX writer and the reader (the common few hundred symbols, not all of
  * unicode-math), and the reverse lookups built from them. Where several commands share a character the writer uses
  * one canonical command (see PREFER).
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class TexSymbols
 {
@@ -110,8 +110,8 @@ final class TexSymbols
         'smallint' => '∫', 'intop' => '∫', 'ointctrclockwise' => '∲', 'varointclockwise' => '∲', 'fint' => '⨏',
     ];
 
-    public const FUNCS = \Papercut\Math\OperatorDictionary::PLAIN_FUNCTION_NAMES;
-    public const FUNCS_LIM = \Papercut\Math\OperatorDictionary::LIMIT_NAMES;
+    public const FUNCS = \Quoin\Math\OperatorDictionary::PLAIN_FUNCTION_NAMES;
+    public const FUNCS_LIM = \Quoin\Math\OperatorDictionary::LIMIT_NAMES;
     public const FUNCS_TEXT = ['injlim' => 'inj lim', 'projlim' => 'proj lim', 'varinjlim' => 'lim', 'varprojlim' => 'lim', 'varliminf' => 'lim', 'varlimsup' => 'lim'];
 
     /** \left / \right / \big delimiter names. */

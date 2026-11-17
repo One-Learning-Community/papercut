@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Font;
+namespace Quoin\Math\Tests\Font;
 
-use Papercut\Math\Exception\UnsupportedFont;
-use Papercut\Math\Font\TrueTypeFont;
-use Papercut\Math\Math;
+use Quoin\Math\Exception\UnsupportedFont;
+use Quoin\Math\Font\TrueTypeFont;
+use Quoin\Math\Math;
 use PHPUnit\Framework\TestCase;
 
 final class TrueTypeFontTest extends TestCase

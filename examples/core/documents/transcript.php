@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 // Builds the transcript Document; examples/core/transcript.php saves it as PDF and examples/html/render.php as HTML.
-use Papercut\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, Text};
-use Papercut\Value\Edges;
+use Quoin\{Column, Document, Page, PageNumber, Row, Spacer, Table, TableRow, Text};
+use Quoin\Value\Edges;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $subjects = ['Calculus', 'Linear Algebra', 'Data Structures', 'Algorithms', 'Physics', 'Statistics', 'Databases', 'Compilers', 'Networks', 'Ethics', 'Logic', 'Numerical Methods'];
 $levels = ['Introduction to', 'Applied', 'Topics in', 'Advanced', 'Seminar in'];
@@ -72,7 +72,7 @@ $document = Document::make(
         ->header(Row::make(
             Text::make('Official Transcript')->bold()->size(pt(16))->color('indigo-600'),
             Spacer::flex(),
-            Text::make('Papercut')->color('slate-500'),
+            Text::make('Quoin')->color('slate-500'),
         ))
         ->body(Column::make($card, Text::h2('Course history'), $table, $summary)->gap(pt(10)))
         ->footer(PageNumber::make('Page {page} of {total}')->center()->size(pt(8))->color('slate-500')),

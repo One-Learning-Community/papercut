@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fraction;
-use Papercut\Math\Node\Scripts;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fraction;
+use Quoin\Math\Node\Scripts;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Render\TextWriter;
 
 final class NotesTest extends TestCase
 {

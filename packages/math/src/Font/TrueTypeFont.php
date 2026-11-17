@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Font;
+namespace Quoin\Math\Font;
 
-use Papercut\Math\Exception\UnsupportedFont;
+use Quoin\Math\Exception\UnsupportedFont;
 
 /**
  * Minimal TrueType (glyf) reader: metrics, cmap (formats 4 and 12), outlines including composites,
@@ -109,7 +109,7 @@ final class TrueTypeFont
         return $font;
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function math(): MathTable
     {
         if ($this->math === null) {
@@ -119,7 +119,7 @@ final class TrueTypeFont
         return $this->math;
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function hasScriptAlternates(): bool
     {
         return isset($this->tables['GSUB']);
@@ -128,7 +128,7 @@ final class TrueTypeFont
     /**
      * The `ssty` alternate of a glyph for script level 1 or 2 (smaller, sturdier forms); the glyph itself otherwise.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function scriptVariant(int $gid, int $level): int
     {
@@ -140,7 +140,7 @@ final class TrueTypeFont
         return $this->gsub->variant($gid, $level);
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function advance(int $gid): int
     {
         $hm = $this->tables['hmtx'][0];
@@ -262,7 +262,7 @@ final class TrueTypeFont
      * Whether every outline point lies on the glyph's bounding box minimum or maximum along an axis (y when $vertical, else x):
      * a prism along it, which scaling along that axis only lengthens. Exact, with no tolerance: a bevel of a few units would stretch into a sliver. False for an empty glyph.
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function straightAlong(int $gid, bool $vertical): bool
     {
@@ -288,7 +288,7 @@ final class TrueTypeFont
     /**
      * @return array{int,int,int,int} xMin, yMin, xMax, yMax in font units (zeros for empty glyphs)
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function bbox(int $gid): array
     {
@@ -310,7 +310,7 @@ final class TrueTypeFont
      *
      * @return list<list<array{float,float,bool}>>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function contours(int $gid, int $depth = 0): array
     {

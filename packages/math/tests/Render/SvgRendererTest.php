@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Render;
+namespace Quoin\Math\Tests\Render;
 
 use PHPUnit\Framework\TestCase;
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Math;
-use Papercut\Math\Render\SvgRenderer;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
 
 final class SvgRendererTest extends TestCase
 {

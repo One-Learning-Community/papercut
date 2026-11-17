@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Layout;
+namespace Quoin\Math\Layout;
 
 /** A filled rectangle (fraction bar, radical overbar). (x, y) is its top-left corner, y down. */
 final readonly class Rule implements DisplayItem
@@ -15,7 +15,7 @@ final readonly class Rule implements DisplayItem
     ) {
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function translated(float $dx, float $dy): static
     {
         return new self($this->x + $dx, $this->y + $dy, $this->w, $this->h);

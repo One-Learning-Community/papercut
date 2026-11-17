@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Layout\Run;
-use Papercut\Math\Styles;
-use Papercut\Math\Utf8;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Layout\Run;
+use Quoin\Math\Styles;
+use Quoin\Math\Utf8;
 
 /** mi: a variable. A single letter is drawn italic (Mathematical Italic codepoints); longer names and symbols upright. */
 final class Identifier extends Node
@@ -30,7 +30,7 @@ final class Identifier extends Node
         $this->upright = $italic === null ? mb_strlen($this->name) > 1 : ! $italic;
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         $italic = ! $this->upright;

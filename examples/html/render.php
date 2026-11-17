@@ -5,9 +5,9 @@ declare(strict_types=1);
 // Renders the core example documents as full-page HTML (fonts linked by relative path). Run: php examples/html/render.php
 require __DIR__ . '/../../packages/core/vendor/autoload.php';
 
-use Papercut\Document;
-use Papercut\Export\{FontMode, HtmlOptions};
-use Papercut\Text\FontFace;
+use Quoin\Document;
+use Quoin\Export\{FontMode, HtmlOptions};
+use Quoin\Text\FontFace;
 
 // Font files are referenced by their path relative to this directory (no base64), so the HTML stays small. Open it from a checkout.
 $root = (string) realpath(__DIR__ . '/../..');

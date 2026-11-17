@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, Text};
-use Papercut\Decorator\{Field, Section};
+use Quoin\{Document, Page, Text};
+use Quoin\Decorator\{Field, Section};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     Section::make(

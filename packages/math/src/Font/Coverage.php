@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Font;
+namespace Quoin\Math\Font;
 
 /**
  * OpenType Coverage tables (format 1 glyph lists, format 2 ranges).
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Coverage
 {

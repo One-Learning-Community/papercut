@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Tex;
+namespace Quoin\Math\Tests\Tex;
 
-use Papercut\Math\Math;
-use Papercut\Math\Render\TexWriter;
-use Papercut\Math\Tests\Fixtures;
-use Papercut\Math\Tests\TreeAssert;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Math;
+use Quoin\Math\Render\TexWriter;
+use Quoin\Math\Tests\Fixtures;
+use Quoin\Math\Tests\TreeAssert;
+use Quoin\Math\Tex\TexReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

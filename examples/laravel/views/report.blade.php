@@ -1,15 +1,15 @@
-<x-doc::document title="Designing Papercut" author="Papercut">
+<x-doc::document title="Designing Quoin" author="Quoin">
     <x-doc::page size="a4" margin="22mm">
         <x-slot:header>
             <x-doc::row>
-                <x-doc::text size="8pt" color="slate-500">Papercut Design Report</x-doc::text>
+                <x-doc::text size="8pt" color="slate-500">Quoin Design Report</x-doc::text>
                 <x-doc::spacer />
                 <x-doc::text size="8pt" color="slate-500">Confidential</x-doc::text>
             </x-doc::row>
         </x-slot:header>
 
         <x-doc::column>
-            <x-doc::text size="32pt" bold color="slate-900">Designing Papercut</x-doc::text>
+            <x-doc::text size="32pt" bold color="slate-900">Designing Quoin</x-doc::text>
             <x-doc::text size="13pt" color="slate-500">A short report on layout, pagination, and deterministic output</x-doc::text>
 
             <x-doc::row gap="8pt" margin="10pt 0 10pt 0">

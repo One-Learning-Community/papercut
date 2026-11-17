@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\{Box, Glyph, Rule};
-use Papercut\Math\Math;
-use Papercut\Math\Node\{Grid, Node, Scripts};
+use Quoin\Math\Layout\{Box, Glyph, Rule};
+use Quoin\Math\Math;
+use Quoin\Math\Node\{Grid, Node, Scripts};
 use PHPUnit\Framework\TestCase;
 
 final class GridTest extends TestCase

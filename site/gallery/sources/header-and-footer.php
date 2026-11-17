@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Papercut\{Column, Document, Page, PageBreak, PageNumber, Row, Text};
-use Papercut\Style\Justify;
-use Papercut\Value\Edges;
+use Quoin\{Column, Document, Page, PageBreak, PageNumber, Row, Text};
+use Quoin\Style\Justify;
+use Quoin\Value\Edges;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $para = 'The new warehouse opened in March and now ships most orders the same day. Returns are handled at the front desk, and the old site closes at the end of the quarter.';
 

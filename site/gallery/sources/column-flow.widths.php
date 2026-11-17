@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Papercut\{ColumnFlow, Document, Page, Text};
+use Quoin\{ColumnFlow, Document, Page, Text};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     Text::h2('Notes from the field'),

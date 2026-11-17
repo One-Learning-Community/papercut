@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Papercut\Math\OperatorDictionary;
+use Quoin\Math\OperatorDictionary;
 
 final class OperatorDictionaryTest extends TestCase
 {

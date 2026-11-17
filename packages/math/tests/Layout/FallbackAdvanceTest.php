@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\{Box, Glyph};
-use Papercut\Math\Math;
+use Quoin\Math\Layout\{Box, Glyph};
+use Quoin\Math\Math;
 use PHPUnit\Framework\TestCase;
 
 final class FallbackAdvanceTest extends TestCase

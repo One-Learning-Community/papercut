@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Render;
+namespace Quoin\Math\Tests\Render;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Papercut\Math\Math;
-use Papercut\Math\Render\SvgRenderer;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
+use Quoin\Math\Tex\TexReader;
 
 /**
  * Deeply nested layouts. Offsets are summed from the outside in (Box::each), which can differ from the old per-level translation

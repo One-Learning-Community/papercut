@@ -4,14 +4,14 @@ import { shikiPlugin } from '@vuepress/plugin-shiki'
 import { defaultTheme } from '@vuepress/theme-default'
 import { defineUserConfig } from 'vuepress'
 
-const repo = 'One-Learning-Community/papercut'
+const repo = 'One-Learning-Community/quoin'
 const hostname = 'https://one-learning-community.github.io'
 // GitHub Pages serves a project site from /<repo>/. Override with DOCS_BASE for a custom domain.
-const base = (process.env.DOCS_BASE ?? '/papercut/') as `/${string}/`
+const base = (process.env.DOCS_BASE ?? '/quoin/') as `/${string}/`
 
 export default defineUserConfig({
   lang: 'en-US',
-  title: 'Papercut',
+  title: 'Quoin',
   description: 'Paperwork without the sting. Page-aware PDF, Word, and HTML layout for PHP and Laravel, written in Blade or plain PHP.',
   base,
 
@@ -20,7 +20,7 @@ export default defineUserConfig({
     ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }],
     ['link', { rel: 'icon', href: `${base}favicon.ico`, sizes: '32x32' }],
     ['link', { rel: 'apple-touch-icon', href: `${base}favicon-180.png` }],
-    ['meta', { property: 'og:image', content: `${hostname}${base}papercut-social.png` }],
+    ['meta', { property: 'og:image', content: `${hostname}${base}quoin-social.png` }],
     ['meta', { property: 'og:image:width', content: '1280' }],
     ['meta', { property: 'og:image:height', content: '640' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
@@ -30,9 +30,9 @@ export default defineUserConfig({
 
   theme: defaultTheme({
     hostname,
-    logo: '/papercut-mark.svg',
-    logoDark: '/papercut-mark-dark.svg',
-    logoAlt: 'Papercut',
+    logo: '/quoin-mark.svg',
+    logoDark: '/quoin-mark-dark.svg',
+    logoAlt: 'Quoin',
     repo,
     docsRepo: repo,
     docsBranch: 'main',
@@ -83,7 +83,7 @@ export default defineUserConfig({
       ],
       '/math/': [
         {
-          text: 'papercut/math',
+          text: 'quoin/math',
           children: ['/math/', '/math/recipes.md', '/math/input.md', '/math/output.md', '/math/backends.md'],
         },
       ],

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Mathml;
+namespace Quoin\Math\Tests\Mathml;
 
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Mathml\SafeXml;
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Mathml\SafeXml;
+use Quoin\Math\Render\TextWriter;
 use PHPUnit\Framework\TestCase;
 
 final class SafeXmlTest extends TestCase

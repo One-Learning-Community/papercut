@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Mathml;
+namespace Quoin\Math\Tests\Mathml;
 
-use Papercut\Math\Math;
-use Papercut\Math\MathNote;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Node\Fallback;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Forms;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Space;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\NoteLevel;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Render\TextWriter;
+use Quoin\Math\Math;
+use Quoin\Math\MathNote;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\DisplayStyle;
+use Quoin\Math\Node\Fallback;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Forms;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Space;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\NoteLevel;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Render\TextWriter;
 use PHPUnit\Framework\TestCase;
 
 final class MathmlFallbackTest extends TestCase
@@ -243,7 +243,7 @@ final class MathmlFallbackTest extends TestCase
     }
 
     /** @return list<string> the reason of every note, in order */
-    private static function reasons(\Papercut\Math\Mathml\MathmlResult $r): array
+    private static function reasons(\Quoin\Math\Mathml\MathmlResult $r): array
     {
         return array_map(static fn (MathNote $n): string => $n->level->name . " " . $n->element . ": " . $n->reason, $r->notes());
     }
@@ -308,7 +308,7 @@ final class MathmlFallbackTest extends TestCase
     }
 
     /** The first node of $class in the tree, looking through Fallbacks and Rows. */
-    private static function find(\Papercut\Math\Node\Node $n, string $class): ?\Papercut\Math\Node\Node
+    private static function find(\Quoin\Math\Node\Node $n, string $class): ?\Quoin\Math\Node\Node
     {
         if ($n instanceof $class) {
             return $n;

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Tex;
+namespace Quoin\Math\Tests\Tex;
 
-use Papercut\Math\Layout\Context;
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Middle;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\UnderOver;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\TexWriter;
-use Papercut\Math\Tests\TreeAssert;
-use Papercut\Math\Tex\TexCursor;
-use Papercut\Math\Tex\TexReader;
-use Papercut\Math\Tex\TexSymbols;
+use Quoin\Math\Layout\Context;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Middle;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\UnderOver;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\TexWriter;
+use Quoin\Math\Tests\TreeAssert;
+use Quoin\Math\Tex\TexCursor;
+use Quoin\Math\Tex\TexReader;
+use Quoin\Math\Tex\TexSymbols;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -185,8 +185,8 @@ final class TexFinalReviewTest extends TestCase
     public function test_a_single_cell_diagram_is_still_a_row(): void
     {
         $node = Math::tex('\begin{CD} A \end{CD}');
-        self::assertSame('Papercut\Math\Node\Fallback', $node::class);
-        self::assertInstanceOf(\Papercut\Math\Node\Row::class, $node->children()[0]);
+        self::assertSame('Quoin\Math\Node\Fallback', $node::class);
+        self::assertInstanceOf(\Quoin\Math\Node\Row::class, $node->children()[0]);
     }
 
     // D4
@@ -298,7 +298,7 @@ final class TexFinalReviewTest extends TestCase
         self::assertEqualsWithDelta($c->mu(3), $plain->trail, 1e-9);
         self::assertEqualsWithDelta($c->mu(3), $box->trail, 1e-9);
         $sinInk = $plain->width - $plain->trail;
-        $xs = array_map(static fn ($i): float => $i->x, array_values(array_filter($box->items, static fn ($i): bool => $i instanceof \Papercut\Math\Layout\Glyph)));
+        $xs = array_map(static fn ($i): float => $i->x, array_values(array_filter($box->items, static fn ($i): bool => $i instanceof \Quoin\Math\Layout\Glyph)));
         self::assertNotEmpty($xs);
         self::assertEqualsWithDelta($sinInk, $xs[array_key_last($xs)] ?? 0.0, 1.0);
     }

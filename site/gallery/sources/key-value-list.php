@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, Text};
-use Papercut\Decorator\{Badge, KeyValueList};
+use Quoin\{Document, Page, Text};
+use Quoin\Decorator\{Badge, KeyValueList};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     KeyValueList::make()

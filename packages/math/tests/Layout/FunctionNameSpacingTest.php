@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Layout;
+namespace Quoin\Math\Tests\Layout;
 
-use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Math;
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Layout\Glyph;
+use Quoin\Math\Math;
+use Quoin\Math\Tex\TexReader;
 use PHPUnit\Framework\TestCase;
 
 /** TeX's spacing around a function name (class Op): thin next to ordinaries, none next to an opening delimiter. */

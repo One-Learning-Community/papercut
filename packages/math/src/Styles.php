@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math;
+namespace Quoin\Math;
 
 /**
  * Mathematical alphanumeric mapping (ziamath styles.py, italic only).
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Styles
 {

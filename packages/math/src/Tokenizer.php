@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math;
+namespace Quoin\Math;
 
-use Papercut\Math\Node\Identifier;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Number;
-use Papercut\Math\Node\Operator;
-use Papercut\Math\Node\Row;
-use Papercut\Math\Node\Scripts;
+use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Number;
+use Quoin\Math\Node\Operator;
+use Quoin\Math\Node\Row;
+use Quoin\Math\Node\Scripts;
 
 /**
  * Plain string to mi/mn/mo nodes. Letters become identifiers (one per letter, italic), digit runs
@@ -21,7 +21,7 @@ use Papercut\Math\Node\Scripts;
  * before it, or on the whole bracketed group when that token closes one, as in "(a+b)²". With nothing
  * to attach to, the run stays a number drawn as the characters it is.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Tokenizer
 {

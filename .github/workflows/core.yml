@@ -58,8 +58,8 @@ jobs:
       run:
         working-directory: packages/core
     env:
-      PAPERCUT_BENCH_MACHINE: ci-ubuntu-latest
-      PAPERCUT_BENCH_TIMINGS: warn
+      QUOIN_BENCH_MACHINE: ci-ubuntu-latest
+      QUOIN_BENCH_TIMINGS: warn
     steps:
       - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2

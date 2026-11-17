@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests;
+namespace Quoin\Math\Tests;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Node;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Node;
 
 /**
  * Sample formulas for tests and visual checks (tests/render-fixtures.php renders them).

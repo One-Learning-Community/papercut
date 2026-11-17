@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tex;
+namespace Quoin\Math\Tex;
 
-use Papercut\Math\Math;
-use Papercut\Math\Node\Fenced;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Node\Node;
-use Papercut\Math\Node\Row;
-use Papercut\Math\NoteLevel;
+use Quoin\Math\Math;
+use Quoin\Math\Node\Fenced;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Row;
+use Quoin\Math\NoteLevel;
 
 /**
  * What each LaTeX environment means: its rows of cells and column alignment become a node, with the notes for what is
@@ -17,7 +17,7 @@ use Papercut\Math\NoteLevel;
  *
  * A note is [level, element, reason, byte offset].
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class TexEnvironments
 {

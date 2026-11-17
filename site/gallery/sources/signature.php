@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, Row, Text};
-use Papercut\Decorator\{Signature};
+use Quoin\{Document, Page, Row, Text};
+use Quoin\Decorator\{Signature};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     Row::make(

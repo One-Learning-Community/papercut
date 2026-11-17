@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Tests\Render;
+namespace Quoin\Math\Tests\Render;
 
-use Papercut\Math\Math;
-use Papercut\Math\Mathml\MathmlReader;
-use Papercut\Math\Node\Grid;
-use Papercut\Math\Render\MathmlWriter;
-use Papercut\Math\Render\OmmlWriter;
-use Papercut\Math\Render\TextWriter;
-use Papercut\Math\Tests\Fixtures;
+use Quoin\Math\Math;
+use Quoin\Math\Mathml\MathmlReader;
+use Quoin\Math\Node\Grid;
+use Quoin\Math\Render\MathmlWriter;
+use Quoin\Math\Render\OmmlWriter;
+use Quoin\Math\Render\TextWriter;
+use Quoin\Math\Tests\Fixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -35,7 +35,7 @@ final class GridWritersTest extends TestCase
     /**
      * @param list<list<string>> $rows
      *
-     * @return list<list<\Papercut\Math\Node\Node>>
+     * @return list<list<\Quoin\Math\Node\Node>>
      */
     private static function cells(array $rows): array
     {

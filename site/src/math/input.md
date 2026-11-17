@@ -4,10 +4,10 @@ A formula is a tree of nodes. Build it in PHP or read it from TeX or MathML; eve
 
 ## The builder
 
-`Papercut\Math\Math` has a static method for each shape. Wherever a method takes a node, a string works too.
+`Quoin\Math\Math` has a static method for each shape. Wherever a method takes a node, a string works too.
 
 ```php
-use Papercut\Math\Math;
+use Quoin\Math\Math;
 
 $quadratic = Math::row('x =', Math::frac(
     Math::row('−b ±', Math::sqrt(Math::sup('b', '2'), '− 4ac')),
@@ -49,7 +49,7 @@ These are read but not drawn, and each one is reported: color (`\color`, `\textc
 The reader also returns the display style and the notes:
 
 ```php
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Tex\TexReader;
 
 $result = TexReader::read('$$\sum_{n=1}^{\infty} \frac{1}{n^2}$$');
 $result->node;      // the formula
@@ -79,7 +79,7 @@ $formula = Math::mathml('<math display="block"><mfrac><mn>1</mn><mn>2</mn></mfra
 - Word's `mml:` prefix works, and so does no prefix.
 - A fragment without a `<math>` element is read as if it had one.
 - Annotations, such as a TeX copy of the formula, are ignored.
-- The text form that MathType and Wiris store (`«math…«/math»`) is accepted. `Papercut\Math\Mathml\SafeXml::find($text)` locates those runs in a larger text, and `SafeXml::decode()` turns one into MathML.
+- The text form that MathType and Wiris store (`«math…«/math»`) is accepted. `Quoin\Math\Mathml\SafeXml::find($text)` locates those runs in a larger text, and `SafeXml::decode()` turns one into MathML.
 
 Entity declarations in a DOCTYPE are ignored.
 
@@ -99,7 +99,7 @@ What is not drawn as written: `<menclose>` and `<mmultiscripts>` are drawn as th
 Both readers record what they changed, once per element and reason in a formula. `Math::notes($node)` returns them in reading order, as the reader results do.
 
 ```php
-use Papercut\Math\NoteLevel;
+use Quoin\Math\NoteLevel;
 
 foreach (Math::notes($formula) as $note) {
     echo $note->level === NoteLevel::Dropped ? 'dropped' : 'approximated', ': ', $note->element, ' (', $note->reason, ")\n";

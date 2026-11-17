@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Node;
+namespace Quoin\Math\Node;
 
-use Papercut\Math\Layout\Box;
-use Papercut\Math\Layout\Context;
+use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
 
 /** mstyle displaystyle: lays its content out in display or inline (text) style whatever the surrounding style is. */
 final class DisplayStyle extends Node
@@ -17,14 +17,14 @@ final class DisplayStyle extends Node
     /**
      * @return list<Node>
      *
-     * @internal Engine detail, not part of papercut/math's public API.
+     * @internal Engine detail, not public API.
      */
     public function children(): array
     {
         return [$this->content];
     }
 
-    /** @internal Engine detail, not part of papercut/math's public API. */
+    /** @internal Engine detail, not public API. */
     public function layout(Context $c): Box
     {
         return $this->content->layout($c->withDisplay($this->display));

@@ -1,14 +1,14 @@
 # Equations
 
-Papercut sets mathematics in the PDF, HTML and Word exports. Build a formula from a few pieces and put it on its own line or inside a line of text; each export writes it in its native form. Letters and digits in a PDF equation are real text you can select, and a Word export carries live Word equations that stay editable.
+Mathematics is set in the PDF, HTML and Word exports. Build a formula from a few pieces and put it on its own line or inside a line of text; each export writes it in its native form. Letters and digits in a PDF equation are real text you can select, and a Word export carries live Word equations that stay editable.
 
-![The quadratic formula, set by Papercut](/guide/equation-quadratic.png)
+![The quadratic formula, typeset](/guide/equation-quadratic.png)
 
 The formula above is one display equation:
 
 ```php
-use Papercut\Equation;
-use Papercut\Math\Math;
+use Quoin\Equation;
+use Quoin\Math\Math;
 
 Equation::of('x', '=', Math::frac(
     Math::row('-b', '±', Math::sqrt(Math::sup('b', '2'), '-', '4ac')),
@@ -16,11 +16,11 @@ Equation::of('x', '=', Math::frac(
 ))->center();
 ```
 
-The builder lives in the `papercut/math` package, which `papercut/core` installs. It also works without Papercut, for formulas in web pages, email or Word files: see [Math](/math/).
+The builder lives in the `quoin/math` package, which `quoin/core` installs. It also works on its own, for formulas in web pages, email or Word files: see [Math](/math/).
 
 ## Building a formula
 
-`Papercut\Math\Math` has one method for each shape. Wherever a method takes a node, a plain string works too; the [rules below](#how-text-becomes-math) turn it into nodes.
+`Quoin\Math\Math` has one method for each shape. Wherever a method takes a node, a plain string works too; the [rules below](#how-text-becomes-math) turn it into nodes.
 
 | Method | Builds |
 |---|---|
@@ -122,8 +122,8 @@ In Word, `aligned()` is written as a native equation array. In `aligned()`, cell
 `Span::math(...$parts)` puts a formula inside running text. It is set in a compact style, with scripts and fractions at the size of the line, and sits on the line's baseline. The line grows to fit a tall formula, and the formula never breaks across lines.
 
 ```php
-use Papercut\{Span, Text};
-use Papercut\Math\Math;
+use Quoin\{Span, Text};
+use Quoin\Math\Math;
 
 Text::spans(
     Span::text('The fitted slope was '),
@@ -157,7 +157,7 @@ A string is split into pieces, one per symbol:
 
 ## MathML input
 
-Formulas often arrive as MathML: from an equation editor, a Word equation, a question bank or a hand-written page. Papercut reads it into the same formula the builder makes, so it is set, exported and edited like any other. There are three ways in.
+Formulas often arrive as MathML: from an equation editor, a Word equation, a question bank or a hand-written page. MathML is read into the same formula the builder makes, so it is set, exported and edited like any other. There are three ways in.
 
 **Rich text.** [`Markup::html()`](./rich-text.md) finds formulas in the HTML it converts. A `<math display="block">` becomes an equation on its own line, in display style. Any other `<math>` is a formula inside the line, in text style. Word's `<mml:math>` prefix works too. MathType and Wiris are read in both of the ways they store a formula:
 
@@ -165,7 +165,7 @@ Formulas often arrive as MathML: from an equation editor, a Word equation, a que
 - The text form, `«math…«/math»`, is read as a formula wherever it appears in a text run. Inside `<code>` or `<pre>` it stays literal text.
 
 ```php
-use Papercut\Markup\Markup;
+use Quoin\Markup\Markup;
 
 Markup::html('<p>The mean is <math><mover><mi>x</mi><mo>¯</mo></mover></math>.</p>
     <math display="block"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>');
@@ -176,8 +176,8 @@ The formulas in the editors' output were tested against MathType and Wiris (mark
 **In PHP.** `Math::mathml($string)` returns a node you can use anywhere a node goes: in `Equation::of()`, `Span::math()` or `Math::row()`. It takes a string or a `Dom\Element`, never throws, and reads MathML with or without the `mml:` prefix and in the Wiris text form.
 
 ```php
-use Papercut\Equation;
-use Papercut\Math\Math;
+use Quoin\Equation;
+use Quoin\Math\Math;
 
 Equation::of(Math::mathml('<math><msqrt><mi>x</mi></msqrt></math>'))->center();
 ```
@@ -189,7 +189,7 @@ Equation::of(Math::mathml('<math><msqrt><mi>x</mi></msqrt></math>'))->center();
 <x-doc::p>Half is <x-doc::math :math="$mathml" />.</x-doc::p>
 ```
 
-A literal `math` attribute that holds MathML (it starts with `<math`, `<mml:math` or `«math`) keeps its entities, so `&lt;` and `&amp;` inside `<mtext>` stay text. Any other literal attribute is entity-decoded before Papercut sees it, as are bound values that Blade has escaped. A formula passed bound, as `:math="$mathml"`, reaches Papercut untouched.
+A literal `math` attribute that holds MathML (it starts with `<math`, `<mml:math` or `«math`) keeps its entities, so `&lt;` and `&amp;` inside `<mtext>` stay text. Any other literal attribute is entity-decoded before it is read, as are bound values that Blade has escaped. A formula passed bound, as `:math="$mathml"`, arrives untouched.
 
 ### What a formula takes from its text
 
@@ -209,7 +209,7 @@ Not all of MathML has a counterpart yet. The reader draws what it can and record
 Notes reach the [`onWarning`](./rich-text.md#conversion-warnings) callback as the document is exported. A formula with approximated parts exports normally in strict mode. One with dropped parts makes strict mode fail, like any other content an output can't draw.
 
 ```php
-use Papercut\Export\PdfOptions;
+use Quoin\Export\PdfOptions;
 
 $document->toPdf(new PdfOptions(onWarning: fn (string $message) => error_log($message)));
 // pdf: approximated math <menclose> (drawn as its contents) at …
@@ -219,14 +219,14 @@ To read the notes yourself, `Math::notes($node)` returns them as a list of `Math
 
 ## TeX input
 
-Papercut reads math-mode LaTeX into the same formula the builder makes. Anything it can't draw is reported, and it never throws.
+Math-mode LaTeX is read into the same formula the builder makes. Anything it can't draw is reported, and it never throws.
 
 **In PHP.** `Math::tex($string)` returns a node you can use anywhere a node goes.
 
 ```php
-use Papercut\Equation;
-use Papercut\Math\Math;
-use Papercut\Span;
+use Quoin\Equation;
+use Quoin\Math\Math;
+use Quoin\Span;
 
 Equation::of(Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}'))->center();
 Span::math(Math::tex('\alpha + \beta'));
@@ -239,7 +239,7 @@ Span::math(Math::tex('\alpha + \beta'));
 <x-doc::p>The mean is <x-doc::math tex="\bar{x}" />.</x-doc::p>
 ```
 
-A static Blade attribute is read with HTML rules, so `&lt;` and `&amp;` are decoded before Papercut sees them. Blade also treats `{{` as the start of an echo, which TeX uses for nested groups such as `\frac{{a}}{b}`. Bind the string instead, `:tex="'\frac{{a}}{b}'"`, or pass a variable. In any `tex` attribute, static or bound, Blade turns the value into a PHP string, so TeX's `\\` line break must be written `\\\\`, or the TeX passed in a PHP variable (`:tex="$formula"`). Quote style on a static attribute (`tex="…"` or `tex='…'`) makes no difference. In a bound attribute the expression is PHP, so never write the TeX in a double-quoted PHP string (`:tex='"\frac{a}{b}"'`): PHP turns `\f`, `\n`, `\t`, `\v`, `\r` and `\e` into control characters and the formula is silently garbled, and a double-quoted string also interpolates `$` variables (a `$x` in the TeX would be replaced). Use single quotes, `:tex="'…'"`.
+A static Blade attribute is read with HTML rules, so `&lt;` and `&amp;` are decoded before they are read. Blade also treats `{{` as the start of an echo, which TeX uses for nested groups such as `\frac{{a}}{b}`. Bind the string instead, `:tex="'\frac{{a}}{b}'"`, or pass a variable. In any `tex` attribute, static or bound, Blade turns the value into a PHP string, so TeX's `\\` line break must be written `\\\\`, or the TeX passed in a PHP variable (`:tex="$formula"`). Quote style on a static attribute (`tex="…"` or `tex='…'`) makes no difference. In a bound attribute the expression is PHP, so never write the TeX in a double-quoted PHP string (`:tex='"\frac{a}{b}"'`): PHP turns `\f`, `\n`, `\t`, `\v`, `\r` and `\e` into control characters and the formula is silently garbled, and a double-quoted string also interpolates `$` variables (a `$x` in the TeX would be replaced). Use single quotes, `:tex="'…'"`.
 
 ```blade
 <x-doc::equation tex="\begin{aligned}a &= b \\\\ c &= d\end{aligned}" />
@@ -247,12 +247,12 @@ A static Blade attribute is read with HTML rules, so `&lt;` and `&amp;` are deco
 
 **What it reads.** The input is math mode, with or without a `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper. `$$…$$`, `\[…\]`, a top-level `\displaystyle` and display environments such as `align`, `gather` and `equation` ask for display style (not `aligned`, which is used inside a formula), and a block equation is always display style. The set is what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and text commands, spacing, and the environments `matrix` (and its bracketed variants), `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, scoped to the group they are in.
 
-**Limits.** A formula is cut off at 16 KB. Nesting deeper than 256 levels is cut off, macro expansion may not grow a formula past what 16 KB of raw TeX could, and a formula's environments have at most 10,000 cells between them. Past the nesting limit the rest is drawn as its TeX source text. Macro expansion is also capped at 10,000 expansions. A formula that hits a limit is drawn as far as it got and reports it. A stretched delimiter or arrow is never longer than 100 em. Under Xdebug's develop mode (its default) the call stack is limited too (`xdebug.max_nesting_level`, 512), so Papercut lowers the nesting limit to fit, and deep nesting gets the nesting note sooner; raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full 256 levels.
+**Limits.** A formula is cut off at 16 KB. Nesting deeper than 256 levels is cut off, macro expansion may not grow a formula past what 16 KB of raw TeX could, and a formula's environments have at most 10,000 cells between them. Past the nesting limit the rest is drawn as its TeX source text. Macro expansion is also capped at 10,000 expansions. A formula that hits a limit is drawn as far as it got and reports it. A stretched delimiter or arrow is never longer than 100 em. Under Xdebug's develop mode (its default) the call stack is limited too (`xdebug.max_nesting_level`, 512), so the nesting limit is lowered to fit, and deep nesting gets the nesting note sooner; raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full 256 levels.
 
 **Reading the notes.** `TexReader::read($tex)` returns the formula, whether it asked for display style, and the notes, in the same form as for MathML. See [What is approximated or dropped](#what-is-approximated-or-dropped) for how they reach `onWarning`.
 
 ```php
-use Papercut\Math\Tex\TexReader;
+use Quoin\Math\Tex\TexReader;
 
 $result = TexReader::read('\boxed{x}');
 $result->notes();   // approximated: \boxed (the box is not drawn)
@@ -262,19 +262,19 @@ $result->notes();   // approximated: \boxed (the box is not drawn)
 
 ## The math font
 
-Equations are set in a math font. Papercut bundles STIX Two Math and uses it by default. To use another, point the font set at the file:
+Equations are set in a math font. STIX Two Math is bundled and used by default. To use another, point the font set at the file:
 
 ```php
-use Papercut\Export\PdfOptions;
-use Papercut\Text\FontSet;
+use Quoin\Export\PdfOptions;
+use Quoin\Text\FontSet;
 
 $fonts = (new FontSet())->withMathFont('/fonts/MyMath-Regular.ttf');
 $document->toPdf(new PdfOptions(fonts: $fonts));
 ```
 
-In Laravel, set `math_font` in `config/papercut.php` to the file's path, or leave it `null` for the bundled font.
+In Laravel, set `math_font` in `config/quoin.php` to the file's path, or leave it `null` for the bundled font.
 
-The font must be a TrueType math font, with a `MATH` table. A font with CFF outlines, such as Latin Modern Math, is rejected with `Papercut\Math\Exception\UnsupportedFont`, which names the file and the reason. The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
+The font must be a TrueType math font, with a `MATH` table. A font with CFF outlines, such as Latin Modern Math, is rejected with `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason. The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
 
 A character the math font has no glyph for, such as a CJK ideograph or an emoji, is drawn with the document's [fallback fonts](./fonts.md#fallback-fonts).
 
@@ -291,7 +291,7 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 - Table lines, row spacing and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like), and `\hline` and column rules in TeX `array`.
 - Color inside a formula (`\color`, `mathcolor`). A formula takes its color from the text around it.
 - Boxes around parts of a formula (`\boxed`, `\fbox`, `\cancel`, `<menclose>`), and equation numbers (`\tag`).
-- TeX found inside HTML or text. Papercut reads a TeX string you hand it; it does not scan rich text for `$…$`. Convert the formula first with `Math::tex()`.
+- TeX found inside HTML or text. A TeX string you hand it is read; rich text is not scanned for `$…$`. Convert the formula first with `Math::tex()`.
 - Commutative diagrams (`CD`) and TeX commands that define environments, such as `\newenvironment`.
 - A few more TeX constructs, each of which is noted: `\sideset`, `\tensor`, `\prescript`, `\mathchoice`, `\scriptstyle` and `\scriptscriptstyle` (drawn in text style), `p{…}` and `@{…}` columns in `array`, and `smallmatrix` (drawn at normal size).
 - Math fonts with CFF outlines.

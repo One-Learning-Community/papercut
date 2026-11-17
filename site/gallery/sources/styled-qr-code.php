@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Papercut\{Column, Document, Page, QrCode, Row, Text, View};
-use Papercut\Style\Align;
+use Quoin\{Column, Document, Page, QrCode, Row, Text, View};
+use Quoin\Style\Align;
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $qr = static fn (QrCode $code, string $caption): View => Column::make($code->width(in(1.3)), Text::make($caption)->size(pt(9))->color('slate-500')->center())->gap(pt(4))->align(Align::Center);
 $url = 'https://example.com/menu';

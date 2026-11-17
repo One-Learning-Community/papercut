@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math;
+namespace Quoin\Math;
 
 /** What a reader could not render faithfully: the element, why, and where in the formula it was. */
 final readonly class MathNote

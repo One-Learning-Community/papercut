@@ -1,4 +1,4 @@
-// Spike: turns Tailwind-styled HTML (or Blade) into Papercut Blade tags.
+// Spike: turns Tailwind-styled HTML (or Blade) into Quoin Blade tags.
 // It runs once, in the browser: whatever it can't translate is left as a Blade comment for the developer to fix.
 
 // ---------- Parsing ----------
@@ -77,7 +77,7 @@ export function parse(source) {
 const FAMILIES = 'slate gray zinc neutral stone red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose'.split(' ')
 const SHADES = '50 100 200 300 400 500 600 700 800 900 950'.split(' ')
 
-/** "slate-50", "white", "[#ff0000]" → a Papercut color, or null. */
+/** "slate-50", "white", "[#ff0000]" → a Quoin color, or null. */
 function color(v) {
   if (v === 'white' || v === 'black' || v === 'transparent') return v
   const m = v.match(/^([a-z]+)-(\d+)$/)
@@ -95,7 +95,7 @@ const MAX_W = { xs: 320, sm: 384, md: 448, lg: 512, xl: 576, '2xl': 672, '3xl': 
 const JUSTIFY = { start: 'start', end: 'end', center: 'center', between: 'space-between', around: 'space-around', evenly: 'space-evenly' }
 const ALIGN = { start: 'start', end: 'end', center: 'center', stretch: 'stretch' }
 
-/** A CSS-pixel number as a Papercut length in the chosen unit. */
+/** A CSS-pixel number as a Quoin length in the chosen unit. */
 function len(px, unit) {
   if (px === 0) return '0'
   const n = unit === 'px' ? px : px * 0.75
@@ -125,7 +125,7 @@ function size(v, unit) {
 }
 
 /**
- * Reads a class list into Papercut style properties. Returns { props, skipped, hidden }.
+ * Reads a class list into Quoin style properties. Returns { props, skipped, hidden }.
  * Classes are applied in Tailwind's order of specificity, then `print:` ones on top.
  */
 export function readClasses(list, unit = 'pt') {
@@ -285,13 +285,13 @@ const BOX_TAGS = new Set(['row', 'column', 'view'])
 const classesOf = (el) => (el.attrs.find(([k]) => k === 'class')?.[1] ?? '').split(/\s+/).filter(Boolean)
 const attr = (el, name) => el.attrs.find(([k]) => k === name)?.[1]
 const esc = (v) => String(v).replace(/"/g, '&quot;')
-/** Papercut only follows absolute links; a Blade echo (like route()) gives one at render time. */
+/** Quoin only follows absolute links; a Blade echo (like route()) gives one at render time. */
 const linkable = (h) => h != null && /^(https?:|mailto:|tel:|#|\{\{|\{!!)/i.test(h.trim())
-/** Escapes "<" in text so stray tags don't reach Papercut's inline markup; Blade echoes are left alone. */
+/** Escapes "<" in text so stray tags don't reach Quoin's inline markup; Blade echoes are left alone. */
 const escText = (t) => t.split(/(\{\{[\s\S]*?\}\}|\{!![\s\S]*?!!\})/).map((part, i) => (i % 2 ? part : part.replace(/</g, '&lt;'))).join('')
 const isBladeLine = (t) => t.trim() !== '' && t.trim().split('\n').every((l) => /^\s*(@\w+|\{\{--.*--\}\})/.test(l) || l.trim() === '')
 
-/** Renders props as attributes for a Papercut tag. */
+/** Renders props as attributes for a Quoin tag. */
 function attrs(props, tag, extra = []) {
   const out = [...extra]
   const p = {}
@@ -326,7 +326,7 @@ function inlineOnly(el) {
 const hasContent = (el) => el.children.some((c) => c.type === 'el' || c.text.trim() !== '')
 
 /**
- * Translates Tailwind-styled markup into Papercut Blade.
+ * Translates Tailwind-styled markup into Quoin Blade.
  * Returns { output, skipped } where skipped lists every class or tag that didn't carry over.
  */
 export function translate(source, { unit = 'pt' } = {}) {
@@ -423,7 +423,7 @@ export function translate(source, { unit = 'pt' } = {}) {
     const flex = props.$flex
     const extraAttrs = el.attrs.filter(([k]) => k !== 'class').map(([k, v]) => (v === null ? k : `${k}="${esc(v)}"`))
 
-    // Already a Papercut tag: keep it, turn its classes into attributes, its own attributes win.
+    // Already a Quoin tag: keep it, turn its classes into attributes, its own attributes win.
     if (tag.startsWith('x-doc::')) {
       const name = tag.slice(7)
       skipped.push(...r.raws.flex)
@@ -564,7 +564,7 @@ export function translate(source, { unit = 'pt' } = {}) {
     if (boxed) lines.push(`${pad(d - 1)}</x-doc::view>`)
   }
 
-  /** Papercut has one gap per box: use the one on its own axis. */
+  /** Quoin has one gap per box: use the one on its own axis. */
   function applyGap(props, gaps, axis, skipped) {
     const mine = [axis, `space-${axis}`, 'all']
     const own = mine.map((k) => gaps[k]).find(Boolean)

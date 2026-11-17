@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Papercut\{Document, Page, PageBreak, Text, Toc};
+use Quoin\{Document, Page, PageBreak, Text, Toc};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $para = 'Requests and responses are JSON. Every call can be tried in the sandbox first.';
 

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use Papercut\{Column, Document, Page, Row, Text, View};
-use Papercut\Style\{Align, Justify};
+use Quoin\{Column, Document, Page, Row, Text, View};
+use Quoin\Style\{Align, Justify};
 
-use function Papercut\{in, pt};
+use function Quoin\{in, pt};
 
 $box = static fn (string $label, string $note, string $tint): View => View::make(
     Text::make($label)->bold()->color($tint . '-900'),
     Text::make($note)->size(pt(9))->color($tint . '-700'),
-)->background($tint . '-50')->borderWidth(\Papercut\Value\Edges::all(pt(1)))->borderColor($tint . '-200')->radius(pt(6))->padding(pt(10))->gap(pt(2));
+)->background($tint . '-50')->borderWidth(\Quoin\Value\Edges::all(pt(1)))->borderColor($tint . '-200')->radius(pt(6))->padding(pt(10))->gap(pt(2));
 
 return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     Column::make(

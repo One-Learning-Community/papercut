@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math;
+namespace Quoin\Math;
 
 /**
- * Invalid UTF-8 in a builder string becomes U+FFFD. The twin of Papercut\Support\Utf8 in papercut/core, which this
+ * Invalid UTF-8 in a builder string becomes U+FFFD. The twin of Quoin\Support\Utf8 in quoin/core, which this
  * package cannot depend on; keep the two in step.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final class Utf8
 {

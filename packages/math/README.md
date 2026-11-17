@@ -1,18 +1,18 @@
-# papercut/math
+# quoin/math
 
 Math typesetting in plain PHP. It reads TeX or MathML and writes SVG, PNG, MathML, TeX, Word equations (OMML) or plain
 text. It needs PHP 8.4. No Node, no browser, no fonts on the server.
 
-It is part of the [Papercut](https://github.com/One-Learning-Community/papercut) monorepo, which uses it for equations in
-PDF, Word and HTML documents, but it does not depend on Papercut.
+It is part of a [monorepo](https://github.com/One-Learning-Community/quoin) that uses it for equations in
+PDF, Word and HTML documents, but it does not depend on the rest of it.
 
 ```
-composer require papercut/math
+composer require quoin/math
 ```
 
 ```php
-use Papercut\Math\Math;
-use Papercut\Math\Render\SvgRenderer;
+use Quoin\Math\Math;
+use Quoin\Math\Render\SvgRenderer;
 
 $box = Math::layout(Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}'), size: 16.0);
 echo (new SvgRenderer(Math::stixTwoMath()))->render($box, pad: 1.0);
@@ -27,12 +27,12 @@ Every glyph is a path, so the SVG needs no web font.
 
 ## Documentation
 
-- [Overview](https://one-learning-community.github.io/papercut/math/), with a comparison to KaTeX and MathJax
-- [Recipes](https://one-learning-community.github.io/papercut/math/recipes.html): web pages, email, Word, conversion,
+- [Overview](https://one-learning-community.github.io/quoin/math/), with a comparison to KaTeX and MathJax
+- [Recipes](https://one-learning-community.github.io/quoin/math/recipes.html): web pages, email, Word, conversion,
   alt text, untrusted input
-- [Input](https://one-learning-community.github.io/papercut/math/input.html): the builder, TeX, MathML, notes and limits
-- [Output](https://one-learning-community.github.io/papercut/math/output.html): layout options and every writer
-- [Custom backends](https://one-learning-community.github.io/papercut/math/backends.html): the display list, glyph
+- [Input](https://one-learning-community.github.io/quoin/math/input.html): the builder, TeX, MathML, notes and limits
+- [Output](https://one-learning-community.github.io/quoin/math/output.html): layout options and every writer
+- [Custom backends](https://one-learning-community.github.io/quoin/math/backends.html): the display list, glyph
   outlines, fonts
 
 ## Testing

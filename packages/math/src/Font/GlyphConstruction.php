@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Font;
+namespace Quoin\Math\Font;
 
 /**
  * Size variants of a glyph (ascending) and an optional assembly recipe, bottom/left part first.
  *
- * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ * @internal Engine detail, not public API. It may change in any release.
  */
 final readonly class GlyphConstruction
 {

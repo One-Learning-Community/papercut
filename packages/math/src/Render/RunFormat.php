@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Papercut\Math\Render;
+namespace Quoin\Math\Render;
 
 /** Color, size and background shading that equation runs inherit from the surrounding text. */
 final readonly class RunFormat
