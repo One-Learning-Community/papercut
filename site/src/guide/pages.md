@@ -22,7 +22,7 @@ $document = Document::make(
 
 The named sizes are `a0` to `a6`, `b4`, `b5`, `letter`, `legal`, `tabloid` and `executive` (`Page::sizeNames()` returns the list). In PHP, the common ones have shortcuts (`Page::a4()`, `a3()`, `a5()`, `a6()`, `letter()` and `legal()`), `Page::named('tabloid')` covers the rest, and `Page::size($width, $height)` takes any custom size. In Blade, write a custom size as `size="210mm 297mm"` (or `size="8.5in 14in"`).
 
-Both `letter` (8.5 × 11 in) and `a4` (210 × 297 mm) are named sizes, and you can use whichever suits your readers. Lengths can be written in any unit: `pt`, `mm`, `cm`, `in` or `px`, so `20mm` and `0.8in` are equally valid margins. The examples in this guide mix US Letter with inches and A4 with millimetres; swap one for the other wherever you like.
+Use whichever of `letter` (8.5 × 11 in) and `a4` (210 × 297 mm) suits your readers. Lengths take any unit (`pt`, `mm`, `cm`, `in` or `px`), so `20mm` and `0.8in` are equally valid margins. The examples in this guide mix US Letter with inches and A4 with millimetres; swap one for the other wherever you like.
 
 Margins that meet or cross, leaving no room for content, throw `InvalidValue` when you export.
 
@@ -64,7 +64,7 @@ $document = Document::make(
 ```
 :::
 
-In the page number format, `{page}` is the current page and `{total}` is the total page count. The total is filled in once layout has finished, so it's always correct. To adjust the space between the body and the header or footer, set `header-gap` or `footer-gap` on the page.
+In the page number format, `{page}` is the current page and `{total}` is the total page count. The total is filled in after layout, so it's always correct. To change the space between the body and the header or footer, set `header-gap` or `footer-gap` on the page.
 
 ## First-page and even-page headers
 
@@ -207,13 +207,13 @@ When a first page has a tall header, the body has less room on it. A block that 
 
 ### In Word and HTML
 
-Word export ticks the matching boxes in the page setup: "Different First Page" for first-page versions, "Different Odd & Even Pages" for even-page versions, and "Mirror margins" for mirrored margins. Different First Page is set per page run. The other two apply to the whole document. Runs without even-page versions repeat their normal header and footer on even pages, so they look the same. But mixing a mirrored run with a run that isn't, when that run's left and right margins differ, is reported as approximated. In Word, a first-page header or footer you don't set shows the normal one, even when that page falls on an even page.
+Word export ticks the matching boxes in the page setup: "Different First Page" for first-page versions, "Different Odd & Even Pages" for even-page versions, and "Mirror margins" for mirrored margins. Different First Page is set per page run. The other two apply to the whole document. Runs without even-page versions repeat their normal header and footer on even pages, so they look the same. Mixing a mirrored run with a run that isn't, when that run's left and right margins differ, is reported as approximated. In Word, a first-page header or footer you don't set shows the normal one, even when that page falls on an even page.
 
 HTML export shows the first-page header at the top of the page (or nothing, if you set it empty) and the normal footer at the bottom. If the page has a first-page footer but no normal footer, the first-page footer is shown. If it has both, the normal one is shown and the export reports the first-page footer as approximated. Even-page versions aren't shown, and the export reports that as approximated. Mirrored margins apply only when the page is printed, and only from the first page run. The fragment output, the one you embed in another view, doesn't mirror.
 
 ## Filling in an existing PDF
 
-Sometimes the design already exists as a PDF, such as a certificate or a letterhead made in a design tool. A page template draws a page of that PDF behind your page, at the same size, and the overlay places your content at exact points on top of it.
+When the design already exists as a PDF, such as a certificate or a letterhead made in a design tool, a page template draws a page of it behind your page, at the same size. The overlay places your content at exact points on top.
 
 ::: code-tabs#style
 @tab Blade
@@ -253,11 +253,11 @@ See the [certificate example](/examples.md#the-certificate-example) for a comple
 
 ### The template
 
-The page takes its size from the template page, so you can't set `size` or `orientation` alongside it. The template is drawn as it is, not as a picture of it, so its text and artwork stay sharp at any zoom. Anything else you put on the page, including the background, is drawn over it.
+The page takes its size from the template page, so you can't set `size` or `orientation` alongside it. The template page is drawn as it is, never as a picture, so its text and artwork stay sharp at any zoom. Anything else you put on the page, including the background, is drawn over it.
 
 In Blade, a relative `template` path stays inside `papercut.image_path`, the same as for images. If the PDF isn't a file on disk, for example when it's stored on S3, pass its bytes with `:template-data="Storage::get($path)"` instead. Use `template-page="2"` to draw a page other than the first, and `template-password` to open a password-protected template. In PHP, `PdfPage::file($path, page: 2, password: '…')` and `PdfPage::bytes($bytes)` take the same options.
 
-`Page::template()` reads the PDF straight away to learn its size, so a missing file or a wrong password throws a `PdfUnreadable` exception there, rather than when you render.
+`Page::template()` reads the PDF straight away to learn its size, so a missing file or a wrong password throws a `PdfUnreadable` exception there, before you render.
 
 ### Placing content
 
@@ -287,7 +287,7 @@ Blade needs a space or a line break after a closing slot tag. If you write `</x-
 
 ### Pages of a PDF inside your content
 
-You can also draw a page of a PDF anywhere in your content, the way you'd draw an image, with `<x-doc::pdf-page src="form.pdf" width="60mm" />` or `PdfPage::file('form.pdf')->width(mm(60))`. It's sized like an image too: from the page's own size, and setting one side keeps its proportions.
+A page of a PDF can also go anywhere in your content, like an image, with `<x-doc::pdf-page src="form.pdf" width="60mm" />` or `PdfPage::file('form.pdf')->width(mm(60))`. It's sized like an image too: from the page's own size, and setting one side keeps its proportions.
 
 ### In HTML and Word exports
 
@@ -297,7 +297,7 @@ Word export leaves templates and PDF pages out too. In an overlay place, only a 
 
 ## Controlling page breaks
 
-Papercut splits content wherever it needs to by default. These options let you control where the breaks fall:
+By default Papercut splits content wherever it needs to. These options control where the breaks fall:
 
 | PHP | Blade | What it does |
 |---|---|---|
@@ -326,7 +326,7 @@ $document = Document::make(
 
 ## Bookmarks
 
-PDF viewers show a bookmarks panel beside the page, and Papercut fills it in for you. Every heading from `h1` to `h4` becomes a bookmark, nested by level, that jumps straight to that heading.
+Papercut fills in the bookmarks panel that PDF viewers show beside the page. Every heading from `h1` to `h4` becomes a bookmark, nested by level, that jumps to that heading.
 
 To bookmark something that isn't a heading, or to change a heading's entry, set `bookmark`:
 
@@ -354,7 +354,7 @@ $document = Document::make(Page::letter()->body(Column::make(
 
 Bookmarks you add are top-level unless you give them a level, with `bookmark-level="2"` in Blade or `->bookmark('Terms', 2)` in PHP. If a level skips one, like an `h3` straight after an `h1`, it's nested one step down instead of leaving a gap. Headings in headers, footers and backgrounds are ignored, since they repeat on every page.
 
-To leave the panel empty, pass `bookmarks: false` to `PdfOptions`, or set `'bookmarks' => false` in the Laravel config. HTML exports don't have a bookmarks panel, so this only affects PDFs.
+To leave the panel empty, pass `bookmarks: false` to `PdfOptions`, or set `'bookmarks' => false` in the Laravel config. This only affects PDFs; HTML exports have no bookmarks panel.
 
 ## Tables of contents
 
@@ -390,7 +390,7 @@ Each entry is a heading's text, dot leaders, and its page number, right-aligned.
 
 The options:
 
-- `levels` picks which heading levels to list, from 1 to 4. The default is 1 to 2. In Blade, `levels="2"` is just level 2 and `levels="1-3"` is a range. In PHP, it's `->levels(1, 3)`.
+- `levels` picks which heading levels to list, from 1 to 4. The default is 1 to 2. In Blade, `levels="2"` is level 2 alone and `levels="1-3"` is a range. In PHP, it's `->levels(1, 3)`.
 - `title` adds a line above the list. There is no default title. It isn't a heading, so it gets no bookmark and no entry.
 - `leaders` turns the dot leaders off with `:leaders="false"` (or `leaders="false"`) in Blade and `->leaders(false)` in PHP.
 
@@ -416,9 +416,9 @@ In [Word](./word-export.md#table-of-contents) it is a real table of contents fie
 
 ## Content that doesn't fit
 
-Occasionally something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). The same goes for a box with a `height` or `max-height` whose content needs more room, such as a long address in a label of fixed size. By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.
+Sometimes something can't fit even on a fresh, empty page, such as an image with a fixed height taller than the page, or a table whose fixed column widths are wider than its box ([Tables wider than their box](/guide/tables.md#tables-wider-than-their-box)). The same goes for a box with a `height` or `max-height` whose content needs more room, such as a long address in a label of fixed size. By default Papercut throws a `LayoutOverflow` exception that names the component, so you find out straight away.
 
-If you'd rather get the rest of the document, you can have Papercut clip the oversized content and log a warning instead. A box with a height keeps its size and hides what doesn't fit, so nothing draws over the content below it:
+To get the rest of the document instead, have Papercut clip the oversized content and log a warning. A box with a height keeps its size and hides what doesn't fit, so nothing draws over the content below it:
 
 ```php
 use Papercut\OverflowMode;

@@ -40,7 +40,7 @@ Never pass user input to `src`.
 
 ### Alt text
 
-Say what a picture shows with `alt`, so screen readers and people who can't see it get the same information. A decorative picture needs none.
+`alt` says what a picture shows, for screen readers and people who can't see it. A decorative picture needs none.
 
 ::: code-tabs#style
 @tab Blade
@@ -111,7 +111,7 @@ In Blade, give the tag exactly one source: a `src` file, a `data` string of SVG 
 
 An SVG is sized like an image. Its `width` and `height` attributes give it a natural size. If it only has a `viewBox`, each unit counts as a pixel (0.75pt), and if it has neither, it's 300 by 150 pixels, as in a browser. Set `width` or `height` and the other side follows the aspect ratio. It's scaled down to fit the page width, and it never splits across pages.
 
-If you set both `width` and `height`, the SVG's own `preserveAspectRatio` decides where the drawing sits in that box, just as it would in a browser: centred and whole by default, cropped to fill with `slice`, or stretched with `none`. Anything drawn outside the box is cut off.
+If you set both `width` and `height`, the SVG's own `preserveAspectRatio` decides where the drawing sits in that box, as in a browser: centred and whole by default, cropped to fill with `slice`, or stretched with `none`. Anything drawn outside the box is cut off.
 
 ### What's drawn
 
@@ -119,7 +119,7 @@ Papercut draws paths (including arcs and curves), rectangles with rounded corner
 
 `fill-rule="evenodd"` is honoured on the shape itself, in its `style`, in a style sheet or on a group. It's what keeps the hole in a ring, a letter O or a five-point star when the inner outline is drawn the same way round as the outer one.
 
-A few things aren't drawn yet: `<clipPath>`, `<mask>`, `<filter>`, `<pattern>`, `<image>`, `<marker>`, `<symbol>`, `<textPath>`, `<tspan>`, links and nested `<svg>` elements. When an SVG uses any of them, you'll get a warning that names them, and the rest of the drawing still appears.
+A few things aren't drawn yet: `<clipPath>`, `<mask>`, `<filter>`, `<pattern>`, `<image>`, `<marker>`, `<symbol>`, `<textPath>`, `<tspan>`, links and nested `<svg>` elements. An SVG that uses any of them gets a warning naming them, and the rest of the drawing still appears.
 
 Before an SVG is read, `<?xml-stylesheet?>` processing instructions and `xml:base` are removed.
 
@@ -131,7 +131,7 @@ Word export draws each SVG into a picture with `rsvg-convert` or Imagick. See [S
 
 Text in an SVG is set in your document's fonts and embedded like the rest of the PDF, so it prints the same everywhere. If the SVG's `font-family` names a family you've [registered](./fonts.md), that family is used; otherwise the text uses the font family of the `<x-doc::svg>` element itself. Bold and italic pick the matching faces, and your fallback families cover any characters the font is missing.
 
-In HTML exports, the browser sets SVG text in its own fonts by default, because an SVG shown as an image can't use the page's. The [`inlineSvgs` option](./html-export.md#inline-svgs) writes SVGs into the page, where their text uses the page's fonts. Otherwise, if text needs to look the same in both formats, convert it to outlines in your design tool.
+In HTML exports, the browser sets SVG text in its own fonts by default: an SVG shown as an image can't use the page's. The [`inlineSvgs` option](./html-export.md#inline-svgs) writes SVGs into the page, where their text uses the page's fonts. Otherwise, if text needs to look the same in both formats, convert it to outlines in your design tool.
 
 ### SVGs from other people
 
@@ -201,7 +201,7 @@ $document = Document::make(Page::letter()->body(
 
 A QR code is always square. Set `width` (or `height`) to size it; without one it's about 1in across, which scans comfortably from a phone. The blank margin scanners need around the code, four modules wide, is included in that size.
 
-The squares use the text color, so `color="indigo-700"` works. Keep the contrast high, and set `background` if the code sits on something dark. Padding, borders and rounded corners work as they do on any box.
+The squares use the text colour, so `color="indigo-700"` works. Keep the contrast high, and set `background` if the code sits on something dark. Padding, borders and rounded corners work as they do on any box.
 
 | Attribute | PHP | What it does |
 |---|---|---|
@@ -209,13 +209,13 @@ The squares use the text color, so `color="indigo-700"` works. Keep the contrast
 | `level` | `QrCode::make($value, ErrorCorrection::High)` | How much damage the code survives: `L`, `M` (the default), `Q` or `H`. Higher levels hold less text. |
 | `quiet-zone` | `->quietZone(2)` | The blank margin in modules. Lower it only if the code already sits on a plain background. |
 
-QR codes hold up to 213 characters at the default level, which is plenty for URLs and payment references. Longer text throws an error saying how much fits. If you need more, see [Longer text](#longer-text) below.
+QR codes hold up to 213 characters at the default level, which is plenty for URLs and payment references. Longer text throws an error saying how much fits. For more, see [Longer text](#longer-text).
 
 In HTML exports, a QR code becomes an inline SVG.
 
 ### Styled QR codes
 
-You can give a QR code round dots, different eyes (the three squares in the corners), a color for the eyes, or a gradient. Styled codes are drawn by [BaconQrCode](https://github.com/Bacon/BaconQrCode), which is optional, so install it first:
+A QR code can have round dots, different eyes (the three squares in the corners), an eye colour or a gradient. Styled codes are drawn by [BaconQrCode](https://github.com/Bacon/BaconQrCode), which is optional, so install it first:
 
 ```bash
 composer require bacon/bacon-qr-code
@@ -256,17 +256,17 @@ $document = Document::make(Page::letter()->body(
 |---|---|---|
 | `shape` | `->shape(QrShape::Dots)` | How the modules are drawn: `square` (the default), `rounded` or `dots`. Rounded and dots raise `level` to `Q`. |
 | `eyes` | `->eyes(QrEyes::Dot)` | How the corner eyes are drawn: `square` (the default), `dot` (a square ring around a round dot) or `pointy` (a rounded ring with one square corner facing the middle). |
-| `eye-color` | `->eyeColor('rose-600')` | A color for the eyes. Without it they match the modules. |
-| `gradient` | `->gradient('indigo-600', 'cyan-700')` | Two colors, separated by a space, that the modules fade between instead of using the text color. |
+| `eye-color` | `->eyeColor('rose-600')` | A colour for the eyes. Without it they match the modules. |
+| `gradient` | `->gradient('indigo-600', 'cyan-700')` | Two colours, separated by a space, that the modules fade between instead of using the text colour. |
 | `gradient-type` | `->gradient($from, $to, QrGradient::Radial)` | Which way the gradient runs: `diagonal` (the default, from the top left), `inverse-diagonal`, `horizontal`, `vertical` or `radial` (from the centre outwards). |
 
-The code still encodes the same modules as a plain one; only the drawing changes. Dots and rounded modules leave less ink for a scanner to find, so they raise the error correction level to `Q`, unless you've chosen `H`. That holds less text: up to 151 characters instead of 213, and a longer value throws an error that explains why. Eye shapes, eye colors and gradients leave the level alone. Keep every color dark against the background, and test a printed code with a few phones before you send it out.
+The code still encodes the same modules as a plain one; only the drawing changes. Dots and rounded modules leave less ink for a scanner to find, so they raise the error correction level to `Q`, unless you've chosen `H`. That holds less text: up to 151 characters instead of 213, and a longer value throws an error that explains why. Eye shapes, eye colours and gradients leave the level alone. Keep every colour dark against the background, and test a printed code with a few phones before you send it out.
 
 In HTML exports, a styled code becomes an SVG image with the value as its alt text.
 
 ### Longer text
 
-With BaconQrCode installed, you can also use its encoder, which holds up to 2,953 bytes at level `L`. Pass it as the third argument:
+With BaconQrCode installed, you can use its encoder, which holds up to 2,953 bytes at level `L`. Pass it as the third argument:
 
 ```php
 use Papercut\Barcode\Bacon\BaconQrEncoder;
@@ -276,4 +276,4 @@ use Papercut\QrCode;
 $qr = QrCode::make($longText, ErrorCorrection::Medium, new BaconQrEncoder());
 ```
 
-You can also plug in any other encoder by implementing `Papercut\Barcode\QrEncoder`, or pass a grid you've encoded yourself to `QrCode::fromModules()`.
+To use another encoder, implement `Papercut\Barcode\QrEncoder`, or pass a grid you've encoded yourself to `QrCode::fromModules()`.

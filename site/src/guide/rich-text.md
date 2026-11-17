@@ -1,6 +1,6 @@
 # Rich text
 
-Sometimes the content isn't in your template. It's HTML saved from a rich text editor, or plain text someone typed into a form. `Markup` converts either one into Papercut components. It handles a practical subset of HTML, and tells you about anything it couldn't convert. There's no browser involved.
+When content arrives as HTML saved from a rich text editor, or as plain text typed into a form, `Markup` converts it into Papercut components. It handles a practical subset of HTML, reports anything it couldn't convert, and needs no browser.
 
 ::: code-tabs#style
 @tab Blade
@@ -34,7 +34,7 @@ In Blade, bind the value with `:html` rather than `html`, otherwise Blade escape
 
 ## Writing HTML in the template
 
-For a simple table, or a heading and a few paragraphs, you can write plain HTML between the tags instead of learning the Papercut tags for it. It's converted the same way as `:html`, and takes the same `styles`, `blank-paragraphs`, `images` and `toc` attributes:
+For a simple table, or a heading and a few paragraphs, you can write plain HTML between the tags. It's converted the same way as `:html`, and takes the same `styles`, `blank-paragraphs`, `images` and `toc` attributes:
 
 ```blade
 <x-doc::card title="Summary">
@@ -51,7 +51,7 @@ For a simple table, or a heading and a few paragraphs, you can write plain HTML 
 </x-doc::card>
 ```
 
-Blade runs first, so loops, conditions and `{{ }}` echoes work as usual, and an echoed value stays text: `{{ '<b>' }}` shows `<b>`, it doesn't make anything bold. Your own Blade components can go inside too, as long as they render HTML. Papercut tags can't, because they aren't HTML; put them next to the markup tag instead. The tag takes HTML in its slot, `:html` or `:text`, only one of them.
+Blade runs first, so loops, conditions and `{{ }}` echoes work as usual, and an echoed value stays text: `{{ '<b>' }}` shows `<b>`, it doesn't make anything bold. Your own Blade components can go inside too, as long as they render HTML. Papercut tags can't, because they aren't HTML; put them next to the markup tag instead. The tag takes exactly one of: HTML in its slot, `:html` or `:text`.
 
 ## Headings and the table of contents
 
@@ -91,7 +91,7 @@ Put markup inside a text tag and it joins that line, picking up the surrounding 
 <x-doc::text bold>× <x-doc::markup :html="$label" /></x-doc::text>
 ```
 
-In PHP, `Markup::flatten()` does the same thing and merges the converted content into a single `Text`. Block-level content gets flattened and images are dropped, and both are reported.
+In PHP, `Markup::flatten()` does the same, merging the converted content into a single `Text`. Block-level content is flattened and images are dropped; both are reported.
 
 ## What gets converted
 
@@ -114,7 +114,7 @@ In PHP, `Markup::flatten()` does the same thing and merges the converted content
 | other block tags, like `section` | the tag is dropped, and its content kept as paragraphs |
 | anything else | the tag is dropped, and its content kept inline |
 
-`script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed along with everything inside them. Tables and rules take the named styles `markup.table`, `markup.th`, `markup.td` and `markup.hr`, so you can restyle them through `papercut.styles` like any other style. Classes, ids and `data-*` attributes are ignored. Empty paragraphs are dropped unless you ask to keep them.
+`script`, `style`, `template`, `head`, `noscript`, `object` and `embed` are removed along with everything inside them. Tables and rules take the named styles `markup.table`, `markup.th`, `markup.td` and `markup.hr`, which you can restyle through `papercut.styles`. Classes, ids and `data-*` attributes are ignored. Empty paragraphs are dropped unless you ask to keep them.
 
 ## Style modes
 
@@ -143,7 +143,7 @@ In `theme` mode, the default, author styles are ignored, so the content stays in
 
 ## Images
 
-Papercut never downloads an `<img src>` by itself. Instead, you give it a resolver: a function that receives the trimmed `src` and returns the image data, or `null` if the image can't be found.
+Papercut never downloads an `<img src>` itself. You give it a resolver: a function that receives the trimmed `src` and returns the image data, or `null` if the image can't be found.
 
 ```php
 use Papercut\{Document, Page};
@@ -165,9 +165,9 @@ Your resolver decides which files can be read. Don't pass `src` straight to the 
 
 ## Conversion warnings
 
-Everything Markup couldn't convert exactly is recorded, and those notes are passed to the warning callback and the fidelity report of each export. There are two kinds:
+Markup records everything it couldn't convert exactly and passes the notes to each export's warning callback and fidelity report. There are two kinds:
 
-- **Approximated:** the content is there, but looks different from the original. For example, an iframe shown as a link, a missing image shown as its alt text, an unknown tag removed with its content kept, or invalid UTF-8 replaced with U+FFFD.
+- **Approximated:** the content is there but looks different. For example, an iframe shown as a link, a missing image shown as its alt text, an unknown tag removed with its content kept, or invalid UTF-8 replaced with U+FFFD.
 - **Dropped:** the content is gone. For example, a missing image with no alt text, a link with an unsupported URL, or an unsupported CSS property.
 
 `onWarning` gets the message. If the callback takes a second parameter, it also gets a `FidelityReport` with `level` (`FidelityLevel::Approximated` or `Dropped`), `format`, `feature` and `path`.
@@ -184,6 +184,6 @@ $options = new PdfOptions(onWarning: function (string $message, ?FidelityReport 
 
 ## Strict mode
 
-If you'd rather fail than silently lose content, turn on strict mode with `strict: true` in the export options, or `'strict' => true` in the Laravel config. An export that would drop content then throws `UnsupportedFeature` instead. That includes a PDF with characters no font has, which would print as empty boxes (see [Fallback fonts](./fonts.md#fallback-fonts)). Approximations are still allowed.
+To fail rather than lose content silently, turn on strict mode with `strict: true` in the export options, or `'strict' => true` in the Laravel config. An export that would drop content then throws `UnsupportedFeature` instead. That includes a PDF with characters no font has, which would print as empty boxes (see [Fallback fonts](./fonts.md#fallback-fonts)). Approximations are still allowed.
 
 Strict mode works well in tests: a template that starts losing content fails the build instead of shipping.

@@ -1,6 +1,6 @@
 # Decorator styles
 
-These are the named styles each decorator uses, with their built-in defaults. Every theme has them, even one you build from scratch. To change one, define a style with the same name in `config/papercut.php` or with `Theme::withStyle()`. See [Restyling](/guide/decorators.md#restyling) for an example.
+The named styles each decorator uses, with their built-in defaults. Every theme has them, even one you build from scratch. To change one, define a style with the same name in `config/papercut.php` or with `Theme::withStyle()`. See [Restyling](/guide/decorators.md#restyling) for an example.
 
 Colours are Tailwind palette names.
 
@@ -24,11 +24,11 @@ Colours are Tailwind palette names.
 | `signature`, `signature.line`, `signature.name`, `signature.role`, `signature.date` | The block is 216pt (3in) wide and kept together. The line is at least 30pt high, with a 0.75pt `slate-700` rule along its bottom and its content resting on the rule. The name is bold, 4pt below the line; the role and date are `0.85em` in `slate-600`. |
 | `field.line`, `badge.outline`, `card.flat`, `card.title.flat`, `section.large`, `section.title.large`, `section.number.large` | The built-in variants. `field.line` keeps only a 1pt `slate-400` bottom rule, with no radius and 2pt 0 padding. `badge.outline` has no fill and a 0.75pt border in the tone's colour. `card.flat` drops the border for a `slate-50` panel, and its title strip loses its rule. `section.large` sets the title and number at `1.35em`, with an 8pt gap and 10pt below. |
 
-Setting `pre` or `code` in your theme replaces the whole built-in style, not just the properties you give: a `pre` that sets only `font-family` loses `white-space: pre-wrap`, its padding and its background. To change the font, set `mono_family` instead. When you do override `pre`, include `white-space: pre-wrap`.
+Setting `pre` or `code` in your theme replaces the whole built-in style: a `pre` that sets only `font-family` loses `white-space: pre-wrap`, its padding and its background. To change the font, set `mono_family` instead. When you override `pre`, include `white-space: pre-wrap`.
 
 ## How the names combine
 
-A `warning` callout applies `callout` and then `callout.warning`, and its title applies `callout.title` and then `callout.title.warning`. Where they overlap, the later style wins. In practice the base style sets the shape and the tone style sets the colours, so you can replace either one on its own.
+A `warning` callout applies `callout` and then `callout.warning`, and its title applies `callout.title` and then `callout.title.warning`. Where they overlap, the later style wins. The base style sets the shape and the tone style sets the colours, so either can be replaced on its own.
 
 Badges work the same way (`badge`, then `badge.<tone>`), and so do selected checkboxes (`choice.marker`, then `choice.marker.selected`).
 

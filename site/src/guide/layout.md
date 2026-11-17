@@ -1,6 +1,6 @@
 # Layout
 
-Papercut's layout works like a simplified flexbox. Each box measures its children against the width it has, then divides up whatever space is left over.
+Papercut's layout works like a simplified flexbox. Each box measures its children against the width it has, then divides the space left over.
 
 ## Rows, columns and views
 
@@ -10,7 +10,7 @@ Papercut's layout works like a simplified flexbox. Each box measures its childre
 | `Column::make(...)` | `<x-doc::column>` | top to bottom |
 | `View::make(...)` | `<x-doc::view>` | top to bottom, or set `direction` to change it |
 
-Rows and columns are just views with the direction already set, so use whichever reads best.
+Rows and columns are views with the direction preset. Use whichever reads best.
 
 ::: code-tabs#style
 @tab Blade
@@ -36,11 +36,11 @@ $document = Document::make(Page::letter()->body(
 ```
 :::
 
-The spacer takes up all the free space in the row, which pushes the two pieces of text to opposite edges.
+The spacer takes the row's free space and pushes the two texts to opposite edges.
 
 ## Dividing up the space
 
-These work the same way as their flexbox namesakes:
+These work like their flexbox namesakes:
 
 | Method | Blade | What it does |
 |---|---|---|
@@ -78,7 +78,7 @@ $document = Document::make(Page::letter()->margin(in(0.6))->body(
 
 ## Units
 
-Lengths always need a unit. A bare `12` isn't accepted, so there's never any doubt about whether it means points, pixels or millimetres.
+Lengths always need a unit. A bare `12` isn't accepted: it could mean points, pixels or millimetres.
 
 | Unit | PHP | Blade |
 |---|---|---|
@@ -90,7 +90,7 @@ Lengths always need a unit. A bare `12` isn't accepted, so there's never any dou
 | a percentage of the parent | `percent(50)` | `50%` |
 | a share of a table's free width | `fr(1)` | `1fr` |
 
-`em` and `lh` scale with the theme. A box that's `4lh` tall stays four lines tall even if you change the body font size later.
+`em` and `lh` scale with the theme. A box `4lh` tall stays four lines tall when the body font size changes.
 
 Colours can be Tailwind palette names like `slate-500` or `indigo-600`, or hex codes like `#336699`.
 

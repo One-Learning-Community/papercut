@@ -1,6 +1,6 @@
 # Your first document
 
-Every document has the same basic shape: a document, one or more pages, and some content on each page. Here's the same PDF built both ways:
+Every document has the same shape: a document, one or more pages, and content on each page. Here is one PDF built both ways:
 
 ::: code-tabs#style
 @tab Blade
@@ -39,7 +39,7 @@ $document->toPdf()->save('hello.pdf');
 ```
 :::
 
-A Blade view needs exactly one `<x-doc::document>` at the root. If you put content directly inside the document without a `<x-doc::page>`, Papercut wraps it in a page for you, using the paper size and margin from your config.
+A Blade view needs exactly one `<x-doc::document>` at the root. Content put directly inside the document, without a `<x-doc::page>`, is wrapped in a page that uses the paper size and margin from your config.
 
 ## Getting the PDF out
 
@@ -53,9 +53,9 @@ In plain PHP, `toPdf()` returns an `Output` with these methods:
 | `mime()` | Returns the MIME type, such as `application/pdf`. |
 | `extension()` | Returns the file extension, such as `pdf`. |
 
-The same document can also be written as Word or HTML. `export(new DocxExporter())` and `toHtml()` return the same kind of `Output`. See [Word export](./word-export.md) and [HTML export](./html-export.md).
+The same document can be written as Word or HTML. `export(new DocxExporter())` and `toHtml()` return the same kind of `Output`. See [Word export](./word-export.md) and [HTML export](./html-export.md).
 
-In Laravel, `Papercut::view($view, $data)` returns a pending document, and calling `->pdf()` on it gives you a `PendingOutput`. `->docx()` gives you one for a [Word](./word-export.md) file, and `->html()->page()` or `->html()->fragment()` one for [HTML](./html-export.md):
+In Laravel, `Papercut::view($view, $data)` returns a pending document, and `->pdf()` on it returns a `PendingOutput`. `->docx()` gives you one for a [Word](./word-export.md) file, and `->html()->page()` or `->html()->fragment()` one for [HTML](./html-export.md):
 
 | Method | What it does |
 |---|---|
@@ -68,7 +68,7 @@ In Laravel, `Papercut::view($view, $data)` returns a pending document, and calli
 
 The filename defaults to `document.pdf`. If you return a `PendingOutput` straight from a route, the PDF opens inline.
 
-You can mix the two styles. To send a document you built in PHP as a Laravel response, wrap it with `Papercut::make($document)->pdf()`. To go the other way, `Papercut::view(...)->document()` gives you the core `Document` that a Blade view built.
+You can mix the two styles. To send a document you built in PHP as a Laravel response, wrap it with `Papercut::make($document)->pdf()`. The other way, `Papercut::view(...)->document()` returns the core `Document` that a Blade view built.
 
 ### Password protection
 
@@ -76,7 +76,7 @@ To make the PDF open only with a password, call `encrypt()` before `pdf()`: `Pap
 
 ### Saving to storage
 
-`store()` writes to any disk in `config/filesystems.php`, which makes it a good fit for queued jobs that generate a document and send a link to it later:
+`store()` writes to any disk in `config/filesystems.php`, which suits queued jobs that generate a document and send a link to it later:
 
 ```php
 use Illuminate\Support\Facades\Storage;
@@ -100,7 +100,7 @@ $label = Text::make('Total')->bold();
 $big   = $label->size(pt(14));   // $label is still the default size
 ```
 
-That means you can build a piece once and reuse it in as many places as you like, without one use affecting another.
+Build a piece once and reuse it anywhere; one use never affects another.
 
 ## Next
 

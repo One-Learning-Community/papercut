@@ -2,7 +2,7 @@
 
 ## Password protection
 
-Papercut can encrypt a PDF so it only opens with a password. It uses AES-256, the strongest encryption PDF readers support.
+Papercut can encrypt a PDF so it opens only with a password. It uses AES-256, the strongest encryption PDF readers support.
 
 ::: code-tabs#style
 @tab Laravel
@@ -23,7 +23,7 @@ $document->toPdf(new PdfOptions(encryption: Encryption::password('open-sesame'))
 ```
 :::
 
-With just a password, readers can still print the document and copy text from it, but not edit it.
+With only a password, readers can still print the document and copy text from it, but not edit it.
 
 ### Permissions
 
@@ -53,7 +53,7 @@ Only PDFs are encrypted. Calling `encrypt()` doesn't affect `->html()` or `->doc
 
 ## Digital signatures
 
-A signature proves who issued a document and that nobody has changed it since. Papercut doesn't sign documents itself. Signing comes with certificates, timestamp servers and long-term validation, and [php-pdf](https://github.com/dskripchenko/php-pdf), the library Papercut uses to write PDFs, already handles all of that. A Papercut PDF can be signed as soon as it's rendered:
+A signature proves who issued a document and that nobody has changed it since. Papercut doesn't sign documents itself. [php-pdf](https://github.com/dskripchenko/php-pdf), the library Papercut uses to write PDFs, handles certificates, timestamp servers and long-term validation. Sign a Papercut PDF once it's rendered:
 
 ```php
 use Dskripchenko\PhpPdf\Pdf\Signature\PdfSigner;
@@ -72,7 +72,7 @@ In a Laravel app, [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-
 
 ## Merging and stamping
 
-php-pdf can also combine a Papercut PDF with existing ones: add your standard terms to the end of an invoice, or print a letterhead behind every page.
+php-pdf can also combine a Papercut PDF with existing ones: append your standard terms to an invoice, or print a letterhead behind every page.
 
 ```php
 use Dskripchenko\PhpPdf\Pdf\Merge\{PdfMerger, PdfSource, Placement};

@@ -1,6 +1,6 @@
 # Tables
 
-A table has a list of column widths, an optional header and the body rows. When a table runs past the end of a page, it breaks between rows and repeats the header at the top of the next page. A row is only ever split if it's taller than a whole page on its own.
+A table has a list of column widths, an optional header and the body rows. When a table runs past the end of a page, it breaks between rows and repeats the header at the top of the next page. A row is split only when it is taller than a whole page.
 
 ::: code-tabs#style
 @tab Blade
@@ -47,11 +47,11 @@ $document = Document::make(Page::letter()->margin(in(0.75))->body($table));
 
 ## Column widths
 
-`columns` is a space-separated list with one entry per column. Each entry can be a length in any unit (`1in`, `2.5cm`, `40mm`, `120pt`), a percentage (`20%`), `auto`, or a fraction (`1fr`). Fractions share out whatever width is left after the other columns have taken theirs, just like in CSS grid. `'1in 1fr 2.5cm'` is a valid list.
+`columns` is a space-separated list with one entry per column. Each entry can be a length in any unit (`1in`, `2.5cm`, `40mm`, `120pt`), a percentage (`20%`), `auto`, or a fraction (`1fr`). Fractions share the width left after the other columns, as in CSS grid. `'1in 1fr 2.5cm'` is a valid list.
 
 ### Filling the width
 
-Auto columns normally take only the width their content needs, so a table of short cells ends well before the right margin. In PHP, `->fillWidth()` shares the width left over among the auto columns, in proportion to how wide their content wants to be (evenly when none has any). It does nothing when an `fr` column already takes the rest. Tables that come from `Markup::html()` fill the width this way.
+Auto columns take only the width their content needs, so a table of short cells ends well before the right margin. In PHP, `->fillWidth()` shares the width left over among the auto columns, in proportion to how wide their content wants to be (evenly when none has any). It does nothing when an `fr` column already takes the rest. Tables that come from `Markup::html()` fill the width this way.
 
 ```php
 $table = Table::make()->columns('auto auto auto')->fillWidth()->row('Mon', 'Tue', 'Wed');
@@ -67,13 +67,13 @@ A table inside a `Row` is narrowed to the space its row gives it, with the same 
 
 ## Cells
 
-A cell can hold any content, not just text: a column with two lines, an image or a badge, for example. Use `colspan` to make a cell span several columns and `rowspan` to make it span several rows. `<x-doc::th>` is a header cell, and its text is bold. A cell's `height` or `min-height` sets the least height of its row, which is how you leave blank rows to write in; a cell spanning rows shares it among them.
+A cell can hold any content: a column with two lines, an image or a badge. Use `colspan` to make a cell span several columns and `rowspan` to make it span several rows. `<x-doc::th>` is a header cell with bold text. A cell's `height` or `min-height` sets the least height of its row, which is how you leave blank rows to write in; a cell spanning rows shares it among them.
 
-In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single header row, or `<x-doc::tr>` rows if you need more than one. In PHP, `headerRow()` adds a header row, and `bodyRow()` or `rows()` add body rows.
+In Blade, `<x-doc::thead>` goes first. Put cells straight inside it for a single header row, or `<x-doc::tr>` rows for more than one. In PHP, `headerRow()` adds a header row, and `bodyRow()` or `rows()` add body rows.
 
 ## Spanning rows
 
-`rowspan` makes a cell reach down into the rows below it. Those rows leave a gap in the spanned column, so write only the cells that remain, just as in HTML. `colspan` and `rowspan` can be combined on one cell. A `rowspan` that runs past the end of its section, or a `colspan` that runs into a `rowspan` from above, is clamped, and the table warns once. A `colspan` is also clamped at column 1000, with one note in PDF, HTML and Word, so a mistyped value can't make a table with millions of cells. Word shows at most 63 columns in a table, so a table with more is noted in Word export. In PHP, `TableCell::colsSpanned()` and `rowsSpanned()` return the spans.
+`rowspan` extends a cell into the rows below. Those rows leave a gap in the spanned column, so write only the cells that remain, as in HTML. `colspan` and `rowspan` can be combined on one cell. A `rowspan` that runs past the end of its section, or a `colspan` that runs into a `rowspan` from above, is clamped, and the table warns once. A `colspan` is also clamped at column 1000, with one note in PDF, HTML and Word, so a mistyped value can't make a table with millions of cells. Word shows at most 63 columns in a table, so a table with more is noted in Word export. In PHP, `TableCell::colsSpanned()` and `rowsSpanned()` return the spans.
 
 ::: code-tabs#style
 @tab Blade
@@ -112,10 +112,10 @@ $table = Table::make()
 ```
 :::
 
-The rows a cell spans stay together on a page. A group of rows is only split across pages when it is taller than a whole page, and then the spanning cell continues on the next page under the repeated header.
+The rows a cell spans stay together on a page. A group of rows is split across pages only when it is taller than a whole page, and then the spanning cell continues on the next page under the repeated header.
 
 ## Showing the header only once
 
-If you only want the header on the first page, use `repeat-header="false"` in Blade or `->repeatHeader(false)` in PHP.
+To show the header on the first page only, use `repeat-header="false"` in Blade or `->repeatHeader(false)` in PHP.
 
 A header so tall that the next row can't fit even its first line below it gives way: a repeated header is left out on that page, and on the first page the header stands alone and the rows start on the next one. Both are reported as warnings.

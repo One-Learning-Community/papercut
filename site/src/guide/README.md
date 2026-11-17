@@ -13,11 +13,11 @@ It comes as four packages:
 
 Most PHP PDF libraries fall into one of two camps.
 
-Low-level libraries give you a cursor and coordinates. You place each string yourself, which is precise, but you also work out every line break and page break yourself.
+Low-level libraries give you a cursor and coordinates. You place each string yourself, which is precise, and you work out every line break and page break too.
 
 HTML-to-PDF tools let you write HTML and CSS instead. That's comfortable until you need print behaviour like repeating table headers, keeping a heading with its paragraph, or "page 3 of 12". Support for those is patchy and varies from one renderer to the next.
 
-Papercut sits in between. Its layout model is a small subset of flexbox, so it should feel familiar, but it was designed around pages from the start. It's also strict, with clear warnings and errors so you know your documents come out right.
+Papercut sits in between. Its layout model is a small subset of flexbox, designed around pages from the start. It is strict: clear warnings and errors tell you when a document won't come out right.
 
 ## How it works
 
@@ -26,7 +26,7 @@ Papercut sits in between. Its layout model is a small subset of flexbox, so it s
 3. When a page fills up, the engine splits whatever can be split: paragraphs between lines, tables between rows, boxes between their children. It respects keep-together and keep-with-next as it goes.
 4. The result is a list of shapes, text and links, which a thin adapter writes out as a PDF using [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf).
 
-The HTML and Word exporters work from the same tree, which is how one document can produce all three formats.
+The HTML and Word exporters work from the same tree, so one document produces all three formats.
 
 ## Built on php-pdf
 

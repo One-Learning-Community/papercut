@@ -1,6 +1,6 @@
 # Fonts in HTML
 
-A PDF carries its fonts inside the file, so it looks right anywhere. An HTML export is different: the browser has to get the fonts from somewhere. Papercut can leave that to the browser, embed the fonts in the page, link to font files you host, or load them from a service like Google Fonts.
+A PDF carries its fonts inside the file. An HTML export relies on the browser to find them. Papercut can leave that to the browser, embed the fonts in the page, link to font files you host, or load them from a service such as Google Fonts.
 
 ::: tip Google Fonts in PDFs
 This page is about HTML exports. To use a Google font in your PDFs, download it with [`papercut:fonts:install`](./fonts.md#fonts-from-google-fonts).
@@ -10,14 +10,14 @@ This page is about HTML exports. To use a Google font in your PDFs, download it 
 
 | Mode | Laravel `html.fonts` | What the browser gets |
 |---|---|---|
-| `FontMode::None` | `'none'` | Just a `font-family` list, so it uses whatever fonts it has. This is the default, and gives the smallest pages. The list ends in `monospace`, `serif` or `system-ui, sans-serif`, depending on the font's class; a family that isn't registered with Papercut (say, one only a web font source serves) gets the sans fallback. |
-| `FontMode::Embed` | `'embed'` | Your registered font files, embedded in the page as `data:` URIs. Fully self-contained, but large. |
+| `FontMode::None` | `'none'` | A `font-family` list only, so it uses whatever fonts it has. This is the default, and gives the smallest pages. The list ends in `monospace`, `serif` or `system-ui, sans-serif`, depending on the font's class; a family that isn't registered with Papercut (say, one only a web font source serves) gets the sans fallback. |
+| `FontMode::Embed` | `'embed'` | Your registered font files, embedded in the page as `data:` URIs. Self-contained, but large. |
 | `FontMode::Link` | `'link'` | `@font-face` rules pointing at font files you host. |
 | `FontMode::Sources` | `'sources'` | Each font family from the first source that has it, such as Google Fonts, Bunny Fonts or your own files. |
 
 ## Google Fonts
 
-If your documents use fonts that are on Google Fonts, the browser can load them from there. Papercut works out which families, weights and styles the document actually uses and builds the stylesheet URL for you.
+The browser can load fonts from Google Fonts. Papercut works out which families, weights and styles the document uses and builds the stylesheet URL.
 
 ::: code-tabs#style
 @tab Laravel config
@@ -44,9 +44,9 @@ $html = $document->toHtml(new HtmlOptions(
 ```
 :::
 
-`GoogleFonts` sets `font-display: swap` by default, so text shows straight away in a fallback font and switches once the web font arrives. You can change that with the `display` argument (`auto`, `block`, `swap`, `fallback` or `optional`), or `html.google_fonts.display` in Laravel.
+`GoogleFonts` sets `font-display: swap` by default, so text shows straight away in a fallback font and switches once the web font arrives. Change it with the `display` argument (`auto`, `block`, `swap`, `fallback` or `optional`), or `html.google_fonts.display` in Laravel.
 
-Papercut never fetches the stylesheet itself, so it can't tell whether Google actually has a family. If you ask for one it doesn't have, or a weight it doesn't offer, the browser quietly falls back to the next font in the `font-family` list.
+Papercut never fetches the stylesheet, so it can't tell whether Google has a family. For a family or weight Google doesn't offer, the browser falls back to the next font in the `font-family` list.
 
 ## Bunny Fonts
 
@@ -75,7 +75,7 @@ $options = new HtmlOptions(
 
 ## Your own fonts
 
-`LocalFonts` serves the font files you've [registered with Papercut](./fonts.md#adding-a-font-family). It can embed them in the page, or link to copies you host:
+`LocalFonts` serves the font files you've [registered with Papercut](./fonts.md#adding-a-font-family). It embeds them in the page or links to copies you host:
 
 ```php
 use Papercut\Html\LocalFonts;
@@ -90,7 +90,7 @@ In Laravel, add `LocalFonts` to `font_sources` and set `html.local_fonts.mode` t
 
 ## Mixing sources
 
-Sources are checked in order for each family, and the first one that has it wins. A common setup is to serve your own brand font yourself and load everything else from Google:
+For each family, the sources are asked in order and the first that has it wins. A common setup serves your brand font yourself and loads everything else from Google:
 
 ::: code-tabs#style
 @tab Laravel config
@@ -114,7 +114,7 @@ $options = new HtmlOptions(
 ```
 :::
 
-Order matters. `GoogleFonts` accepts every family unless you limit it, so put it last. If it came first, it would claim your own fonts too. To limit it to certain families, pass a list:
+`GoogleFonts` accepts every family unless you limit it, so put it last; placed first, it would claim your own fonts too. To limit it, pass a list of families:
 
 ```php
 new GoogleFonts(families: ['Inter', 'Merriweather']);
@@ -126,7 +126,7 @@ If no source has a family, Papercut reports a warning and the browser uses the `
 
 ## Linking to fonts you host
 
-`FontMode::Link` links every registered font to a URL you provide. Return `null` for any font you'd rather leave out.
+`FontMode::Link` links every registered font to a URL you provide. Return `null` to leave a font out.
 
 ::: code-tabs#style
 @tab Laravel
@@ -168,7 +168,7 @@ $options = new HtmlOptions(
 
 ## Writing your own source
 
-Any other font service can be added as a source. A source receives a `FontRequest` with the family name and the weights and styles the document uses. It returns a stylesheet URL, a list of font files, or `null` to pass the family on to the next source.
+Any other font service can be a source. A source receives a `FontRequest` with the family name and the weights and styles the document uses. It returns a stylesheet URL, a list of font files, or `null` to pass the family on to the next source.
 
 ```php
 use Papercut\Export\{FontMode, HtmlOptions};
@@ -183,7 +183,7 @@ $options = new HtmlOptions(fullPage: true, fontMode: FontMode::Sources, fontSour
 
 To return font files instead of a stylesheet, use `FontAnswer::faces()` with a `FontFaceSrc` for each weight and style.
 
-In Laravel, sources must be classes, because closures can't survive `php artisan config:cache`. Implement `Papercut\Html\FontSource` and add the class name to `font_sources`. Each class is built by the container, so you can inject dependencies.
+In Laravel, sources must be classes, because closures can't survive `php artisan config:cache`. Implement `Papercut\Html\FontSource` and add the class name to `font_sources`. The container builds each class, so you can inject dependencies.
 
 ## Privacy
 
@@ -193,7 +193,7 @@ If that's a concern, serve the fonts yourself: `LocalFonts`, `FontMode::Embed` a
 
 ## Content Security Policy
 
-If your site sends a Content-Security-Policy header, it needs to allow the font hosts:
+If your site sends a Content-Security-Policy header, it must allow the font hosts:
 
 | Source | `style-src` | `font-src` |
 |---|---|---|

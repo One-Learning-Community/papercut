@@ -4,7 +4,7 @@ sidebar: false
 
 # From Tailwind
 
-Paste HTML or a Blade view styled with Tailwind classes and get a first draft in Papercut tags. It runs in your browser and nothing is sent anywhere.
+Paste HTML or a Blade view styled with Tailwind classes and get a first draft in Papercut tags. It runs in your browser; nothing is sent anywhere.
 
 <ClientOnly>
   <TailwindTranslator />
@@ -18,7 +18,7 @@ Paste HTML or a Blade view styled with Tailwind classes and get a first draft in
 - **Text:** sizes, weights, italic, underline, line-through, leading, tracking and alignment.
 - **Borders and corners:** widths, sides, colours, `border-dashed` and `rounded`. A border with no colour class gets `gray-200`, Tailwind 3's default.
 - **Printing:** `break-inside-avoid` becomes `keep-together`, `break-before-page` and `break-after-page` start new pages, and `print:` classes are applied on top of the others. An element that is `hidden` (or `print:hidden`) is removed.
-- **Blade** echoes, comments and `@` directives stay where they were. Other components (`<x-…>`) are kept as they are, and the classes on Papercut tags you already wrote become attributes.
+- **Blade** echoes, comments and `@` directives stay where they were. Other components (`<x-…>`) are kept, and the classes on Papercut tags you already wrote become attributes.
 
 ## What doesn't
 

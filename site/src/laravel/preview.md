@@ -1,8 +1,8 @@
 # Preview routes
 
-Getting a layout right means rendering it over and over. Preview routes give each document a fixed URL that renders it with sample data, so you can just refresh the browser to see your latest change.
+Preview routes give each document a fixed URL that renders it with sample data. Refresh the browser to see your latest change.
 
-Register each view along with a closure that returns its data. A service provider is a good place for this:
+Register each view with a closure that returns its data, for example in a service provider:
 
 ```php
 use Papercut\Laravel\Facades\Papercut;
@@ -21,4 +21,4 @@ Then set `PAPERCUT_PREVIEW=true` in your `.env` file.
 
 Any other `format` value is a 404.
 
-For safety, the routes only work in the `local` environment, whatever the setting says. To change the URL prefix, set `preview.path`.
+The routes work only in the `local` environment, whatever the setting says. To change the URL prefix, set `preview.path`.

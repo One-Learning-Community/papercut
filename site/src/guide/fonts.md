@@ -1,6 +1,6 @@
 # Fonts
 
-Papercut always embeds its fonts in the PDF, keeping only the characters the document actually uses. It never relies on the standard PDF fonts built into viewers, so your document looks the same everywhere.
+Papercut always embeds its fonts in the PDF, keeping only the characters the document uses. It never relies on the standard PDF fonts built into viewers, so the document looks the same everywhere.
 
 Inter comes bundled in regular, bold, italic and bold italic, and it's the default font. Cousine, a monospace face, is bundled the same way.
 
@@ -52,7 +52,7 @@ If you ask for a family, weight or style that isn't registered, Papercut throws 
 
 ## Fonts from Google Fonts
 
-In Laravel, you can download a family from Google Fonts with one command:
+In Laravel, one command downloads a family from Google Fonts:
 
 ```bash
 php artisan papercut:fonts:install "Merriweather" --weights=400,700 --italic
@@ -67,7 +67,7 @@ This saves the font files to `resources/fonts/Merriweather/`, along with the fam
 ],
 ```
 
-The fonts are downloaded once and then live in your app like any other font, so commit them with your code, licence included: the licences ask for a copy to go wherever the fonts do. If the licence can't be downloaded, the command says so and installs the fonts anyway; get it from the family's page on fonts.google.com. Rendering never goes to the network.
+The fonts are downloaded once and then live in your app, so commit them with your code, licence included: the licences ask for a copy to go wherever the fonts do. If the licence can't be downloaded, the command says so and installs the fonts anyway; get it from the family's page on fonts.google.com. Rendering never goes to the network.
 
 | Option | Default | What it does |
 |---|---|---|
@@ -82,14 +82,14 @@ Outside Laravel, download the family from [fonts.google.com](https://fonts.googl
 
 ## Word font names
 
-By default the Word export writes each family's own name. To have Word use a different name for a family, set one with `FontSet::withWordName()`:
+The Word export writes each family's own name by default. To give a family another name in Word, use `FontSet::withWordName()`:
 
 ```php
 $fonts = (new FontSet())->withWordName('Cousine', 'Consolas');
 echo $fonts->wordName('Cousine'); // Consolas
 ```
 
-The family match is case-insensitive, and the last name set for a family wins. A family without a Word name uses its own name, except Cousine, which is `Courier New` unless you set another. That holds for any family named "Cousine", including one you register yourself with your own faces; call `withWordName` (`font_word_names` in Laravel) to give it a different Word name. The name only changes what Word is told: the PDF still embeds the real font, and HTML keeps the real family. Word measures lines with the real font's metrics as before, so use a Word name for a metric-compatible pair (Cousine and Courier New, for instance), not for an unrelated font.
+The family match is case-insensitive, and the last name set for a family wins. A family without a Word name uses its own name, except Cousine, which is `Courier New` unless you set another. That holds for any family named "Cousine", including one you register yourself with your own faces; call `withWordName` (`font_word_names` in Laravel) to give it a different Word name. The name only changes what Word is told: the PDF still embeds the real font, and HTML keeps the real family. Papercut still measures lines with the real font, and Word lays them out in the named one, so use a Word name for a metric-compatible pair (Cousine and Courier New, for instance), not for an unrelated font.
 
 `$fonts->info('Inter')` reports what a family's font file says about its kind: a `FontClass` (`Sans`, `Serif`, `Mono`, `Script`, `Decorative` or `Other`), its PANOSE classification as 20 hex characters, and whether it is fixed pitch. It reads the family's regular face, or its first face when it has no regular one, and returns `null` for a family that isn't registered. HTML export uses the class to end each font stack with `monospace`, `serif` or `system-ui, sans-serif` (Script, Decorative and Other fonts get the sans fallback, as do unregistered families).
 
@@ -146,7 +146,7 @@ Kerning and ligatures are applied within each run of text. Complex shaping (Harf
 
 ## The font cache
 
-Papercut keeps each font it has read in a cache file, so the next request doesn't have to read the font again. This matters most under PHP-FPM, where every request starts from scratch. Each font gets its own file of a few hundred KB, stored in `sys_get_temp_dir()/papercut-cache-<uid>` by default. In Laravel, `'cache_dir' => null` (the default) uses `storage/framework/cache/papercut` instead. Updating a font or the library creates a fresh entry, and entries that haven't been used for 30 days are deleted. If the cache directory isn't writable, Papercut reads the font from scratch instead. The PDF is identical either way, only slightly slower to produce.
+Papercut keeps each font it has read in a cache file, so the next request doesn't read the font again. This matters most under PHP-FPM, where every request starts from scratch. Each font gets its own file of a few hundred KB, stored in `sys_get_temp_dir()/papercut-cache-<uid>` by default. In Laravel, `'cache_dir' => null` (the default) uses `storage/framework/cache/papercut` instead. Updating a font or the library creates a fresh entry, and entries that haven't been used for 30 days are deleted. If the cache directory isn't writable, Papercut reads the font from scratch instead. The PDF is identical either way, only slightly slower to produce.
 
 ```php
 use Papercut\Export\PdfOptions;
@@ -157,7 +157,7 @@ $options = new PdfOptions(cacheDir: false);                       // no disk cac
 
 In Laravel, set `cache_dir` in the config.
 
-The cache files are normally read into each request that needs the font. If you render PDFs all day and run opcache, you can store them as PHP files so that opcache holds the fonts in shared memory for every worker. That is the fastest way to restore a font. Pass the format to the backend. A backend you build yourself takes its own `cacheDir`, and `PdfOptions(cacheDir:)` is ignored:
+By default each request that needs a font reads its cache file. If you render PDFs all day and run opcache, store the cache as PHP files instead, and opcache holds the fonts in shared memory for every worker: the fastest way to restore a font. Pass the format to the backend. A backend you build yourself takes its own `cacheDir`, and `PdfOptions(cacheDir:)` is ignored:
 
 ```php
 use Papercut\Backend\PhpPdf\{FontStateCache, PhpPdfBackend};

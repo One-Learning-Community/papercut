@@ -4,7 +4,7 @@
 Word, LibreOffice and Google Docs lay out the file themselves, so spacing and page breaks can differ slightly from the PDF. Check exported files in the readers your users have, and [report what looks wrong](https://github.com/One-Learning-Community/papercut/issues).
 :::
 
-Any document can also be exported as a Word file (`.docx`) that people can open and edit in Word, LibreOffice or Google Docs. It uses the same theme, fonts and named styles as the PDF.
+Any document can be exported as a Word file (`.docx`) to open and edit in Word, LibreOffice or Google Docs, with the same theme, fonts and named styles as the PDF.
 
 Word export lives in its own package, so apps that only make PDFs don't install it:
 
@@ -35,7 +35,7 @@ In Laravel, `->docx()` returns a `PendingOutput`, with the same `toString()`, `s
 
 ## What readers see
 
-Word, LibreOffice and Google Docs lay out the pages themselves, so a page break can land a line or two away from where it is in the PDF.
+Because the reader lays out the pages, a page break can land a line or two away from where it is in the PDF.
 
 Papercut writes the layout in a form all three understand. Columns flow as paragraphs. A row of short inline items (text, links, badges) that the PDF sets on one line becomes one paragraph; any other row becomes a table with no borders, at the widths the PDF uses. A box with padding, a border or a background becomes a table with one cell. Lists are real Word numbering. Tables, links, headings, page numbers and pagination rules such as keep-together carry over. Each run of pages with the same size, margins, header, footer and layers becomes a Word section of its own, so a landscape page or a page without the header comes out as it does in the PDF.
 
@@ -43,7 +43,7 @@ Headers and footers carry over, including first-page and even-page ones (Word's 
 
 Some things are approximated or left out. The ones in the table below are reported as a warning with the node's path, and [strict mode](./rich-text.md#strict-mode) fails on anything left out. The way the layout itself is written (rows as paragraphs or tables, boxes as one-cell tables, header and footer distances, fonts by name, colours with transparency blended onto white) applies to every document, so it isn't reported each time.
 
-Opacity carries over: Word has none, so each colour of a faded node is blended onto what lies beneath it (the fill around it, else white). Text backgrounds keep their exact colour.
+Word has no opacity, so each colour of a faded node is blended onto what lies beneath it (the fill around it, else white). Text backgrounds keep their exact colour.
 
 | In the PDF | In Word |
 |---|---|
@@ -66,7 +66,7 @@ Opacity carries over: Word has none, so each colour of a faded node is blended o
 | Anything else in a background or overlay layer, a border or background on a layer picture, PDF page templates, embedded PDF pages | ✗ left out |
 | Styled QR codes without Imagick | ≈ plain squares |
 | SVG text | ≈ in the system's fonts |
-| Alt text on an image or SVG | the picture's description in Word; empty for a decorative one. An image without alt text now has an empty description, not "image" |
+| Alt text on an image or SVG | the picture's description in Word; empty for a decorative one. An image without alt text gets an empty description, not "image" |
 | Equations | in Cambria Math, whatever the PDF's math font; LibreOffice ignores their colour and size ([below](#equations-in-word)) |
 | Pictures without the PHP extension they need (below) | ✗ left out |
 
@@ -80,11 +80,11 @@ A flow inside a box (a bordered or padded view, a card) comes out as one column,
 
 ### Table of contents
 
-A [table of contents](./pages.md#tables-of-contents) becomes a real Word table of contents field. Papercut fills it in with the entries and the page numbers from the PDF layout, so readers see them as soon as the file opens. Word paginates a little differently from the PDF, so a number can be a page off. Right-click the table and choose Update Field for exact numbers.
+A [table of contents](./pages.md#tables-of-contents) becomes a real Word table of contents field. Papercut fills it in with the entries and the page numbers from the PDF layout, so readers see them on opening the file. Word paginates a little differently from the PDF, so a number can be a page off. Right-click the table and choose Update Field for exact numbers.
 
 An updated field rebuilds itself from Word's Heading 1 to Heading 4 styles, so two things aren't honoured after an update: `toc(false)` and markup's `toc` option (the headings come back), and a level set with `bookmark($title, $level)` (the heading's own level is used).
 
-To get those page numbers, Word export lays out the pages, as for a PDF, for a document that has a table of contents, and only for those. That costs about as much as a PDF export. If the page layout can't run, for instance because a font isn't registered, the export still succeeds and the field is written without page numbers. Right-click the table and choose Update Field in Word to fill them in.
+To get those page numbers, Word export lays out the pages as for a PDF, but only for a document that has a table of contents. That costs about as much as a PDF export. If the page layout can't run, for instance because a font isn't registered, the export still succeeds and the field is written without page numbers; Update Field in Word fills them in.
 
 When speed matters more than numbers on first open, turn the layout off. The entries are still listed and linked, without page numbers until the reader updates the field:
 
@@ -140,11 +140,11 @@ A family the font set does not know is written as it is, with an unspecified fam
 
 [Equations](./equations.md) are written as live Word equations (OMML), always in Cambria Math, whatever math font the PDF uses. A block equation is a paragraph of its own with an explicit alignment. An inline equation sits among the runs of its line. They stay editable in Word's equation editor.
 
-How other editors treat them differs:
+Editors differ:
 
 - Word and Google Docs open and show them.
 - LibreOffice shows them but ignores the colour and size set on math runs.
-- Apple Pages can't open a Word file that has equations. It fails to load, so send such documents as PDF to Pages users.
+- Apple Pages can't open a Word file that has equations. Send such documents to Pages users as PDF.
 
 ### Pictures
 
@@ -159,7 +159,7 @@ Word shows PNG, JPEG, GIF and BMP as they are. Everything else is drawn into a p
 | Styled QR codes (shapes, eyes, colours, gradients) | drawn as in the PDF at 300 dpi | `ext-imagick` and `bacon/bacon-qr-code` |
 | SVG | drawn at 300 dpi; nothing outside the file is loaded | `rsvg-convert` (recommended) or `ext-imagick` that reads SVG ([below](#svg-in-word)) |
 
-Imagick is only needed for Word export, for styled QR codes and for SVG when you don't use `rsvg-convert`. PDF and HTML don't use it.
+Only Word export uses Imagick, for styled QR codes and for SVG without `rsvg-convert`. PDF and HTML don't.
 
 #### SVG in Word
 
@@ -167,7 +167,7 @@ Imagick is only needed for Word export, for styled QR codes and for SVG when you
 
 Word can't take an SVG as it is, so Papercut draws each one into a picture. Two programs can do that, and without either, SVGs are left out of the Word file and reported:
 
-- **librsvg's `rsvg-convert`** (recommended). It's a small command-line program, not a PHP extension, so you don't need Imagick at all. It draws SVG properly: gradients, patterns, clip paths, masks, filters and dashed strokes.
+- **librsvg's `rsvg-convert`** (recommended). A small command-line program rather than a PHP extension, so Imagick isn't needed. It draws gradients, patterns, clip paths, masks, filters and dashed strokes.
 - **Imagick**, when its ImageMagick build reads SVG. How well it draws them depends on how ImageMagick was built. Many builds use ImageMagick's own basic renderer, which paints gradients and patterns solid black and leaves out clip paths and dashed strokes.
 
 To use `rsvg-convert`, install it and give Papercut its path:

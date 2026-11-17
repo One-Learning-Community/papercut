@@ -28,7 +28,7 @@ php artisan vendor:publish --tag=papercut-config
 | Key | Default | Description |
 |---|---|---|
 | `overflow` | `null` | `'throw'` or `'clip'`. `null` throws in `local` and `testing` and clips everywhere else. See [Content that doesn't fit](/guide/pages.md#content-that-doesn-t-fit). |
-| `strict` | `false` | When `true`, an export throws instead of dropping content. Worth turning on in tests. See [Strict mode](/guide/rich-text.md#strict-mode). |
+| `strict` | `false` | When `true`, an export throws instead of dropping content. Turn it on in tests. See [Strict mode](/guide/rich-text.md#strict-mode). |
 
 ## Word
 
@@ -52,7 +52,7 @@ php artisan vendor:publish --tag=papercut-config
 | `html.local_fonts.mode` | `'embed'` | `'embed'` or `'link'`. |
 | `html.local_fonts.families` | `null` | `null` for every registered family, or a list. |
 
-Resolvers are set as class names rather than closures, because closures can't survive `php artisan config:cache`. If you use a closure, you'll get an error naming the key. Each class is built by the container, so you can inject dependencies through the constructor.
+Resolvers are class names, because closures can't survive `php artisan config:cache`; a closure throws an error naming the key. The container builds each class, so constructor injection works.
 
 ```php
 namespace App\Pdf;
@@ -83,7 +83,7 @@ final class CdnImageUrl implements ImageUrlResolver
 
 ### Markup images
 
-Here's a resolver for a rich text editor that stores uploads on the default disk and serves resized copies from `/public/images/{size}/files/uploaded/editor/…`:
+A resolver for a rich text editor that stores uploads on the default disk and serves resized copies from `/public/images/{size}/files/uploaded/editor/…`:
 
 ```php
 namespace App\Markup;
@@ -117,7 +117,7 @@ A single tag can use a different resolver with the `images` attribute: `<x-doc::
 
 Within one markup conversion the resolver is called once for each distinct `src` (trimmed of surrounding whitespace); later images with the same `src` reuse the answer, including a null.
 
-Papercut builds a resolver once per request, queue job or Octane request, and every markup tag in it shares that instance, whether the class comes from the config or from a tag's `images` attribute. A cache in a property lasts that long; for anything longer use Laravel's cache.
+Papercut builds a resolver once per request, queue job or Octane request, and every markup tag in it shares that instance, whether the class comes from the config or from a tag's `images` attribute. A cache in a property lasts that long; for longer, use Laravel's cache.
 
 ## Code
 

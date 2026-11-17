@@ -1,6 +1,6 @@
 # Equations
 
-Papercut sets mathematics in the PDF, HTML and Word exports. You build a formula from a few pieces, put it on its own line or inside a line of text, and each export writes it in its own native form. Letters and digits in a PDF equation are real text you can select, and a Word export carries live Word equations that stay editable.
+Papercut sets mathematics in the PDF, HTML and Word exports. Build a formula from a few pieces and put it on its own line or inside a line of text; each export writes it in its native form. Letters and digits in a PDF equation are real text you can select, and a Word export carries live Word equations that stay editable.
 
 ![The quadratic formula, set by Papercut](/guide/equation-quadratic.png)
 
@@ -16,11 +16,11 @@ Equation::of('x', '=', Math::frac(
 ))->center();
 ```
 
-The builder lives in the `papercut/math` package, which `papercut/core` installs for you. That package also works without Papercut, to put formulas in web pages, email or Word files: see [Math](/math/).
+The builder lives in the `papercut/math` package, which `papercut/core` installs. It also works without Papercut, for formulas in web pages, email or Word files: see [Math](/math/).
 
 ## Building a formula
 
-`Papercut\Math\Math` has one method for each shape. Wherever a method takes a node, a plain string works too, and is turned into nodes by the [rules below](#how-text-becomes-math).
+`Papercut\Math\Math` has one method for each shape. Wherever a method takes a node, a plain string works too; the [rules below](#how-text-becomes-math) turn it into nodes.
 
 | Method | Builds |
 |---|---|
@@ -103,7 +103,7 @@ In Word, `aligned()` is written as a native equation array. In `aligned()`, cell
 
 ## A block equation
 
-`Equation::of(...$parts)` takes strings and nodes, in the same way as `Math::row()`. It sits on a line of its own, in display style: fractions and scripts are drawn large, and the equation takes the surrounding text's size and colour.
+`Equation::of(...$parts)` takes strings and nodes, like `Math::row()`. It sits on a line of its own, in display style: fractions and scripts are drawn large, and the equation takes the surrounding text's size and colour.
 
 - It uses the theme's `equation` style, which by default is a bottom margin of 6 pt. Change that style, or style the equation itself, like any other box.
 - It aligns with text alignment: `->center()` or `->right()` in PHP, `text-align="center"` in Blade. The default is left.
@@ -140,7 +140,7 @@ In Blade, `<x-doc::math>` inside a text tag is the inline form:
 </x-doc::p>
 ```
 
-Outside a text tag, `<x-doc::math>` is the same as `<x-doc::equation>`, a block equation. The other way round is an error: a block `<x-doc::equation>` inside a text tag throws. An inline `<x-doc::math>` takes no style attributes. Set the size and colour on the surrounding text. It can't sit inside a raw inline HTML tag such as `<b>` or `<a>`: Blade hands the tag's two halves to the markup parser separately, so it throws an error naming `<x-doc::math>`. Put the equation beside the tag, not inside it.
+Outside a text tag, `<x-doc::math>` is the same as `<x-doc::equation>`, a block equation. A block `<x-doc::equation>` inside a text tag throws. An inline `<x-doc::math>` takes no style attributes; set the size and colour on the surrounding text. Inside a raw inline HTML tag such as `<b>` or `<a>` it throws an error naming `<x-doc::math>`, because Blade hands the tag's two halves to the markup parser separately. Put the equation beside the tag.
 
 ## How text becomes math
 
@@ -157,9 +157,7 @@ A string is split into pieces, one per symbol:
 
 ## MathML input
 
-Formulas often arrive as MathML: from an equation editor, a Word equation, a question bank or a hand-written page. Papercut reads it into the same formula the builder makes, so it is set, exported and edited like any other.
-
-There are three ways in.
+Formulas often arrive as MathML: from an equation editor, a Word equation, a question bank or a hand-written page. Papercut reads it into the same formula the builder makes, so it is set, exported and edited like any other. There are three ways in.
 
 **Rich text.** [`Markup::html()`](./rich-text.md) finds formulas in the HTML it converts. A `<math display="block">` becomes an equation on its own line, in display style. Any other `<math>` is a formula inside the line, in text style. Word's `<mml:math>` prefix works too. MathType and Wiris are read in both of the ways they store a formula:
 
@@ -221,7 +219,7 @@ To read the notes yourself, `Math::notes($node)` returns them as a list of `Math
 
 ## TeX input
 
-Most formulas in the wild are written in TeX. Papercut reads math-mode LaTeX into the same formula the builder makes, so it is set, exported and edited like any other. Anything it can't draw is reported, and it never throws.
+Papercut reads math-mode LaTeX into the same formula the builder makes. Anything it can't draw is reported, and it never throws.
 
 **In PHP.** `Math::tex($string)` returns a node you can use anywhere a node goes.
 
@@ -241,13 +239,13 @@ Span::math(Math::tex('\alpha + \beta'));
 <x-doc::p>The mean is <x-doc::math tex="\bar{x}" />.</x-doc::p>
 ```
 
-Two things to know about Blade. A static attribute is read with HTML rules, so `&lt;` and `&amp;` are decoded before Papercut sees them. And Blade treats `{{` as the start of an echo, which TeX uses for nested groups such as `\frac{{a}}{b}`. Bind the string instead, `:tex="'\frac{{a}}{b}'"`, or pass a variable. In any `tex` attribute, static or bound, Blade turns the value into a PHP string, so TeX's `\\` line break must be written `\\\\`, or the TeX passed in a PHP variable (`:tex="$formula"`). Quote style on a static attribute (`tex="…"` or `tex='…'`) makes no difference. In a bound attribute the expression is PHP, so never write the TeX in a double-quoted PHP string (`:tex='"\frac{a}{b}"'`): PHP turns `\f`, `\n`, `\t`, `\v`, `\r` and `\e` into control characters and the formula is silently garbled, and a double-quoted string also interpolates `$` variables (a `$x` in the TeX would be replaced). Use single quotes, `:tex="'…'"`.
+A static Blade attribute is read with HTML rules, so `&lt;` and `&amp;` are decoded before Papercut sees them. Blade also treats `{{` as the start of an echo, which TeX uses for nested groups such as `\frac{{a}}{b}`. Bind the string instead, `:tex="'\frac{{a}}{b}'"`, or pass a variable. In any `tex` attribute, static or bound, Blade turns the value into a PHP string, so TeX's `\\` line break must be written `\\\\`, or the TeX passed in a PHP variable (`:tex="$formula"`). Quote style on a static attribute (`tex="…"` or `tex='…'`) makes no difference. In a bound attribute the expression is PHP, so never write the TeX in a double-quoted PHP string (`:tex='"\frac{a}{b}"'`): PHP turns `\f`, `\n`, `\t`, `\v`, `\r` and `\e` into control characters and the formula is silently garbled, and a double-quoted string also interpolates `$` variables (a `$x` in the TeX would be replaced). Use single quotes, `:tex="'…'"`.
 
 ```blade
 <x-doc::equation tex="\begin{aligned}a &= b \\\\ c &= d\end{aligned}" />
 ```
 
-**What it reads.** The input is math mode, with or without a `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper. `$$…$$`, `\[…\]`, a top-level `\displaystyle` and display environments such as `align`, `gather` and `equation` ask for display style (not `aligned`, which is used inside a formula), and a block equation is always display style anyway. The set is what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and text commands, spacing, and the environments `matrix` (and its bracketed variants), `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, scoped to the group they are in.
+**What it reads.** The input is math mode, with or without a `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper. `$$…$$`, `\[…\]`, a top-level `\displaystyle` and display environments such as `align`, `gather` and `equation` ask for display style (not `aligned`, which is used inside a formula), and a block equation is always display style. The set is what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and text commands, spacing, and the environments `matrix` (and its bracketed variants), `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, scoped to the group they are in.
 
 **Limits.** A formula is cut off at 16 KB. Nesting deeper than 256 levels is cut off, macro expansion may not grow a formula past what 16 KB of raw TeX could, and a formula's environments have at most 10,000 cells between them. Past the nesting limit the rest is drawn as its TeX source text. Macro expansion is also capped at 10,000 expansions. A formula that hits a limit is drawn as far as it got and reports it. A stretched delimiter or arrow is never longer than 100 em. Under Xdebug's develop mode (its default) the call stack is limited too (`xdebug.max_nesting_level`, 512), so Papercut lowers the nesting limit to fit, and deep nesting gets the nesting note sooner; raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full 256 levels.
 
@@ -264,7 +262,7 @@ $result->notes();   // approximated: \boxed (the box is not drawn)
 
 ## The math font
 
-Equations are set in a math font. Papercut bundles STIX Two Math and uses it unless you say otherwise. To use another, point the font set at the file:
+Equations are set in a math font. Papercut bundles STIX Two Math and uses it by default. To use another, point the font set at the file:
 
 ```php
 use Papercut\Export\PdfOptions;
@@ -289,8 +287,6 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 **HTML.** Equations are written as MathML Core, `<math display="block">` or `<math display="inline">`, and the browser lays them out. Which math font the browser uses depends on the [font mode](./web-fonts.md): with the default, `none`, it uses its own; `embed` embeds STIX Two Math, `link` links to it, and `sources` embeds it as a `data:` URI. Block equations are placed with margins.
 
 ## Not yet
-
-These are not supported yet:
 
 - Table lines, row spacing and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like), and `\hline` and column rules in TeX `array`.
 - Colour inside a formula (`\color`, `mathcolor`). A formula takes its colour from the text around it.

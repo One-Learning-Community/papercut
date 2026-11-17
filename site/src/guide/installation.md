@@ -20,13 +20,13 @@ composer require papercut/core      # the engine alone
 composer require papercut/docx      # Word export; see Word export
 ```
 
-Laravel discovers the service provider and the `Papercut` facade automatically, so there's nothing to register.
+Laravel discovers the service provider and the `Papercut` facade, so there's nothing to register.
 
 `papercut/docx` pulls in `papercut/core`. In Laravel, `->docx()` works once it's installed. See [Word export](./word-export.md).
 
 ## Optional packages
 
-These are suggested, not required:
+Papercut suggests these; none is required:
 
 - `phiki/phiki` colours the syntax in code blocks.
 - `bacon/bacon-qr-code` draws styled QR codes (dotted or rounded modules, eye shapes, colours, gradients).
@@ -36,7 +36,7 @@ These are suggested, not required:
 
 ## Checking your fonts
 
-Papercut ships with the Inter font, the Cousine monospace font and the STIX Two Math font for [equations](./equations.md) (all under the SIL Open Font License), so your first document will render without any setup. In Laravel, you can list every font Papercut can see:
+Papercut ships with the Inter font, the Cousine monospace font and the STIX Two Math font for [equations](./equations.md) (all under the SIL Open Font License), so your first document renders without setup. In Laravel, list every font Papercut can see:
 
 ```bash
 php artisan papercut:fonts

@@ -4,14 +4,14 @@ sidebar: false
 
 # Examples
 
-The repository includes eight example documents, each written twice: once as a Blade view and once in plain PHP. Comparing the two versions is a good way to see how Blade tags map to the PHP API. The invoice, transcript, integration guide and certificate use US Letter and inches; the report, form responses, knowledge base article and academic paper use A4 and millimetres.
+The repository includes eight example documents, each written twice: once as a Blade view and once in plain PHP. Compare the two to see how Blade tags map to the PHP API. The invoice, transcript, integration guide and certificate use US Letter and inches; the report, form responses, knowledge base article and academic paper use A4 and millimetres.
 
 | Document | What it shows | Blade | PHP |
 |---|---|---|---|
 | Invoice | a letterhead row, a tinted panel, line items, right-aligned totals, a footer | [invoice.blade.php][inv-b] | [invoice.php][inv-p] |
 | Transcript | a sixty-row table across pages with its header repeated, keep-together blocks | [transcript.blade.php][tr-b] | [transcript.php][tr-p] |
 | Report | justified prose, stat cards from an app component, an eighty-row table, a forced page break | [report.blade.php][rep-b] | [report.php][rep-p] |
-| Form responses | eight of the nine [decorators](/guide/decorators.md): a card of details, a callout, numbered sections, fields, choice lists, rated statements with badges, a blockquote | [responses.blade.php][res-b] | [responses.php][res-p] |
+| Form responses | eight of the [decorators](/guide/decorators.md): a card of details, a callout, numbered sections, fields, choice lists, rated statements with badges, a blockquote | [responses.blade.php][res-b] | [responses.php][res-p] |
 | Integration guide | portrait, landscape and portrait pages in one document, highlighted code blocks, method badges, a QR code, a checklist | [guide.blade.php][gd-b] | [guide.php][gd-p] |
 | Certificate | a [page template](/guide/pages.md#filling-in-an-existing-pdf): a name, course and date placed on a blank PDF, and a signature image on the signature line. PDF only | [certificate.blade.php][ce-b] | [certificate.php][ce-p] |
 | Knowledge base article | HTML from a rich text editor, converted by [Markup](/guide/rich-text.md): headings, a nested list, a table, a highlighted code block, a quotation | [article.blade.php][ar-b] | [article.php][ar-p] |
@@ -36,7 +36,7 @@ The repository includes eight example documents, each written twice: once as a B
 
 ## What they look like
 
-Each card shows the PDF. Download the Word file too, and open it in Word, LibreOffice or Google Docs to see the same document as editable text.
+Each card shows the PDF. Download the Word file to see the same document as editable text in Word, LibreOffice or Google Docs.
 
 <div class="example-gallery">
   <figure class="example-card">
@@ -101,11 +101,11 @@ php examples/docx/render.php
 php examples/laravel/render.php
 ```
 
-The Blade script spins up a temporary Laravel app with Orchestra Testbench, so you don't need a full Laravel install. The sample data for the views is in `examples/laravel/data.php`.
+The Blade script starts a temporary Laravel app with Orchestra Testbench, so you don't need a full Laravel install. The sample data for the views is in `examples/laravel/data.php`.
 
 ## The form responses example
 
-This example shows how to build something specific to your app from the decorators. Papercut doesn't know anything about questions or answers. The view just loops over the items and picks a decorator for each one:
+This example builds something specific to an app from the decorators. Papercut knows nothing about questions or answers; the view loops over the items and picks a decorator for each:
 
 ```blade
 @foreach ($items as $item)
@@ -131,7 +131,7 @@ This example shows how to build something specific to your app from the decorato
 @endforeach
 ```
 
-An unanswered question shows "No response" in a grey box rather than leaving a gap, and selected options get a filled checkbox and a bold label. All the colours come from the theme, so the form matches every other document the app produces.
+An unanswered question shows "No response" in a grey box instead of a gap, and selected options get a filled checkbox and a bold label. All the colours come from the theme, so the form matches every other document the app produces.
 
 ## The integration guide example
 
@@ -173,7 +173,7 @@ The page number in the footer counts across all three, so the landscape page rea
 
 ## The certificate example
 
-The design for a certificate usually comes from a designer, as a PDF. This example fills in a blank one. The page template draws the PDF, and the overlay places the recipient's name, the course, the date and a signature image at fixed points on top of it:
+A certificate's design often comes from a designer as a PDF. This example fills in a blank one. The page template draws the PDF, and the overlay places the recipient's name, the course, the date and a signature image at fixed points on top of it:
 
 ::: tabs#lang
 
@@ -211,7 +211,7 @@ Page::template(PdfPage::file($assets . '/certificate-template.pdf'))->overlay(
 
 :::
 
-The template is drawn as vector content, not as a picture of the page. Its text and borders stay sharp at any zoom, and the name stays selectable text. With `anchor="bottom"` (`Anchor::Bottom` in PHP), the bottom edge of each piece of content sits at its point, so the name rests on its line whatever its length. The name and course are centred on the page because `x` is the middle of the content when the anchor is `bottom`.
+The template is drawn as vector content: its text and borders stay sharp at any zoom, and the name stays selectable text. With `anchor="bottom"` (`Anchor::Bottom` in PHP), the bottom edge of each piece of content sits at its point, so the name rests on its line whatever its length. The name and course are centred on the page because `x` is the middle of the content when the anchor is `bottom`.
 
 Overlay positions ignore the page margins. They are measured from the top-left corner of the sheet, so the numbers match what you'd read off the design. In Blade, a relative `template` or `src` is resolved inside `papercut.image_path`; the example points that at `examples/assets`, where the template and `signature.svg` live. `examples/core/certificate-template.php` draws the blank template with Papercut so that it can be rebuilt, but any PDF from a design tool works the same way.
 
@@ -219,7 +219,7 @@ Word and HTML exports leave page templates out, so this example is PDF only. See
 
 ## The knowledge base article example
 
-Help articles are usually written in a rich text editor such as CKEditor 5, and saved as HTML. The article is that HTML in one string. Papercut converts it with no browser involved, and the page around it adds a header and a page-number footer:
+Help articles are often written in a rich text editor such as CKEditor 5 and saved as HTML. The article is that HTML in one string. Papercut converts it with no browser involved, and the page around it adds a header and a page-number footer:
 
 ::: tabs#lang
 
@@ -251,7 +251,7 @@ $article = Column::make(
 
 In the example, `$html` is a heredoc holding what an editor would save: `h2` and `h3` headings, paragraphs with bold, italic and links, a list with a nested list, a table with a header row, a `<pre><code class="language-bash">` block and a blockquote. The theme styles all of it, so the article matches the rest of your documents. The code block is highlighted because of its `language-bash` class.
 
-Anything Papercut can't convert is reported, never silently lost. The example's test turns on strict mode and checks that the article produces no warnings. See [Rich text](/guide/rich-text.md#conversion-warnings) for what gets converted and what the warnings mean.
+Papercut reports anything it can't convert. The example's test turns on strict mode and checks that the article produces no warnings. See [Rich text](/guide/rich-text.md#conversion-warnings) for what gets converted and what the warnings mean.
 
 ## The academic paper example
 

@@ -1,6 +1,6 @@
 # Laravel
 
-`papercut/laravel` lets you write documents as Blade views. Each `<x-doc::*>` tag builds a core component, and the whole view becomes one document. Loops, conditionals, slots and your own components all work just like they do in any other Blade view.
+`papercut/laravel` lets you write documents as Blade views. Each `<x-doc::*>` tag builds a core component, and the whole view becomes one document. Loops, conditionals, slots and your own components work as in any other Blade view.
 
 See [Installation](/guide/installation.md) to add the package. Laravel discovers the service provider and the `Papercut` facade automatically.
 
@@ -35,7 +35,7 @@ Route::get('/hello', fn () => Papercut::view('pdf.hello', ['name' => 'Ada'])->pd
 
 ## Attaching to mail
 
-A `PendingOutput` can go straight into a mailable or notification. The document renders when it is attached, once, and the attachment is named `document.pdf`, `document.docx` or `document.html` with the right MIME type. In a mailable, build it in `attachments()` from data the mailable can serialize:
+A `PendingOutput` goes straight into a mailable or notification. The document renders once, when attached. The attachment is named `document.pdf`, `document.docx` or `document.html` with the right MIME type. In a mailable, build it in `attachments()` from data the mailable can serialize:
 
 ```php
 public function attachments(): array
@@ -76,7 +76,7 @@ Papercut::view('pdf.invoice', $data)->pdf()->toArchive('invoices/142.pdf');
 
 ## Your own components
 
-Your own Blade components can wrap `<x-doc::*>` tags. They're a good place to keep pieces you use in lots of documents, like a branded header or a stat card.
+Your own Blade components can wrap `<x-doc::*>` tags. Keep pieces shared across documents there, such as a branded header or a stat card.
 
 ```blade
 {{-- resources/views/components/stat-card.blade.php --}}
@@ -94,7 +94,7 @@ Your own Blade components can wrap `<x-doc::*>` tags. They're a good place to ke
 </x-doc::row>
 ```
 
-Build on the [decorators](/guide/decorators.md) where you can. A `question` component made from `section`, `field` and `choices` picks up the theme automatically, so it matches the rest of your documents.
+Build on the [decorators](/guide/decorators.md) where you can. A `question` component made from `section`, `field` and `choices` picks up the theme and matches your other documents.
 
 ## Passing values
 
@@ -102,9 +102,9 @@ Attributes accept plain strings (`gap="8pt"`) or PHP values with the usual colon
 
 ## Embedding PHP-built nodes
 
-`<x-doc::node :node="$node" />` places a component built in PHP inside a Blade view. It's useful for a chart, a table put together in a service class, or anything else that's easier to build in code.
+`<x-doc::node :node="$node" />` places a component built in PHP inside a Blade view. Use it for a chart, a table assembled in a service class, or anything easier to build in code.
 
-Inside a text tag, a `Text` node becomes part of the line. One limitation: an inline tag like `<b>` can't wrap around an embedded node, so close it on either side instead:
+Inside a text tag, a `Text` node becomes part of the line. An inline tag like `<b>` can't wrap an embedded node, so close it on either side:
 
 ```blade
 <x-doc::text><b>x </b><x-doc::node :node="$t" /><b> y</b></x-doc::text>
@@ -130,13 +130,13 @@ Named styles in an override merge onto the existing style. Blade checks style na
 
 ## Caching
 
-Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. Papercut stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data the fragment is built from, and render the fragment each time.
+Cache data, not rendered `<x-doc>` output. A rendered fragment holds markers that only mean something inside the render that made it, so a fragment kept in a cache, a static property or `once()` and then placed in a later render can't be used. Papercut stops with an `InvalidStructure` error that says it found a node marker from another render. Cache the data behind the fragment and render the fragment each time.
 
 This isn't always detected. Papercut recognises markers it made earlier in the same process; a fragment cached across workers, or kept long after, can instead show up as literal marker text (`[[pc:…]]`) in the output, or as a "can only contain" error whose message adds a note about the marker.
 
 ## The tag prefix
 
-Tags use the `doc` prefix by default. If that clashes with something in your app, change `prefix` in the [configuration](./configuration.md).
+Tags use the `doc` prefix by default. If it clashes with something in your app, change `prefix` in the [configuration](./configuration.md).
 
 ## When something goes wrong
 
@@ -148,4 +148,4 @@ Unknown attribute "colour" on <x-doc::text>. Did you mean "color"?
 
 Tags in the wrong place, such as an `<x-doc::tr>` outside a table or a view without an `<x-doc::document>` root, throw `InvalidStructure`.
 
-Laravel wraps any exception thrown while rendering a view in an `Illuminate\View\ViewException`. Call `getPrevious()` on it to get Papercut's original exception.
+Laravel wraps any exception thrown while rendering a view in an `Illuminate\View\ViewException`. `getPrevious()` returns Papercut's original exception.

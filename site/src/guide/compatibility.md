@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Papercut follows [Semantic Versioning](https://semver.org/). This page says what that covers.
+Papercut follows [Semantic Versioning](https://semver.org/).
 
 ## Before 1.0
 
@@ -35,4 +35,4 @@ A breaking change to the public API waits for the next major version (2.0). Mino
 
 ## Requirements
 
-Papercut needs PHP 8.4 or newer, and Laravel 12 or 13 for the Blade package. Dropping support for a PHP or Laravel version happens only in a minor or major version, never in a patch, and the changelog says so.
+Papercut needs PHP 8.4 or newer, and Laravel 12 or 13 for the Blade package. Support for a PHP or Laravel version is dropped only in a minor or major version, never in a patch, and the changelog says so.

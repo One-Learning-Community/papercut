@@ -1,6 +1,6 @@
 # Text
 
-Papercut measures text using the actual metrics of the embedded font, so line breaks land where they should. Lines wrap between words, justified text stretches the spaces between words, and bold or italic runs keep their style when they wrap onto the next line.
+Papercut measures text with the embedded font's own metrics, so line breaks land where they should. Lines wrap between words, justified text stretches the spaces between words, and bold or italic runs keep their style when they wrap onto the next line.
 
 ## Paragraphs and headings
 
@@ -14,7 +14,7 @@ Headings keep with the next block by default, so a heading isn't left alone at t
 
 To make text a heading without the `h1` to `h4` look, use `Text::make('…')->asHeading(2)` (PHP only). It gets a bookmark and a [table of contents](./pages.md#tables-of-contents) entry, an `h2` tag in HTML and a Heading 2 style in Word, but keeps its own style. Unlike the presets, it doesn't keep with the next block unless you add `->keepWithNext()`. `headingLevel()` returns a text's level, 1 to 4, or `null` when it isn't a heading.
 
-Font, size, weight, colour and alignment are inherited, so you can set them on a box and the text inside will follow:
+Font, size, weight, colour and alignment are inherited, so text follows what you set on its box:
 
 ::: code-tabs#style
 @tab Blade
@@ -46,7 +46,7 @@ Text that isn't valid UTF-8 (a database column in the wrong encoding, say) doesn
 
 ## Keeping spaces and line breaks
 
-By default runs of whitespace collapse to one space and a newline is just a space. The `white-space` style attribute (`Style::make(whiteSpace: WhiteSpace::PreWrap)` in PHP) changes that. It takes `normal` (the default) or `pre-wrap`, and it is inherited, so it can be set on a box or on a single span.
+By default runs of whitespace collapse to one space and a newline is a space. The `white-space` style attribute (`Style::make(whiteSpace: WhiteSpace::PreWrap)` in PHP) changes that. It takes `normal` (the default) or `pre-wrap`, and it is inherited, so it can be set on a box or on a single span.
 
 Invisible formatting characters, common in text pasted from Word or a CMS (soft hyphens, zero-width joiners and spaces, direction marks, word joiners, byte order marks), are not drawn. The line and paragraph separators U+2028 and U+2029 are treated as newlines.
 
@@ -252,7 +252,7 @@ A span whose style has horizontal padding or a border, such as a `code` style yo
 
 `<badge>` draws a small pill in the line. It takes `type` (`neutral`, `note`, `tip`, `warning`, `danger` or a tone you define) and `variant`, and its label is plain text with no tags inside. In PHP, `Span::badge($text, $tone, $variant)` builds one without markup. See [Inline badges](./decorators.md#inline-badges).
 
-In PHP you can also build the runs of text yourself:
+In PHP you can also build the runs yourself:
 
 ```php
 use Papercut\{Document, Page, Span, Text};
@@ -303,7 +303,7 @@ $document = Document::make(Page::letter()->body(
 ```
 :::
 
-If you don't pick a marker, it changes with the nesting depth: numbered lists go `1.`, `a.`, `i.` and bulleted lists go `•`, `◦`, `▪`. Markers are right-aligned, so `9.` and `10.` line up neatly.
+If you don't pick a marker, it changes with the nesting depth: numbered lists go `1.`, `a.`, `i.` and bulleted lists go `•`, `◦`, `▪`. Markers are right-aligned, so `9.` and `10.` line up.
 
 | Marker | Looks like |
 |---|---|

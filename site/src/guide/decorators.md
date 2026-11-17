@@ -1,6 +1,6 @@
 # Decorators
 
-Decorators are ready-made components for the things most documents end up needing: a bordered card, a highlighted note, a numbered section, an answer box. You could build all of these from plain boxes, but then every app reinvents them with its own colours. Decorators take their look from the theme, so they match across all your documents and you can restyle them in one place.
+Decorators are ready-made components for what most documents need: a bordered card, a highlighted note, a numbered section, an answer box. They take their look from the theme, so they match across your documents and you restyle them in one place.
 
 There are twelve of them:
 
@@ -19,7 +19,7 @@ There are twelve of them:
 | [Signature](#signature) | `Signature` | `<x-doc::signature>` |
 | [Code block](/guide/text.md#code-blocks) | `CodeBlock` | `<x-doc::pre language="…">` |
 
-The PHP classes are in the `Papercut\Decorator` namespace. Under the hood, each one is built from ordinary boxes, text and tables, so it breaks across pages like anything else and looks the same in PDF and HTML. Style methods and attributes apply to the outer box, so `Card::make(...)->padding(pt(12))` changes the padding for that one card only.
+The PHP classes are in the `Papercut\Decorator` namespace. Each is built from ordinary boxes, text and tables, so it breaks across pages like anything else and looks the same in PDF and HTML. Style methods and attributes apply to the outer box, so `Card::make(...)->padding(pt(12))` changes the padding for that one card only.
 
 ## Card
 
@@ -72,7 +72,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-The tones are `note` (the default), `tip`, `warning` and `danger`. Papercut doesn't add a label like "Warning" on its own, so the wording and any translation stay in your hands. In HTML, a callout becomes an `<aside>`.
+The tones are `note` (the default), `tip`, `warning` and `danger`. Papercut adds no label such as "Warning", so the wording and any translation are yours. In HTML, a callout becomes an `<aside>`.
 
 ## Blockquote
 
@@ -224,7 +224,7 @@ The checkboxes and radio buttons are drawn as shapes, so they don't depend on yo
 
 ## Key-value list
 
-Labels and values in two neatly aligned columns.
+Labels and values in two aligned columns.
 
 ::: code-tabs#style
 @tab Blade
@@ -251,7 +251,7 @@ $document = Document::make(Page::a4()->body(
 ```
 :::
 
-Under the hood it's a table without borders, so the labels line up and a long list breaks cleanly between rows. Without `label-width`, the label column is as wide as the longest label. If your labels are long, set a width so they wrap instead of squeezing the values.
+It's a borderless table, so the labels line up and a long list breaks cleanly between rows. Without `label-width`, the label column is as wide as the longest label. For long labels, set a width so they wrap and leave room for the values.
 
 ## Badge
 
@@ -395,7 +395,7 @@ Whatever the tag holds sits on the line: a signature image, a typed name, or not
 
 ## Restyling
 
-Each decorator gets its look from named styles in the theme, such as `card`, `card.title` and `callout.warning`. To change one, define a style with the same name and it replaces the built-in version.
+Each decorator gets its look from named styles in the theme, such as `card`, `card.title` and `callout.warning`. Define a style with the same name to replace the built-in one.
 
 ::: code-tabs#style
 @tab Laravel config
@@ -424,11 +424,11 @@ $options = new PdfOptions(theme: $theme);
 ```
 :::
 
-Your style replaces the built-in one entirely rather than merging with it, so include every property you want to keep. The [decorator styles reference](/reference/decorator-styles.md) lists every name and its defaults.
+Nothing is merged: your style replaces the built-in one entirely, so include every property you want to keep. The [decorator styles reference](/reference/decorator-styles.md) lists every name and its defaults.
 
 ### Adding a tone
 
-You're not limited to the built-in tones. Define the styles for a new one and use its name:
+To add a tone, define its styles and use its name:
 
 ```php
 'styles' => [
@@ -520,4 +520,4 @@ The theme has no `stamp` style, so the export throws until you add one to your t
 
 ## A full example
 
-The `responses` example uses eight of the decorators to lay out a completed feedback form. It's available in [Blade](https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php) and in [PHP](https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php).
+The `responses` example uses eight of the decorators to lay out a completed feedback form, in [Blade](https://github.com/One-Learning-Community/papercut/blob/main/examples/laravel/views/responses.blade.php) and [PHP](https://github.com/One-Learning-Community/papercut/blob/main/examples/core/documents/responses.php).

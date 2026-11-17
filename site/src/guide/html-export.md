@@ -1,6 +1,6 @@
 # HTML export
 
-Any document can also be exported as HTML, using the same theme, fonts and named styles. That's handy for a preview in the browser, an email body, or showing a document inside another page.
+Any document can be exported as HTML, with the same theme, fonts and named styles: for a browser preview, an email body, or a document shown inside another page.
 
 ::: code-tabs#style
 @tab Laravel
@@ -27,11 +27,11 @@ $fragment = $document->toHtml()->bytes();   // one .papercut element, no <html>
 ```
 :::
 
-In Laravel, `->html()->page()` and `->html()->fragment()` both return a `PendingOutput`, with the same `toString()`, `save()`, `download()` and `inline()` methods as a PDF. If you return `->html()` from a route you get the full page, and if you echo it in a view you get the fragment.
+In Laravel, `->html()->page()` and `->html()->fragment()` both return a `PendingOutput`, with the same `toString()`, `save()`, `download()` and `inline()` methods as a PDF. Returned from a route, `->html()` gives the full page; echoed in a view, it gives the fragment.
 
 ## What's different in HTML
 
-Browsers don't have pages, so a few things are approximated: fraction column widths, the page itself, and headers and footers, which appear once per page. Each approximation is reported as a warning.
+Browsers don't have pages, so a few things are approximated: fraction column widths, the page itself, and headers and footers, which appear once per page section. Each approximation is reported as a warning.
 
 - Even-page headers and footers aren't shown. HTML has one header and one footer for the whole run.
 - A first-page footer is shown only when the page has no normal footer. If it has both, the normal footer is shown.
@@ -47,11 +47,11 @@ The HTML uses meaningful tags where it can: sections become `<section>`, callout
 
 ## Columns
 
-A [column flow](./layout.md#column-flow) exports as an element with CSS columns (`column-count`, `column-gap`, `column-rule`), and a `ColumnBreak` as a column break. The browser fills the columns itself, so they won't match the PDF line for line, and a child that starts a new column can show an extra gap above it, because CSS can't know where a column starts. Unequal column widths and unequal gaps are approximated as equal columns and equal gaps, reported as approximated.
+A [column flow](./layout.md#column-flow) exports as an element with CSS columns (`column-count`, `column-gap`, `column-rule`), and a `ColumnBreak` as a column break. The browser fills the columns itself, so they won't match the PDF line for line. A child that starts a new column can show an extra gap above it, since CSS can't know where a column starts. Unequal column widths and unequal gaps are approximated as equal columns and equal gaps, reported as approximated.
 
 ## Fonts
 
-A PDF carries its fonts inside the file, but a browser has to load them from somewhere. By default the HTML only names the fonts and the browser uses whatever it has. To embed your fonts, link to files you host, or load them from Google Fonts, see [Fonts in HTML](./web-fonts.md).
+A PDF carries its fonts inside the file; a browser has to load them. By default the HTML only names the fonts and the browser uses whatever it has. To embed your fonts, link to files you host, or load them from Google Fonts, see [Fonts in HTML](./web-fonts.md).
 
 ## Equations
 
@@ -118,4 +118,4 @@ Each `.pc-page` has the page's width as its `max-width`, so the zoom is the cont
 
 ## Image URLs
 
-Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` for any image you'd still like embedded. SVGs are always embedded, as `data:` URIs or inline markup, so `imageUrl` doesn't apply to them.
+Images are embedded as `data:` URIs by default. To load them from your own URLs instead, pass an `imageUrl` closure in PHP, or set `html.image_url` to a resolver class in Laravel. Return `null` to embed an image. SVGs are always embedded, as `data:` URIs or inline markup, so `imageUrl` doesn't apply to them.

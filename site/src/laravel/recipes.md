@@ -1,10 +1,10 @@
 # Recipes
 
-Short answers to things most apps need once they make documents: keeping them on S3, making them in a queue, emailing them, downloading them from Livewire or Filament, and drawing charts.
+Short answers for keeping documents on S3, making them in a queue, emailing them, downloading them from Livewire or Filament, and drawing charts.
 
 ## Keep documents on S3 or any disk
 
-`store()` writes to any disk in `config/filesystems.php`. A third argument goes to the disk, so `'public'` makes the file publicly visible:
+`store()` writes to any disk in `config/filesystems.php`. A third argument goes to the disk, so `'public'` makes the file publicly visible.
 
 ```php
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +29,7 @@ Word and HTML work the same way: `->docx()->store(...)` and `->html()->page()->s
 
 ## Make documents in a queued job
 
-A long report doesn't have to hold up a request. Render it in a job, store it, and tell the user when it's ready:
+A long report needn't hold up a request. Render it in a job, store it, and tell the user when it's ready:
 
 ```php
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -92,7 +92,7 @@ public function downloadInvoice()
 <button wire:click="downloadInvoice">Download PDF</button>
 ```
 
-Filament actions run through Livewire, so the same call works from an action:
+Filament actions run through Livewire, so the same call works there:
 
 ```php
 Action::make('pdf')
