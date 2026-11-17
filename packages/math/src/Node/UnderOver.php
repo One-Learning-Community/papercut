@@ -193,7 +193,8 @@ final class UnderOver extends Node
         $f = $c->font;
         $m = $f->math();
         $u = $c->unit();
-        $baseStretch = $baseOp !== null && self::horizontalGid($c, $baseOp) !== null;
+        $drawnEquals = $baseOp !== null && self::drawsEqualsAsRules($c, $baseOp);
+        $baseStretch = $drawnEquals || $baseOp !== null && self::horizontalGid($c, $baseOp) !== null;
         $baseAnchor = null;
         [$overKind, $overOp] = $this->classify($c, $this->over, $this->accent);
         [$underKind, $underOp] = $this->classify($c, $this->under, $this->accentUnder);
@@ -211,15 +212,16 @@ final class UnderOver extends Node
         }
         $width = static fn (?Box $b): float => $b === null ? 0.0 : $b->width;
         $widest = max($width($baseBox), $width($overBox), $width($underBox));
-        if ($baseStretch) {
+        if ($baseOp !== null && $baseStretch) {
             // An arrow reaches past its labels and has a minimum length; a brace or accent only spans its base.
             $target = self::isArrow($baseOp->char) && ($overBox !== null || $underBox !== null)
                 ? max($widest + 2 * self::ARROW_LABEL_PAD * $c->size(), self::ARROW_MIN_WIDTH * $c->size())
                 : $widest;
-            [$baseBox, $baseAnchor] = self::stretched($c, $baseOp->char, $target);
+            $make = $drawnEquals ? self::drawnEquals(...) : self::stretched(...);
+            [$baseBox, $baseAnchor] = $make($c, $baseOp->char, $target);
             // The target is an advance width; the minimum and the pad are guarantees about ink, so make up a side-bearing shortfall.
             if ($target > $widest && $baseBox->width < $target) {
-                [$baseBox, $baseAnchor] = self::stretched($c, $baseOp->char, $target + ($target - $baseBox->width));
+                [$baseBox, $baseAnchor] = $make($c, $baseOp->char, $target + ($target - $baseBox->width));
             }
         }
         if ($baseBox === null) {
@@ -283,7 +285,7 @@ final class UnderOver extends Node
         }
 
         $out = self::assemble($parts, $wb, $asc, $desc, $rules);
-        if ($baseStretch) {
+        if ($baseOp !== null && $baseStretch) {
             // The stretched operator keeps the spacing the dictionary gives an infix operator, as an arrow between operands does.
             $e = OperatorDictionary::lookup($baseOp->char, OperatorDictionary::FORM_INFIX);
             $l = $c->mu($e['lspace']);
@@ -391,13 +393,23 @@ final class UnderOver extends Node
         return ($cp >= 0x300 && $cp <= 0x36F) || ($cp >= 0x20D0 && $cp <= 0x20FF);
     }
 
+    /**
+     * Whether an operator is stretchy: its own flag, else the operator dictionary's.
+     *
+     * @internal Engine detail, shared by the layout and the OMML writer so both stretch the same operators.
+     */
+    public static function isStretchy(Operator $op): bool
+    {
+        return (bool) ($op->stretchy ?? OperatorDictionary::lookup($op->char, OperatorDictionary::FORM_POSTFIX)['stretchy']);
+    }
+
     /** The operator's glyph id when it is a stretchy operator the font can stretch horizontally. */
     private static function horizontalGid(Context $c, Operator $op): ?int
     {
         if (mb_strlen($op->char) !== 1) {
             return null; // a name such as lim is drawn as text, never stretched
         }
-        if (! ($op->stretchy ?? OperatorDictionary::lookup($op->char, OperatorDictionary::FORM_POSTFIX)['stretchy'])) {
+        if (! self::isStretchy($op)) {
             return null;
         }
         $gid = $c->font->gid(mb_ord($op->char));
@@ -416,6 +428,53 @@ final class UnderOver extends Node
         }
 
         return $b->width / 2;
+    }
+
+    /**
+     * Whether a stretchy = is drawn as two rules: only when the font has the glyph but no horizontal variant or
+     * construction for it (STIX has none), so a font that can stretch = is asked first.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function drawsEqualsAsRules(Context $c, Operator $op): bool
+    {
+        return $op->char === '=' && $op->stretchy === true && $c->font->gid(mb_ord('=')) !== 0 && self::horizontalGid($c, $op) === null;
+    }
+
+    /**
+     * An equals sign of the given width: two rules at the bars of the = glyph this size really uses (its script
+     * variant in script styles), never narrower than that glyph.
+     *
+     * @return array{Box, float}
+     */
+    private static function drawnEquals(Context $c, string $char, float $required): array
+    {
+        $f = $c->font;
+        $gid = $f->gid(mb_ord($char));
+        if ($c->level > 0) {
+            $gid = $f->scriptVariant($gid, min($c->level, 2));
+        }
+        $bb = $f->bbox($gid);
+        $u = $c->unit();
+        $required = max($required, ($bb[2] - $bb[0]) * $u);
+        $bars = [];
+        foreach ($f->contours($gid) as $contour) {
+            $ys = array_map(static fn (array $p): float => $p[1], $contour);
+            if ($ys !== []) {
+                $bars[] = [min($ys), max($ys)];
+            }
+        }
+        usort($bars, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
+        if (count($bars) !== 2) {
+            $thick = $c->k('overbarRuleThickness') / $u;
+            $bars = [[$bb[3] - $thick, (float) $bb[3]], [(float) $bb[1], $bb[1] + $thick]];
+        }
+        $b = new Box($required, $bb[3] * $u, -$bb[1] * $u);
+        foreach ($bars as [$lo, $hi]) {
+            $b->add(new Rule(0.0, -$hi * $u, $required, ($hi - $lo) * $u));
+        }
+
+        return [$b, $required / 2];
     }
 
     /**

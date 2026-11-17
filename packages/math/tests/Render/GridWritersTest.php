@@ -170,6 +170,20 @@ final class GridWritersTest extends TestCase
         self::assertStringNotContainsString('columnspacing', MathmlWriter::write(Math::matrix(self::abcd(), 'none')));
     }
 
+    public function test_omml_second_alignment_pair_is_separated_by_em_spaces(): void
+    {
+        $xml = OmmlWriter::oMath(Math::aligned([['x', '= 1', 'y', '= 2']]));
+        self::assertSame(1, substr_count($xml, "\u{2003}\u{2003}"));
+        self::assertMatchesRegularExpression('#&amp;</m:t></m:r><m:r>[^|]*?<m:t xml:space="preserve">\x{2003}\x{2003}</m:t></m:r><m:r>[^|]*?>y<#u', $xml);
+        self::assertStringNotContainsString("\u{2003}", OmmlWriter::oMath(Math::aligned([['x', '= 1']])));
+    }
+
+    public function test_omml_alignat_pairs_get_no_automatic_space(): void
+    {
+        $xml = OmmlWriter::oMath(Math::aligned([['x', '= 1', 'y', '= 2']], 0.0));
+        self::assertStringNotContainsString("\u{2003}", $xml);
+    }
+
     public function test_omml_aligned_is_an_equation_array(): void
     {
         $xml = OmmlWriter::oMath(Math::aligned([['x', '= 1'], ['', '= 2']]));
@@ -192,5 +206,17 @@ final class GridWritersTest extends TestCase
             self::assertStringNotContainsString('<m:e></m:e>', $xml);
             self::assertStringContainsString('<m:t xml:space="preserve"> </m:t>', $xml);
         }
+    }
+
+    public function test_omml_odd_column_alignment_gets_the_pair_gap_only_between_pairs(): void
+    {
+        $xml = OmmlWriter::oMath(Math::aligned([['x', '= 1', 'y']]));
+        self::assertSame(1, substr_count($xml, "\u{2003}\u{2003}"));
+        self::assertSame(2, substr_count($xml, '&amp;'));
+    }
+
+    public function test_omml_fractional_pair_gap_uses_the_matching_space(): void
+    {
+        self::assertStringContainsString("\u{2002}", OmmlWriter::oMath(Math::aligned([['x', '= 1', 'y', '= 2']], 0.5)));
     }
 }

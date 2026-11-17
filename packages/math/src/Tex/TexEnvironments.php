@@ -207,7 +207,8 @@ final class TexEnvironments
             return count($cells) === 1 ? $cells[0] : new Row($cells);
         }
         if (in_array($base, self::ALIGNED, true)) {
-            return Math::aligned($rows);
+            // alignat puts no space between pairs: the author adds it. xalignat and xxalignat spread their pairs across the line; they are approximated the same way.
+            return Math::aligned($rows, in_array($base, ['alignat', 'alignedat', 'xalignat', 'xxalignat'], true) ? 0.0 : 2.0);
         }
         if ($base === 'gathered' || $base === 'gather') {
             return new Grid($rows, ['center'], 'baseline', true);

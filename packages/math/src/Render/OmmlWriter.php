@@ -170,10 +170,19 @@ final class OmmlWriter
             return '';
         }
         if ($g->alignment) {
-            // Word's equation array: one line per row, the alignment points marked by `&` runs.
+            // Word's equation array: one line per row, the alignment points marked by `&` runs. Between two
+            // column pairs (the odd gaps) Word has no spacing of its own, so em-space runs carry the gap.
             $out = '<m:eqArr>';
+            $seps = [];
+            for ($j = 0; $j < $g->columns - 1; $j++) {
+                $gap = $j % 2 === 1 ? $g->columnSpacing[$j] ?? 0.0 : 0.0;
+                $seps[$j] = self::run('&', $rPr) . self::space($gap, $rPr);
+            }
             foreach ($g->rows as $row) {
-                $content = implode(self::run('&', $rPr), array_map(static fn (Node $cell): string => self::node($cell, $rPr), $row));
+                $content = '';
+                foreach ($row as $j => $cell) {
+                    $content .= ($j > 0 ? $seps[$j - 1] ?? self::run('&', $rPr) : '') . self::node($cell, $rPr);
+                }
                 // As in the matrix: LibreOffice shows a red "¿" for an empty m:e.
                 $out .= '<m:e>' . ($content === '' ? self::run(' ', $rPr) : $content) . '</m:e>';
             }
@@ -337,6 +346,10 @@ final class OmmlWriter
         if ($nary !== null) {
             return self::naryXml($nary, null, $rPr);
         }
+        $arrow = UnderOver::operatorOf($u->base);
+        if ($arrow !== null && $u->base === $arrow && UnderOver::isStretchy($arrow) && UnderOver::isArrow($arrow->char) && ($u->over !== null || $u->under !== null) && self::single($arrow->char)) {
+            return self::labelledArrow($u, $arrow->char, $rPr);
+        }
         $out = self::node($u->base, $rPr);
         if ($u->under !== null) {
             $op = UnderOver::operatorOf($u->under);
@@ -358,6 +371,32 @@ final class OmmlWriter
         }
 
         return $out;
+    }
+
+    /**
+     * A stretchy arrow with labels. Word stretches a group character to the width of its content, and puts the
+     * content on the baseline at full size, so the arrow is grouped over an invisible copy of the wider label
+     * (zero height, width kept) and the real labels, at script size, are limits around it.
+     */
+    private static function labelledArrow(UnderOver $u, string $char, string $rPr): string
+    {
+        $over = $u->over === null ? null : self::node($u->over, $rPr);
+        $under = $u->under === null ? null : self::node($u->under, $rPr);
+        $wide = $under === null || ($over !== null && self::textLength($over) >= self::textLength($under)) ? $over : $under;
+        $out = self::groupChr('<m:phant><m:phantPr><m:show m:val="0"/><m:zeroAsc m:val="1"/><m:zeroDesc m:val="1"/></m:phantPr><m:e>' . $wide . '</m:e></m:phant>', $char, 'top', 'bot', $rPr);
+        if ($over !== null) {
+            $out = '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . $over . '</m:lim></m:limUpp>';
+        }
+
+        return $under === null ? $out : '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . $under . '</m:lim></m:limLow>';
+    }
+
+    /** Characters of text in a piece of OMML: a rough width for choosing the longer label. */
+    private static function textLength(string $xml): int
+    {
+        preg_match_all('#<m:t[^>]*>([^<]*)</m:t>#', $xml, $m);
+
+        return mb_strlen(html_entity_decode(implode('', $m[1]), ENT_QUOTES | ENT_XML1));
     }
 
     private static function bar(string $e, string $pos): string

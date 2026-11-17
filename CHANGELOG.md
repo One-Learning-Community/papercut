@@ -14,6 +14,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - MathML `lspace` and `rspace` on `mo` are now read (as the MathML writer writes them), so `\mathbin`, `\mathrel` and the like keep their spacing from TeX through MathML and back.
 - MathML `columnspacing` on `mtable` is now drawn, and so are `minsize` and `maxsize` on a stretchy `mo`. `Grid` takes a `columnSpacing` argument, the gap in em between columns. Word writes `aligned` as a native equation array.
 
+### Known differences
+
+- Word does not stretch `=` in an OMML group character, so `\xlongequal` (and any labelled stretchy `=`) is drawn at the normal `=` width, with its labels above and below as usual; the PDF stretches it, and Word stretches the other extensible arrows.
+
 ### Changed
 
 - An arrow (or `=`) stretched over or under labels is now drawn at least 1.469 em long and reaches 0.5 em past its widest label on each side, as in KaTeX; braces and accents still span exactly their base.

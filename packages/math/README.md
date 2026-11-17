@@ -315,6 +315,9 @@ echo OmmlWriter::oMathPara($formula, 'center');                           // blo
 echo OmmlWriter::oMath($formula, new RunFormat(colorHex: 'C00000', sizeHalfPoints: 24));
 ```
 
+Word does not stretch `=` in a group character, so `\xlongequal` is drawn at the normal `=` width in Word, with its
+labels in place. The PDF stretches it, and Word stretches the other extensible arrows.
+
 `oMathPara` output goes inside a `<w:p>` that holds nothing else. Empty slots (`Math::frac('', '2')`) lay out and write
 empty containers.
 

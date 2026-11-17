@@ -279,11 +279,12 @@ final class Math
     }
 
     /** An extensible arrow with optional labels above and below (TeX's \xrightarrow): it reaches past its labels and has a minimum length.
-     * An arrow the font has no horizontal construction for (such as ⟶ or ⥂ in STIX Two Math) is drawn at its natural width, with no pad or minimum. */
+     * An arrow the font has no horizontal construction for (such as ⟶ or ⥂ in STIX Two Math) is drawn at its natural width, with no pad or minimum.
+     * A stretchy = (\xlongequal) has none either, so it is drawn as two rules. */
     public static function xarrow(string $arrow = '→', string|Node|null $over = null, string|Node|null $under = null): UnderOver
     {
         return new UnderOver(
-            new Operator($arrow),
+            new Operator($arrow, stretchy: UnderOver::isStretchy(new Operator($arrow)) ? null : true), // set only where the dictionary does not already stretch it (=)
             $under === null ? null : self::row($under),
             $over === null ? null : self::row($over),
         );
@@ -352,10 +353,12 @@ final class Math
      * The leading operator of each left-hand cell keeps infix spacing, so `= 3` is spaced as a relation.
      *
      * @param list<list<string|Node>> $rows
+     * @param float $pairGap em between pairs of columns; 0 for TeX's alignat, which leaves the spacing to the author.
+     *                       TeX output keeps only 0 (written as alignedat) and the default 2 em; other gaps read back as 2.
      *
      * @throws \InvalidArgumentException for no cells
      */
-    public static function aligned(array $rows): Grid
+    public static function aligned(array $rows, float $pairGap = 2.0): Grid
     {
         $cells = self::gridCells('aligned', $rows);
         $columns = 0;
@@ -367,7 +370,7 @@ final class Math
         for ($j = 0; $j < $columns; $j++) {
             $align[] = $j % 2 === 0 ? 'right' : 'left';
             if ($j > 0) {
-                $gaps[] = $j % 2 === 1 ? 0.0 : 2.0;
+                $gaps[] = $j % 2 === 1 ? 0.0 : $pairGap;
             }
         }
         foreach ($cells as &$row) {

@@ -1506,7 +1506,7 @@ final class TexReader
         }
         // Over an arrow, \overset means a plain arrow: the writer spells a non-stretchy one that way.
         $arrow = UnderOver::operatorOf($base);
-        if ($arrow !== null && $arrow->stretchy === null && UnderOver::isArrow($arrow->char)) {
+        if ($arrow !== null && $arrow->stretchy === null && UnderOver::isArrow($arrow->char) && UnderOver::isStretchy($arrow)) {
             $base = $this->withOp($arrow, stretchy: false);
         }
         $node = $under ? new UnderOver($base, $label, null) : new UnderOver($base, null, $label);

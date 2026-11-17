@@ -425,4 +425,43 @@ final class TexWriterTest extends TestCase
             self::assertSame($tex, TexWriter::write(Math::tex($tex)));
         }
     }
+
+    public function test_alignment_without_pair_gap_is_alignedat(): void
+    {
+        self::assertStringStartsWith('\\begin{alignedat}{2}', self::tex(Math::aligned([['x', '= 1', 'y', '= 2']], 0.0)));
+        self::assertStringStartsWith('\\begin{aligned}', self::tex(Math::aligned([['x', '= 1', 'y', '= 2']])));
+    }
+
+    public function test_xlongequal_round_trips_and_is_stretchy_in_mathml(): void
+    {
+        $a = \Papercut\Math\Math::tex('A \xlongequal{x} B');
+        self::assertSame('A \xlongequal{x} B', self::tex($a));
+        \Papercut\Math\Tests\TreeAssert::assertSameTree($a, \Papercut\Math\Math::tex(self::tex($a)));
+        self::assertStringContainsString('<mo stretchy="true">=</mo>', \Papercut\Math\Render\MathmlWriter::write($a));
+    }
+
+    public function test_plain_labelled_equals_does_not_become_xlongequal(): void
+    {
+        foreach ([\Papercut\Math\Math::over('=', 'd'), \Papercut\Math\Math::mathml('<math><mover><mo>=</mo><mi>d</mi></mover></math>')] as $a) {
+            $tex = self::tex($a);
+            self::assertStringNotContainsString('xlongequal', $tex);
+            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, \Papercut\Math\Math::tex($tex));
+        }
+    }
+
+    public function test_labelled_arrows_round_trip_to_the_same_tree(): void
+    {
+        $M = \Papercut\Math\Math::class;
+        $inputs = [
+            $M::over('→', 'f'),
+            $M::mathml('<math><mover><mo>→</mo><mi>f</mi></mover></math>'),
+            $M::tex('\xrightarrow{f}'),
+            $M::tex('\xlongequal{d}'),
+        ];
+        foreach ($inputs as $a) {
+            \Papercut\Math\Tests\TreeAssert::assertSameTree($a, $M::tex(self::tex($a)));
+        }
+        self::assertStringNotContainsString('stretchy', \Papercut\Math\Render\MathmlWriter::write($M::tex('\xrightarrow{f}')));
+        self::assertStringContainsString('stretchy="true"', \Papercut\Math\Render\MathmlWriter::write($M::tex('\xlongequal{d}')));
+    }
 }

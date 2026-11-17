@@ -328,4 +328,24 @@ final class TexEnvironmentTest extends TestCase
         self::assertSame('\begin', $n[0]->element);
         self::assertSame(NoteLevel::Dropped, $n[0]->level);
     }
+
+    /** @return iterable<string, array{string}> */
+    public static function alignatFamily(): iterable
+    {
+        yield 'alignat' => ['\begin{alignat}{2} x &= 1 & y &= 2 \\\\ z &= 3 & w &= 4 \end{alignat}'];
+        yield 'alignat star' => ['\begin{alignat*}{2} x &= 1 & y &= 2 \end{alignat*}'];
+        yield 'xalignat' => ['\begin{xalignat}{2} x &= 1 & y &= 2 \end{xalignat}'];
+        yield 'alignedat odd' => ['\begin{alignedat}{2} x &= 1 & y \end{alignedat}'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('alignatFamily')]
+    public function test_alignat_family_has_no_pair_gap_and_round_trips(string $src): void
+    {
+        $a = \Papercut\Math\Math::tex($src);
+        $b = \Papercut\Math\Math::tex(\Papercut\Math\Render\TexWriter::write($a));
+        \Papercut\Math\Tests\TreeAssert::assertSameTree($a, $b);
+        $grid = $a instanceof \Papercut\Math\Node\Grid ? $a : null;
+        self::assertNotNull($grid);
+        self::assertSame(0.0, $grid->columnSpacing[1] ?? 0.0);
+    }
 }

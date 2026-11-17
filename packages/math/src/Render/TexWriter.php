@@ -614,7 +614,7 @@ final class TexWriter
             }
         }
         // Extensible arrows.
-        if ($plainFlags && $op !== null && $op->stretchy !== false && mb_strlen($op->char) === 1 && isset(TexSymbols::XARROWS[$op->char]) && UnderOver::isArrow($op->char)) {
+        if ($plainFlags && $op !== null && UnderOver::isStretchy($op) && mb_strlen($op->char) === 1 && isset(TexSymbols::XARROWS[$op->char]) && UnderOver::isArrow($op->char)) {
             $label = '';
             if ($under !== null) {
                 $label = '[' . self::optional($under) . ']';
@@ -691,6 +691,11 @@ final class TexWriter
     private static function gridBody(Grid $g, bool $bare): string
     {
         if ($g->alignment) {
+            // No space between pairs is alignedat's: it reads back to the same tree.
+            if ($g->columns > 2 && ($g->columnSpacing[1] ?? 2.0) === 0.0) {
+                return self::environment($g, 'alignedat', '{' . intdiv($g->columns + 1, 2) . '}');
+            }
+
             return self::environment($g, 'aligned');
         }
         // gathered has one column (amsmath rejects an & in it), so a wider display grid is a darray.
