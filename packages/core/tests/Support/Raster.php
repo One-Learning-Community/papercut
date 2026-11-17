@@ -16,7 +16,7 @@ final class Raster
         if ($code !== 0) {
             return 'pdftoppm (poppler) is not installed.';
         }
-        return extension_loaded('gd') ? null : 'GD is needed to read the rasterised page.';
+        return extension_loaded('gd') ? null : 'GD is needed to read the rasterized page.';
     }
 
     public static function of(string $pdf, string $password = '', int $page = 1): \GdImage

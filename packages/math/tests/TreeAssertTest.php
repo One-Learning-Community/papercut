@@ -42,7 +42,7 @@ final class TreeAssertTest extends TestCase
         TreeAssert::assertSameTree(new Row([new Identifier('x'), new Identifier('y')]), new Row([new Identifier('x'), new \Papercut\Math\Node\Number('1')]));
     }
 
-    public function test_fallbacks_and_single_child_rows_are_normalised(): void
+    public function test_fallbacks_and_single_child_rows_are_normalized(): void
     {
         $note = new MathNote(NoteLevel::Approximated, 'e', 'm');
         $x = new Identifier('x');

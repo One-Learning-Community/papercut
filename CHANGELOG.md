@@ -5,6 +5,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Messages use American spelling, as the docs now do: math notes say `color is not drawn` and `unrecognized delimiter`, and errors and warnings say color and license. Code that matches the text of a note or an error must match the new spelling.
+
 ### Added
 
 - `PngRenderer` in papercut/math draws a formula as a PNG with a transparent background, for places that cannot show SVG, such as email. `render($box, $pad, $scale)` takes a scale in pixels per point, and `baselineOffset()` gives the baseline row so an inline image can be aligned. It needs ext-imagick (`PngRenderer::available()`; without it `render()` throws `MissingExtension`). Glyphs are drawn at four times the size and reduced, which matches the SVG's weight more closely than rasterizing the SVG with Imagick.

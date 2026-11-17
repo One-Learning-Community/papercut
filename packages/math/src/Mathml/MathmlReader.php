@@ -333,7 +333,7 @@ final class MathmlReader
         $rows = [];
         $rowNotes = [];
         $cellNotes = [];
-        $labelled = false;
+        $labeled = false;
         $i = 0;
         foreach (self::elements($e) as $tr) {
             if (! $this->count()) {
@@ -350,7 +350,7 @@ final class MathmlReader
                 }
                 $cellWhere = $this->at($rowWhere, $td, $j++);
                 if ($trName === 'mlabeledtr' && $j === 1) {
-                    $labelled = true;
+                    $labeled = true;
                     continue;
                 }
                 array_push($cellNotes, ...self::ignoredOn($td, 'mtd', $cellWhere));
@@ -389,7 +389,7 @@ final class MathmlReader
             $spacing,
         );
         $node = $grid;
-        if ($labelled) {
+        if ($labeled) {
             $node = $this->note('mlabeledtr', $node, NoteLevel::Approximated, 'mlabeledtr', 'row label not drawn', $where) ?? $node;
         }
         foreach ([...$ignored, ...$rowNotes, ...$cellNotes] as [$element, $attr, $path]) {

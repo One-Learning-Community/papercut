@@ -154,13 +154,13 @@ final class CodeBlock implements Decorator, ThemedComponent
         if ($highlighted === null) {
             [$highlighted, $theme] = $this->plain($highlighter, $this->code, $theme, $notes, $wantsHighlight);
         }
-        $coloured = $wantsHighlight && !self::hasNote($notes, 'unknown language');
+        $colored = $wantsHighlight && !self::hasNote($notes, 'unknown language');
 
         $background = $highlighted->background;
         $colors = CodeColors::for($background);
         $labelText = $this->labelText($lower, $language, $displayName);
 
-        $spans = self::spans($highlighted, $coloured);
+        $spans = self::spans($highlighted, $colored);
         $code = Text::spans(...$spans)->htmlCode($language)->apply($block->part('code-block.code'));
 
         $strip = in_array('strip', $block->variants(), true);
@@ -294,7 +294,7 @@ final class CodeBlock implements Decorator, ThemedComponent
     }
 
     /** @return list<Span> */
-    private static function spans(HighlightedCode $code, bool $coloured): array
+    private static function spans(HighlightedCode $code, bool $colored): array
     {
         $spans = [];
         foreach ($code->lines as $i => $line) {
@@ -302,7 +302,7 @@ final class CodeBlock implements Decorator, ThemedComponent
                 $spans[] = Span::break();
             }
             foreach ($line as $token) {
-                $style = $coloured
+                $style = $colored
                     ? Style::make(
                         color: $token->color,
                         fontWeight: $token->bold ? 700 : null,

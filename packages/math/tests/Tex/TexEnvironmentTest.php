@@ -164,13 +164,13 @@ final class TexEnvironmentTest extends TestCase
         self::assertSame('\hline', self::notes('\hdashline')[0]->element);
     }
 
-    public function test_colour_and_decorations(): void
+    public function test_color_and_decorations(): void
     {
         foreach (['\color{red}{x}', '\textcolor{red}{x}', '{\color{red} x}'] as $tex) {
             $n = self::notes($tex);
             self::assertCount(1, $n, $tex);
             self::assertSame(NoteLevel::Approximated, $n[0]->level);
-            self::assertSame('colour is not drawn', $n[0]->reason);
+            self::assertSame('color is not drawn', $n[0]->reason);
         }
         TreeAssert::assertSameTree(Math::row('x'), Fallback::unwrap(Math::tex('\textcolor{red}{x}')));
         self::assertSame('\textcolor', self::notes('\textcolor{red}{x}')[0]->element);

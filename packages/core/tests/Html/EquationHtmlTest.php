@@ -83,7 +83,7 @@ final class EquationHtmlTest extends TestCase
         self::assertStringNotContainsString('<math', $html);
     }
 
-    public function test_colour_inherits(): void
+    public function test_color_inherits(): void
     {
         $html = $this->html(Equation::of('x')->color(Color::hex('#ff0000'))->size(Length::points(30)));
         self::assertMatchesRegularExpression('/<div style="[^"]*font-size:30pt[^"]*"><math[ >]/', $html);

@@ -116,7 +116,7 @@ final class Operator extends Node
     {
         $gid = $c->font->gid(mb_ord($this->char));
 
-        return $gid === 0 ? null : Stretcher::axisCentred($c, $this->char, $gid, (float) $c->font->math()->constant('displayOperatorMinHeight'), $lead, $trail, true);
+        return $gid === 0 ? null : Stretcher::axisCentered($c, $this->char, $gid, (float) $c->font->math()->constant('displayOperatorMinHeight'), $lead, $trail, true);
     }
 
     /**
@@ -138,6 +138,6 @@ final class Operator extends Node
             $target = min($target, $this->maxSize * $f->unitsPerEm);
         }
 
-        return Stretcher::axisCentred($c, $this->char, $gid, $target, $lead, $trail, false);
+        return Stretcher::axisCentered($c, $this->char, $gid, $target, $lead, $trail, false);
     }
 }

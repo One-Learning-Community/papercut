@@ -329,7 +329,7 @@ final class TextMapper
         $capitals = $s->lineHeight * $s->fontSize
             - ($this->metrics->descent($s->fontFamily) + $this->metrics->capHeight($s->fontFamily) / 2) * $s->fontSize;
         // A marker too big to center there hangs from the top of the line rather than lose its top.
-        $centre = max($capitals, self::MARKER_INK_HALF * $size);
+        $center = max($capitals, self::MARKER_INK_HALF * $size);
         $font = $this->fonts->fixed(self::MARKER_FONT, new FontInfo(FontClass::Sans, self::MARKER_PANOSE, false));
 
         return new Paragraph(
@@ -339,7 +339,7 @@ final class TextMapper
                 fontFamily: $font,
                 fontFamilyEastAsia: $font,
             ))],
-            new ParagraphStyle(lineSpacingTwips: Units::tw($centre + self::MARKER_DROP * $size), lineSpacingRule: 'exact'),
+            new ParagraphStyle(lineSpacingTwips: Units::tw($center + self::MARKER_DROP * $size), lineSpacingRule: 'exact'),
         );
     }
 

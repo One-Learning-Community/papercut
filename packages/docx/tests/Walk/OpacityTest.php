@@ -17,7 +17,7 @@ final class OpacityTest extends TestCase
 {
     use Styles;
 
-    public function test_faded_text_is_a_lighter_colour(): void
+    public function test_faded_text_is_a_lighter_color(): void
     {
         $d = self::export(Text::make('x')->color('#000000')->opacity(0.5));
         self::assertSame('808080', $d->value('//w:r/w:rPr/w:color/@w:val'));

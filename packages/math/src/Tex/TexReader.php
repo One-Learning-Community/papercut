@@ -403,7 +403,7 @@ final class TexReader
             } elseif ($ty === 'cs' && $t[1] === 'color') {
                 $this->c->p++;
                 $this->c->rawGroup();
-                $nodes[] = $this->note(NoteLevel::Approximated, '\\color', 'colour is not drawn', $t[2], fn (): Node => self::row($this->parseUntil(...$stops)));
+                $nodes[] = $this->note(NoteLevel::Approximated, '\\color', 'color is not drawn', $t[2], fn (): Node => self::row($this->parseUntil(...$stops)));
 
                 return $nodes;
             } elseif ($ty === 'cs' && isset(TexSymbols::FONT_SWITCHES[$t[1]])) {
@@ -1096,11 +1096,11 @@ final class TexReader
             case 'color':
                 $this->c->rawGroup();
 
-                return [$this->note(NoteLevel::Approximated, '\\color', 'colour is not drawn', $at), 'ord', null];
+                return [$this->note(NoteLevel::Approximated, '\\color', 'color is not drawn', $at), 'ord', null];
             case 'textcolor':
                 $this->c->rawGroup();
 
-                return [$this->note(NoteLevel::Approximated, '\\textcolor', 'colour is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
+                return [$this->note(NoteLevel::Approximated, '\\textcolor', 'color is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
             case 'boxed':
                 return [$this->note(NoteLevel::Approximated, '\\boxed', 'the box is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
             case 'fbox':
@@ -1532,7 +1532,7 @@ final class TexReader
             $node = new DisplayStyle($node, $style === '0');
         }
 
-        return $unknown ? $this->note(NoteLevel::Approximated, '\\genfrac', 'unrecognised delimiter, drawn without it', $at, $node) : $node;
+        return $unknown ? $this->note(NoteLevel::Approximated, '\\genfrac', 'unrecognized delimiter, drawn without it', $at, $node) : $node;
     }
 
     /**

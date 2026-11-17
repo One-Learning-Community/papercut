@@ -44,7 +44,7 @@ final class PngRenderer
             try {
                 new \ImagickPixel($color);
             } catch (\ImagickPixelException $e) {
-                throw new \InvalidArgumentException("PNG colour \"$color\" is not an ImageMagick colour", 0, $e);
+                throw new \InvalidArgumentException("PNG color \"$color\" is not an ImageMagick color", 0, $e);
             }
         }
     }

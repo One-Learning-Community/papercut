@@ -348,7 +348,7 @@ final class OmmlWriter
         }
         $arrow = UnderOver::operatorOf($u->base);
         if ($arrow !== null && $u->base === $arrow && UnderOver::isStretchy($arrow) && UnderOver::isArrow($arrow->char) && ($u->over !== null || $u->under !== null) && self::single($arrow->char)) {
-            return self::labelledArrow($u, $arrow->char, $rPr);
+            return self::labeledArrow($u, $arrow->char, $rPr);
         }
         $out = self::node($u->base, $rPr);
         if ($u->under !== null) {
@@ -378,7 +378,7 @@ final class OmmlWriter
      * content on the baseline at full size, so the arrow is grouped over an invisible copy of the wider label
      * (zero height, width kept) and the real labels, at script size, are limits around it.
      */
-    private static function labelledArrow(UnderOver $u, string $char, string $rPr): string
+    private static function labeledArrow(UnderOver $u, string $char, string $rPr): string
     {
         $over = $u->over === null ? null : self::node($u->over, $rPr);
         $under = $u->under === null ? null : self::node($u->under, $rPr);

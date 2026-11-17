@@ -193,7 +193,7 @@ final class QrDesignTest extends TestCase
         self::assertSame([], $wrong);
     }
 
-    public function test_the_eyes_take_their_own_colour_in_the_pdf(): void
+    public function test_the_eyes_take_their_own_color_in_the_pdf(): void
     {
         $qr = QrCode::make(self::URL)->shape(QrShape::Dots)->eyeColor('#ff0000')->color('#000000');
         $image = self::raster($qr, 8);
@@ -291,7 +291,7 @@ final class QrDesignTest extends TestCase
     {
         exec('command -v pdftoppm 2>/dev/null', $out, $code);
         if ($code !== 0 || !extension_loaded('gd')) {
-            self::markTestSkipped('pdftoppm (poppler) and GD are needed to read the rasterised page.');
+            self::markTestSkipped('pdftoppm (poppler) and GD are needed to read the rasterized page.');
         }
         $side = pt($qr->span() * $px);
         $pdf = Document::make(Page::size($side, $side)->margin(pt(0))->body($qr->width($side)))->toPdf()->bytes();

@@ -45,7 +45,7 @@ final class Middle extends Node
         $space = $c->tight ? 0.0 : $c->mu(3);
         $gid = mb_strlen($this->char) === 1 ? $c->font->gid(mb_ord($this->char)) : 0;
         if ($this->height !== null && $gid !== 0) {
-            return Stretcher::axisCentred($c, $this->char, $gid, $this->height / $c->unit(), $space, $space);
+            return Stretcher::axisCentered($c, $this->char, $gid, $this->height / $c->unit(), $space, $space);
         }
 
         return Run::build($c, array_map(static fn (string $ch): array => [mb_ord($ch), $ch], mb_str_split($this->char)), $space, $space);

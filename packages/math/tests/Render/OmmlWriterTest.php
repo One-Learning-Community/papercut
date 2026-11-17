@@ -149,8 +149,8 @@ final class OmmlWriterTest extends TestCase
     /** @return iterable<string, array{?string, ?int}> */
     public static function badFormats(): iterable
     {
-        yield 'short colour' => ['FFF', null];
-        yield 'non-hex colour' => ['GGGGGG', null];
+        yield 'short color' => ['FFF', null];
+        yield 'non-hex color' => ['GGGGGG', null];
         yield 'injection' => ['"/><x', null];
         yield 'zero size' => [null, 0];
         yield 'negative size' => [null, -4];
@@ -380,7 +380,7 @@ final class OmmlWriterTest extends TestCase
         self::assertStringContainsString('abc', OmmlWriter::oMath(Math::accent('x', 'abc')));
     }
 
-    public function test_labelled_arrow_is_a_group_character_over_a_phantom_of_the_wider_label(): void
+    public function test_labeled_arrow_is_a_group_character_over_a_phantom_of_the_wider_label(): void
     {
         $ph = '<m:phant><m:phantPr><m:show m:val="0"/><m:zeroAsc m:val="1"/><m:zeroDesc m:val="1"/></m:phantPr><m:e>';
         $arrow = '<m:groupChr><m:groupChrPr><m:chr m:val="→"/><m:pos m:val="top"/><m:vertJc m:val="bot"/></m:groupChrPr><m:e>';

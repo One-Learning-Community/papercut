@@ -45,7 +45,7 @@ final class SnapshotTest extends TestCase
     {
         $document = require __DIR__ . "/fixtures/$name.php";
         self::assertInstanceOf(Document::class, $document);
-        $pages = $this->rasterise($document->toPdf()->bytes());
+        $pages = $this->rasterize($document->toPdf()->bytes());
         self::assertNotSame([], $pages, 'pdftoppm produced no pages');
 
         $snapshotDir = __DIR__ . '/snapshots';
@@ -98,7 +98,7 @@ final class SnapshotTest extends TestCase
     }
 
     /** @return list<string> PNG bytes, one per page */
-    private function rasterise(string $pdf): array
+    private function rasterize(string $pdf): array
     {
         $dir = sys_get_temp_dir() . '/papercut-visual-' . getmypid() . '-' . bin2hex(random_bytes(4));
         mkdir($dir);

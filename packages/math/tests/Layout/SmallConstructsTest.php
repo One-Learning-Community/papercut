@@ -172,7 +172,7 @@ final class SmallConstructsTest extends TestCase
         self::assertGreaterThanOrEqual(3.0 * 12.0 * 0.9, $prev);
     }
 
-    public function test_big_is_centred_on_axis(): void
+    public function test_big_is_centered_on_axis(): void
     {
         $axis = Math::stixTwoMath()->math()->constant('axisHeight') * 12.0 / 1000;
         foreach ([1, 2, 3, 4] as $size) {

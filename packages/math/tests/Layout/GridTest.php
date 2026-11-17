@@ -62,7 +62,7 @@ final class GridTest extends TestCase
         $this->assertEqualsWithDelta(self::lay(Math::row('abcd'), false)->width, $box->width, 1e-9);
     }
 
-    public function test_cells_are_centred_by_default_and_left_right_on_request(): void
+    public function test_cells_are_centered_by_default_and_left_right_on_request(): void
     {
         $i = Math::row('i');
         $w = Math::row('WWWW');
@@ -96,7 +96,7 @@ final class GridTest extends TestCase
         $this->assertEqualsWithDelta($expect, $rules[1]->y - $rules[0]->y, 1e-9);
     }
 
-    public function test_grid_is_centred_on_the_axis(): void
+    public function test_grid_is_centered_on_the_axis(): void
     {
         foreach ([1, 2, 3] as $n) {
             $rows = [];

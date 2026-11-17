@@ -129,10 +129,10 @@ final class TexFinalReviewTest extends TestCase
     public function test_a_note_from_a_macro_points_at_its_first_use(): void
     {
         self::assertSame(
-            ['\color: colour is not drawn @offset 29'],
+            ['\color: color is not drawn @offset 29'],
             self::notes('\newcommand{\c}{\color{red}} \c x \c y \color{blue} z'),
         );
-        self::assertSame(['\textcolor: colour is not drawn @offset 0'], self::notes('\textcolor{red}{\textcolor{blue}{x}}'));
+        self::assertSame(['\textcolor: color is not drawn @offset 0'], self::notes('\textcolor{red}{\textcolor{blue}{x}}'));
     }
 
     // D1
@@ -193,7 +193,7 @@ final class TexFinalReviewTest extends TestCase
 
     public function test_genfrac_notes_a_delimiter_it_does_not_know(): void
     {
-        self::assertContains('\genfrac: unrecognised delimiter, drawn without it @offset 0', self::notes('\genfrac\alpha){0pt}{}{a}{b}'));
+        self::assertContains('\genfrac: unrecognized delimiter, drawn without it @offset 0', self::notes('\genfrac\alpha){0pt}{}{a}{b}'));
         self::assertSame([], self::notes('\genfrac(){0pt}{}{a}{b}'));
         self::assertSame([], self::notes('\genfrac.){0pt}{}{a}{b}'));
     }
@@ -226,7 +226,7 @@ final class TexFinalReviewTest extends TestCase
     public function test_notes_of_a_dropped_trailing_row_come_in_source_order(): void
     {
         self::assertSame(
-            ['\\\\: row spacing is not drawn @offset 17', '\color: colour is not drawn @offset 25'],
+            ['\\\\: row spacing is not drawn @offset 17', '\color: color is not drawn @offset 25'],
             self::notes('\begin{matrix} a \\\\[1em] \color{red} \end{matrix}'),
         );
     }

@@ -73,7 +73,7 @@ final class PngRendererTest extends TestCase
         self::assertSame(1.0, $im->getImagePixelColor(14, $row)->getColorValue(\Imagick::COLOR_ALPHA));
     }
 
-    public function test_colour_and_opacity(): void
+    public function test_color_and_opacity(): void
     {
         $box = new Box(10.0, 5.0, 0.0);
         $box->add(new Rule(0.0, -5.0, 10.0, 5.0));
@@ -150,9 +150,9 @@ final class PngRendererTest extends TestCase
         (new PngRenderer(Math::stixTwoMath()))->render(new Box(10.0, 5.0, 1.0), 0.0, $scale);
     }
 
-    public function test_an_unknown_colour_throws_in_the_constructor(): void
+    public function test_an_unknown_color_throws_in_the_constructor(): void
     {
-        foreach (['currentColor', 'not-a-colour'] as $color) {
+        foreach (['currentColor', 'not-a-color'] as $color) {
             try {
                 new PngRenderer(Math::stixTwoMath(), $color);
                 self::fail("no exception for \"$color\"");

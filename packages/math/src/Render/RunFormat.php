@@ -10,7 +10,7 @@ final readonly class RunFormat
     public function __construct(public ?string $colorHex = null, public ?int $sizeHalfPoints = null, public ?string $shadingHex = null)
     {
         if ($colorHex !== null && preg_match('/^[0-9A-Fa-f]{6}$/', $colorHex) !== 1) {
-            throw new \InvalidArgumentException('Colour must be six hex digits, got "' . $colorHex . '"');
+            throw new \InvalidArgumentException('Color must be six hex digits, got "' . $colorHex . '"');
         }
         if ($shadingHex !== null && preg_match('/^[0-9A-Fa-f]{6}$/', $shadingHex) !== 1) {
             throw new \InvalidArgumentException('Shading must be six hex digits, got "' . $shadingHex . '"');

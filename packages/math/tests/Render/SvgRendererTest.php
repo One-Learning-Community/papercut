@@ -73,7 +73,7 @@ final class SvgRendererTest extends TestCase
         self::assertStringNotContainsString('fill-opacity', (new SvgRenderer($font, '#ff0000'))->glyphPaths($glyphs, $box));
     }
 
-    public function test_colour_is_escaped(): void
+    public function test_color_is_escaped(): void
     {
         $font = Math::stixTwoMath();
         $svg = (new SvgRenderer($font, '"/><script>x</script><g fill="red'))->render(Math::layout(Math::row('x'), 12.0), 0.0);

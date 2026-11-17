@@ -63,7 +63,7 @@ final class ColumnFlowDocxTest extends TestCase
         self::assertSame(1, $d->count('/w:document/w:body/w:p[2]/w:pPr/w:sectPr/w:cols'));
     }
 
-    public function test_flow_before_a_new_template_gets_a_levelling_section(): void
+    public function test_flow_before_a_new_template_gets_a_leveling_section(): void
     {
         $d = self::export(Document::make(
             Page::a4()->body(ColumnFlow::make(Text::make('a'), Text::make('b'))->columns(2)),
@@ -79,7 +79,7 @@ final class ColumnFlowDocxTest extends TestCase
         self::assertSame(0, $d->count('/w:document/w:body/w:sectPr/w:type'));
     }
 
-    public function test_last_flow_in_the_document_gets_a_levelling_section(): void
+    public function test_last_flow_in_the_document_gets_a_leveling_section(): void
     {
         $d = self::export(Page::a4()->body(Text::make('t'), ColumnFlow::make(Text::make('a'))->columns(2)));
         self::assertSame(3, $d->count(self::ANY_SECT));

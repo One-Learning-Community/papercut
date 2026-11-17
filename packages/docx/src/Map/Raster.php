@@ -56,7 +56,7 @@ final readonly class Raster
             // A wrong program, or one that can't start (another architecture, a noexec mount), would otherwise
             // fall back to Imagick on every SVG without a word.
             if (!str_contains(self::probe($rsvgConvert), 'rsvg-convert')) {
-                throw $invalid('it does not run as rsvg-convert (rsvg-convert --version gave nothing recognisable)');
+                throw $invalid('it does not run as rsvg-convert (rsvg-convert --version gave nothing recognizable)');
             }
         }
 

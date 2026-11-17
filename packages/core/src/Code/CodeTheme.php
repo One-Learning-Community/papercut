@@ -35,7 +35,7 @@ final class CodeTheme
         try {
             return ['background' => Color::parse($background), 'foreground' => Color::parse($foreground)];
         } catch (\Throwable $e) {
-            throw new \InvalidArgumentException(sprintf('The code theme file %s has an invalid editor colour: %s', $path, $e->getMessage()), 0, $e);
+            throw new \InvalidArgumentException(sprintf('The code theme file %s has an invalid editor color: %s', $path, $e->getMessage()), 0, $e);
         }
     }
 }

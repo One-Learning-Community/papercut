@@ -440,7 +440,7 @@ final class TexWriterTest extends TestCase
         self::assertStringContainsString('<mo stretchy="true">=</mo>', \Papercut\Math\Render\MathmlWriter::write($a));
     }
 
-    public function test_plain_labelled_equals_does_not_become_xlongequal(): void
+    public function test_plain_labeled_equals_does_not_become_xlongequal(): void
     {
         foreach ([\Papercut\Math\Math::over('=', 'd'), \Papercut\Math\Math::mathml('<math><mover><mo>=</mo><mi>d</mi></mover></math>')] as $a) {
             $tex = self::tex($a);
@@ -449,7 +449,7 @@ final class TexWriterTest extends TestCase
         }
     }
 
-    public function test_labelled_arrows_round_trip_to_the_same_tree(): void
+    public function test_labeled_arrows_round_trip_to_the_same_tree(): void
     {
         $M = \Papercut\Math\Math::class;
         $inputs = [
