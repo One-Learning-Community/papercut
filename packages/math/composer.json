@@ -35,6 +35,9 @@
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4"
     },
+    "suggest": {
+        "ext-imagick": "PngRenderer: formulas as PNG images"
+    },
     "autoload": {
         "psr-4": {
             "Papercut\\Math\\": "src/"

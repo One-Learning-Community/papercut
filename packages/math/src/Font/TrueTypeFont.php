@@ -372,10 +372,9 @@ final class TrueTypeFont
     }
 
     /**
-     * The outline as path data (M, L, Q and Z, absolute) in font units, y up, built once per glyph; empty for an empty glyph.
+     * The glyph outline as path data: M, L, Q and Z commands only, all absolute, in font units with y up (divide by
+     * `unitsPerEm` for em). Built once per glyph. Empty for a glyph with no outline, such as a space.
      * Scale and place it with a transform: x' = x * scale + left, y' = baseline - y * scale.
-     *
-     * @internal Engine detail, not part of papercut/math's public API.
      */
     public function outlinePath(int $gid): string
     {
