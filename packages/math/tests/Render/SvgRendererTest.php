@@ -38,14 +38,7 @@ final class SvgRendererTest extends TestCase
             return (new SvgRenderer($font))->glyphPaths([$g], new Box(20.0, 10.0, 4.0));
         };
         $extent = static function (string $s, int $axis): float {
-            preg_match('/<path d="([^"]+)"/', $s, $m);
-            if (! isset($m[1])) {
-                self::fail('no path');
-            }
-            $d = $m[1];
-            preg_match_all('/(-?[\d.]+) (-?[\d.]+)/', $d, $pts, PREG_SET_ORDER);
-            $v = array_map(static fn (array $p): float => (float) $p[1 + $axis], $pts);
-
+            $v = array_map(static fn (array $p): float => $p[$axis], self::points($s));
             if ($v === []) {
                 self::fail('no points');
             }
@@ -80,17 +73,68 @@ final class SvgRendererTest extends TestCase
         self::assertStringNotContainsString('fill-opacity', (new SvgRenderer($font, '#ff0000'))->glyphPaths($glyphs, $box));
     }
 
-    /** @return list<string> */
+    /** @return list<string> each path's transform and data */
     private static function pathData(string $svg): array
     {
         $doc = new \DOMDocument();
         self::assertTrue($doc->loadXML($svg));
         $out = [];
         foreach ($doc->getElementsByTagName('path') as $path) {
-            $out[] = $path->getAttribute('d');
+            $out[] = $path->getAttribute('transform') . ' ' . $path->getAttribute('d');
         }
 
         return $out;
+    }
+
+    /**
+     * Every point of every path in $svg, in SVG coordinates (the path's transform applied).
+     *
+     * @return list<array{float, float}>
+     */
+    private static function points(string $svg): array
+    {
+        $doc = new \DOMDocument();
+        self::assertTrue($doc->loadXML($svg));
+        $out = [];
+        foreach ($doc->getElementsByTagName('path') as $path) {
+            if (preg_match('/^matrix\(([^)]+)\)$/', $path->getAttribute('transform'), $m) !== 1) {
+                self::fail('a path without a matrix transform');
+            }
+            [$a, $b, $c, $d, $e, $f] = array_map('floatval', explode(' ', $m[1]));
+            preg_match_all('/(-?[\d.]+) (-?[\d.]+)/', $path->getAttribute('d'), $pts, PREG_SET_ORDER);
+            foreach ($pts as $p) {
+                $x = (float) $p[1];
+                $y = (float) $p[2];
+                $out[] = [$a * $x + $c * $y + $e, $b * $x + $d * $y + $f];
+            }
+        }
+
+        return $out;
+    }
+
+    public function test_outline_is_built_once_and_placed_by_a_transform(): void
+    {
+        $font = Math::stixTwoMath();
+        $gid = $font->gid(0x78);
+        $glyphs = [new Glyph($gid, 'x', 0.0, 0.0, 12.0), new Glyph($gid, 'x', 10.0, -2.0, 6.0)];
+        $paths = self::pathData((new SvgRenderer($font))->glyphPaths($glyphs, new Box(20.0, 10.0, 4.0)));
+
+        self::assertSame(['matrix(0.012 0 0 -0.012 0 0) ' . $font->outlinePath($gid), 'matrix(0.006 0 0 -0.006 10 -2) ' . $font->outlinePath($gid)], $paths);
+        // The outline is in font units, y up: the x sits on the baseline, so its points reach up to about 0.45 em.
+        $ys = array_map(static fn (array $p): float => $p[1], self::points((new SvgRenderer($font))->glyphPaths([$glyphs[0]], new Box(20.0, 10.0, 4.0))));
+        if ($ys === []) {
+            self::fail('no points');
+        }
+        self::assertEqualsWithDelta(0.0, max($ys), 0.2);
+        self::assertLessThan(-4.0, min($ys));
+    }
+
+    public function test_an_empty_glyph_writes_no_path(): void
+    {
+        $font = Math::stixTwoMath();
+        $space = $font->gid(0x20);
+        self::assertSame('', $font->outlinePath($space));
+        self::assertSame([], self::pathData((new SvgRenderer($font))->glyphPaths([new Glyph($space, ' ', 0.0, 0.0, 12.0)], new Box(20.0, 10.0, 4.0))));
     }
 
     public function test_glyph_paths_match_render_shifted_by_the_ascent(): void

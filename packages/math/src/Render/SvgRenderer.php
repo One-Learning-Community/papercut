@@ -39,10 +39,7 @@ final class SvgRenderer
         $svg .= $this->group();
         $box->each(function (DisplayItem $item, float $dx, float $dy) use (&$svg, $ox, $oy): void {
             if ($item instanceof Glyph) {
-                $d = $this->glyphPath($item, $ox + $dx, $oy + $dy);
-                if ($d !== '') {
-                    $svg .= '<path d="' . $d . '"/>';
-                }
+                $svg .= $this->glyphPath($item, $ox + $dx, $oy + $dy);
             } elseif ($item instanceof Rule) {
                 $svg .= sprintf('<rect x="%s" y="%s" width="%s" height="%s"/>', self::n($ox + $dx + $item->x), self::n($oy + $dy + $item->y), self::n($item->w), self::n($item->h));
             }
@@ -70,10 +67,7 @@ final class SvgRenderer
         );
         $svg .= $this->group();
         foreach ($glyphs as $g) {
-            $d = $this->glyphPath($g, 0.0, 0.0);
-            if ($d !== '') {
-                $svg .= '<path d="' . $d . '"/>';
-            }
+            $svg .= $this->glyphPath($g, 0.0, 0.0);
         }
 
         return $svg . '</g></svg>';
@@ -86,59 +80,27 @@ final class SvgRenderer
             : sprintf('<g fill="%s">', $this->color);
     }
 
+    /**
+     * The glyph as one <path>: its outline in font units (built once per glyph by the font), placed and scaled by a transform
+     * that flips y; empty for a glyph with no outline.
+     */
     private function glyphPath(Glyph $g, float $ox, float $oy): string
     {
-        $s = $g->size / $this->font->unitsPerEm;
-        $sx = $s * $g->sx;
-        $sy = $s * $g->sy;
-        $x0 = $ox + $g->x;
-        $y0 = $oy + $g->y;
-        $d = '';
-        foreach ($this->font->contours($g->gid) as $pts) {
-            $n = count($pts);
-            if ($n < 2) {
-                continue;
-            }
-            // Find a start point on the curve; if none, start at the midpoint of the first two off-curve points.
-            $startIdx = null;
-            foreach ($pts as $i => $p) {
-                if ($p[2]) {
-                    $startIdx = $i;
-                    break;
-                }
-            }
-            if ($startIdx === null) {
-                $a = $pts[0];
-                $b = $pts[1];
-                $start = [($a[0] + $b[0]) / 2, ($a[1] + $b[1]) / 2];
-                $seq = array_merge(array_slice($pts, 1), [$pts[0]]);
-            } else {
-                $start = [$pts[$startIdx][0], $pts[$startIdx][1]];
-                $seq = array_merge(array_slice($pts, $startIdx + 1), array_slice($pts, 0, $startIdx));
-            }
-            $f = fn (float $x, float $y): string => self::n($x0 + $x * $sx) . ' ' . self::n($y0 - $y * $sy);
-            $d .= 'M' . $f($start[0], $start[1]);
-            $ctrl = null;
-            foreach ($seq as [$x, $y, $on]) {
-                if ($on) {
-                    $d .= $ctrl === null ? 'L' . $f($x, $y) : 'Q' . $f($ctrl[0], $ctrl[1]) . ' ' . $f($x, $y);
-                    $ctrl = null;
-                } elseif ($ctrl === null) {
-                    $ctrl = [$x, $y];
-                } else {
-                    $mx = ($ctrl[0] + $x) / 2;
-                    $my = ($ctrl[1] + $y) / 2;
-                    $d .= 'Q' . $f($ctrl[0], $ctrl[1]) . ' ' . $f($mx, $my);
-                    $ctrl = [$x, $y];
-                }
-            }
-            if ($ctrl !== null) {
-                $d .= 'Q' . $f($ctrl[0], $ctrl[1]) . ' ' . $f($start[0], $start[1]);
-            }
-            $d .= 'Z';
+        $d = $this->font->outlinePath($g->gid);
+        if ($d === '') {
+            return '';
         }
+        $s = $g->size / $this->font->unitsPerEm;
 
-        return $d;
+        return '<path transform="matrix(' . self::scale($s * $g->sx) . ' 0 0 ' . self::scale(-$s * $g->sy) . ' ' . self::n($ox + $g->x) . ' ' . self::n($oy + $g->y) . ')" d="' . $d . '"/>';
+    }
+
+    /** A scale factor, to seven decimals: on a glyph 3,000 units tall that is within 0.001 pt, as the positions are. */
+    private static function scale(float $v): string
+    {
+        $r = round($v, 7);
+
+        return $r == 0.0 ? '0' : (string) $r;
     }
 
     private static function n(float $v): string

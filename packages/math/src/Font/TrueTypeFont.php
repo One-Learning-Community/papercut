@@ -31,6 +31,8 @@ final class TrueTypeFont
     private array $contourCache = [];
     /** @var array<int, array{int,int,int,int}> */
     private array $bboxCache = [];
+    /** @var array<int, string> outline path data by gid */
+    private array $pathCache = [];
     /** @var array<int, int> glyph id by code point, for the code points asked for */
     private array $gidCache = [];
     /** @var array<int, bool> straightness by gid * 2 + (vertical ? 1 : 0) */
@@ -367,6 +369,67 @@ final class TrueTypeFont
         } while ($flags & 0x20);
 
         return $this->contourCache[$gid] = $out;
+    }
+
+    /**
+     * The outline as path data (M, L, Q and Z, absolute) in font units, y up, built once per glyph; empty for an empty glyph.
+     * Scale and place it with a transform: x' = x * scale + left, y' = baseline - y * scale.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public function outlinePath(int $gid): string
+    {
+        if (isset($this->pathCache[$gid])) {
+            return $this->pathCache[$gid];
+        }
+        $d = '';
+        foreach ($this->contours($gid) as $pts) {
+            if (count($pts) < 2) {
+                continue;
+            }
+            // Start on a point on the curve; with none, at the midpoint of the first two off-curve points.
+            $startIdx = null;
+            foreach ($pts as $i => $p) {
+                if ($p[2]) {
+                    $startIdx = $i;
+                    break;
+                }
+            }
+            if ($startIdx === null) {
+                $start = [($pts[0][0] + $pts[1][0]) / 2, ($pts[0][1] + $pts[1][1]) / 2];
+                $seq = array_merge(array_slice($pts, 1), [$pts[0]]);
+            } else {
+                $start = [$pts[$startIdx][0], $pts[$startIdx][1]];
+                $seq = array_merge(array_slice($pts, $startIdx + 1), array_slice($pts, 0, $startIdx));
+            }
+            $d .= 'M' . self::unit($start[0]) . ' ' . self::unit($start[1]);
+            $ctrl = null;
+            foreach ($seq as [$x, $y, $on]) {
+                if ($on) {
+                    $d .= ($ctrl === null ? 'L' : 'Q' . self::unit($ctrl[0]) . ' ' . self::unit($ctrl[1]) . ' ') . self::unit($x) . ' ' . self::unit($y);
+                    $ctrl = null;
+                } elseif ($ctrl === null) {
+                    $ctrl = [$x, $y];
+                } else {
+                    $d .= 'Q' . self::unit($ctrl[0]) . ' ' . self::unit($ctrl[1]) . ' ' . self::unit(($ctrl[0] + $x) / 2) . ' ' . self::unit(($ctrl[1] + $y) / 2);
+                    $ctrl = [$x, $y];
+                }
+            }
+            if ($ctrl !== null) {
+                $d .= 'Q' . self::unit($ctrl[0]) . ' ' . self::unit($ctrl[1]) . ' ' . self::unit($start[0]) . ' ' . self::unit($start[1]);
+            }
+            $d .= 'Z';
+        }
+
+        return $this->pathCache[$gid] = $d;
+    }
+
+    /** A coordinate in font units: whole as most are, else to a hundredth (a composite glyph's scaled or halfway point). */
+    private static function unit(float $v): string
+    {
+        $r = round($v, 2);
+
+        return $r == 0.0 ? '0' : (string) $r;
     }
 
     /** @return list<list<array{float,float,bool}>> */

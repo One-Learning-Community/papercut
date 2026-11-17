@@ -24,6 +24,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - Layout is much faster on deeply nested formulas. Coordinates in nested fractions and scripts may differ by up to 0.001 pt.
 - The thin space after a function name (`sin`, `log`) is trailing space, as an operator's is: a script, as in `\sin^2 x`, sits right after the name and the space follows it. In script style an operator's explicit spacing is dropped per side, and the space of an `op` class atom (`\mathop`) is kept.
 - A tall delimiter, brace or arrow is drawn with one scaled extender instead of a stack of copies, so SVG and PDF output is smaller. A stretched delimiter or arrow is capped at 100 em.
+- Math SVG is about 20 times faster to write and about 30% smaller: each glyph's outline is built once per font, in font units, and every `<path>` places it with a `transform="matrix(…)"` instead of carrying its own absolute coordinates. The drawing is the same to within 0.001 pt. Code that reads the path data of `SvgRenderer` output must apply the transform.
+- Math layout is about 20% faster: a character's glyph and the font size at each script level are looked up once instead of for every glyph.
 - For backend authors: `Glyph` has `sx` and `sy` scale factors that a backend drawing glyphs itself must apply (a merged extender is one glyph scaled along the stretch), and `Box::$items` is flattened on every read, so read it once or walk the tree with `Box::each()`; `$box->items[] = …` no longer works.
 
 ### Fixed
