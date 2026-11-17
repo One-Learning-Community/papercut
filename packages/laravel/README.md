@@ -340,7 +340,7 @@ A bordered box that shows `placeholder` when its content is empty (no children, 
 
 ```blade
 <x-doc::choices type="checkbox" emphasize-selected>
-  <x-doc::choice selected>Library catalogue</x-doc::choice>
+  <x-doc::choice selected>Library catalog</x-doc::choice>
   <x-doc::choice>Web search</x-doc::choice>
 </x-doc::choices>
 ```

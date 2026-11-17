@@ -47,7 +47,7 @@
           "id": "inline-formatting",
           "title": "Inline formatting",
           "api": "/guide/text.html#inline-formatting",
-          "alt": "Bold, italic, underlined, highlighted, coloured and linked text in paragraphs",
+          "alt": "Bold, italic, underlined, highlighted, colored and linked text in paragraphs",
           "pages": 1,
           "variants": []
         },
@@ -63,7 +63,7 @@
           "id": "equations",
           "title": "Equations",
           "api": "/guide/equations.html",
-          "alt": "Three centred equations, the quadratic formula, compound interest and a 2x2 matrix, and a paragraph with small formulas in its text",
+          "alt": "Three centered equations, the quadratic formula, compound interest and a 2x2 matrix, and a paragraph with small formulas in its text",
           "pages": 1,
           "variants": []
         },
@@ -140,7 +140,7 @@
           "id": "styled-qr-code",
           "title": "Styled QR code",
           "api": "/guide/images-and-links.html#styled-qr-codes",
-          "alt": "Three QR codes: rounded modules, dots, and a colour gradient",
+          "alt": "Three QR codes: rounded modules, dots, and a color gradient",
           "pages": 1,
           "variants": []
         }
@@ -270,7 +270,7 @@
             {
               "id": "outline",
               "label": "variant=\"outline\"",
-              "alt": "The same badges outlined in their colour, with no fill"
+              "alt": "The same badges outlined in their color, with no fill"
             },
             {
               "id": "inline",

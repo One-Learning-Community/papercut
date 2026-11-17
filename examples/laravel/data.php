@@ -43,7 +43,7 @@ $prose = [
     'Output is deterministic. Given the same input and a fixed creation date, two runs produce identical bytes. That property makes golden-file tests practical: a visual regression becomes a byte comparison, and a diff in the PDF points at a diff in the code.',
     'The backend is a thin seam. The layout engine produces a display list of rectangles, lines, text runs, and links in plain points with a top-left origin, and one adapter turns that list into PDF objects. Nothing above the adapter knows how a PDF is encoded, so the engine can be tested without parsing a single file.',
     'Failure is explicit. If a block cannot fit on a page even after every permitted split, the engine throws by default and names the offending node. Callers who prefer degraded output can opt into clipping the overflowing element, but silent corruption is never the default.',
-    'Styling is data. Colors resolve from a named palette, sizes accept points, millimetres, or percentages, and a theme supplies defaults for family, size, weight, and line height. Because every modifier also accepts a string form, templates written in markup and code written in PHP describe the same documents.',
+    'Styling is data. Colors resolve from a named palette, sizes accept points, millimeters, or percentages, and a theme supplies defaults for family, size, weight, and line height. Because every modifier also accepts a string form, templates written in markup and code written in PHP describe the same documents.',
     'The result is a library that stays out of the way for simple documents and still holds together for hard ones: a forty-page ledger, a certificate with a decorative background, or a report whose tables must not be orphaned from their captions.',
 ];
 $scenarios = [];
@@ -84,7 +84,7 @@ $guideMethodTones = ['GET' => 'tip', 'POST' => 'note', 'DELETE' => 'danger'];
 $guideErrors = [
     ['400', 'invalid_request', 'A field is missing or malformed.', 'Read the field list in the response and resend.'],
     ['401', 'invalid_key', 'The key is wrong or revoked.', 'Check that a test key is not used in live mode.'],
-    ['404', 'not_found', 'The shipment or pickup does not exist.', 'Check the id; cancelled shipments stay readable.'],
+    ['404', 'not_found', 'The shipment or pickup does not exist.', 'Check the id; canceled shipments stay readable.'],
     ['429', 'rate_limited', 'Too many requests in the current minute.', 'Wait for the Retry-After header, then retry.'],
 ];
 
@@ -194,20 +194,20 @@ $paperAuthors = [
 ];
 
 $paperAbstract = 'We tracked 96 honey bee colonies through two winters to ask whether the spacing between hives changes how many survive. '
-    . 'Colonies kept 30 cm or more from their neighbours lost fewer bees to drift and robbing, and nearly all of them reached spring. '
+    . 'Colonies kept 30 cm or more from their neighbors lost fewer bees to drift and robbing, and nearly all of them reached spring. '
     . 'Closer spacing cost colonies little in mild weather but a great deal after a cold snap. The effect held across both sites.';
 
 // Each section is a title and its paragraphs. The invented data in this paper is for illustration only.
 $paperSections = [
     ['1. Introduction', [
         'Beekeepers have long argued about how far apart hives should stand. Close rows are cheap to build and easy to inspect, while wide rows take more ground and more time. Most advice rests on habit rather than measurement, and the few published trials cover a single season at a single site.',
-        'Neighbouring colonies interact in three ways that spacing could change. Foragers drift into the wrong entrance, which carries mites and disease from one hive to the next. Strong colonies rob weak ones when nectar is scarce. And a tight row shares shelter, which may help in a frost.',
+        'Neighboring colonies interact in three ways that spacing could change. Foragers drift into the wrong entrance, which carries mites and disease from one hive to the next. Strong colonies rob weak ones when nectar is scarce. And a tight row shares shelter, which may help in a frost.',
         'We set out to measure the combined effect over two full winters. This paper reports survival, spring population and the weight lost by each colony, and asks whether any gain from wide spacing is large enough to justify the extra ground.',
-        'The paper is organised as follows. Section 2 describes the colonies, the sites and the models. Section 3 gives the results, and Section 4 discusses what they do and do not show. Section 5 closes with a recommendation for beekeepers and a note on the trials that would settle the open questions.',
+        'The paper is organized as follows. Section 2 describes the colonies, the sites and the models. Section 3 gives the results, and Section 4 discusses what they do and do not show. Section 5 closes with a recommendation for beekeepers and a note on the trials that would settle the open questions.',
     ]],
     ['2. Methods', [
         'We placed 96 colonies of similar size at two sites, 48 at each, in rows of twelve. Hives in a row stood 10, 20, 30 or 40 cm apart, and every spacing had one row at each site. Rows were assigned a spacing by lot, and the same colonies kept their positions for both winters.',
-        'Each colony began autumn with a young, marked queen and at least eight frames of bees. We weighed the hives in October and again in March, counted frames of bees on a mild day in April, and recorded every colony that had died by then. Treatment against mites followed one schedule at both sites.',
+        'Each colony began the fall with a young, marked queen and at least eight frames of bees. We weighed the hives in October and again in March, counted frames of bees on a mild day in April, and recorded every colony that had died by then. Treatment against mites followed one schedule at both sites.',
         '@logit',
         'Throughout, we report differences with their intervals and give p-values only where they help the reader.',
     ]],
@@ -217,7 +217,7 @@ $paperSections = [
         '@weight-loss',
     ]],
     ['4. Discussion', [
-        'Our results favour wide spacing, but not by a wide margin in mild years. In the first winter all four spacings did about equally well, and the differences appeared only after the cold snap. A beekeeper who loses one hive in ten may reasonably choose to save the ground.',
+        'Our results favor wide spacing, but not by a wide margin in mild years. In the first winter all four spacings did about equally well, and the differences appeared only after the cold snap. A beekeeper who loses one hive in ten may reasonably choose to save the ground.',
         'Two limits apply. We counted deaths but not their causes, so we cannot say whether drift, robbing or shelter explains the gain. And our rows ran across the prevailing wind; rows along it may behave differently.',
         'Cost matters as well. Moving from 10 to 30 cm adds about a third to the length of a row of twelve hives, and the extra ground is the price of the gain we measured.',
     ]],

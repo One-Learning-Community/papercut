@@ -25,7 +25,7 @@ $methodTones = ['GET' => 'tip', 'POST' => 'note', 'DELETE' => 'danger'];
 $errors = [
     ['400', 'invalid_request', 'A field is missing or malformed.', 'Read the field list in the response and resend.'],
     ['401', 'invalid_key', 'The key is wrong or revoked.', 'Check that a test key is not used in live mode.'],
-    ['404', 'not_found', 'The shipment or pickup does not exist.', 'Check the id; cancelled shipments stay readable.'],
+    ['404', 'not_found', 'The shipment or pickup does not exist.', 'Check the id; canceled shipments stay readable.'],
     ['429', 'rate_limited', 'Too many requests in the current minute.', 'Wait for the Retry-After header, then retry.'],
 ];
 
@@ -59,7 +59,7 @@ curl https://api.example.com/v2/shipments \
   -H "Idempotency-Key: order-1042" \
   -d service=standard \
   -d 'parcel[weight_kg]=1.4' \
-  -d 'to[postcode]=94107'
+  -d 'to[zip]=94107'
 CODE;
 
 $json = <<<'CODE'

@@ -37,7 +37,7 @@
                       -H "Idempotency-Key: order-1042" \
                       -d service=standard \
                       -d 'parcel[weight_kg]=1.4' \
-                      -d 'to[postcode]=94107'
+                      -d 'to[zip]=94107'
                 </x-doc::pre>
                 <x-doc::pre language="json" label="Response: 201 Created" variant="strip">
                     {

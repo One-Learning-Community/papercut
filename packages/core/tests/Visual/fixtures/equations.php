@@ -42,7 +42,7 @@ $items = [
     Equation::of($quad)->textAlign(TextAlign::Center),
     Text::make('Right')->size(pt(8))->color('#64748b'),
     Equation::of($quad)->textAlign(TextAlign::Right),
-    Text::make('Large and coloured')->size(pt(8))->color('#64748b'),
+    Text::make('Large and colored')->size(pt(8))->color('#64748b'),
     Equation::of($quad)->size(pt(20))->color('#b91c1c'),
     Text::make('Inline')->size(pt(8))->color('#64748b'),
     Text::spans(

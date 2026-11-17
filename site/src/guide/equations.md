@@ -128,7 +128,7 @@ use Papercut\Math\Math;
 Text::spans(
     Span::text('The fitted slope was '),
     Span::math(Math::sub('β', '1'), '=', '−0.04'),
-    Span::text(' per centimetre.'),
+    Span::text(' per centimeter.'),
 );
 ```
 

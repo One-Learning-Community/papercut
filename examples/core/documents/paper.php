@@ -20,7 +20,7 @@ $authors = [
 ];
 
 $abstract = 'We tracked 96 honey bee colonies through two winters to ask whether the spacing between hives changes how many survive. '
-    . 'Colonies kept 30 cm or more from their neighbours lost fewer bees to drift and robbing, and nearly all of them reached spring. '
+    . 'Colonies kept 30 cm or more from their neighbors lost fewer bees to drift and robbing, and nearly all of them reached spring. '
     . 'Closer spacing cost colonies little in mild weather but a great deal after a cold snap. The effect held across both sites.';
 
 // A displayed formula and an inline one, built with the math builder.
@@ -46,13 +46,13 @@ $weightLoss = Text::spans(
 $sections = [
     ['1. Introduction', [
         'Beekeepers have long argued about how far apart hives should stand. Close rows are cheap to build and easy to inspect, while wide rows take more ground and more time. Most advice rests on habit rather than measurement, and the few published trials cover a single season at a single site.',
-        'Neighbouring colonies interact in three ways that spacing could change. Foragers drift into the wrong entrance, which carries mites and disease from one hive to the next. Strong colonies rob weak ones when nectar is scarce. And a tight row shares shelter, which may help in a frost.',
+        'Neighboring colonies interact in three ways that spacing could change. Foragers drift into the wrong entrance, which carries mites and disease from one hive to the next. Strong colonies rob weak ones when nectar is scarce. And a tight row shares shelter, which may help in a frost.',
         'We set out to measure the combined effect over two full winters. This paper reports survival, spring population and the weight lost by each colony, and asks whether any gain from wide spacing is large enough to justify the extra ground.',
-        'The paper is organised as follows. Section 2 describes the colonies, the sites and the models. Section 3 gives the results, and Section 4 discusses what they do and do not show. Section 5 closes with a recommendation for beekeepers and a note on the trials that would settle the open questions.',
+        'The paper is organized as follows. Section 2 describes the colonies, the sites and the models. Section 3 gives the results, and Section 4 discusses what they do and do not show. Section 5 closes with a recommendation for beekeepers and a note on the trials that would settle the open questions.',
     ]],
     ['2. Methods', [
         'We placed 96 colonies of similar size at two sites, 48 at each, in rows of twelve. Hives in a row stood 10, 20, 30 or 40 cm apart, and every spacing had one row at each site. Rows were assigned a spacing by lot, and the same colonies kept their positions for both winters.',
-        'Each colony began autumn with a young, marked queen and at least eight frames of bees. We weighed the hives in October and again in March, counted frames of bees on a mild day in April, and recorded every colony that had died by then. Treatment against mites followed one schedule at both sites.',
+        'Each colony began the fall with a young, marked queen and at least eight frames of bees. We weighed the hives in October and again in March, counted frames of bees on a mild day in April, and recorded every colony that had died by then. Treatment against mites followed one schedule at both sites.',
         $logitIntro,
         $logit,
         'Throughout, we report differences with their intervals and give p-values only where they help the reader.',
@@ -65,7 +65,7 @@ $sections = [
         $weightLoss,
     ]],
     ['4. Discussion', [
-        'Our results favour wide spacing, but not by a wide margin in mild years. In the first winter all four spacings did about equally well, and the differences appeared only after the cold snap. A beekeeper who loses one hive in ten may reasonably choose to save the ground.',
+        'Our results favor wide spacing, but not by a wide margin in mild years. In the first winter all four spacings did about equally well, and the differences appeared only after the cold snap. A beekeeper who loses one hive in ten may reasonably choose to save the ground.',
         'Two limits apply. We counted deaths but not their causes, so we cannot say whether drift, robbing or shelter explains the gain. And our rows ran across the prevailing wind; rows along it may behave differently.',
         'Cost matters as well. Moving from 10 to 30 cm adds about a third to the length of a row of twelve hives, and the extra ground is the price of the gain we measured.',
     ]],

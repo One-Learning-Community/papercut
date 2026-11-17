@@ -142,7 +142,7 @@ use function Papercut\{mm, pt};
 $document = Document::make(
     Page::a4()->margin(mm(20))->body(
         Column::make(
-            Text::markup('Plain, <b>bold</b>, <i>italic</i> and <span color="indigo-600">coloured</span>.'),
+            Text::markup('Plain, <b>bold</b>, <i>italic</i> and <span color="indigo-600">colored</span>.'),
             Text::spans(
                 Span::text('Built from '),
                 Span::text('spans', new Style(fontWeight: 700)),

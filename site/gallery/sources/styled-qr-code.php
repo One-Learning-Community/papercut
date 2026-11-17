@@ -14,6 +14,6 @@ return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
     Row::make(
         $qr(QrCode::make($url)->shape('rounded')->eyes('pointy')->color('indigo-700'), 'shape rounded, eyes pointy'),
         $qr(QrCode::make($url)->shape('dots')->eyes('dot')->eyeColor('rose-600'), 'shape dots, eyes dot'),
-        $qr(QrCode::make($url)->shape('rounded')->gradient('sky-500', 'violet-600'), 'gradient, two colours'),
+        $qr(QrCode::make($url)->shape('rounded')->gradient('sky-500', 'violet-600'), 'gradient, two colors'),
     )->gap(pt(20)),
 ))->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));

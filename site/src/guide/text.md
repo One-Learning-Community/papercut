@@ -20,7 +20,7 @@ Font, size, weight, color and alignment are inherited, so text follows what you 
 @tab Blade
 ```blade
 <x-doc::column color="slate-600" font-size="9pt">
-  <x-doc::text>Both lines inherit the colour and size.</x-doc::text>
+  <x-doc::text>Both lines inherit the color and size.</x-doc::text>
   <x-doc::text bold align="right">This one is bold and right-aligned.</x-doc::text>
 </x-doc::column>
 ```
@@ -31,7 +31,7 @@ use function Papercut\pt;
 
 $document = Document::make(Page::letter()->body(
     Column::make(
-        Text::make('Both lines inherit the colour and size.'),
+        Text::make('Both lines inherit the color and size.'),
         Text::make('This one is bold and right-aligned.')->bold()->right(),
     )->color('slate-600')->size(pt(9)),
 ));
@@ -233,7 +233,7 @@ Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline 
 @tab Blade
 ```blade
 <x-doc::text>
-  Plain, <b>bold</b>, <i>italic</i>, <span color="indigo-600">coloured</span> and a <mark>highlighted</mark> word.
+  Plain, <b>bold</b>, <i>italic</i>, <span color="indigo-600">colored</span> and a <mark>highlighted</mark> word.
 </x-doc::text>
 ```
 @tab PHP
@@ -241,7 +241,7 @@ Text tags in Blade, and `Text::markup()` in PHP, understand a handful of inline 
 use Papercut\{Document, Page, Text};
 
 $document = Document::make(Page::letter()->body(
-    Text::markup('Plain, <b>bold</b>, <i>italic</i>, <span color="indigo-600">coloured</span> and a <mark>highlighted</mark> word.'),
+    Text::markup('Plain, <b>bold</b>, <i>italic</i>, <span color="indigo-600">colored</span> and a <mark>highlighted</mark> word.'),
 ));
 ```
 :::

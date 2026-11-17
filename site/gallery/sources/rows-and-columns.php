@@ -28,7 +28,7 @@ return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
                 $box('Column', 'top to bottom', 'violet'),
                 $box('Column', 'gap 6pt', 'violet'),
             )->gap(pt(6))->grow(1),
-            $box('Centred', 'align-self: center', 'amber')->grow(1)->alignSelf(Align::Center),
+            $box('Centered', 'align-self: center', 'amber')->grow(1)->alignSelf(Align::Center),
         )->gap(pt(8)),
     )->gap(pt(10)),
 ))->createdAt(new DateTimeImmutable('2026-01-01T00:00:00Z'));

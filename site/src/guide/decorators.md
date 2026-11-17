@@ -120,7 +120,7 @@ use Papercut\{Document, Page, Text};
 use Papercut\Decorator\Section;
 
 $document = Document::make(Page::a4()->body(
-    Section::make(Text::p('Library catalogue, then the open web.'))
+    Section::make(Text::p('Library catalog, then the open web.'))
         ->number('3')
         ->title('Search terms')
         ->rule()
@@ -198,7 +198,7 @@ A list of options with checkboxes or radio buttons, some of them checked.
 @tab Blade
 ```blade
 <x-doc::choices type="checkbox" emphasize-selected>
-  <x-doc::choice selected>Library catalogue</x-doc::choice>
+  <x-doc::choice selected>Library catalog</x-doc::choice>
   <x-doc::choice selected>Web search</x-doc::choice>
   <x-doc::choice>Asked a colleague</x-doc::choice>
 </x-doc::choices>
@@ -210,7 +210,7 @@ use Papercut\Decorator\ChoiceList;
 
 $document = Document::make(Page::a4()->body(
     ChoiceList::checkbox()
-        ->option('Library catalogue', selected: true)
+        ->option('Library catalog', selected: true)
         ->option('Web search', selected: true)
         ->option('Asked a colleague')
         ->emphasizeSelected(),

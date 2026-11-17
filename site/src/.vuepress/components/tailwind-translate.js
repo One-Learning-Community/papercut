@@ -77,7 +77,7 @@ export function parse(source) {
 const FAMILIES = 'slate gray zinc neutral stone red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose'.split(' ')
 const SHADES = '50 100 200 300 400 500 600 700 800 900 950'.split(' ')
 
-/** "slate-50", "white", "[#ff0000]" → a Papercut colour, or null. */
+/** "slate-50", "white", "[#ff0000]" → a Papercut color, or null. */
 function color(v) {
   if (v === 'white' || v === 'black' || v === 'transparent') return v
   const m = v.match(/^([a-z]+)-(\d+)$/)
@@ -217,7 +217,7 @@ export function readClasses(list, unit = 'pt') {
       return (props.radius = RADIUS[k] !== undefined ? len(RADIUS[k], unit) : len(parseFloat(k.slice(1)), unit))
     }
 
-    // Colour
+    // Color
     if ((m = c.match(/^bg-(.+)$/)) && color(m[1])) return (props.background = color(m[1]))
     if ((m = c.match(/^opacity-(\d+)$/))) return (props.opacity = String(+(m[1] / 100).toFixed(2)))
 
