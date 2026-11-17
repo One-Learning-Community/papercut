@@ -26,6 +26,17 @@ final class UnderOver extends Node
     /** @internal Braces drawn below their base. */
     public const BRACES_UNDER = ['⏟', '⎵'];
 
+    /** @internal Shortest an extensible arrow is drawn, in em (KaTeX's value). */
+    public const ARROW_MIN_WIDTH = 1.469;
+    /** @internal Room an extensible arrow keeps past each end of its widest label, in em (KaTeX's value). */
+    public const ARROW_LABEL_PAD = 0.5;
+    /**
+     * @internal The horizontal stretchy arrows and harpoons of the operator dictionary (left, right and left-right, with
+     * hooks, bars, tails, doubles and long forms) in the Arrows, Supplemental Arrows-A and -B, and Miscellaneous Symbols
+     * and Arrows blocks, and `=`, which stretches like them. Vertical and bent arrows, braces and accents are not in it.
+     */
+    public const ARROWS = '←→↔↚↛↜↝↞↠↢↣↤↦↩↪↫↬↭↮↹↼↽⇀⇁⇄⇆⇇⇉⇋⇌⇍⇎⇏⇐⇒⇔⇚⇛⇜⇝⇠⇢⇤⇥⇦⇨⇰⇴⇶⇷⇸⇹⇺⇻⇼⇽⇾⇿⟴⟵⟶⟷⟸⟹⟺⟻⟼⟽⟾⟿⤀⤁⤂⤃⤄⤅⤆⤇⤌⤍⤎⤏⤐⤑⤔⤕⤖⤗⤘⤙⤚⤛⤜⤝⤞⤟⤠⥂⥃⥄⥅⥆⥇⥈⥊⥋⥎⥐⥒⥓⥖⥗⥚⥛⥞⥟⥢⥤⥦⥧⥨⥩⥪⥫⥬⥭⥰⥱⥲⥳⥴⥵⬄⬅⬌⬎⬏⬐⬑⬰⬱⬲⬳⬴⬵⬶⬷⬸⬹⬺⬻⬼⬽⬾⭀⭁⭂⭃⭄⭅⭆⭇⭈⭉⭊⭋⭌⭠⭢⭤⭪⭬⭰⭲⭺⭼⮀⮂⮄⮆⮕⮤⮥⮦⮧=';
+
     public function __construct(
         public readonly Node $base,
         public readonly ?Node $under,
@@ -200,7 +211,15 @@ final class UnderOver extends Node
         $width = static fn (?Box $b): float => $b === null ? 0.0 : $b->width;
         $widest = max($width($baseBox), $width($overBox), $width($underBox));
         if ($baseStretch) {
-            [$baseBox, $baseAnchor] = self::stretched($c, $baseOp->char, $widest);
+            // An arrow reaches past its labels and has a minimum length; a brace or accent only spans its base.
+            $target = self::isArrow($baseOp->char) && ($overBox !== null || $underBox !== null)
+                ? max($widest + 2 * self::ARROW_LABEL_PAD * $c->size(), self::ARROW_MIN_WIDTH * $c->size())
+                : $widest;
+            [$baseBox, $baseAnchor] = self::stretched($c, $baseOp->char, $target);
+            // The target is an advance width; the minimum and the pad are guarantees about ink, so make up a side-bearing shortfall.
+            if ($target > $widest && $baseBox->width < $target) {
+                [$baseBox, $baseAnchor] = self::stretched($c, $baseOp->char, $target + ($target - $baseBox->width));
+            }
         }
         if ($baseBox === null) {
             throw new \LogicException('UnderOver base was not laid out');
@@ -274,6 +293,16 @@ final class UnderOver extends Node
         }
 
         return $out;
+    }
+
+    /**
+     * Whether a stretchy operator is an arrow (or `=`), which an extensible-arrow stack pads and gives a minimum length.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function isArrow(string $char): bool
+    {
+        return mb_strlen($char) === 1 && str_contains(self::ARROWS, $char);
     }
 
     /**

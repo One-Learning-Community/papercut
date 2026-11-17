@@ -268,6 +268,102 @@ final class UnderOverTest extends TestCase
         self::assertGreaterThanOrEqual($base->width - 0.5, $braceRight - $braceLeft);
     }
 
+    /**
+     * Ink left and right, in em, of the glyphs of a box that pass a filter.
+     *
+     * @param callable(Glyph): bool $pick
+     * @return array{float, float}
+     */
+    private static function inkSpanEm(Box $b, callable $pick): array
+    {
+        $gs = array_values(array_filter(self::glyphs($b), $pick));
+        self::assertNotEmpty($gs);
+
+        return [
+            min([INF, ...array_map(fn (Glyph $g) => self::inkX($g)[0], $gs)]) / self::SIZE,
+            max([-INF, ...array_map(fn (Glyph $g) => self::inkX($g)[1], $gs)]) / self::SIZE,
+        ];
+    }
+
+    /**
+     * The arrow's glyphs are the ones set at the base size; labels are in script size.
+     *
+     * @return array{float, float}
+     */
+    private static function arrowSpan(Box $b): array
+    {
+        return self::inkSpanEm($b, fn (Glyph $g) => $g->size === self::SIZE);
+    }
+
+    /** @return array{float, float} */
+    private static function labelSpan(Box $b): array
+    {
+        return self::inkSpanEm($b, fn (Glyph $g) => $g->size < self::SIZE);
+    }
+
+    #[DataProvider('minimumWidthArrows')]
+    public function test_xarrow_has_minimum_width(string $arrow): void
+    {
+        [$l, $r] = self::arrowSpan(Math::layout(Math::xarrow($arrow, 'f'), self::SIZE));
+        self::assertGreaterThanOrEqual(UnderOver::ARROW_MIN_WIDTH, $r - $l);
+    }
+
+    /** @return array<string, array{string}> */
+    public static function minimumWidthArrows(): array
+    {
+        return ['right' => ['→'], 'double' => ['⇒'], 'mapsto' => ['↦'], 'harpoons' => ['⥎']];
+    }
+
+    public function test_xarrow_extends_past_label(): void
+    {
+        $box = Math::layout(Math::xarrow('→', 'n → ∞'), self::SIZE);
+        [$al, $ar] = self::arrowSpan($box);
+        [$ll, $lr] = self::labelSpan($box);
+        $pad = UnderOver::ARROW_LABEL_PAD;
+        self::assertLessThanOrEqual($ll - $pad + 0.001, $al, 'arrow starts a pad before the label');
+        self::assertGreaterThanOrEqual($lr + $pad - 0.001, $ar, 'arrow ends a pad after the label');
+    }
+
+    /** Every stretchy operator of the arrow blocks that STIX Two Math can stretch horizontally is in the arrow list. */
+    public function test_arrow_list_covers_every_horizontal_construction_in_the_font(): void
+    {
+        $font = Math::stixTwoMath();
+        $table = require __DIR__ . '/../../resources/operators.php';
+        $missing = [];
+        foreach ($table as $key => $entry) {
+            $char = substr((string) $key, 0, (int) strrpos((string) $key, '|'));
+            $cp = mb_ord($char);
+            $inBlock = ($cp >= 0x2190 && $cp <= 0x21FF) || ($cp >= 0x27F0 && $cp <= 0x27FF) || ($cp >= 0x2900 && $cp <= 0x297F) || ($cp >= 0x2B00 && $cp <= 0x2BFF);
+            if (! $inBlock || ! $entry['stretchy']) {
+                continue;
+            }
+            $gid = $font->gid($cp);
+            if ($gid !== 0 && $font->math()->horizontal($gid) !== null && ! UnderOver::isArrow($char)) {
+                $missing[$char] = true;
+            }
+        }
+        self::assertSame([], array_keys($missing), 'stretchy horizontal in the font but missing from UnderOver::ARROWS');
+    }
+
+    public function test_vertical_arrow_is_not_padded(): void
+    {
+        self::assertFalse(UnderOver::isArrow('↑'));
+        foreach ([Math::over('↑', 'f'), Math::under('↑', 'f')] as $node) {
+            [$l, $r] = self::arrowSpan(Math::layout($node, self::SIZE));
+            self::assertLessThan(0.7, $r - $l);
+        }
+    }
+
+    public function test_brace_does_not_pad(): void
+    {
+        $base = Math::layout(Math::row('a+b'), self::SIZE);
+        $box = Math::layout(Math::overbrace('a+b'), self::SIZE);
+        $braceGlyphs = array_filter(self::glyphs($box), fn (Glyph $g) => self::inkY($g)[1] < -$base->ascent);
+        $w = max([-INF, ...array_map(fn (Glyph $g) => self::inkX($g)[1], $braceGlyphs)]) - min([INF, ...array_map(fn (Glyph $g) => self::inkX($g)[0], $braceGlyphs)]);
+        // Padding would add 2 x 0.5 em (12 pt) to the brace; it stays within a variant step of the base.
+        self::assertLessThan($base->width + 6.0, $w);
+    }
+
     public function test_both_parts_null_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -314,8 +410,10 @@ final class UnderOverTest extends TestCase
 
     public function test_arrow_base_with_labels_uses_stretch_stack_shifts(): void
     {
-        $over = self::glyphs(Math::layout(Math::over('→', 'f'), self::SIZE))[1];
-        $under = self::glyphs(Math::layout(Math::under('→', 'f'), self::SIZE))[1];
+        // The arrow may now be several assembled pieces, so find the label by its text.
+        $label = fn (Box $b): Glyph => array_values(array_filter(self::glyphs($b), fn (Glyph $g) => $g->text === '𝑓'))[0];
+        $over = $label(Math::layout(Math::over('→', 'f'), self::SIZE));
+        $under = $label(Math::layout(Math::under('→', 'f'), self::SIZE));
 
         self::assertEqualsWithDelta(-self::k('stretchStackTopShiftUp'), $over->y, 1e-9);
         self::assertEqualsWithDelta(self::k('stretchStackBottomShiftDown'), $under->y, 1e-9);

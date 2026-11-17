@@ -52,6 +52,7 @@ final class Fixtures
             'x-bar' => Math::row(Math::overline('x'), '=', Math::frac(Math::row('x₁ + x₂ + x₃'), '3')),
             'vector-ab' => Math::row(Math::vec('ab'), '=', Math::vec('a'), '+', Math::vec('b')),
             'overbrace' => Math::overbrace('a + b + c', Math::text('three terms')),
+            'xarrow-labels' => Math::row('A', Math::xarrow('→', 'f', 'n → ∞'), 'B'),
             'tall-fence' => Math::row(Math::fenced('[', ']', Math::frac(Math::frac('1', 'x'), Math::frac('1', Math::frac('1', 'y')))), '= z'),
             'big-delimiters' => Math::row(Math::big('(', 2), 'a', Math::big(')', 2)),
             'matrix-2x2' => Math::matrix([['a', 'b'], ['c', 'd']]),

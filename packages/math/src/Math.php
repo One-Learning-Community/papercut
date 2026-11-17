@@ -271,6 +271,17 @@ final class Math
         return $label === null ? $braced : new UnderOver($braced, null, self::row($label));
     }
 
+    /** An extensible arrow with optional labels above and below (TeX's \xrightarrow): it reaches past its labels and has a minimum length.
+     * An arrow the font has no horizontal construction for (such as ⟶ or ⥂ in STIX Two Math) is drawn at its natural width, with no pad or minimum. */
+    public static function xarrow(string $arrow = '→', string|Node|null $over = null, string|Node|null $under = null): UnderOver
+    {
+        return new UnderOver(
+            new Operator($arrow),
+            $under === null ? null : self::row($under),
+            $over === null ? null : self::row($over),
+        );
+    }
+
     /** A brace under the base, stretched to its width, with an optional label below the brace. */
     public static function underbrace(string|Node $base, string|Node|null $label = null): UnderOver
     {

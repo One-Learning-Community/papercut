@@ -5,6 +5,10 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `Math::xarrow()`, an extensible arrow with optional labels above and below. An arrow (or `=`) stretched over or under labels is now drawn at least 1.469 em long and reaches 0.5 em past its widest label on each side, as in KaTeX; braces and accents still span exactly their base.
+
 ### Fixed
 
 - Integral limits sat far to the right of the integral sign; they now hug it as in TeX. A script on any operator (an integral, a sum, `=`, or a row ending in `+`) now starts at the operator's own width, with the operator's trailing space after the script instead of before it, so scripts on an operator such as `=` move left by that space and the total width is unchanged. Large operators also keep their italic correction in inline style: the superscript of an inline integral or sum sits one italic correction right of its subscript, and limits stacked above and below an inline large operator (`movablelimits="false"`) are nudged apart by half of it, as in display style.
