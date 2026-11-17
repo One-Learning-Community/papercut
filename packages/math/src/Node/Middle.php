@@ -35,7 +35,8 @@ final class Middle extends Node
      */
     public function stretches(): bool
     {
-        return $this->height !== null;
+        // Layout draws a glyph of several characters plain (nothing to stretch), so only one character counts.
+        return $this->height !== null && mb_strlen($this->char) === 1;
     }
 
     /** @internal Engine detail, not part of papercut/math's public API. */

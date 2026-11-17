@@ -36,7 +36,7 @@ final class UnderOver extends Node
      * hooks, bars, tails, doubles and long forms) in the Arrows, Supplemental Arrows-A and -B, and Miscellaneous Symbols
      * and Arrows blocks, and `=`, which stretches like them. Vertical and bent arrows, braces and accents are not in it.
      */
-    public const ARROWS = '←→↔↚↛↜↝↞↠↢↣↤↦↩↪↫↬↭↮↹↼↽⇀⇁⇄⇆⇇⇉⇋⇌⇍⇎⇏⇐⇒⇔⇚⇛⇜⇝⇠⇢⇤⇥⇦⇨⇰⇴⇶⇷⇸⇹⇺⇻⇼⇽⇾⇿⟴⟵⟶⟷⟸⟹⟺⟻⟼⟽⟾⟿⤀⤁⤂⤃⤄⤅⤆⤇⤌⤍⤎⤏⤐⤑⤔⤕⤖⤗⤘⤙⤚⤛⤜⤝⤞⤟⤠⥂⥃⥄⥅⥆⥇⥈⥊⥋⥎⥐⥒⥓⥖⥗⥚⥛⥞⥟⥢⥤⥦⥧⥨⥩⥪⥫⥬⥭⥰⥱⥲⥳⥴⥵⬄⬅⬌⬎⬏⬐⬑⬰⬱⬲⬳⬴⬵⬶⬷⬸⬹⬺⬻⬼⬽⬾⭀⭁⭂⭃⭄⭅⭆⭇⭈⭉⭊⭋⭌⭠⭢⭤⭪⭬⭰⭲⭺⭼⮀⮂⮄⮆⮕⮤⮥⮦⮧=';
+    public const ARROWS = '←→↔↚↛↜↝↞↠↢↣↤↦↩↪↫↬↭↮↹↼↽⇀⇁⇄⇆⇇⇉⇋⇌⇍⇎⇏⇐⇒⇔⇚⇛⇜⇝⇠⇢⇤⇥⇦⇨⇰⇴⇶⇷⇸⇹⇺⇻⇼⇽⇾⇿⟴⟵⟶⟷⟸⟹⟺⟻⟼⟽⟾⟿⤀⤁⤂⤃⤄⤅⤆⤇⤌⤍⤎⤏⤐⤑⤔⤕⤖⤗⤘⤙⤚⤛⤜⤝⤞⤟⤠⥂⥃⥄⥅⥆⥇⥈⥊⥋⥎⥐⥒⥓⥖⥗⥚⥛⥞⥟⥢⥤⥦⥧⥨⥩⥪⥫⥬⥭⥰⥱⥲⥳⥴⥵⬄⬅⬌⬰⬱⬲⬳⬴⬵⬶⬷⬸⬹⬺⬻⬼⬽⬾⭀⭁⭂⭃⭄⭅⭆⭇⭈⭉⭊⭋⭌⭠⭢⭤⭪⭬⭰⭲⭺⭼⮀⮂⮄⮆⮕=';
 
     public function __construct(
         public readonly Node $base,
@@ -434,7 +434,7 @@ final class UnderOver extends Node
         $b = new Box(($s['xmax'] - $s['xmin']) * $u, $s['ascent'] * $u, $s['descent'] * $u);
         foreach ($s['pieces'] as $pc) {
             [$pg, $off] = $pc;
-            $b->add(new Glyph($pg, $single && $pg === $gid ? $char : null, ($off - $s['xmin']) * $u, 0.0, $c->size(), $pc[2] ?? 1.0));
+            $b->add(new Glyph($pg, $single && $pg === $gid ? $char : null, ($off - $s['xmin']) * $u, 0.0, $c->size(), $pc[2]));
         }
         $att = $single ? $f->math()->topAccentAttachment($s['pieces'][0][0]) : null;
 

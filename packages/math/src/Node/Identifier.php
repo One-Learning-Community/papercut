@@ -33,12 +33,8 @@ final class Identifier extends Node
         foreach (mb_str_split($this->name) as $ch) {
             $glyphs[] = [$italic ? Styles::italic(mb_ord($ch)) : mb_ord($ch), $ch];
         }
-        $b = Run::build($c, $glyphs);
-        // Multi-letter names (sin, log) get a thin space after, so "sin x" does not run together.
-        if (! $italic && mb_strlen($this->name) > 1) {
-            $b->width += $c->mu(3);
-        }
-
-        return $b;
+        // Multi-letter names (sin, log) get a thin space after, so "sin x" does not run together. It is trailing space, as an
+        // operator's is: a script sits before it.
+        return Run::build($c, $glyphs, 0.0, ! $italic && mb_strlen($this->name) > 1 ? $c->mu(3) : 0.0);
     }
 }

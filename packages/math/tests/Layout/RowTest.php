@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Tests\Layout;
 
+use Papercut\Math\Layout\Context;
 use Papercut\Math\Layout\Glyph;
 use Papercut\Math\Layout\Rule;
 use Papercut\Math\Math;
 use Papercut\Math\MathNote;
 use Papercut\Math\Node\Fallback;
+use Papercut\Math\Node\Node;
 use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Row;
 use Papercut\Math\NoteLevel;
@@ -115,8 +117,8 @@ final class RowTest extends TestCase
         self::assertEqualsWithDelta($plain->width, $wrapped->width, 1e-9);
     }
 
-    /** @return list<float> x of each drawn glyph with text, in order */
-    private static function glyphXs(\Papercut\Math\Node\Node $n, float $size): array
+    /** @return list<float> x of each glyph in the display list, in order */
+    private static function glyphXs(Node $n, float $size): array
     {
         $xs = [];
         foreach (Math::layout($n, $size, false)->items as $i) {
@@ -130,7 +132,7 @@ final class RowTest extends TestCase
 
     public function test_explicit_spacing_overrides_dictionary(): void
     {
-        $c = new \Papercut\Math\Layout\Context(Math::stixTwoMath(), 12);
+        $c = new Context(Math::stixTwoMath(), 12);
         $plain = self::glyphXs(Math::row('a', new Operator('x', lspace: 0, rspace: 0), 'b'), 12);
         $spaced = self::glyphXs(Math::row('a', new Operator('x', lspace: 5, rspace: 5), 'b'), 12);
         self::assertCount(3, $spaced);

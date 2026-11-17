@@ -50,12 +50,14 @@ final class TexReader
      * What macro expansion may produce, counted in source bytes (each token at its own length, input included), so the
      * expanded stream is never bigger than a raw input of MAX_INPUT bytes.
      */
-    public const int MAX_TOKENS = self::MAX_INPUT;
+    public const int MAX_EXPANSION_BYTES = self::MAX_INPUT;
     /** Cells of all environments in a formula; rows past it are dropped. */
     public const int MAX_CELLS = 10_000;
 
     private TexCursor $c;
     private int $depth = 0;
+    /** Nesting beyond this is drawn flat: MAX_DEPTH, lower under Xdebug's nesting guard (see effectiveDepth()). */
+    private int $maxDepth = self::MAX_DEPTH;
     /** The font command in force: a Styles variant, 'rm', 'it', or null for the default math font. */
     private ?string $font = null;
     /** @var array<string, true> */
@@ -76,10 +78,64 @@ final class TexReader
     /** An alignment environment was read: the formula is a display. */
     private bool $display = false;
     private int $cellCount = 0;
-    /** `\begin` tokens drawn flat past MAX_DEPTH whose `\end` is still to come: that `\end` is a result of the overflow, not a note of its own. */
+    /** `\begin` tokens drawn flat past the depth limit whose `\end` is still to come: that `\end` is a result of the overflow, not a note of its own. */
     private int $skippedBegins = 0;
     /** The same for `\left` and its `\right`. */
     private int $skippedLefts = 0;
+
+    /**
+     * Where each stretch of the scrubbed text came from in the input, when the input had invalid UTF-8: [scrubbed start, input
+     * start, scrubbed length, input length]. Offsets in notes are in the caller's input, not the scrubbed copy.
+     *
+     * @var list<array{int, int, int, int}>
+     */
+    private array $offsets = [];
+
+    /**
+     * @return list<array{int, int, int, int}>
+     */
+    private static function offsetMap(string $input, string $scrubbed): array
+    {
+        // A valid UTF-8 sequence (no overlongs or surrogates); anything else is an invalid stretch that scrubbing replaced.
+        $valid = '/(?:[\x00-\x7F]|[\xC2-\xDF][\x80-\xBF]|\xE0[\xA0-\xBF][\x80-\xBF]|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}|\xED[\x80-\x9F][\x80-\xBF]|\xF0[\x90-\xBF][\x80-\xBF]{2}|[\xF1-\xF3][\x80-\xBF]{3}|\xF4[\x80-\x8F][\x80-\xBF]{2})++/A';
+        $map = [];
+        $in = 0;
+        $out = 0;
+        $n = strlen($input);
+        while ($in < $n) {
+            if (preg_match($valid, $input, $m, 0, $in) === 1) {
+                $len = $outLen = strlen($m[0]);
+            } else {
+                $len = 1;
+                while ($in + $len < $n && preg_match($valid, $input, $m, 0, $in + $len) !== 1) {
+                    $len++;
+                }
+                $outLen = strlen(Utf8::clean(substr($input, $in, $len)));
+            }
+            $map[] = [$out, $in, $outLen, $len];
+            $out += $outLen;
+            $in += $len;
+        }
+        $map[] = [strlen($scrubbed), $n, 0, 0];
+
+        return $map;
+    }
+
+    /** A byte offset in the scrubbed text as an offset in the caller's input. */
+    private function inputOffset(int $offset): int
+    {
+        if ($this->offsets === []) {
+            return $offset;
+        }
+        foreach ($this->offsets as [$out, $in, $outLen, $inLen]) {
+            if ($offset >= $out && $offset < $out + $outLen) {
+                return $outLen === $inLen ? $in + ($offset - $out) : $in;
+            }
+        }
+        $last = $this->offsets[count($this->offsets) - 1];
+
+        return $last[1] + max(0, $offset - $last[0]);
+    }
 
     private function __construct()
     {
@@ -87,15 +143,74 @@ final class TexReader
         $this->c = new TexCursor([]);
     }
 
+    /** Call frames the reader uses per level of nesting at most (measured: 8.3 for `\mathbf{`, 6.2 for `a_{`). */
+    private const int FRAMES_PER_LEVEL = 10;
+    /** Frames kept free for the reader's own entry and the layout and writers that follow. */
+    private const int GUARD_MARGIN = 16;
+
     public static function read(string $tex): TexResult
     {
-        return (new self())->run($tex);
+        return self::readWithin($tex, self::effectiveDepth(self::nestingGuard(), self::stackDepth()));
+    }
+
+    /**
+     * Read with a nesting limit of $maxDepth (at most MAX_DEPTH) instead of MAX_DEPTH.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function readWithin(string $tex, int $maxDepth): TexResult
+    {
+        $reader = new self();
+        $reader->maxDepth = max(1, min($maxDepth, self::MAX_DEPTH));
+
+        return $reader->run($tex);
+    }
+
+    /**
+     * How deep to nest before drawing flat. MAX_DEPTH, unless Xdebug's nesting guard is on (`$nestingLimit`, its
+     * xdebug.max_nesting_level, above 0): that guard throws once the call stack passes the limit, so the depth is lowered
+     * until a formula at the limit, with the $stackDepth frames already on the stack, stays under it.
+     *
+     * @internal Engine detail, not part of papercut/math's public API.
+     */
+    public static function effectiveDepth(?int $nestingLimit, int $stackDepth = 0): int
+    {
+        if ($nestingLimit === null || $nestingLimit <= 0) {
+            return self::MAX_DEPTH;
+        }
+
+        return max(1, min(self::MAX_DEPTH, intdiv($nestingLimit - $stackDepth - self::GUARD_MARGIN, self::FRAMES_PER_LEVEL)));
+    }
+
+    /** Xdebug's max_nesting_level when its develop mode (the one that enforces it) is on, else null. */
+    private static function nestingGuard(): ?int
+    {
+        if (! extension_loaded('xdebug')) {
+            return null;
+        }
+        $mode = (string) ini_get('xdebug.mode');
+        if (! in_array('develop', array_map('trim', explode(',', $mode)), true)) {
+            return null;
+        }
+        $level = (int) ini_get('xdebug.max_nesting_level');
+
+        return $level > 0 ? $level : null;
+    }
+
+    /** The frames on the call stack now, only worth counting when a guard is on. */
+    private static function stackDepth(): int
+    {
+        return extension_loaded('xdebug') ? count(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)) : 0;
     }
 
     private function run(string $tex): TexResult
     {
         $bad = false;
+        $input = $tex;
         $tex = Utf8::scrub($tex, $bad);
+        if ($bad) {
+            $this->offsets = self::offsetMap($input, $tex);
+        }
         $notes = [];
         if (strlen($tex) > self::MAX_INPUT) {
             $tex = mb_strcut($tex, 0, self::MAX_INPUT);
@@ -103,7 +218,7 @@ final class TexReader
         }
         [$tokens, $macroNotes] = TexMacros::expand(TexLexer::lex($tex));
         array_push($notes, ...$macroNotes);
-        $this->c = new TexCursor($this->unwrap($tokens));
+        $this->c = new TexCursor($this->unwrap($tokens), strlen($tex));
         $node = $this->topLevel();
         foreach (array_reverse($notes) as [$level, $element, $reason, $off]) {
             $node = $this->note($level, $element, $reason, $off, $node);
@@ -199,15 +314,25 @@ final class TexReader
     }
 
     /** A note in the tree: a Fallback around the content (or nothing). A repeat of the same element and reason only gives the content back. */
-    private function note(NoteLevel $level, string $element, string $reason, int $offset, ?Node $content = null): Node
+    /**
+     * Wrap $content in a note; the first note of an element and reason is kept. A closure builds the content after the note is
+     * claimed, so a note for a command that wraps more source (`\color{red} …`) is the first use, not the last one read.
+     *
+     * @param Node|\Closure(): Node|null $content
+     */
+    private function note(NoteLevel $level, string $element, string $reason, int $offset, Node|\Closure|null $content = null): Node
     {
         $key = $element . '|' . $reason;
-        if (isset($this->noted[$key])) {
+        $seen = isset($this->noted[$key]);
+        $this->noted[$key] = true;
+        if ($content instanceof \Closure) {
+            $content = $content();
+        }
+        if ($seen) {
             return $content ?? new Row([]);
         }
-        $this->noted[$key] = true;
 
-        return new Fallback($content, new MathNote($level, $element, $reason, 'offset ' . $offset));
+        return new Fallback($content, new MathNote($level, $element, $reason, 'offset ' . $this->inputOffset($offset)));
     }
 
     // ---------------------------------------------------------------- expressions
@@ -275,7 +400,7 @@ final class TexReader
             } elseif ($ty === 'cs' && $t[1] === 'color') {
                 $this->c->p++;
                 $this->c->rawGroup();
-                $nodes[] = $this->note(NoteLevel::Approximated, '\\color', 'colour is not drawn', $t[2], self::row($this->parseUntil(...$stops)));
+                $nodes[] = $this->note(NoteLevel::Approximated, '\\color', 'colour is not drawn', $t[2], fn (): Node => self::row($this->parseUntil(...$stops)));
 
                 return $nodes;
             } elseif ($ty === 'cs' && isset(TexSymbols::FONT_SWITCHES[$t[1]])) {
@@ -330,7 +455,7 @@ final class TexReader
         }
         $this->noted['\\\\|row spacing is not drawn'] = true;
 
-        return new MathNote(NoteLevel::Approximated, '\\\\', 'row spacing is not drawn', 'offset ' . $at);
+        return new MathNote(NoteLevel::Approximated, '\\\\', 'row spacing is not drawn', 'offset ' . $this->inputOffset($at));
     }
 
     /**
@@ -343,7 +468,7 @@ final class TexReader
         $at = $this->c->offset();
         $from = $this->c->p;
         $this->c->p++;
-        if ($this->depth >= self::MAX_DEPTH) {
+        if ($this->depth >= $this->maxDepth) {
             $this->c->skipBalanced();
 
             return [$this->tooDeep('nesting', $from, $at)];
@@ -554,7 +679,7 @@ final class TexReader
         if ($t === null) {
             return [new Row([]), 'ord', null];
         }
-        if ($this->depth >= self::MAX_DEPTH) {
+        if ($this->depth >= $this->maxDepth) {
             $from = $this->c->p++;
             if ($t[0] === '{') {
                 $this->c->skipBalanced();
@@ -791,9 +916,9 @@ final class TexReader
         }
         if (isset(TexSymbols::ACCENTS[$name])) {
             $mark = TexSymbols::ACCENTS[$name];
-            $names = TexSymbols::ACCENT_WRITE[$mark] ?? null;
+            $names = TexSymbols::ACCENT_WRITE[$mark];
             // \hat is the short form (not stretchy), \widehat the wide one; a mark with a single spelling is the builder's.
-            $stretchy = $names !== null && $names[1] !== null && $names[0] === $name ? false : null;
+            $stretchy = $names[1] !== null && $names[0] === $name ? false : null;
 
             return [new UnderOver($this->parseArgument(), null, new Operator($mark, stretchy: $stretchy), true), 'ord', null];
         }
@@ -805,14 +930,15 @@ final class TexReader
         }
 
         if (preg_match('/^(big|Big|bigg|Bigg)[lrm]?$/', $name) === 1) {
-            return [$this->sized($name, $at), 'ord', null];
+            $sized = $this->sized($name, $at);
+
+            return $sized === null ? null : [$sized, 'ord', null];
         }
-        if (isset(TexSymbols::XARROW_CHARS[$name])) {
+        if (($arrow = TexSymbols::xarrowChar($name)) !== null) {
             $under = $this->parseOptional();
             $this->c->skipSp();
             $missing = $this->c->peek() === null || $this->c->peekIs('}');
             $over = $this->parseArgument();
-            $arrow = TexSymbols::XARROW_CHARS[$name];
             $over = self::emptyToNull($over);
             $under = self::emptyToNull($under);
             $node = $over === null && $under === null ? new Operator($arrow) : Math::xarrow($arrow, $over, $under);
@@ -867,7 +993,7 @@ final class TexReader
 
                 return [$name === 'binom' ? $f : new DisplayStyle($f, $name === 'dbinom'), 'ord', null];
             case 'genfrac':
-                return [$this->genfrac(), 'ord', null];
+                return [$this->genfrac($at), 'ord', null];
             case 'sqrt':
                 $index = $this->parseOptional();
 
@@ -892,7 +1018,14 @@ final class TexReader
                     $this->c->p++;
                 }
 
-                return [new Identifier(trim($this->operatorName()), false), $star ? 'funclim' : 'func', null];
+                $dropped = [];
+                $text = trim($this->operatorName($dropped));
+                $node = new Identifier($text, false);
+                if ($dropped !== []) {
+                    $node = $this->note(NoteLevel::Approximated, '\\operatorname', 'only letters and symbols are kept in the name (not ' . implode(', ', array_unique($dropped)) . ')', $at, $node);
+                }
+
+                return [$node, $star ? 'funclim' : 'func', null];
             case 'hspace':
             case 'mspace':
             case 'hskip':
@@ -908,7 +1041,7 @@ final class TexReader
                 return [new Phantom($this->parseArgument()), 'ord', null];
             case 'hphantom':
             case 'vphantom':
-                return [$this->note(NoteLevel::Approximated, '\\' . $name, 'takes both width and height', $at, new Phantom($this->parseArgument())), 'ord', null];
+                return [$this->note(NoteLevel::Approximated, '\\' . $name, 'takes both width and height', $at, fn (): Node => new Phantom($this->parseArgument())), 'ord', null];
             case 'char':
                 return $this->charCode($at);
             case 'begin':
@@ -948,16 +1081,16 @@ final class TexReader
             case 'textcolor':
                 $this->c->rawGroup();
 
-                return [$this->note(NoteLevel::Approximated, '\\textcolor', 'colour is not drawn', $at, $this->parseArgument()), 'ord', null];
+                return [$this->note(NoteLevel::Approximated, '\\textcolor', 'colour is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
             case 'boxed':
-                return [$this->note(NoteLevel::Approximated, '\\boxed', 'the box is not drawn', $at, $this->parseArgument()), 'ord', null];
+                return [$this->note(NoteLevel::Approximated, '\\boxed', 'the box is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
             case 'fbox':
-                return [$this->note(NoteLevel::Approximated, '\\fbox', 'the box is not drawn', $at, $this->textInGroup()), 'ord', null];
+                return [$this->note(NoteLevel::Approximated, '\\fbox', 'the box is not drawn', $at, fn (): Node => $this->textInGroup()), 'ord', null];
             case 'cancel':
             case 'bcancel':
             case 'xcancel':
             case 'sout':
-                return [$this->note(NoteLevel::Approximated, '\\' . $name, 'the strike-through is not drawn', $at, $this->parseArgument()), 'ord', null];
+                return [$this->note(NoteLevel::Approximated, '\\' . $name, 'the strike-through is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
             case 'sideset':
             case 'prescript':
             case 'tensor':
@@ -1020,7 +1153,7 @@ final class TexReader
                     $capped = true;
                     if (! isset($this->noted['cells|too many'])) {
                         $this->noted['cells|too many'] = true;
-                        $capNote = new MathNote(NoteLevel::Approximated, 'cells', 'too many cells; the rest are dropped', 'offset ' . $at);
+                        $capNote = new MathNote(NoteLevel::Approximated, 'cells', 'too many cells; the rest are dropped', 'offset ' . $this->inputOffset($at));
                     }
                 }
             } else {
@@ -1061,6 +1194,8 @@ final class TexReader
         if ($spacing !== null) {
             $lost[] = $spacing;
         }
+        // Source order: the spacing of an earlier `\\[len]` and the cap note can come before what the dropped row held.
+        usort($lost, static fn (MathNote $a, MathNote $b): int => (int) substr($a->where, 7) <=> (int) substr($b->where, 7));
 
         return [$rows, $lost];
     }
@@ -1121,8 +1256,11 @@ final class TexReader
         [$rows, $lost] = $this->cells('end');
         if ($this->c->peekIs('cs', 'end')) {
             $this->c->p++;
+            $endAt = $this->c->offset();
             $end = trim($this->c->rawGroup());
-            if ($end !== $name) {
+            if (! $this->c->closed) {
+                $notes[] = [NoteLevel::Approximated, $name, 'missing } after \\end{' . $end, $endAt];
+            } elseif ($end !== $name) {
                 $notes[] = [NoteLevel::Approximated, $name, 'closed by \\end{' . $end . '}', $at];
             }
         } else {
@@ -1231,12 +1369,12 @@ final class TexReader
     }
 
     /** \big and its family: a delimiter drawn at a fixed size. */
-    private function sized(string $name, int $at): Node
+    private function sized(string $name, int $at): ?Node
     {
         $size = array_search(rtrim($name, 'lrm'), TexSymbols::BIG_COMMANDS, true);
         $d = $this->delimiter();
         if ($d === '') {
-            return new Row([]); // `\big.`: a null delimiter, as KaTeX reads it
+            return null; // `\big.`: a null delimiter, draws nothing
         }
         if ($d === null || $size === false) {
             return $this->note(NoteLevel::Dropped, '\\' . $name, 'delimiter expected', $at);
@@ -1358,10 +1496,11 @@ final class TexReader
         return $node;
     }
 
-    private function genfrac(): Node
+    private function genfrac(int $at): Node
     {
-        $l = $this->delimiterArgument();
-        $r = $this->delimiterArgument();
+        $unknown = false;
+        $l = $this->delimiterArgument($unknown);
+        $r = $this->delimiterArgument($unknown);
         $thick = trim($this->c->rawGroup());
         $style = trim($this->c->rawGroup());
         $node = new Fraction($this->parseArgument(), $this->parseArgument(), preg_match('/^0*\.?0*\s*[a-z]*$/', $thick) !== 1 || $thick === '');
@@ -1372,11 +1511,14 @@ final class TexReader
             $node = new DisplayStyle($node, $style === '0');
         }
 
-        return $node;
+        return $unknown ? $this->note(NoteLevel::Approximated, '\\genfrac', 'unrecognised delimiter, drawn without it', $at, $node) : $node;
     }
 
-    /** A delimiter in a group, as its character ('' for `.` or nothing). */
-    private function delimiterArgument(): string
+    /**
+     * A delimiter in a group, as its character ('' for `.` or nothing). $unknown is set when something else stood there (a
+     * command that is no delimiter), which is left out.
+     */
+    private function delimiterArgument(bool &$unknown): string
     {
         $this->c->skipSp();
         if (! $this->c->peekIs('{')) {
@@ -1386,7 +1528,7 @@ final class TexReader
             }
             $this->c->p++;
 
-            return $t[1] === '.' ? '' : (TexSymbols::delimiterChar($t[1]) ?? ($t[0] === 'ch' ? $t[1] : ''));
+            return $this->delimiterOf($t, $unknown);
         }
         $this->c->p++;
         $first = null;
@@ -1401,15 +1543,33 @@ final class TexReader
                 $first = $t;
             }
         }
-        if ($first === null || $first[1] === '.') {
+        if ($first === null) {
             return '';
         }
 
-        return TexSymbols::delimiterChar($first[1]) ?? ($first[0] === 'ch' ? $first[1] : '');
+        return $this->delimiterOf($first, $unknown);
     }
 
-    /** The name in \operatorname{...}: its characters, with commands for symbols read as the symbol. */
-    private function operatorName(): string
+    /** @param array{string, string, int} $t */
+    private function delimiterOf(array $t, bool &$unknown): string
+    {
+        if ($t[1] === '.') {
+            return '';
+        }
+        $d = TexSymbols::delimiterChar($t[1]);
+        if ($d === null && $t[0] === 'cs') {
+            $unknown = true;
+        }
+
+        return $d ?? ($t[0] === 'ch' ? $t[1] : '');
+    }
+
+    /**
+     * The name in \operatorname{...}: its characters, with commands for symbols read as the symbol.
+     *
+     * @param list<string> $dropped the commands left out of the name (spacing and the like), as written
+     */
+    private function operatorName(array &$dropped): string
     {
         $this->c->skipSp();
         if (! $this->c->peekIs('{')) {
@@ -1419,7 +1579,7 @@ final class TexReader
             }
             $this->c->p++;
 
-            return $this->nameChar($t);
+            return $this->nameChar($t, $dropped);
         }
         $this->c->p++;
         $s = '';
@@ -1431,20 +1591,31 @@ final class TexReader
             } elseif ($t[0] === '}' && --$depth === 0) {
                 break;
             } else {
-                $s .= $this->nameChar($t);
+                $s .= $this->nameChar($t, $dropped);
             }
         }
 
         return $s;
     }
 
-    /** @param array{string, string, int} $t */
-    private function nameChar(array $t): string
+    /**
+     * @param array{string, string, int} $t
+     * @param list<string> $dropped
+     */
+    private function nameChar(array $t, array &$dropped): string
     {
+        if ($t[0] === 'cs') {
+            $char = TexSymbols::char($t[1]) ?? (in_array($t[1], ['_', '%', '$', '#', '&', '{', '}'], true) ? $t[1] : '');
+            if ($char === '') {
+                $dropped[] = '\\' . $t[1];
+            }
+
+            return $char;
+        }
+
         return match ($t[0]) {
             'ch' => $t[1],
             'sp' => ' ',
-            'cs' => TexSymbols::char($t[1]) ?? (in_array($t[1], ['_', '%', '$', '#', '&', '{', '}'], true) ? $t[1] : ''),
             default => '',
         };
     }
@@ -1539,7 +1710,10 @@ final class TexReader
                     $nodes[] = new Text($buf);
                     $buf = '';
                 }
+                $inOptional = $this->inOptional;
+                $this->inOptional = false;
                 $nodes[] = self::row($this->parseUntil('$', '}'));
+                $this->inOptional = $inOptional;
                 if ($this->c->peekIs('ch', '$')) {
                     $this->c->p++;
                 }

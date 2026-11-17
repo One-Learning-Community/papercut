@@ -4,13 +4,23 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Tex;
 
-/** A position in a token list (see {@see TexLexer}), with the small readers every part of the TeX reader shares. */
+/**
+ * A position in a token list (see {@see TexLexer}), with the small readers every part of the TeX reader shares.
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ */
 final class TexCursor
 {
     public int $p = 0;
 
-    /** @param list<array{string, string, int}> $t */
-    public function __construct(public readonly array $t)
+    /** Whether the last rawGroup() found the `}` that closes its group (true when it read no group). */
+    public bool $closed = true;
+
+    /**
+     * @param list<array{string, string, int}> $t
+     * @param int $end the length of the source in bytes: where the end of the input is
+     */
+    public function __construct(public readonly array $t, private readonly int $end = 0)
     {
     }
 
@@ -34,10 +44,10 @@ final class TexCursor
         return $t !== null && $t[0] === $type && ($val === null || $t[1] === $val);
     }
 
-    /** The byte offset of the current token (just past the source at the end). */
+    /** The byte offset of the current token (the end of the source at the end). */
     public function offset(): int
     {
-        return $this->t[$this->p][2] ?? ($this->t[count($this->t) - 1][2] ?? 0) + 1;
+        return $this->t[$this->p][2] ?? $this->end;
     }
 
     /** Past the `}` that closes a group whose `{` is already read. */
@@ -57,6 +67,7 @@ final class TexCursor
     /** The characters of a group, as plain text (or the one character that follows). */
     public function rawGroup(): string
     {
+        $this->closed = true;
         $this->skipSp();
         if (! $this->peekIs('{')) {
             $t = $this->peek();
@@ -68,6 +79,7 @@ final class TexCursor
             return $t[1];
         }
         $this->p++;
+        $this->closed = false;
         $s = '';
         $depth = 1;
         while (($t = $this->peek()) !== null) {
@@ -75,6 +87,7 @@ final class TexCursor
             if ($t[0] === '{') {
                 $depth++;
             } elseif ($t[0] === '}' && --$depth === 0) {
+                $this->closed = true;
                 break;
             } elseif ($t[0] === 'ch' || $t[0] === 'sp') {
                 $s .= $t[1];

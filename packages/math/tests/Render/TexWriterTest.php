@@ -6,6 +6,7 @@ namespace Papercut\Math\Tests\Render;
 
 use Papercut\Math\Math;
 use Papercut\Math\Node\DisplayStyle;
+use Papercut\Math\Tex\TexReader;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Grid;
@@ -135,6 +136,23 @@ final class TexWriterTest extends TestCase
         self::assertSame('x^{\frac{a}{b}}', self::tex(Math::sup('x', Math::frac('a', 'b'))));
         self::assertSame('\sum\nolimits_{i = 1}^n', self::tex(new \Papercut\Math\Node\Scripts(new Operator('∑'), Math::row('i = 1'), Math::row('n'))));
         self::assertSame('\int_0^1', self::tex(Math::integral('0', '1')));
+    }
+
+    public function test_control_word_script_arguments_are_braced(): void
+    {
+        foreach (['x_{\sin}', 'x_{\ne}', '\sum_{\int}', 'x_{\,}', '\operatorname*{argmax}_{\sin}', '\operatorname*{ab}_{\neq}', 'x^\alpha', 'x_\infty'] as $tex) {
+            $out = TexWriter::write(TexReader::read($tex)->node);
+            self::assertDoesNotMatchRegularExpression('/[_^]\\\\(?!alpha|infty)/', $out, $tex);
+            self::assertEquals(TexReader::read($tex)->node, TexReader::read($out)->node, $tex);
+        }
+        self::assertSame('x_{\sin}', TexWriter::write(TexReader::read('x_{\sin}')->node));
+        self::assertSame('x_\infty', TexWriter::write(TexReader::read('x_\infty')->node));
+    }
+
+    public function test_operatorname_star_spelling_only_for_an_under_limit(): void
+    {
+        self::assertSame('\operatorname*{argmax}_x', TexWriter::write(TexReader::read('\operatorname*{argmax}_x')->node));
+        self::assertSame('\overset{a}{\operatorname{xy}}', TexWriter::write(TexReader::read('\overset{a}{\mathrm{xy}}')->node));
     }
 
     public function test_limits(): void
@@ -352,7 +370,10 @@ final class TexWriterTest extends TestCase
         self::assertSame('⨌', self::tex(new Operator('⨌')));
         self::assertSame('↤', self::tex(new Operator('↤')));
         self::assertSame('\operatorname{sgn}', self::tex(new Identifier('sgn')));
-        self::assertSame('\overset{⃛}{x}', self::tex(new UnderOver(Math::row('x'), null, new Operator("\u{20DB}"), true)));
+        self::assertSame('\overset{⃐}{x}', self::tex(new UnderOver(Math::row('x'), null, new Operator("\u{20D0}"), true)));
+        // \dddot and \ddddot (newer KaTeX) have their own commands, so they read back as the accents they were.
+        self::assertSame('\dddot{x}', self::tex(Math::tex('\dddot{x}')));
+        self::assertSame('\ddddot{x}', self::tex(Math::tex('\ddddot{x}')));
         // A fence with no \left spelling keeps its glyphs as plain symbols (corners, and any unknown glyph).
         self::assertSame('\ulcorner x \lrcorner', self::tex(Math::fenced('⌜', '⌟', 'x')));
         self::assertSame('\ulcorner x )', self::tex(Math::fenced('⌜', ')', 'x')));

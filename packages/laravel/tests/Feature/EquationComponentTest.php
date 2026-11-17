@@ -305,8 +305,22 @@ final class EquationComponentTest extends TestCase
     public function test_neither_math_nor_tex_is_rejected_naming_both(): void
     {
         $this->expectException(InvalidStructure::class);
-        $this->expectExceptionMessage('tex');
+        $this->expectExceptionMessage('or a tex attribute');
         $this->nodeFrom('<x-doc::equation />');
+    }
+
+    public function test_a_bound_tex_attribute_that_is_not_a_string_is_rejected(): void
+    {
+        $this->expectException(InvalidStructure::class);
+        $this->expectExceptionMessage('needs the tex attribute to be a string of TeX');
+        $this->nodeFrom('<x-doc::equation :tex="$t" />', ['t' => 5]);
+    }
+
+    public function test_static_tex_attribute_decodes_html_entities(): void
+    {
+        $n = $this->nodeFrom('<x-doc::equation tex="a &lt; b &amp; c" />');
+
+        self::assertEquals(Math::tex('a < b & c'), $n->math());
     }
 
     private function containsGrid(\Papercut\Math\Node\Node $node): bool

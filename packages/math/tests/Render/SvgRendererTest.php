@@ -12,11 +12,6 @@ use Papercut\Math\Render\SvgRenderer;
 
 final class SvgRendererTest extends TestCase
 {
-    private function font(): \Papercut\Math\Font\TrueTypeFont
-    {
-        return Math::stixTwoMath();
-    }
-
     public function test_glyph_paths_only_given_glyphs(): void
     {
         $font = Math::stixTwoMath();
@@ -38,17 +33,22 @@ final class SvgRendererTest extends TestCase
 
     public function test_a_scaled_glyph_is_drawn_stretched_along_its_axis(): void
     {
-        $font = $this->font();
+        $font = Math::stixTwoMath();
         $svg = static function (Glyph $g) use ($font): string {
             return (new SvgRenderer($font))->glyphPaths([$g], new Box(20.0, 10.0, 4.0));
         };
         $extent = static function (string $s, int $axis): float {
             preg_match('/<path d="([^"]+)"/', $s, $m);
-            $d = $m[1] ?? self::fail('no path');
+            if (! isset($m[1])) {
+                self::fail('no path');
+            }
+            $d = $m[1];
             preg_match_all('/(-?[\d.]+) (-?[\d.]+)/', $d, $pts, PREG_SET_ORDER);
             $v = array_map(static fn (array $p): float => (float) $p[1 + $axis], $pts);
 
-            $v !== [] || self::fail('no points');
+            if ($v === []) {
+                self::fail('no points');
+            }
 
             return max($v) - min($v);
         };

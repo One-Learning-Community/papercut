@@ -40,6 +40,25 @@ final class MathNotesReportTest extends TestCase
         self::assertStringContainsString('math <mtable>', $messages[0]);
     }
 
+    public function test_tex_notes_name_the_command_without_angle_brackets(): void
+    {
+        $messages = $this->pdfMessages(Document::make(Page::a4()->body(Equation::of(Math::tex('x + \\boxed{y}')))));
+        self::assertCount(1, $messages);
+        self::assertStringContainsString('math \\boxed (the box is not drawn)', $messages[0]);
+        self::assertStringNotContainsString('<', $messages[0]);
+    }
+
+    public function test_tex_notes_reach_strict_mode(): void
+    {
+        $doc = Document::make(Page::a4()->body(Equation::of(Math::tex('x \\unknowncommand y'))));
+        try {
+            $doc->toPdf(new PdfOptions(strict: true, cacheDir: false));
+            self::fail('Expected UnsupportedFeature');
+        } catch (UnsupportedFeature $e) {
+            self::assertStringContainsString('math \\unknowncommand', $e->getMessage());
+        }
+    }
+
     public function test_inline_span(): void
     {
         $text = Text::spans(Span::text('a '), Span::math(Math::mathml('<math><menclose notation="box"><mi>x</mi></menclose></math>')));

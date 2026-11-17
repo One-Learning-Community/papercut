@@ -92,8 +92,8 @@ final class TexHardeningTest extends TestCase
         $box = Math::layout($result->node);
         $wall = microtime(true) - $t;
         self::assertLessThan(64 * 1024 * 1024, memory_get_peak_usage() - $mem);
-        // Deterministic: macros can expand to at most MAX_TOKENS bytes of source, anything else to the (capped) input.
-        $bytes = preg_match('/\\\\(def|newcommand|renewcommand|providecommand)/', $tex) === 1 ? TexReader::MAX_TOKENS : min(strlen($tex), TexReader::MAX_INPUT);
+        // Deterministic: macros can expand to at most MAX_EXPANSION_BYTES bytes of source, anything else to the (capped) input.
+        $bytes = preg_match('/\\\\(def|newcommand|renewcommand|providecommand|DeclareMathOperator)/', $tex) === 1 ? TexReader::MAX_EXPANSION_BYTES : min(strlen($tex), TexReader::MAX_INPUT);
         self::assertLessThanOrEqual(self::ITEMS_PER_BYTE * $bytes, count($box->items), 'items');
         // Wall time only as a backstop: generous, and not under a debugger or profiler.
         if (! self::instrumented()) {
@@ -129,6 +129,61 @@ final class TexHardeningTest extends TestCase
         $env = TexReader::read(str_repeat('\\begin{matrix}', 600) . 'x' . str_repeat('\\end{matrix}', 600));
         self::assertCount(1, array_filter($env->notes(), static fn ($n): bool => $n->element === 'nesting'));
         self::assertSame([], array_filter($env->notes(), static fn ($n): bool => $n->element === '\\end'));
+    }
+
+    public function test_the_depth_limit_is_lowered_under_xdebugs_nesting_guard(): void
+    {
+        self::assertSame(TexReader::MAX_DEPTH, TexReader::effectiveDepth(null));
+        self::assertSame(TexReader::MAX_DEPTH, TexReader::effectiveDepth(0));
+        self::assertSame(TexReader::MAX_DEPTH, TexReader::effectiveDepth(-1));
+        // Xdebug's default of 512 frames leaves room for a few dozen levels (measured: 62 of the worst, `\mathbf{`).
+        $at512 = TexReader::effectiveDepth(512, 10);
+        self::assertGreaterThan(30, $at512);
+        self::assertLessThan(62, $at512);
+        self::assertLessThan($at512, TexReader::effectiveDepth(512, 100));
+        self::assertGreaterThan($at512, TexReader::effectiveDepth(1024, 10));
+        self::assertSame(TexReader::MAX_DEPTH, TexReader::effectiveDepth(100_000));
+        self::assertSame(1, TexReader::effectiveDepth(10));
+    }
+
+    public function test_content_past_the_effective_depth_gets_the_nesting_note(): void
+    {
+        $r = TexReader::readWithin(str_repeat('a_{', 12) . str_repeat('}', 12), 5);
+        self::assertSame(['nesting'], array_map(static fn ($n): string => $n->element, $r->notes()));
+        self::assertSame([], TexReader::readWithin(str_repeat('a_{', 4) . 'b' . str_repeat('}', 4), 5)->notes());
+        // Never above MAX_DEPTH.
+        $deep = TexReader::readWithin(str_repeat('{', 300) . 'x' . str_repeat('}', 300), 10_000);
+        self::assertCount(1, $deep->notes());
+    }
+
+    public function test_nesting_at_the_effective_limit_does_not_trip_the_guard(): void
+    {
+        if (! extension_loaded('xdebug') || ! str_contains((string) ini_get('xdebug.mode'), 'develop')) {
+            self::markTestSkipped('Needs Xdebug with its develop-mode nesting guard.');
+        }
+        // The test bootstrap raises Xdebug's limit; put the default back for this test.
+        $was = (string) ini_get('xdebug.max_nesting_level');
+        ini_set('xdebug.max_nesting_level', '512');
+        try {
+            $this->deepFormulasStayUnderTheGuard();
+        } finally {
+            ini_set('xdebug.max_nesting_level', $was);
+        }
+    }
+
+    private function deepFormulasStayUnderTheGuard(): void
+    {
+        foreach (['a_{', '\\frac{1}{', '\\mathbf{', '\\sqrt{', '\\left(', '\\begin{matrix}'] as $open) {
+            $close = match ($open) {
+                '\\left(' => '\\right)',
+                '\\begin{matrix}' => '\\end{matrix}',
+                default => '}',
+            };
+            $tex = str_repeat($open, 300) . 'x' . str_repeat($close, 300);
+            $r = TexReader::read($tex);
+            Math::layout($r->node);
+            self::assertNotSame([], $r->notes());
+        }
     }
 
     public function test_a_stray_end_after_an_overflow_is_still_noted(): void

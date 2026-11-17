@@ -33,10 +33,6 @@ use Papercut\Math\Tex\TexSymbols;
  */
 final class TexWriter
 {
-    /** Functions TeX has a command for (\sin, \lim). */
-    private const array FUNCTIONS_ALL = ['arccos', 'arcsin', 'arctan', 'arg', 'cos', 'cosh', 'cot', 'coth', 'csc', 'deg', 'dim', 'exp', 'hom', 'ker', 'lg', 'ln', 'log', 'sec', 'sin', 'sinh', 'tan', 'tanh',
-        'det', 'gcd', 'inf', 'lim', 'liminf', 'limsup', 'max', 'min', 'Pr', 'sup']; // not sgn: KaTeX has no \sgn, so it is an \operatorname
-
     /** Text-mode escapes. */
     private const array TEXT_ESCAPES = [
         '\\' => '\textbackslash{}', '{' => '\{', '}' => '\}', '$' => '\$', '&' => '\&', '#' => '\#', '^' => '\textasciicircum{}',
@@ -82,12 +78,16 @@ final class TexWriter
 
     private static function row(Row $row, bool $inFence): string
     {
+        $mod = self::modular($row);
+        if ($mod !== null) {
+            return $mod;
+        }
         $pieces = [];
         $afterNumber = false;
         foreach ($row->children as $kid) {
             $bare = self::strip($kid);
             if ($bare instanceof Row) {
-                $piece = '{' . self::w($bare, false) . '}';
+                $piece = self::modular($bare) ?? '{' . self::w($bare, false) . '}';
             } else {
                 $piece = self::w($kid, $inFence);
             }
@@ -101,6 +101,31 @@ final class TexWriter
         }
 
         return implode(' ', $pieces);
+    }
+
+    /** The row the reader builds for `\bmod`, `\mod{n}`, `\pmod{n}` or `\pod{n}`, written as that command; null for any other row. */
+    private static function modular(Row $r): ?string
+    {
+        $c = array_map(self::strip(...), $r->children);
+        $space = static fn (Node $n, float $em): bool => $n instanceof Space && abs($n->em - $em) < 1e-9;
+        $mod = static fn (Node $n): bool => $n instanceof Identifier && $n->upright && $n->name === 'mod';
+        $paren = static fn (Node $n, string $ch): bool => $n instanceof Operator && $n->char === $ch && $n->lspace === null && $n->rspace === null
+            && $n->form === null && $n->stretchy === null && $n->minSize === null && $n->maxSize === null;
+        $n = count($c);
+        if ($n === 3 && $space($c[0], 4 / 18) && $mod($c[1]) && $space($c[2], 4 / 18)) {
+            return '\bmod';
+        }
+        if ($n === 4 && $space($c[0], 1.0) && $mod($c[1]) && $space($c[2], 6 / 18)) {
+            return '\mod{' . self::w($c[3], false) . '}';
+        }
+        if ($n === 6 && $space($c[0], 1.0) && $paren($c[1], '(') && $mod($c[2]) && $space($c[3], 6 / 18) && $paren($c[5], ')')) {
+            return '\pmod{' . self::w($c[4], false) . '}';
+        }
+        if ($n === 4 && $space($c[0], 1.0) && $paren($c[1], '(') && $paren($c[3], ')')) {
+            return '\pod{' . self::w($c[2], false) . '}';
+        }
+
+        return null;
     }
 
     /** The node with Fallback wrappers peeled. */
@@ -179,15 +204,20 @@ final class TexWriter
     /** A multi-letter name: a standard function's command, otherwise \operatorname. */
     private static function functionName(string $name): string
     {
-        if (in_array($name, self::FUNCTIONS_ALL, true)) {
+        if (TexSymbols::isFunctionCommand($name)) {
             return '\\' . $name;
         }
+        return '\operatorname{' . self::operatorNameBody($name) . '}';
+    }
+
+    private static function operatorNameBody(string $name): string
+    {
         $inner = [];
         foreach (mb_str_split($name) as $ch) {
             $inner[] = TexSymbols::command($ch) ?? (self::MATH_ESCAPES[$ch] ?? $ch);
         }
 
-        return '\operatorname{' . self::cat($inner) . '}';
+        return self::cat($inner);
     }
 
     /**
@@ -224,7 +254,7 @@ final class TexWriter
         if (count($chars) === 1) {
             return self::uprightSingle($chars[0]);
         }
-        if (in_array($i->name, self::FUNCTIONS_ALL, true)) {
+        if (TexSymbols::isFunctionCommand($i->name)) {
             return '\\' . $i->name;
         }
         // Runs of one math variant (or none) side by side.
@@ -240,6 +270,7 @@ final class TexWriter
                 $runs[] = [$variant, [$plain]];
             }
         }
+        $runs = self::foldDigits($runs);
         $out = [];
         foreach ($runs as [$variant, $run]) {
             if ($variant !== null) {
@@ -252,6 +283,35 @@ final class TexWriter
         }
 
         return implode(' ', $out);
+    }
+
+    /**
+     * Digits and punctuation that no font command restyles (`\mathcal{Ab1}`: the 1 stays 1) join the font group beside them, so a
+     * name set in one font group reads back as one identifier. A run of letters never joins one.
+     *
+     * @param list<array{?string, list<string>}> $runs
+     *
+     * @return list<array{?string, list<string>}>
+     */
+    private static function foldDigits(array $runs): array
+    {
+        $plain = static fn (array $r): bool => $r[0] === null && preg_match('/^[^\p{L}]+$/u', implode('', $r[1])) === 1;
+        $out = [];
+        foreach ($runs as $run) {
+            $prev = array_key_last($out);
+            if ($plain($run) && $prev !== null && $out[$prev][0] !== null) {
+                array_push($out[$prev][1], ...$run[1]);
+            } elseif ($run[0] !== null && $prev !== null && $plain($out[$prev]) && $prev === 0) {
+                // Leading plain characters join the group that follows them.
+                $out[$prev] = [$run[0], [...$out[$prev][1], ...$run[1]]];
+            } elseif ($run[0] !== null && $prev !== null && $out[$prev][0] === $run[0]) {
+                array_push($out[$prev][1], ...$run[1]);
+            } else {
+                $out[] = $run;
+            }
+        }
+
+        return $out;
     }
 
     /** A character inside a font group: its command if it has one, else itself. */
@@ -335,7 +395,10 @@ final class TexWriter
                 }
                 $side = OperatorDictionary::isOpening($o->char) ? 'l' : (OperatorDictionary::isClosing($o->char) ? 'r' : '');
 
-                return '\\' . TexSymbols::BIG_COMMANDS[$best] . $side . $delim;
+                $big = '\\' . TexSymbols::BIG_COMMANDS[$best] . $side . $delim;
+
+                // A braced one, `{\big(}`, is an ordinary atom: no spacing either side.
+                return $o->lspace !== null && $o->rspace !== null && abs($o->lspace) < 1e-6 && abs($o->rspace) < 1e-6 ? '{' . $big . '}' : $big;
             }
         }
         $sym = self::symbol($o->char);
@@ -382,8 +445,16 @@ final class TexWriter
     {
         $s = self::w($n, false);
 
-        return preg_match('/^(\\\\[a-zA-Z]+|\\\\[^a-zA-Z]|[^\\\\\s{}])$/u', $s) === 1 ? $s : '{' . $s . '}';
+        if (preg_match('/^\\\\([a-zA-Z]+)$/', $s, $m) === 1) {
+            // KaTeX rejects a function or macro command (\sin, \neq, \int) as an unbraced script argument: brace all but plain symbols.
+            return isset(TexSymbols::GREEK[$m[1]]) || isset(TexSymbols::GREEK_UP[$m[1]]) || in_array($m[1], self::BARE_SCRIPT_SYMBOLS, true) ? $s : '{' . $s . '}';
+        }
+
+        return preg_match('/^[^\\\\\s{}]$/u', $s) === 1 ? $s : '{' . $s . '}';
     }
+
+    /** Ordinary symbols that are safe unbraced as a script argument. */
+    private const array BARE_SCRIPT_SYMBOLS = ['infty', 'partial', 'nabla', 'hbar', 'ell', 'emptyset', 'prime', 'aleph'];
 
     private static function scriptParts(?Node $sub, ?Node $sup): string
     {
@@ -517,6 +588,12 @@ final class TexWriter
             }
 
             return ['\\' . TexSymbols::XARROWS[$op->char] . $label . '{' . ($over === null ? '' : self::w($over, false)) . '}', true];
+        }
+        // A name with limits: \operatorname*{argmax}_x, as the reader reads it.
+        $name = self::peel($base);
+        if ($plainFlags && $under !== null && $name instanceof Identifier && $name->upright && mb_strlen($name->name) > 1 && ! TexSymbols::isFunctionCommand($name->name)
+            && array_filter(mb_str_split($name->name), static fn (string $ch): bool => TexSymbols::unstyle($ch) !== null) === []) {
+            return ['\operatorname*{' . self::operatorNameBody($name->name) . '}' . self::scriptParts($under, $over), false];
         }
         // Anything else.
         $s = self::w($base, false);

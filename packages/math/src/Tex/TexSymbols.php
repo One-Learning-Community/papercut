@@ -10,6 +10,8 @@ use Papercut\Math\Styles;
  * LaTeX command to Unicode tables, shared by the TeX writer and the reader (the common few hundred symbols, not all of
  * unicode-math), and the reverse lookups built from them. Where several commands share a character the writer uses
  * one canonical command (see PREFER).
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final class TexSymbols
 {
@@ -213,7 +215,7 @@ final class TexSymbols
         "\u{0302}" => ['hat', 'widehat'], "\u{0303}" => ['tilde', 'widetilde'], "\u{20D7}" => ['vec', 'overrightarrow'],
         "\u{20D6}" => [null, 'overleftarrow'], "\u{20E1}" => [null, 'overleftrightarrow'], "\u{0304}" => ['bar', null],
         "\u{030C}" => ['check', null], "\u{0306}" => ['breve', null], "\u{0301}" => ['acute', null], "\u{0300}" => ['grave', null],
-        "\u{0307}" => ['dot', null], "\u{0308}" => ['ddot', null],
+        "\u{0307}" => ['dot', null], "\u{0308}" => ['ddot', null], "\u{20DB}" => ['dddot', null], "\u{20DC}" => ['ddddot', null],
         "\u{030A}" => ['mathring', null],
     ];
 
@@ -225,15 +227,6 @@ final class TexSymbols
         '⇌' => 'xrightleftharpoons', '⇋' => 'xleftrightharpoons', '↠' => 'xtwoheadrightarrow', '↞' => 'xtwoheadleftarrow',
         '⇄' => 'xtofrom', '⟶' => 'xrightarrow', '⟵' => 'xleftarrow', '⟷' => 'xleftrightarrow', '⟹' => 'xRightarrow',
         '⟸' => 'xLeftarrow', '⟺' => 'xLeftrightarrow',
-    ];
-
-    /** The extensible-arrow commands the reader knows, to their arrow (the first listed arrow of each command). */
-    public const array XARROW_CHARS = [
-        'xrightarrow' => '→', 'xleftarrow' => '←', 'xleftrightarrow' => '↔', 'xRightarrow' => '⇒', 'xLeftarrow' => '⇐',
-        'xLeftrightarrow' => '⇔', 'xlongequal' => '=', 'xmapsto' => '↦', 'xhookleftarrow' => '↩', 'xhookrightarrow' => '↪',
-        'xrightharpoonup' => '⇀', 'xrightharpoondown' => '⇁', 'xleftharpoonup' => '↼', 'xleftharpoondown' => '↽',
-        'xrightleftharpoons' => '⇌', 'xleftrightharpoons' => '⇋', 'xtwoheadrightarrow' => '↠', 'xtwoheadleftarrow' => '↞',
-        'xtofrom' => '⇄',
     ];
 
     /** Math variant to the font command the writer uses (nearest standard TeX where the variant has none). */
@@ -258,6 +251,26 @@ final class TexSymbols
 
     /** @var array<string, true>|null delimiter characters */
     private static ?array $delims = null;
+
+    /** The extensible arrow a command (`xrightarrow`, no backslash) stands for: the first arrow listed for it in XARROWS; null when it is none. */
+    public static function xarrowChar(string $command): ?string
+    {
+        static $chars = null;
+        if ($chars === null) {
+            $chars = [];
+            foreach (self::XARROWS as $arrow => $cmd) {
+                $chars[$cmd] ??= $arrow;
+            }
+        }
+
+        return $chars[$command] ?? null;
+    }
+
+    /** Whether TeX has a command for this function name (`sin`, `lim`): the names the reader reads as functions, less `sgn`, which KaTeX has no command for. */
+    public static function isFunctionCommand(string $name): bool
+    {
+        return $name !== 'sgn' && (in_array($name, self::FUNCS, true) || in_array($name, self::FUNCS_LIM, true));
+    }
 
     /** The command for a character (`α` to `\alpha`), or null when it has none or is plain ASCII. */
     public static function command(string $char): ?string

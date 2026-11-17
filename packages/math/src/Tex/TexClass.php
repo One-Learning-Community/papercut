@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Papercut\Math\Tex;
 
-/** TeX's atom classes and the space they put before and after themselves, in mu (1/18 em). */
+/**
+ * TeX's atom classes and the space they put before and after themselves, in mu (1/18 em).
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
+ */
 final class TexClass
 {
     /** @var array<string, array{int, int}> class name to [lspace, rspace] */

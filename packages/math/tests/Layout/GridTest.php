@@ -134,6 +134,18 @@ final class GridTest extends TestCase
         $this->assertEquals(self::lay($clean), self::lay($odd));
     }
 
+    public function test_a_column_spacing_that_is_not_a_number_is_an_invalid_argument(): void
+    {
+        foreach ([['wide'], [[1.0]], [null]] as $spacing) {
+            try {
+                new Grid([[Math::row('a'), Math::row('b')]], columnSpacing: self::untyped($spacing));
+                $this->fail('expected an InvalidArgumentException');
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringContainsString('Column spacing', $e->getMessage());
+            }
+        }
+    }
+
     public function test_a_nested_array_alignment_throws_without_a_warning(): void
     {
         set_error_handler(static function (int $no, string $msg): never {

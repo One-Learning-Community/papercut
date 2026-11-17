@@ -137,7 +137,7 @@ final class Fenced extends Node
         $single = count($s['pieces']) === 1 && $s['pieces'][0][0] === $gid;
         foreach ($s['pieces'] as $pc) {
             [$pg, $off] = $pc;
-            $out->add(new Glyph($pg, $single ? $ch : null, $x, -($off + $shift) * $u, $c->size(), 1.0, $pc[2] ?? 1.0));
+            $out->add(new Glyph($pg, $single ? $ch : null, $x, -($off + $shift) * $u, $c->size(), 1.0, $pc[2]));
         }
         $asc = max($asc, ($s['ymax'] + $shift) * $u);
         $desc = max($desc, -($s['ymin'] + $shift) * $u);

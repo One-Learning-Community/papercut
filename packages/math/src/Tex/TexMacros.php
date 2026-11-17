@@ -11,6 +11,8 @@ use Papercut\Math\NoteLevel;
  * `\def` (undelimited parameters only) and `\DeclareMathOperator`. Definitions last to the end of their group. The
  * expansion count and the size of what expansion produces are capped; past a cap a macro is left as its own name, as
  * text, so hostile input (`\def\a#1{\a{#1#1}}\a{x}`) cannot grow without bound.
+ *
+ * @internal Part of papercut/math's engine, not its public API. It may change in any release.
  */
 final class TexMacros
 {
@@ -391,7 +393,7 @@ final class TexMacros
         }
         $this->expansions++;
         $this->produced += $size;
-        if ($this->produced > TexReader::MAX_TOKENS) {
+        if ($this->produced > TexReader::MAX_EXPANSION_BYTES) {
             // Back on the stream as the macro's own name (the main loop draws it as text now that expansion has stopped), then its arguments.
             $this->stop($at);
             for ($i = $n; $i >= 1; $i--) {
@@ -413,11 +415,12 @@ final class TexMacros
             $t = $body[$i];
             if ($t[0] === 'ch' && $t[1] === '#' && ($body[$i + 1][0] ?? '') === 'param') {
                 // `##1` in a body is a literal `#1` of a definition made by the expansion.
-                $built[] = $body[++$i];
+                $built[] = [$body[++$i][0], $body[$i][1], $at];
             } elseif ($t[0] === 'param') {
                 array_push($built, ...($args[(int) $t[1]] ?? []));
             } else {
-                $built[] = $t;
+                // What the macro produces is at the macro's use, not at its definition: notes point there.
+                $built[] = [$t[0], $t[1], $at];
             }
         }
         for ($i = count($built) - 1; $i >= 0; $i--) {

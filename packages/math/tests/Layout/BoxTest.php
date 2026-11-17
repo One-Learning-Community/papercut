@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Papercut\Math\Tests\Layout;
 
 use Papercut\Math\Layout\Box;
+use Papercut\Math\Layout\Context;
 use Papercut\Math\Layout\DisplayItem;
 use Papercut\Math\Layout\Glyph;
-use Papercut\Math\Layout\Context;
 use Papercut\Math\Layout\Rule;
 use Papercut\Math\Math;
 use Papercut\Math\Node\Node;

@@ -43,7 +43,9 @@ final class Grid extends Node
         public readonly bool $alignment = false,
     ) {
         foreach ($columnSpacing as $g) {
-            if (! is_finite($g) || $g < 0) {
+            // The docblock says float; callers without static analysis can still pass anything (a string would be a TypeError).
+            // @phpstan-ignore function.alreadyNarrowedType
+            if (! in_array(get_debug_type($g), ['float', 'int'], true) || ! is_finite($g) || $g < 0) {
                 throw new \InvalidArgumentException('Column spacing must be a list of finite, non-negative em values.');
             }
         }

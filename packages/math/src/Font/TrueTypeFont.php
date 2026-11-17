@@ -251,7 +251,7 @@ final class TrueTypeFont
 
     /**
      * Whether every outline point lies on the glyph's bounding box minimum or maximum along an axis (y when $vertical, else x):
-     * a prism along it, which scaling along that axis only lengthens. False for an empty glyph.
+     * a prism along it, which scaling along that axis only lengthens. Exact, with no tolerance: a bevel of a few units would stretch into a sliver. False for an empty glyph.
      *
      * @internal Engine detail, not part of papercut/math's public API.
      */
@@ -266,7 +266,7 @@ final class TrueTypeFont
         $ok = $hi > $lo;
         foreach ($this->contours($gid) as $pts) {
             foreach ($pts as $pt) {
-                if (abs($pt[$i] - $lo) > 2 && abs($pt[$i] - $hi) > 2) {
+                if ($pt[$i] != $lo && $pt[$i] != $hi) {
                     $ok = false;
                     break 2;
                 }

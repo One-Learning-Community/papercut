@@ -20,6 +20,9 @@ final class Operator extends Node
 {
     public readonly string $char;
 
+    /** The widest explicit spacing, in mu, that script style keeps: the space of TeX's op class (relations, binaries and punctuation lose theirs). */
+    private const float SCRIPT_SPACE = 1.0;
+
     /**
      * Invalid UTF-8 in $char is replaced silently here; the Math builders also record a note.
      *
@@ -46,6 +49,11 @@ final class Operator extends Node
         public readonly ?float $maxSize = null,
     ) {
         $this->char = Utf8::clean($char);
+        foreach (['lspace' => $lspace, 'rspace' => $rspace, 'minSize' => $minSize, 'maxSize' => $maxSize] as $name => $v) {
+            if ($v !== null && ! is_finite($v)) {
+                throw new \InvalidArgumentException("Operator $name must be a finite number");
+            }
+        }
     }
 
     /** Whether this is a large operator (a sum, an integral) in the given form: drawn bigger in display style. */
@@ -75,9 +83,12 @@ final class Operator extends Node
     {
         $entry = OperatorDictionary::lookup($this->char, $form);
         [$l, $r] = [$this->lspace ?? $entry['lspace'], $this->rspace ?? $entry['rspace']];
-        $explicit = $this->lspace !== null || $this->rspace !== null;
-        if ($c->tight && ($explicit || OperatorDictionary::dropsSpacingInScripts($this->char))) {
-            [$l, $r] = [0, 0];
+        if ($c->tight) {
+            // Side by side: an explicit side keeps what an op has (TeX keeps op spacing in scripts) and loses more; any other
+            // side follows the dictionary.
+            $drops = OperatorDictionary::dropsSpacingInScripts($this->char);
+            $l = $this->lspace !== null ? ($this->lspace > self::SCRIPT_SPACE ? 0 : $l) : ($drops ? 0 : $l);
+            $r = $this->rspace !== null ? ($this->rspace > self::SCRIPT_SPACE ? 0 : $r) : ($drops ? 0 : $r);
         }
         if (mb_strlen($this->char) === 1) {
             // An explicit size wins over the display-style size of a large operator.

@@ -176,6 +176,10 @@ $formula = Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}');
 $box = Math::layout($formula);
 ```
 
+Write TeX in single-quoted PHP strings or a nowdoc (`<<<'TEX'`), never in double quotes: PHP would turn `\f`, `\n`,
+`\t`, `\v`, `\r` and `\e` into control characters and `\frac` or `\nabla` would read as garbage. In single
+quotes write TeX's `\\` line break as `\\\\`.
+
 `Math::tex(string $tex): Node` never throws. To also learn whether the source asked for display style, or what was
 lost, use the reader:
 
@@ -211,12 +215,16 @@ Limits keep a hostile or runaway formula cheap. They are constants on `TexReader
 | `MAX_INPUT` | 16,384 bytes | Input beyond this is dropped. |
 | `MAX_DEPTH` | 256 | Nesting (groups, arguments, environments) beyond this is drawn as its TeX source text. |
 | `MAX_EXPANSIONS` | 10,000 | Macro expansions per formula. |
-| `MAX_TOKENS` | 16,384 | What macro expansion may produce, in source bytes with the input included (equal to `MAX_INPUT`). |
+| `MAX_EXPANSION_BYTES` | 16,384 | What macro expansion may produce, in source bytes with the input included (equal to `MAX_INPUT`). |
 | `MAX_CELLS` | 10,000 | Cells in all environments of a formula; rows past it are dropped and a long row is cut. |
 
 Macro expansion is counted in source bytes against the same 16 KB, with the input included, so expanded text never
 exceeds the size of a maximum raw formula. Hitting a limit gives an approximated note, never an exception. Stretched
 delimiters and arrows are capped at 100 em.
+
+With Xdebug's develop mode on, the call stack itself is limited (`xdebug.max_nesting_level`, 512 by default), and the
+reader lowers `MAX_DEPTH` to what fits under it, so deep nesting gets its note sooner than 256 levels (with the default
+about 45 levels). Raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full depth.
 
 ## Lay it out
 
@@ -244,7 +252,18 @@ points. The origin is the baseline at the left edge, and y points down, so items
   variants and assembly pieces of a stretched symbol; those have no code point, so draw them by `gid`. For `ssty` script
   alternates `text` is the base character, but `gid` differs from the font's cmap entry for it. So a backend may set a
   glyph as text only when `text` is one code point and the font's cmap maps it to `gid`; draw every other glyph by `gid`.
+  `Glyph` also has `sx` and `sy` (both 1.0 for an ordinary glyph): factors that scale the glyph's outline along x and y
+  about its origin `(x, y)`. A stretched symbol draws a run of identical straight pieces as one glyph scaled along the
+  stretch, so a backend that draws glyphs itself must apply them (an SVG `transform="translate(x y) scale(sx sy)"`, or
+  the same in your PDF matrix); ignoring them draws one unscaled piece where a long run should be. `size` still scales
+  uniformly.
 - `Rule(x, y, w, h)`: a filled rectangle (fraction bar, radical overbar), `(x, y)` its top-left corner.
+
+`$box->items` is built on each read: a box keeps the boxes placed in it (so laying out deeply nested formulas stays
+fast) and flattens them, shifting every item to its absolute position, whenever you read the property. Read it once into
+a variable, or walk the tree without building the list with `$box->each(fn (DisplayItem $item, float $dx, float $dy) => …)`,
+which gives each item as laid out in its own box plus the offset `(dx, dy)` to add to its `x` and `y`. Writing to the list
+in place (`$box->items[] = …`) no longer works; assign a whole list, or leave a laid-out box alone.
 
 ## Writers
 

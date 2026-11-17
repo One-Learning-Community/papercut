@@ -19,7 +19,7 @@ final class Stretcher
     public const float MAX_STRETCH_EM = 100.0;
 
     /**
-     * @return array{pieces: list<array{int,float,float}|array{int,float}>, ymin: float, ymax: float, advance: float}
+     * @return array{pieces: list<array{int,float,float}>, ymin: float, ymax: float, advance: float}
      *         pieces: [gid, y origin offset in font units, up, scale along y (assembly pieces only; 1.0 unless a run of one straight extender is drawn once)]. Assemblies span ymin = 0 .. ymax = size.
      */
     public static function vertical(TrueTypeFont $font, int $gid, float $requiredUnits): array
@@ -27,7 +27,7 @@ final class Stretcher
         $requiredUnits = min($requiredUnits, self::MAX_STRETCH_EM * $font->unitsPerEm);
         $con = $font->math()->vertical($gid);
         $bb = $font->bbox($gid);
-        $natural = ['pieces' => [[$gid, 0.0]], 'ymin' => (float) $bb[1], 'ymax' => (float) $bb[3], 'advance' => (float) $font->advance($gid)];
+        $natural = ['pieces' => [[$gid, 0.0, 1.0]], 'ymin' => (float) $bb[1], 'ymax' => (float) $bb[3], 'advance' => (float) $font->advance($gid)];
         if ($con === null) {
             return $natural;
         }
@@ -38,14 +38,14 @@ final class Stretcher
             if ($adv >= $requiredUnits) {
                 $vb = $font->bbox($vg);
 
-                return ['pieces' => [[$vg, 0.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
+                return ['pieces' => [[$vg, 0.0, 1.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
             }
         }
         if ($con->parts === null || $con->parts === []) {
             [$vg] = $con->variants[count($con->variants) - 1];
             $vb = $font->bbox($vg);
 
-            return ['pieces' => [[$vg, 0.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
+            return ['pieces' => [[$vg, 0.0, 1.0]], 'ymin' => (float) $vb[1], 'ymax' => (float) $vb[3], 'advance' => (float) $font->advance($vg)];
         }
 
         return self::assemble($font, $con->parts, $requiredUnits);
@@ -67,7 +67,7 @@ final class Stretcher
         $b->trail = $trail;
         foreach ($s['pieces'] as $pc) {
             [$pg, $off] = $pc;
-            $b->add(new Glyph($pg, $single ? $char : null, $lead, -($off + $shift) * $u, $c->size(), 1.0, $pc[2] ?? 1.0));
+            $b->add(new Glyph($pg, $single ? $char : null, $lead, -($off + $shift) * $u, $c->size(), 1.0, $pc[2]));
         }
         if ($single) {
             $b->firstGid = $b->lastGid = $s['pieces'][0][0];
@@ -80,7 +80,7 @@ final class Stretcher
     }
 
     /**
-     * @return array{pieces: list<array{int,float,float}|array{int,float}>, xmin: float, xmax: float, ascent: float, descent: float}
+     * @return array{pieces: list<array{int,float,float}>, xmin: float, xmax: float, ascent: float, descent: float}
      *         pieces: [gid, x origin offset in font units, scale along x (assembly pieces only)], left to right. xmin/xmax are always the ink extent of the
      *         result along x, relative to the first piece's origin (a glyph's bbox x-range, or the min/max of the
      *         pieces' bbox x-ranges at their offsets); ascent and descent are the ink extent above and below the
@@ -94,7 +94,7 @@ final class Stretcher
         $single = static function (int $g) use ($font): array {
             $b = $font->bbox($g);
 
-            return ['pieces' => [[$g, 0.0]], 'xmin' => (float) $b[0], 'xmax' => (float) $b[2], 'ascent' => (float) $b[3], 'descent' => (float) -$b[1]];
+            return ['pieces' => [[$g, 0.0, 1.0]], 'xmin' => (float) $b[0], 'xmax' => (float) $b[2], 'ascent' => (float) $b[3], 'descent' => (float) -$b[1]];
         };
         // A combining accent has no advance of its own: its construction's first variant is the natural width.
         $naturalWidth = $con !== null && $con->variants !== [] ? $con->variants[0][1] : $font->advance($gid);
@@ -128,18 +128,6 @@ final class Stretcher
     }
 
     /**
-     * Whether a glyph's outline is a prism along the stretch axis: every point sits at the minimum or the maximum of its
-     * bounding box on that axis, so scaling it along the axis only lengthens it. The extenders of a font's assemblies are,
-     * and a glyph that is not must be repeated, not scaled. Cached per glyph on the font.
-     *
-     * @internal Engine detail, not part of papercut/math's public API.
-     */
-    public static function isStraight(TrueTypeFont $font, int $gid, bool $vertical): bool
-    {
-        return $font->straightAlong($gid, $vertical);
-    }
-
-    /**
      * Each run of one repeated straight extender becomes one piece: [part, start of the run, scale of its ink along the axis].
      * The scale is 1.0 for everything else, so the ink of the run is where the repeated pieces' ink was, minus the seams.
      *
@@ -151,7 +139,7 @@ final class Stretcher
         $out = [];
         $last = -1;
         foreach ($placed as [$p, $pos]) {
-            if ($last >= 0 && $out[$last][0] === $p && $p->extender && self::isStraight($font, $p->gid, $vertical)) {
+            if ($last >= 0 && $out[$last][0] === $p && $p->extender && $font->straightAlong($p->gid, $vertical)) {
                 $bb = $font->bbox($p->gid);
                 $ink = $vertical ? $bb[3] - $bb[1] : $bb[2] - $bb[0];
                 $out[$last][2] = ($pos - $out[$last][1] + $ink) / $ink;
@@ -166,7 +154,7 @@ final class Stretcher
 
     /**
      * @param list<\Papercut\Math\Font\AssemblyPart> $parts bottom to top
-     * @return array{pieces: list<array{int,float,float}|array{int,float}>, ymin: float, ymax: float, advance: float}
+     * @return array{pieces: list<array{int,float,float}>, ymin: float, ymax: float, advance: float}
      */
     private static function assemble(TrueTypeFont $font, array $parts, float $required): array
     {

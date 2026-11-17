@@ -91,7 +91,6 @@ final class Box
      * in its own box and (dx, dy) is the sum of the offsets down to it. No flat list is built.
      *
      * @param callable(DisplayItem, float, float): void $fn
-     * @internal Engine detail, not part of papercut/math's public API.
      */
     public function each(callable $fn): void
     {

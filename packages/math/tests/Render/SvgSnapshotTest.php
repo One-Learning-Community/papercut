@@ -21,6 +21,7 @@ final class SvgSnapshotTest extends TestCase
     {
         yield 'continued-fraction' => ['continued-fraction', '\frac{1}{1+\frac{1}{1+\frac{1}{x}}}'];
         yield 'nested-subscripts' => ['nested-subscripts', 'a_{i_{j_{k}}}'];
+        yield 'tall-fences' => ['tall-fences', '\left(\left\|\sqrt[3]{\frac{\frac{1}{2}}{\frac{3}{4}}}\right\|\right)\xrightarrow{abcdefghijkl}'];
     }
 
     #[DataProvider('formulas')]

@@ -13,6 +13,7 @@ final class ArchitectureTest extends TestCase
         'Font/AssemblyPart.php', 'Font/Binary.php', 'Font/Coverage.php', 'Font/GlyphConstruction.php', 'Font/Gsub.php',
         'Font/MathKern.php', 'Font/MathTable.php', 'Layout/Context.php', 'Layout/Run.php', 'Layout/Stretcher.php',
         'Node/Forms.php', 'OperatorDictionary.php', 'Render/Xml.php', 'ScriptChars.php',
+        'Tex/TexClass.php', 'Tex/TexCursor.php', 'Tex/TexEnvironments.php', 'Tex/TexLexer.php', 'Tex/TexMacros.php', 'Tex/TexSymbols.php',
         'Styles.php', 'Tokenizer.php', 'Utf8.php',
     ];
 

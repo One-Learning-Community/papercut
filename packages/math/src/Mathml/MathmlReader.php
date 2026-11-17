@@ -224,7 +224,7 @@ final class MathmlReader
             'semantics' => $this->slots($e, $where, 1)[0] ?? new Row([]),
             'annotation', 'annotation-xml', 'mprescripts', 'none' => null,
             'mi', 'mn', 'mtext', 'ms', 'mo' => $this->token($e, $name, $where),
-            'mspace' => $this->space(self::width($e->getAttribute('width')), $where),
+            'mspace' => $this->space(self::width($e->getAttribute('width')) ?? 0.0, $where),
             'mphantom' => new Phantom($this->children($e, $where)),
             'msqrt' => new Root($this->children($e, $where)),
             'mfrac' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new Fraction($a[0], $a[1], ! self::zeroThickness($e->getAttribute('linethickness')))),
@@ -291,8 +291,9 @@ final class MathmlReader
 
         $spacing = [];
         foreach (preg_split('/\s+/', trim($e->getAttribute('columnspacing') ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
-            if (preg_match('/^(?:0|[+-]?(?:\d+\.?\d*|\.\d+)\s*(?:em|ex|pt|px|mm|cm|in)|(?:negative)?(?:veryverythin|verythin|thin|medium|thick|verythick|veryverythick)mathspace)$/i', $token) === 1) {
-                $spacing[] = max(0.0, self::width($token));
+            $em = self::width($token);
+            if ($em !== null) {
+                $spacing[] = max(0.0, $em);
             } else {
                 $spacing[] = 1.0;
                 $ignored[] = ['mtable', 'columnspacing', $where];
@@ -493,7 +494,7 @@ final class MathmlReader
 
         $form = strtolower(trim($e->getAttribute('form') ?? ''));
 
-        $bad = null;
+        $bad = [];
         $min = self::size($e->getAttribute('minsize'), 'minsize', $bad);
         $max = self::size($e->getAttribute('maxsize'), 'maxsize', $bad);
         $op = new Operator(
@@ -502,36 +503,43 @@ final class MathmlReader
             self::bool($e, 'largeop'),
             self::bool($e, 'movablelimits'),
             in_array($form, [OperatorDictionary::FORM_PREFIX, OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_POSTFIX], true) ? $form : null,
+            lspace: self::spacing($e->getAttribute('lspace')),
+            rspace: self::spacing($e->getAttribute('rspace')),
             minSize: $min,
             maxSize: $max,
         );
 
-        return $bad !== null ? ($this->note('#opsize', $op, NoteLevel::Approximated, 'mo', $bad . ' is not drawn', $where) ?? $op) : $op;
+        $node = $op;
+        foreach ($bad as $attr) {
+            $node = $this->note('#opsize-' . $attr, $node, NoteLevel::Approximated, 'mo', $attr . ' is not drawn', $where) ?? $node;
+        }
+
+        return $node;
+    }
+
+    /** An lspace or rspace in mu (1/18 em); null when absent or unusable, so the operator dictionary decides. */
+    private static function spacing(?string $v): ?float
+    {
+        $em = self::width($v);
+
+        return $em === null ? null : max(0.0, min($em, 100.0)) * 18;
     }
 
     /**
      * A minsize/maxsize in em; null when absent, infinity, or unusable (relative to the natural size, zero or negative),
-     * which sets $bad to the attribute name.
+     * which adds the attribute name to $bad.
+     *
+     * @param list<string> $bad
      */
-    private static function size(?string $v, string $attr, ?string &$bad): ?float
+    private static function size(?string $v, string $attr, array &$bad): ?float
     {
         $v = strtolower(trim($v ?? ''));
         if ($v === '' || $v === 'infinity') {
             return null;
         }
-        if (preg_match('/^(\d+\.?\d*|\.\d+)\s*(em|ex|pt|px|mm|cm|in)$/', $v, $m) !== 1) {
-            $bad ??= $attr;
-
-            return null;
-        }
-        $em = match ($m[2]) {
-            'em' => (float) $m[1],
-            'ex' => (float) $m[1] / 2,
-            default => (float) $m[1] * self::UNIT_PT[$m[2]] / 12,
-        };
-
-        if (! is_finite($em) || $em <= 0) {
-            $bad ??= $attr;
+        $em = self::width($v);
+        if ($em === null || $em <= 0) {
+            $bad[] = $attr;
 
             return null;
         }
@@ -549,19 +557,22 @@ final class MathmlReader
         return $this->note('#space', $space, NoteLevel::Approximated, 'mspace', 'width limited to 100em', $where) ?? $space;
     }
 
-    /** A width in em (12pt basis); 0 when missing or unparseable. */
-    private static function width(?string $w): float
+    /** A length in em (12pt basis): a number with a unit, a named mathspace or a bare 0; null when missing or unparseable. */
+    private static function width(?string $w): ?float
     {
         $w = strtolower(trim($w ?? ''));
+        if ($w === '0') {
+            return 0.0;
+        }
         if (preg_match('/^(negative)?(veryverythin|verythin|thin|medium|thick|verythick|veryverythick)mathspace$/', $w, $m) === 1) {
             return (($m[1] === '' ? 1 : -1) * self::NAMED_SPACES[$m[2]]) / 18;
         }
         if (preg_match('/^([+-]?(?:\d+\.?\d*|\.\d+))\s*(em|ex|pt|px|mm|cm|in)$/', $w, $m) !== 1) {
-            return 0.0;
+            return null;
         }
         $v = (float) $m[1];
         if (! is_finite($v)) {
-            return 0.0;
+            return null;
         }
 
         return match ($m[2]) {
