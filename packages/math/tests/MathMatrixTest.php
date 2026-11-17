@@ -152,4 +152,68 @@ final class MathMatrixTest extends TestCase
 
         return $n;
     }
+
+    public function test_aligned_relation_keeps_spacing(): void
+    {
+        $g = Math::aligned([['x', '= 1'], ['x + y', '= 2']]);
+        self::assertTrue($g->alignment);
+        self::assertTrue($g->display);
+        self::assertSame(['right', 'left'], $g->columnAlign);
+        self::assertSame([0.0], $g->columnSpacing);
+        $c = new \Papercut\Math\Layout\Context(Math::stixTwoMath(), 12);
+        $box = Math::layout($g, 12.0, true);
+        $glyphs = array_values(array_filter($box->items, static fn ($i): bool => $i instanceof \Papercut\Math\Layout\Glyph));
+        // Row 1: x, =, 1; row 2: x, +, y, =, 2 (in placement order).
+        self::assertCount(8, $glyphs);
+        $eq1 = $glyphs[1];
+        $eq2 = $glyphs[6];
+        self::assertEqualsWithDelta($eq1->x, $eq2->x, 0.01);
+        $leftEdge = $eq1->x - $c->mu(5);
+        $widest = Math::layout(Math::row('x + y'), 12.0, true)->width;
+        self::assertEqualsWithDelta($widest, $leftEdge, 0.05);
+    }
+
+    public function test_aligned_odd_columns(): void
+    {
+        $g = Math::aligned([['a', '= b', 'c']]);
+        self::assertSame(['right', 'left', 'right'], $g->columnAlign);
+        self::assertSame([0.0, 2.0], $g->columnSpacing);
+        self::assertGreaterThan(0.0, Math::layout($g, 12.0, true)->width);
+    }
+
+    public function test_aligned_rebuilds_a_wrapped_leading_operator(): void
+    {
+        $note = new \Papercut\Math\MathNote(\Papercut\Math\NoteLevel::Approximated, 'x', 'y');
+        $op = new \Papercut\Math\Node\Operator('=', stretchy: false, lspace: 1.0, rspace: 2.0);
+        $g = Math::aligned([['x', new \Papercut\Math\Node\Fallback($op, $note)]]);
+        $cell = $g->rows[0][1];
+        self::assertInstanceOf(\Papercut\Math\Node\Fallback::class, $cell);
+        self::assertSame($note, $cell->note);
+        $inner = $cell->content;
+        self::assertInstanceOf(\Papercut\Math\Node\Operator::class, $inner);
+        self::assertSame('infix', $inner->form);
+        self::assertFalse($inner->stretchy);
+        self::assertSame(1.0, $inner->lspace);
+        self::assertSame(2.0, $inner->rspace);
+    }
+
+    public function test_aligned_needs_cells(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Math::aligned([]);
+    }
+
+    public function test_aligned_only_rebuilds_a_leading_operator(): void
+    {
+        $g = Math::aligned([['x', 'n!'], ['x', '= n']]);
+        $row = $g->rows[0][1];
+        self::assertInstanceOf(Row::class, $row);
+        $bang = $row->children[1];
+        self::assertInstanceOf(\Papercut\Math\Node\Operator::class, $bang);
+        self::assertNull($bang->form);
+        $lead = $g->rows[1][1];
+        self::assertInstanceOf(Row::class, $lead);
+        self::assertInstanceOf(\Papercut\Math\Node\Operator::class, $lead->children[0]);
+        self::assertSame('infix', $lead->children[0]->form);
+    }
 }

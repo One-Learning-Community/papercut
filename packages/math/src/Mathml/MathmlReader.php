@@ -51,7 +51,7 @@ final class MathmlReader
 
     /** Table attributes that are noted, not drawn, per element (columnalign/rowalign on the mtable itself are honoured). */
     private const IGNORED = [
-        'mtable' => ['columnlines', 'rowlines', 'frame', 'columnspacing', 'rowspacing', 'columnwidth', 'equalrows', 'equalcolumns', 'align', 'groupalign'],
+        'mtable' => ['columnlines', 'rowlines', 'frame', 'rowspacing', 'columnwidth', 'equalrows', 'equalcolumns', 'align', 'groupalign'],
         'mtr' => ['columnalign', 'rowalign'],
         'mtd' => ['rowspan', 'columnspan', 'columnalign', 'rowalign'],
     ];
@@ -289,11 +289,23 @@ final class MathmlReader
             $align[] = $tokens[$k % count($tokens)];
         }
 
+        $spacing = [];
+        foreach (preg_split('/\s+/', trim($e->getAttribute('columnspacing') ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
+            if (preg_match('/^(?:0|[+-]?(?:\d+\.?\d*|\.\d+)\s*(?:em|ex|pt|px|mm|cm|in)|(?:negative)?(?:veryverythin|verythin|thin|medium|thick|verythick|veryverythick)mathspace)$/i', $token) === 1) {
+                $spacing[] = max(0.0, self::width($token));
+            } else {
+                $spacing[] = 1.0;
+                $ignored[] = ['mtable', 'columnspacing', $where];
+            }
+        }
+        $ignored = array_values(array_unique($ignored, SORT_REGULAR));
+
         $grid = new Grid(
             $rows,
             $align,
             self::rowAlign($e->getAttribute('rowalign')),
             self::bool($e, 'displaystyle') ?? false,
+            $spacing,
         );
         $node = $grid;
         if ($labelled) {

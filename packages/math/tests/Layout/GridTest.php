@@ -261,4 +261,27 @@ final class GridTest extends TestCase
         $this->assertLessThan(64 * 1024 * 1024, memory_get_peak_usage() - $mem);
         $this->assertGreaterThan(0.0, $box->width);
     }
+
+    public function test_column_spacing_sets_gaps(): void
+    {
+        $grid = new Grid([[Math::row('a'), Math::row('b'), Math::row('c')]], ['left'], columnSpacing: [0.0, 2.0]);
+        self::assertSame([0.0, 2.0], $grid->columnSpacing);
+        $xs = array_map(static fn (Glyph $g): float => $g->x, self::glyphs(self::lay($grid)));
+        $w = static fn (string $s): float => self::lay(Math::row($s))->width;
+        self::assertEqualsWithDelta($w('a'), $xs[1] - $xs[0], 0.01);
+        self::assertEqualsWithDelta($w('b') + 2 * self::SIZE, $xs[2] - $xs[1], 0.01);
+    }
+
+    public function test_column_spacing_repeats_and_defaults(): void
+    {
+        self::assertSame([1.0, 1.0], (new Grid([[Math::row('a'), Math::row('b'), Math::row('c')]]))->columnSpacing);
+        self::assertSame([0.5, 0.5], (new Grid([[Math::row('a'), Math::row('b'), Math::row('c')]], columnSpacing: [0.5]))->columnSpacing);
+        self::assertSame([], (new Grid([[Math::row('a')]], columnSpacing: [3.0]))->columnSpacing);
+    }
+
+    public function test_negative_column_spacing_throws(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new Grid([[Math::row('a'), Math::row('b')]], columnSpacing: [-0.1]);
+    }
 }

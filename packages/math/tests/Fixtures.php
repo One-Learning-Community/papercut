@@ -57,6 +57,7 @@ final class Fixtures
             'matrix-2x2' => Math::matrix([['a', 'b'], ['c', 'd']]),
             'determinant' => Math::matrix([['a', 'b'], ['c', 'd']], 'bar'),
             'cases' => Math::row('f(x) =', Math::cases([['−x', 'x < 0'], ['x', 'x ≥ 0']])),
+            'aligned-derivation' => Math::aligned([[Math::sup('(a + b)', '2'), '= (a + b)(a + b)'], ['', Math::row('= ', Math::sup('a', '2'), '+ 2ab +', Math::sup('b', '2'))]]),
             'matrix-equals' => Math::row('A =', Math::matrix([['1', '0'], ['0', '1']], 'bracket')),
         ];
     }

@@ -163,11 +163,22 @@ final class OmmlWriter
         return $sep;
     }
 
-    /** Word's matrix. Row alignment and display style have no counterpart in OMML and are not written. */
+    /** Word's matrix. Row alignment, display style and column spacing have no counterpart in OMML and are not written. */
     private static function grid(Grid $g, string $rPr): string
     {
         if ($g->columns === 0) {
             return '';
+        }
+        if ($g->alignment) {
+            // Word's equation array: one line per row, the alignment points marked by `&` runs.
+            $out = '<m:eqArr>';
+            foreach ($g->rows as $row) {
+                $content = implode(self::run('&', $rPr), array_map(static fn (Node $cell): string => self::node($cell, $rPr), $row));
+                // As in the matrix: LibreOffice shows a red "¿" for an empty m:e.
+                $out .= '<m:e>' . ($content === '' ? self::run(' ', $rPr) : $content) . '</m:e>';
+            }
+
+            return $out . '</m:eqArr>';
         }
         $out = '<m:m><m:mPr><m:plcHide m:val="1"/><m:mcs>';
         foreach ($g->columnAlign as $align) {

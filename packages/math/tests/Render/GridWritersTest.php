@@ -161,4 +161,36 @@ final class GridWritersTest extends TestCase
         self::assertStringContainsString('<m:num><m:d>', OmmlWriter::oMath($trees[1]));
         self::assertMatchesRegularExpression('#<m:num><m:d>.*<m:m>.*</m:num>#s', OmmlWriter::oMath($trees[1]));
     }
+
+    public function test_mathml_column_spacing_and_aligned(): void
+    {
+        $xml = MathmlWriter::write(Math::aligned([['x', '= 1']]));
+        self::assertStringContainsString('<mtable columnalign="right left right" columnspacing="0em 2em" displaystyle="true">', MathmlWriter::write(Math::aligned([['x', '= 1', 'y']])));
+        self::assertStringContainsString('columnspacing="0em"', $xml);
+        self::assertStringNotContainsString('columnspacing', MathmlWriter::write(Math::matrix(self::abcd(), 'none')));
+    }
+
+    public function test_omml_aligned_is_an_equation_array(): void
+    {
+        $xml = OmmlWriter::oMath(Math::aligned([['x', '= 1'], ['', '= 2']]));
+        self::assertStringContainsString('<m:eqArr>', $xml);
+        self::assertSame(2, substr_count($xml, '<m:e>'));
+        self::assertSame(2, substr_count($xml, '&amp;</m:t></m:r>'));
+        self::assertStringNotContainsString('<m:m>', $xml);
+    }
+
+    public function test_text_aligned_rows_joined_without_newline(): void
+    {
+        $text = TextWriter::write(Math::aligned([['x', '= 1'], ['', '= 2']]));
+        self::assertSame('x = 1; = 2', $text);
+    }
+
+    public function test_omml_one_column_aligned_empty_row_is_not_an_empty_element(): void
+    {
+        foreach ([Math::aligned([['x'], ['']]), Math::aligned([['']])] as $g) {
+            $xml = OmmlWriter::oMath($g);
+            self::assertStringNotContainsString('<m:e></m:e>', $xml);
+            self::assertStringContainsString('<m:t xml:space="preserve"> </m:t>', $xml);
+        }
+    }
 }

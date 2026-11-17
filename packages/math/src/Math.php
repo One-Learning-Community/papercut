@@ -8,6 +8,7 @@ use Papercut\Math\Font\TrueTypeFont;
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
 use Papercut\Math\Mathml\MathmlReader;
+use Papercut\Math\Node\DisplayStyle;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Fraction;
@@ -325,6 +326,75 @@ final class Math
         $grid = new Grid(self::gridCells('matrix', $rows), $align);
 
         return $fence === 'none' ? $grid : new Fenced($fences[$fence][0], $fences[$fence][1], $grid);
+    }
+
+    /**
+     * Equations lined up on their alignment points, as TeX's aligned does: cells alternate right- and left-aligned,
+     * with no gap inside a pair (so `x` `= 1` meet at the relation) and two em between pairs.
+     * The leading operator of each left-hand cell keeps infix spacing, so `= 3` is spaced as a relation.
+     *
+     * @param list<list<string|Node>> $rows
+     *
+     * @throws \InvalidArgumentException for no cells
+     */
+    public static function aligned(array $rows): Grid
+    {
+        $cells = self::gridCells('aligned', $rows);
+        $columns = 0;
+        foreach ($cells as $row) {
+            $columns = max($columns, count($row));
+        }
+        $align = [];
+        $gaps = [];
+        for ($j = 0; $j < $columns; $j++) {
+            $align[] = $j % 2 === 0 ? 'right' : 'left';
+            if ($j > 0) {
+                $gaps[] = $j % 2 === 1 ? 0.0 : 2.0;
+            }
+        }
+        foreach ($cells as &$row) {
+            foreach ($row as $j => &$cell) {
+                if ($j % 2 === 1) {
+                    $cell = self::infixLead($cell);
+                }
+            }
+            unset($cell);
+        }
+        unset($row);
+
+        return new Grid($cells, $align, 'baseline', true, $gaps, true);
+    }
+
+    /** $cell with its leading operator, if the cell starts with one (seen through Fallback and DisplayStyle), given the infix form. */
+    private static function infixLead(Node $cell): Node
+    {
+        if ($cell instanceof Fallback && $cell->content !== null) {
+            return new Fallback(self::infixLead($cell->content), $cell->note);
+        }
+        if ($cell instanceof DisplayStyle) {
+            return new DisplayStyle(self::infixLead($cell->content), $cell->display);
+        }
+        if ($cell instanceof Operator) {
+            return new Operator(
+                $cell->char,
+                stretchy: $cell->stretchy,
+                largeop: $cell->largeop,
+                movablelimits: $cell->movablelimits,
+                form: 'infix',
+                lspace: $cell->lspace,
+                rspace: $cell->rspace,
+                minSize: $cell->minSize,
+                maxSize: $cell->maxSize,
+            );
+        }
+        if ($cell instanceof Row && $cell->children !== [] && Fallback::unwrap($cell->children[0]) instanceof Operator) {
+            $children = $cell->children;
+            $children[0] = self::infixLead($children[0]);
+
+            return new Row($children);
+        }
+
+        return $cell;
     }
 
     /**

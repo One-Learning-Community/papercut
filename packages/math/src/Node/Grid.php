@@ -9,7 +9,7 @@ use Papercut\Math\Layout\Context;
 
 /**
  * An equation grid (mtable): rows of cells in aligned columns, laid out the way TeX sets a matrix.
- * Columns are one em apart, rows sit at least 1.2 em apart, and the whole grid is centred on the math axis.
+ * Columns are one em apart unless columnSpacing says otherwise, rows sit at least 1.2 em apart, and the whole grid is centred on the math axis.
  */
 final class Grid extends Node
 {
@@ -20,6 +20,8 @@ final class Grid extends Node
     public readonly array $rows;
     /** @var list<string> one entry per column */
     public readonly array $columnAlign;
+    /** @var list<float> em between each pair of adjacent columns: one entry per gap */
+    public readonly array $columnSpacing;
     public readonly int $columns;
 
     /**
@@ -27,13 +29,24 @@ final class Grid extends Node
      * @param array<string> $columnAlign read in order, whatever their keys; left, center or right per column; the last repeats, empty means center
      * @param string $rowAlign how cells of one row line up: baseline, axis, center, top or bottom
      * @param bool $display lay the cells out in display style rather than text style
+     * @param array<float> $columnSpacing em between adjacent columns, read in order; the last repeats, empty means 1.0
+     * @param bool $alignment the columns are alignment points (aligned/align): writers that can say so use an equation array
+     *
+     * @throws \InvalidArgumentException for an unknown alignment or a negative or non-finite spacing
      */
     public function __construct(
         array $rows,
         array $columnAlign = [],
         public readonly string $rowAlign = 'baseline',
         public readonly bool $display = false,
+        array $columnSpacing = [],
+        public readonly bool $alignment = false,
     ) {
+        foreach ($columnSpacing as $g) {
+            if (! is_finite($g) || $g < 0) {
+                throw new \InvalidArgumentException('Column spacing must be a list of finite, non-negative em values.');
+            }
+        }
         foreach ($columnAlign as $a) {
             if (! in_array($a, self::COLUMN_ALIGN, true)) {
                 // The docblock says string; callers without static analysis can still pass anything.
@@ -62,6 +75,12 @@ final class Grid extends Node
         for ($j = 0; $j < $columns; $j++) {
             $align[] = $columnAlign[$j] ?? $last;
         }
+        $columnSpacing = array_map(floatval(...), array_values($columnSpacing));
+        $gaps = [];
+        for ($j = 0; $j < $columns - 1; $j++) {
+            $gaps[] = $columnSpacing[$j] ?? ($columnSpacing === [] ? 1.0 : $columnSpacing[array_key_last($columnSpacing)]);
+        }
+        $this->columnSpacing = $gaps;
         $this->rows = $padded;
         $this->columnAlign = $align;
         $this->columns = $columns;
@@ -114,9 +133,9 @@ final class Grid extends Node
         $x = 0.0;
         foreach ($colW as $j => $w) {
             $colX[$j] = $x;
-            $x += $w + $em;
+            $x += $w + ($this->columnSpacing[$j] ?? 0.0) * $em;
         }
-        $width = $x - $em;
+        $width = $x;
 
         $base = [];
         $y = 0.0;

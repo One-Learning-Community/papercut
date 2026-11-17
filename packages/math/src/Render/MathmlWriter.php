@@ -220,6 +220,9 @@ final class MathmlWriter
         if (array_any($g->columnAlign, static fn (string $a): bool => $a !== 'center')) {
             $attrs .= ' columnalign="' . implode(' ', $g->columnAlign) . '"';
         }
+        if (array_any($g->columnSpacing, static fn (float $gap): bool => $gap !== 1.0)) {
+            $attrs .= ' columnspacing="' . implode(' ', array_map(static fn (float $gap): string => rtrim(rtrim(number_format($gap, 4, '.', ''), '0'), '.') . 'em', $g->columnSpacing)) . '"';
+        }
         if ($g->rowAlign !== 'baseline') {
             $attrs .= ' rowalign="' . $g->rowAlign . '"';
         }
