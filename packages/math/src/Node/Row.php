@@ -6,6 +6,7 @@ namespace Papercut\Math\Node;
 
 use Papercut\Math\Layout\Box;
 use Papercut\Math\Layout\Context;
+use Papercut\Math\OperatorDictionary;
 
 /** mrow: children side by side on a shared baseline. Operator forms come from Forms::of(). */
 final class Row extends Node
@@ -33,6 +34,25 @@ final class Row extends Node
     public function forms(): array
     {
         return Forms::of($this->children);
+    }
+
+    /** An operator with the thick space of a relation before it (TeX: Op-Rel is thick only, no thin on top). */
+    private static function isRelation(Operator $o, ?string $form): bool
+    {
+        $l = $o->lspace !== null ? $o->lspace * 18 : OperatorDictionary::lookup($o->char, $form ?? OperatorDictionary::FORM_INFIX)['lspace'];
+
+        return $l >= 5 - 1e-6;
+    }
+
+    /** A function name (sin, log, \operatorname{foo}), alone or with scripts: TeX's Op class. */
+    private static function isFunctionName(?Node $n): bool
+    {
+        $n = $n === null ? null : Fallback::unwrap($n);
+        if ($n instanceof Scripts) {
+            return self::isFunctionName($n->base);
+        }
+
+        return $n instanceof Identifier && $n->function && $n->upright && mb_strlen($n->name) > 1;
     }
 
     /** @internal Engine detail, not part of papercut/math's public API. */
@@ -67,6 +87,16 @@ final class Row extends Node
                 if (! ($seen instanceof Operator) && ! ($seen instanceof Middle) && ($seen instanceof Fraction || $prev instanceof Fraction)) {
                     $x += $c->mu(3);
                 }
+            }
+            // TeX's table: a function name (Op) takes a thin space after an ordinary or a closing delimiter, and none after an
+            // opening one or at the start. Its own trailing space is dropped before an opening or closing delimiter or a comma.
+            $isName = self::isFunctionName($seen);
+            if ($prev !== null && $isName && ! self::isFunctionName($prev) && ! ($prev instanceof Space) && ! ($prev instanceof Fraction) && ! ($seen instanceof Space)
+                && (! ($prev instanceof Operator || $prev instanceof Middle) || ($prev instanceof Operator && (OperatorDictionary::isClosing($prev->char) || $prev->char === '!')))) {
+                $x += $c->mu(3);
+            }
+            if ($last !== null && $last->trail > 0.0 && self::isFunctionName($prev) && $seen instanceof Operator && (OperatorDictionary::isOpening($seen->char) || OperatorDictionary::isClosing($seen->char) || in_array($seen->char, [',', ';'], true) || self::isRelation($seen, $forms[$i]))) {
+                $x -= $last->trail;
             }
             $form = $forms[$i];
             // Forms::of gives every operator a form and no one else.

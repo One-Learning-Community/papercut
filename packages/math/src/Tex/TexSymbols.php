@@ -110,8 +110,8 @@ final class TexSymbols
         'smallint' => '∫', 'intop' => '∫', 'ointctrclockwise' => '∲', 'varointclockwise' => '∲', 'fint' => '⨏',
     ];
 
-    public const FUNCS = ['arccos', 'arcsin', 'arctan', 'arg', 'cos', 'cosh', 'cot', 'coth', 'csc', 'deg', 'dim', 'exp', 'hom', 'ker', 'lg', 'ln', 'log', 'sec', 'sin', 'sinh', 'tan', 'tanh', 'sgn'];
-    public const FUNCS_LIM = ['det', 'gcd', 'inf', 'lim', 'liminf', 'limsup', 'max', 'min', 'Pr', 'sup'];
+    public const FUNCS = \Papercut\Math\OperatorDictionary::PLAIN_FUNCTION_NAMES;
+    public const FUNCS_LIM = \Papercut\Math\OperatorDictionary::LIMIT_NAMES;
     public const FUNCS_TEXT = ['injlim' => 'inj lim', 'projlim' => 'proj lim', 'varinjlim' => 'lim', 'varprojlim' => 'lim', 'varliminf' => 'lim', 'varlimsup' => 'lim'];
 
     /** \left / \right / \big delimiter names. */

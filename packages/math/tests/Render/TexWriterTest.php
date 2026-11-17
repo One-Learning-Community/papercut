@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Papercut\Math\Tests\Render;
 
 use Papercut\Math\Math;
+use Papercut\Math\MathNote;
 use Papercut\Math\Node\DisplayStyle;
-use Papercut\Math\Tex\TexReader;
 use Papercut\Math\Node\Fallback;
 use Papercut\Math\Node\Fenced;
 use Papercut\Math\Node\Grid;
@@ -17,9 +17,9 @@ use Papercut\Math\Node\Operator;
 use Papercut\Math\Node\Row;
 use Papercut\Math\Node\UnderOver;
 use Papercut\Math\NoteLevel;
-use Papercut\Math\MathNote;
 use Papercut\Math\Render\TexWriter;
 use Papercut\Math\Tests\Fixtures;
+use Papercut\Math\Tex\TexReader;
 use Papercut\Math\Tex\TexSymbols;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -39,9 +39,9 @@ final class TexWriterTest extends TestCase
         self::assertSame('\Gamma', self::tex(new Identifier('Γ', false)));
         self::assertSame('\mathrm{d}', self::tex(new Identifier('d', false)));
         self::assertSame('\infty', self::tex(new Identifier('∞', false)));
-        self::assertSame('\sin', self::tex(new Identifier('sin')));
-        self::assertSame('\lim', self::tex(new Identifier('lim')));
-        self::assertSame('\operatorname{rank}', self::tex(new Identifier('rank')));
+        self::assertSame('\sin', self::tex(new Identifier('sin', null, true)));
+        self::assertSame('\lim', self::tex(new Identifier('lim', null, true)));
+        self::assertSame('\operatorname{rank}', self::tex(new Identifier('rank', false, true)));
         self::assertSame('\mathit{ab}', self::tex(new Identifier('ab', true)));
     }
 
@@ -151,15 +151,17 @@ final class TexWriterTest extends TestCase
 
     public function test_operatorname_star_spelling_only_for_an_under_limit(): void
     {
-        self::assertSame('\operatorname*{argmax}_x', TexWriter::write(TexReader::read('\operatorname*{argmax}_x')->node));
-        self::assertSame('\overset{a}{\operatorname{xy}}', TexWriter::write(TexReader::read('\overset{a}{\mathrm{xy}}')->node));
+        // Only the names TeX gives limits (lim, max, ...) take the starred spelling; others read back the same through \underset.
+        self::assertSame('\underset{x}{\operatorname{argmax}}', TexWriter::write(TexReader::read('\operatorname*{argmax}_x')->node));
+        self::assertSame('\liminf_x', TexWriter::write(TexReader::read('\operatorname*{liminf}_x')->node));
+        self::assertSame('\overset{a}{\mathrm{xy}}', TexWriter::write(TexReader::read('\overset{a}{\mathrm{xy}}')->node));
     }
 
     public function test_limits(): void
     {
         self::assertSame('\sum_{i = 1}^n', self::tex(Math::sum('i = 1', 'n')));
         self::assertSame('\prod^n', self::tex(Math::product(null, 'n')));
-        self::assertSame('\lim_{x \to 0}', self::tex(new UnderOver(new Identifier('lim'), Math::row('x → 0'), null)));
+        self::assertSame('\lim_{x \to 0}', self::tex(new UnderOver(new Identifier('lim', null, true), Math::row('x → 0'), null)));
         self::assertSame('\int\limits_0^1', self::tex(new UnderOver(new Operator('∫'), Math::row('0'), Math::row('1'))));
         self::assertSame('{\sum_i}^2', self::tex(Math::sup(Math::sum('i'), '2')));
     }
@@ -369,7 +371,7 @@ final class TexWriterTest extends TestCase
         self::assertSame('\char"7E', self::tex(new Operator('~')));
         self::assertSame('⨌', self::tex(new Operator('⨌')));
         self::assertSame('↤', self::tex(new Operator('↤')));
-        self::assertSame('\operatorname{sgn}', self::tex(new Identifier('sgn')));
+        self::assertSame('\operatorname{sgn}', self::tex(new Identifier('sgn', null, true)));
         self::assertSame('\overset{⃐}{x}', self::tex(new UnderOver(Math::row('x'), null, new Operator("\u{20D0}"), true)));
         // \dddot and \ddddot (newer KaTeX) have their own commands, so they read back as the accents they were.
         self::assertSame('\dddot{x}', self::tex(Math::tex('\dddot{x}')));
@@ -383,7 +385,7 @@ final class TexWriterTest extends TestCase
         self::assertSame('\left( a \ulcorner b \right)', self::tex(Math::fenced('(', ')', 'a', Math::middle('⌜'), 'b')));
         self::assertSame('\left( a \middle. b \right)', self::tex(Math::fenced('(', ')', 'a', Math::middle(''), 'b')));
         self::assertSame('\begin{aligned}x &= 1 & &= 2\end{aligned}', self::tex(Math::aligned([['x', '= 1', '', '= 2']])));
-        self::assertSame('\sqrt[{a ]}]{x}', self::tex(Math::root('x', Math::row(new Identifier('a'), new Operator(']')))));
+        self::assertSame('\sqrt[a \rbrack]{x}', self::tex(Math::root('x', Math::row(new Identifier('a'), new Operator(']')))));
         // 2: brace forms are not atoms before a script.
         self::assertSame('{\overbrace{x}^a}^2', self::tex(Math::sup(Math::overbrace('x', 'a'), '2')));
         self::assertSame('{\overbrace{x}}^n', self::tex(Math::sup(Math::overbrace('x'), 'n')));

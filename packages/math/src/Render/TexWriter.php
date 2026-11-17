@@ -45,9 +45,23 @@ final class TexWriter
         '_' => '\_', '%' => '\%', '~' => '\char"7E',
     ];
 
+    /** Ordinary symbols that are safe unbraced as a script argument. */
+    private const array BARE_SCRIPT_SYMBOLS = ['infty', 'partial', 'nabla', 'hbar', 'ell', 'emptyset', 'prime', 'aleph'];
+
     public static function write(Node $root): string
     {
-        return trim(self::w($root, false));
+        return self::trimTex(self::w($root, false));
+    }
+
+    /** trim(), except that a control space `\ ` at the very end keeps its space. */
+    private static function trimTex(string $tex): string
+    {
+        $tex = trim($tex);
+        if (preg_match('/\\\\+$/', $tex, $m) === 1 && strlen($m[0]) % 2 === 1) {
+            $tex .= ' ';
+        }
+
+        return $tex;
     }
 
     private static function w(Node $n, bool $inFence): string
@@ -187,6 +201,9 @@ final class TexWriter
         if (mb_strlen($char) === 2 && str_ends_with($char, "\u{0338}")) {
             return '\not' . self::symbol(mb_substr($char, 0, 1));
         }
+        if ($char === ']' && self::$optional > 0) {
+            return '\rbrack';
+        }
         $cmd = TexSymbols::command($char);
         if ($cmd !== null) {
             return $cmd;
@@ -254,7 +271,7 @@ final class TexWriter
         if (count($chars) === 1) {
             return self::uprightSingle($chars[0]);
         }
-        if (TexSymbols::isFunctionCommand($i->name)) {
+        if ($i->function && TexSymbols::isFunctionCommand($i->name)) {
             return '\\' . $i->name;
         }
         // Runs of one math variant (or none) side by side.
@@ -277,8 +294,10 @@ final class TexWriter
                 $out[] = '\\' . TexSymbols::VARIANT_WRITE[$variant] . '{' . self::cat(array_map(self::letter(...), $run)) . '}';
             } elseif (count($run) === 1) {
                 $out[] = self::uprightSingle($run[0]);
-            } else {
+            } elseif ($i->function) {
                 $out[] = self::functionName(implode('', $run));
+            } else {
+                $out[] = '\\mathrm{' . self::cat(array_map(self::letter(...), $run)) . '}';
             }
         }
 
@@ -368,7 +387,7 @@ final class TexWriter
 
     private static function space(float $em): string
     {
-        foreach ([[3 / 18, '\,'], [4 / 18, '\:'], [5 / 18, '\;'], [-3 / 18, '\!'], [1.0, '\quad'], [2.0, '\qquad']] as [$v, $cmd]) {
+        foreach ([[3 / 18, '\,'], [4 / 18, '\:'], [5 / 18, '\;'], [-3 / 18, '\!'], [1 / 3, '\ '], [1.0, '\quad'], [2.0, '\qquad']] as [$v, $cmd]) {
             if (abs($em - $v) < 1e-9) {
                 return $cmd;
             }
@@ -395,7 +414,7 @@ final class TexWriter
                 }
                 $side = OperatorDictionary::isOpening($o->char) ? 'l' : (OperatorDictionary::isClosing($o->char) ? 'r' : '');
 
-                $big = '\\' . TexSymbols::BIG_COMMANDS[$best] . $side . $delim;
+                $big = '\\' . TexSymbols::BIG_COMMANDS[$best] . $side . ($delim === ']' && self::$optional > 0 ? '\rbrack' : $delim);
 
                 // A braced one, `{\big(}`, is an ordinary atom: no spacing either side.
                 return $o->lspace !== null && $o->rspace !== null && abs($o->lspace) < 1e-6 && abs($o->rspace) < 1e-6 ? '{' . $big . '}' : $big;
@@ -432,12 +451,26 @@ final class TexWriter
     {
         $body = '{' . self::w($r->radicand, false) . '}';
 
-        return $r->index === null ? '\sqrt' . $body : '\sqrt[' . self::braceIf(self::w($r->index, false), ']') . ']' . $body;
+        return $r->index === null ? '\sqrt' . $body : '\sqrt[' . self::optional($r->index) . ']' . $body;
     }
 
-    private static function braceIf(string $s, string $needle): string
+    /** Greater than 0 while an optional `[...]` argument is written: a bare `]` would end it, so it is written \rbrack. */
+    private static int $optional = 0;
+
+    /** The body of a `[...]` argument. */
+    private static function optional(Node $n): string
     {
-        return str_contains($s, $needle) ? '{' . $s . '}' : $s;
+        self::$optional++;
+        try {
+            $s = self::w($n, false);
+        } finally {
+            self::$optional--;
+        }
+
+        // KaTeX ends the argument at the first `]` it sees, so a label holding one (a nested `[..]`) is braced; it also misreads a
+        // style group first in the argument and followed by more (`[{\displaystyle a}{b}]`). A lone `]` symbol is written \rbrack,
+        // so bracing never turns it into a braced (ordinary) atom.
+        return str_contains($s, ']') || preg_match('/^\{\\\\(?:display|text|script|scriptscript)style /', $s) === 1 ? '{' . $s . '}' : $s;
     }
 
     /** A script argument: bare when it is one token, braced otherwise. */
@@ -452,9 +485,6 @@ final class TexWriter
 
         return preg_match('/^[^\\\\\s{}]$/u', $s) === 1 ? $s : '{' . $s . '}';
     }
-
-    /** Ordinary symbols that are safe unbraced as a script argument. */
-    private const array BARE_SCRIPT_SYMBOLS = ['infty', 'partial', 'nabla', 'hbar', 'ell', 'emptyset', 'prime', 'aleph'];
 
     private static function scriptParts(?Node $sub, ?Node $sup): string
     {
@@ -503,6 +533,10 @@ final class TexWriter
     {
         $op = UnderOver::operatorOf($s->base);
         $nolimits = UnderOver::isLimitName($s->base) || ($op !== null && $op->isLargeop(OperatorDictionary::FORM_PREFIX) && $op->hasMovableLimits(OperatorDictionary::FORM_PREFIX));
+        // `{\displaystyle \lim}\nolimits_i` is no TeX: the group stands for the operator, so its scripts simply follow it.
+        if (self::strip($s->base) instanceof DisplayStyle) {
+            $nolimits = false;
+        }
 
         // Primes are written as apostrophes: KaTeX and LaTeX have no raw ″ ‴ ⁗.
         $sup = $s->sup;
@@ -565,7 +599,7 @@ final class TexWriter
         if ($under === null && $overOp !== null && in_array($overOp->char, ["\u{00AF}", "\u{203E}"], true)) {
             return ['\overline{' . self::w($base, false) . '}', true];
         }
-        if ($over === null && $underOp !== null && in_array($underOp->char, ['_', "\u{00AF}", "\u{203E}"], true)) {
+        if ($over === null && $underOp !== null && $u->accentUnder && in_array($underOp->char, ['_', "\u{00AF}", "\u{203E}"], true)) {
             return ['\underline{' . self::w($base, false) . '}', true];
         }
         // Accents.
@@ -583,15 +617,14 @@ final class TexWriter
         if ($plainFlags && $op !== null && $op->stretchy !== false && mb_strlen($op->char) === 1 && isset(TexSymbols::XARROWS[$op->char]) && UnderOver::isArrow($op->char)) {
             $label = '';
             if ($under !== null) {
-                $t = self::w($under, false);
-                $label = '[' . (str_contains($t, ']') ? '{' . $t . '}' : $t) . ']';
+                $label = '[' . self::optional($under) . ']';
             }
 
             return ['\\' . TexSymbols::XARROWS[$op->char] . $label . '{' . ($over === null ? '' : self::w($over, false)) . '}', true];
         }
-        // A name with limits: \operatorname*{argmax}_x, as the reader reads it.
+        // A limit-taking name with no command of its own: \operatorname*{liminf}_x. Other names take \underset below, which reads back the same.
         $name = self::peel($base);
-        if ($plainFlags && $under !== null && $name instanceof Identifier && $name->upright && mb_strlen($name->name) > 1 && ! TexSymbols::isFunctionCommand($name->name)
+        if ($plainFlags && $under !== null && $name instanceof Identifier && $name->upright && in_array($name->name, OperatorDictionary::LIMIT_NAMES, true) && ! TexSymbols::isFunctionCommand($name->name)
             && array_filter(mb_str_split($name->name), static fn (string $ch): bool => TexSymbols::unstyle($ch) !== null) === []) {
             return ['\operatorname*{' . self::operatorNameBody($name->name) . '}' . self::scriptParts($under, $over), false];
         }
@@ -675,7 +708,7 @@ final class TexWriter
         foreach ($g->rows as $row) {
             $cells = [];
             foreach ($row as $j => $cell) {
-                $cells[] = trim(self::w($cell, false));
+                $cells[] = self::trimTex(self::w($cell, false));
             }
             while (count($cells) > 1 && end($cells) === '') {
                 array_pop($cells);
@@ -689,7 +722,7 @@ final class TexWriter
                     $line .= ($j > 0 && ! ($g->alignment && $j % 2 === 1) ? ' ' : '') . $c;
                 }
             }
-            $rows[] = trim($line);
+            $rows[] = self::trimTex($line);
         }
 
         return '\begin{' . $env . '}' . $args . implode(' \\\\ ', $rows) . '\end{' . $env . '}';

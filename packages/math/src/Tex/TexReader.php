@@ -224,7 +224,10 @@ final class TexReader
             $node = $this->note($level, $element, $reason, $off, $node);
         }
         if ($bad) {
-            $node = new Fallback($node, new MathNote(NoteLevel::Approximated, 'text', Utf8::NOTE));
+            // Named like the other TeX notes: the input, at the byte where the first bad sequence starts.
+            $valid = [];
+            preg_match('/^(?:[\x00-\x7F]|[\xC2-\xDF][\x80-\xBF]|\xE0[\xA0-\xBF][\x80-\xBF]|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}|\xED[\x80-\x9F][\x80-\xBF]|\xF0[\x90-\xBF][\x80-\xBF]{2}|[\xF1-\xF3][\x80-\xBF]{3}|\xF4[\x80-\x8F][\x80-\xBF]{2})*/', $input, $valid);
+            $node = new Fallback($node, new MathNote(NoteLevel::Approximated, 'input', Utf8::NOTE, 'offset ' . (isset($valid[0]) ? strlen($valid[0]) : 0)));
         }
 
         return new TexResult($node, $this->display);
@@ -530,9 +533,25 @@ final class TexReader
         if ($t[0] === '{') {
             return self::row($this->groupNodes());
         }
+        $this->takeNullDelimiter();
         $a = $this->parseAtom(true);
+        if ($a === null && $this->takeNullDelimiter()) {
+            // `x^\big.`: a null delimiter is a valid argument, and draws nothing.
+            return new Row([]);
+        }
 
         return $a === null ? $this->missingArgument() : $a[0];
+    }
+
+    /** Set when the atom just read was a null delimiter (`\big.`): no node, but not a missing argument. */
+    private bool $nullDelimiter = false;
+
+    private function takeNullDelimiter(): bool
+    {
+        $was = $this->nullDelimiter;
+        $this->nullDelimiter = false;
+
+        return $was;
     }
 
     /**
@@ -900,13 +919,13 @@ final class TexReader
             return [new Operator(TexSymbols::INTS[$name]), 'int', null];
         }
         if (in_array($name, TexSymbols::FUNCS, true)) {
-            return [new Identifier($name, false), 'func', null];
+            return [new Identifier($name, false, true), 'func', null];
         }
         if (in_array($name, TexSymbols::FUNCS_LIM, true)) {
-            return [new Identifier($name, false), 'funclim', null];
+            return [new Identifier($name, false, true), 'funclim', null];
         }
         if (isset(TexSymbols::FUNCS_TEXT[$name])) {
-            return [new Identifier(TexSymbols::FUNCS_TEXT[$name], false), 'funclim', null];
+            return [new Identifier(TexSymbols::FUNCS_TEXT[$name], false, true), 'funclim', null];
         }
         if (isset(TexSymbols::OPS[$name])) {
             return [new Operator(TexSymbols::OPS[$name]), 'ord', null];
@@ -963,13 +982,13 @@ final class TexReader
             case 'not':
                 return $this->negated($at);
             case 'mod':
-                return [new Row([new Space(1.0), new Identifier('mod', false), new Space(6 / 18), $this->parseArgument()]), 'ord', null];
+                return [new Row([new Space(1.0), new Identifier('mod', false, true), new Space(6 / 18), $this->parseArgument()]), 'ord', null];
             case 'bmod':
-                return [new Row([new Space(4 / 18), new Identifier('mod', false), new Space(4 / 18)]), 'ord', null];
+                return [new Row([new Space(4 / 18), new Identifier('mod', false, true), new Space(4 / 18)]), 'ord', null];
             case 'pmod':
             case 'pod':
                 $arg = $this->parseArgument();
-                $mod = $name === 'pmod' ? [new Identifier('mod', false), new Space(6 / 18)] : [];
+                $mod = $name === 'pmod' ? [new Identifier('mod', false, true), new Space(6 / 18)] : [];
 
                 return [new Row([new Space(1.0), ...Tokenizer::tokenize('('), ...$mod, $arg, ...Tokenizer::tokenize(')')]), 'ord', null];
             case 'frac':
@@ -1020,7 +1039,7 @@ final class TexReader
 
                 $dropped = [];
                 $text = trim($this->operatorName($dropped));
-                $node = new Identifier($text, false);
+                $node = new Identifier($text, false, true);
                 if ($dropped !== []) {
                     $node = $this->note(NoteLevel::Approximated, '\\operatorname', 'only letters and symbols are kept in the name (not ' . implode(', ', array_unique($dropped)) . ')', $at, $node);
                 }
@@ -1374,6 +1393,8 @@ final class TexReader
         $size = array_search(rtrim($name, 'lrm'), TexSymbols::BIG_COMMANDS, true);
         $d = $this->delimiter();
         if ($d === '') {
+            $this->nullDelimiter = true;
+
             return null; // `\big.`: a null delimiter, draws nothing
         }
         if ($d === null || $size === false) {

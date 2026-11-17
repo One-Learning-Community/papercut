@@ -473,11 +473,26 @@ final class MathmlReader
             return null;
         }
         $variant = strtolower(trim($e->getAttribute('mathvariant') ?? ''));
+        // A multi-letter name is a function when it is a standard one (any variant), or the invisible function application follows it
+        // (or the script or limit element it is the base of).
+        $function = mb_strlen($text) > 1 && (in_array($text, OperatorDictionary::FUNCTION_NAMES, true) || self::applied($e));
         if ($variant === 'normal') {
-            return new Identifier($text, false);
+            return new Identifier($text, false, $function);
         }
 
-        return in_array($variant, Styles::VARIANTS, true) ? new Identifier(self::variantText($e, $text), false) : new Identifier($text);
+        return in_array($variant, Styles::VARIANTS, true) ? new Identifier(self::variantText($e, $text), false, $function) : new Identifier($text, null, $function);
+    }
+
+    /** Whether U+2061 (ApplyFunction) follows this element, or the msub/msup/msubsup/munder/mover/munderover it is the base of. */
+    private static function applied(\Dom\Element $e): bool
+    {
+        $parent = $e->parentElement;
+        if ($parent !== null && in_array($parent->localName, ['msub', 'msup', 'msubsup', 'munder', 'mover', 'munderover'], true) && $parent->firstElementChild === $e) {
+            $e = $parent;
+        }
+        $next = $e->nextElementSibling;
+
+        return $next !== null && $next->localName === 'mo' && trim((string) $next->textContent) === "\u{2061}";
     }
 
     private function operator(\Dom\Element $e, string $where): ?Node

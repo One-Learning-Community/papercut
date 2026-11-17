@@ -18,8 +18,13 @@ final class Identifier extends Node
 
     public readonly string $name;
 
-    /** Invalid UTF-8 in $name is replaced silently here; the Math builders also record a note. */
-    public function __construct(string $name, public readonly ?bool $italic = null)
+    /**
+     * Invalid UTF-8 in $name is replaced silently here; the Math builders also record a note.
+     *
+     * $function marks a function name (sin, log, \operatorname{foo}): TeX's Op class, which takes a thin space after it and
+     * before it next to an ordinary. A multi-letter upright name that is not a function (`\mathrm{Fe}`, `kg`) is a plain ordinary.
+     */
+    public function __construct(string $name, public readonly ?bool $italic = null, public readonly bool $function = false)
     {
         $this->name = Utf8::clean($name);
         $this->upright = $italic === null ? mb_strlen($this->name) > 1 : ! $italic;
@@ -33,8 +38,8 @@ final class Identifier extends Node
         foreach (mb_str_split($this->name) as $ch) {
             $glyphs[] = [$italic ? Styles::italic(mb_ord($ch)) : mb_ord($ch), $ch];
         }
-        // Multi-letter names (sin, log) get a thin space after, so "sin x" does not run together. It is trailing space, as an
+        // Function names (sin, log) get a thin space after, so "sin x" does not run together. It is trailing space, as an
         // operator's is: a script sits before it.
-        return Run::build($c, $glyphs, 0.0, ! $italic && mb_strlen($this->name) > 1 ? $c->mu(3) : 0.0);
+        return Run::build($c, $glyphs, 0.0, $this->function && ! $italic && mb_strlen($this->name) > 1 ? $c->mu(3) : 0.0);
     }
 }

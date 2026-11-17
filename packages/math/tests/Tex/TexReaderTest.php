@@ -127,15 +127,15 @@ final class TexReaderTest extends TestCase
 
     public function test_functions_and_operatorname(): void
     {
-        self::same(new Identifier('sin', false), '\sin');
-        self::same(Math::sup(new Identifier('sin', false), '2'), '\sin^2');
-        self::same(new UnderOver(new Identifier('lim', false), Math::row('x → 0'), null), '\lim_{x \to 0}');
-        self::same(new Scripts(new Identifier('lim', false), Math::row('x'), null), '\lim\nolimits_x');
-        self::same(new Identifier('rank', false), '\operatorname{rank}');
-        self::same(Math::sub(new Identifier('rank', false), 'n'), '\operatorname{rank}_n');
-        self::same(new UnderOver(new Identifier('argmax', false), Math::row('x'), null), '\operatorname*{argmax}_x');
-        self::same(new Identifier('sgn', false), '\operatorname{sgn}');
-        self::same(new Row([new Identifier('sin', false), new Identifier('x')]), '\sin x');
+        self::same(new Identifier('sin', false, true), '\sin');
+        self::same(Math::sup(new Identifier('sin', false, true), '2'), '\sin^2');
+        self::same(new UnderOver(new Identifier('lim', false, true), Math::row('x → 0'), null), '\lim_{x \to 0}');
+        self::same(new Scripts(new Identifier('lim', false, true), Math::row('x'), null), '\lim\nolimits_x');
+        self::same(new Identifier('rank', false, true), '\operatorname{rank}');
+        self::same(Math::sub(new Identifier('rank', false, true), 'n'), '\operatorname{rank}_n');
+        self::same(new UnderOver(new Identifier('argmax', false, true), Math::row('x'), null), '\operatorname*{argmax}_x');
+        self::same(new Identifier('sgn', false, true), '\operatorname{sgn}');
+        self::same(new Row([new Identifier('sin', false, true), new Identifier('x')]), '\sin x');
     }
 
     public function test_large_operators_and_limits(): void
@@ -468,7 +468,7 @@ final class TexReaderTest extends TestCase
 
     public function test_fix_round_one_mod(): void
     {
-        self::same(new Row([new Space(1.0), new Identifier('mod', false), new Space(6 / 18), new Identifier('n')]), '\mod{n}');
+        self::same(new Row([new Space(1.0), new Identifier('mod', false, true), new Space(6 / 18), new Identifier('n')]), '\mod{n}');
     }
 
     public function test_big_family(): void

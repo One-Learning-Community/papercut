@@ -49,10 +49,10 @@ final class TexFinalReviewTest extends TestCase
         self::assertSame([], self::notes('\operatorname{argmin}_x f'));
     }
 
-    public function test_operatorname_star_with_a_limit_is_written_as_itself(): void
+    public function test_operatorname_star_with_a_limit_reads_back_the_same_after_writing(): void
     {
-        self::assertSame('\operatorname*{argmax}_x f', self::roundTrip('\operatorname*{argmax}_x f'));
-        self::assertSame('\operatorname*{argmax}_\theta f', self::roundTrip('\operatorname*{argmax}_{\theta} f'));
+        self::assertSame('\underset{x}{\operatorname{argmax}} f', self::roundTrip('\operatorname*{argmax}_x f'));
+        self::assertSame('\underset{\theta}{\operatorname{argmax}} f', self::roundTrip('\operatorname*{argmax}_{\theta} f'));
     }
 
     // M2
@@ -112,8 +112,8 @@ final class TexFinalReviewTest extends TestCase
         self::assertTrue(TexSymbols::isFunctionCommand('sin'));
         self::assertTrue(TexSymbols::isFunctionCommand('limsup'));
         self::assertFalse(TexSymbols::isFunctionCommand('sgn'));
-        self::assertSame('\operatorname{sgn}', TexWriter::write(new Identifier('sgn')));
-        self::assertSame('\liminf', TexWriter::write(new Identifier('liminf')));
+        self::assertSame('\operatorname{sgn}', TexWriter::write(new Identifier('sgn', null, true)));
+        self::assertSame('\liminf', TexWriter::write(new Identifier('liminf', null, true)));
     }
 
     public function test_one_length_parser_for_the_mathml_attributes(): void
@@ -292,8 +292,8 @@ final class TexFinalReviewTest extends TestCase
 
     public function test_a_function_names_thin_space_is_trailing_space_scripts_sit_before(): void
     {
-        $box = Math::layout(Math::sup(new Identifier('sin'), '2'), 12.0, false);
-        $plain = Math::layout(new Identifier('sin'), 12.0, false);
+        $box = Math::layout(Math::sup(new Identifier('sin', null, true), '2'), 12.0, false);
+        $plain = Math::layout(new Identifier('sin', null, true), 12.0, false);
         $c = new Context(Math::stixTwoMath(), 12);
         self::assertEqualsWithDelta($c->mu(3), $plain->trail, 1e-9);
         self::assertEqualsWithDelta($c->mu(3), $box->trail, 1e-9);

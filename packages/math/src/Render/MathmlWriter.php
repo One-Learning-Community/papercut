@@ -33,7 +33,59 @@ final class MathmlWriter
             . self::node($root) . '</math>';
     }
 
+    /** Set for the one node about to be written as the base of a script or limit: ApplyFunction goes after the whole of it. */
+    private static bool $bare = false;
+
+    /** A function name, alone or as the base of scripts or limits: what MathML's invisible function application follows. */
+    private static function isFunction(Node $n): bool
+    {
+        while ($n instanceof Fallback && $n->content !== null) {
+            $n = $n->content;
+        }
+        if ($n instanceof Scripts || $n instanceof UnderOver) {
+            return self::isFunction($n->base);
+        }
+
+        return $n instanceof Identifier && $n->function;
+    }
+
+    private static function bare(Node $n): string
+    {
+        self::$bare = true;
+        $out = self::slot($n);
+        self::$bare = false;
+
+        return $out;
+    }
+
     private static function node(Node $n): string
+    {
+        $bare = self::$bare;
+        self::$bare = false;
+
+        $xml = self::plain0($n);
+        // A name with no sibling after it, outside the standard table, keeps its flag through an mrow that holds the mark; a
+        // standard name is flagged by the reader anyway, and nothing is added (a slot takes exactly one element).
+        if (! $bare && self::isFunction($n) && ! self::isStandardName($n)) {
+            return '<mrow>' . $xml . '<mo>&#x2061;</mo></mrow>';
+        }
+
+        return $xml;
+    }
+
+    private static function isStandardName(Node $n): bool
+    {
+        while ($n instanceof Fallback && $n->content !== null) {
+            $n = $n->content;
+        }
+        if ($n instanceof Scripts || $n instanceof UnderOver) {
+            return self::isStandardName($n->base);
+        }
+
+        return $n instanceof Identifier && in_array($n->name, OperatorDictionary::FUNCTION_NAMES, true);
+    }
+
+    private static function plain0(Node $n): string
     {
         return match (true) {
             $n instanceof Identifier => '<mi' . ($n->upright ? ' mathvariant="normal"' : '') . '>' . Xml::text($n->upright ? $n->name : self::plain($n->name)) . '</mi>',
@@ -55,7 +107,7 @@ final class MathmlWriter
             $n instanceof Grid => self::grid($n),
             $n instanceof Row => self::row($n),
             $n instanceof DisplayStyle => '<mstyle displaystyle="' . ($n->display ? 'true' : 'false') . '">' . self::node($n->content) . '</mstyle>',
-            $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
+            $n instanceof Fallback => $n->content === null ? '' : self::plain0($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
     }
@@ -148,7 +200,14 @@ final class MathmlWriter
             // What a browser infers from the position in the mrow: first prefix, last postfix, else infix.
             $inferred = $i === 0 ? OperatorDictionary::FORM_PREFIX : ($i === $count - 1 ? OperatorDictionary::FORM_POSTFIX : OperatorDictionary::FORM_INFIX);
             $op = Fallback::unwrap($child);
-            $out .= $op instanceof Operator ? self::styled($child, self::operator($op, $resolved ?? $inferred, $inferred)) : self::node($child);
+            if ($op instanceof Operator) {
+                $out .= self::styled($child, self::operator($op, $resolved ?? $inferred, $inferred));
+            } elseif ($i < $count - 1 && self::isFunction($child)) {
+                // ApplyFunction goes between the name (with its scripts or limits) and what follows it.
+                $out .= self::plain0($child) . '<mo>&#x2061;</mo>';
+            } else {
+                $out .= self::node($child);
+            }
         }
 
         return '<mrow>' . $out . '</mrow>';
@@ -171,7 +230,7 @@ final class MathmlWriter
 
     private static function scripts(Scripts $s): string
     {
-        $base = self::slot($s->base);
+        $base = self::bare($s->base);
         if ($s->sub !== null && $s->sup !== null) {
             return '<msubsup>' . $base . self::slot($s->sub) . self::slot($s->sup) . '</msubsup>';
         }
@@ -199,7 +258,7 @@ final class MathmlWriter
             $form = $baseOp->isLargeop(OperatorDictionary::FORM_PREFIX) ? OperatorDictionary::FORM_PREFIX : OperatorDictionary::FORM_INFIX;
             $base = self::styled($u->base, self::operator($baseOp, $form, OperatorDictionary::FORM_INFIX, false, $stretches));
         } else {
-            $base = self::slot($u->base);
+            $base = self::bare($u->base);
         }
         if ($u->under !== null && $u->over !== null) {
             return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under) . $part($u->over) . '</munderover>';

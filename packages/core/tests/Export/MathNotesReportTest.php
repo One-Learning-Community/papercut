@@ -48,6 +48,14 @@ final class MathNotesReportTest extends TestCase
         self::assertStringNotContainsString('<', $messages[0]);
     }
 
+    public function test_invalid_utf8_in_tex_is_reported_without_angle_brackets(): void
+    {
+        $messages = $this->pdfMessages(Document::make(Page::a4()->body(Equation::of(Math::tex("a\xffb")))));
+        self::assertCount(1, $messages);
+        self::assertStringContainsString('math input (invalid UTF-8 replaced with U+FFFD)', $messages[0]);
+        self::assertStringNotContainsString('<', $messages[0]);
+    }
+
     public function test_tex_notes_reach_strict_mode(): void
     {
         $doc = Document::make(Page::a4()->body(Equation::of(Math::tex('x \\unknowncommand y'))));

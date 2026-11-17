@@ -177,7 +177,8 @@ $box = Math::layout($formula);
 ```
 
 Write TeX in single-quoted PHP strings or a nowdoc (`<<<'TEX'`), never in double quotes: PHP would turn `\f`, `\n`,
-`\t`, `\v`, `\r` and `\e` into control characters and `\frac` or `\nabla` would read as garbage. In single
+`\t`, `\v`, `\r` and `\e` into control characters and `\frac` or `\nabla` would read as garbage, and a double-quoted
+string also interpolates `$` variables (a `$x` in the TeX would be replaced). In single
 quotes write TeX's `\\` line break as `\\\\`.
 
 `Math::tex(string $tex): Node` never throws. To also learn whether the source asked for display style, or what was
