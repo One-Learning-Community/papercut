@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-18
+
 ### Changed
 
 - Requires `phactorial/phactorial` `^0.19`. Code that builds formulas with `Phactorial\Math` may need changes; see [Phactorial's 0.19.0 notes](https://github.com/One-Learning-Community/phactorial/blob/main/CHANGELOG.md#0190---2026-11-18). The one that changes output silently: `Math::xarrow()` takes the label below before the label above, so a positional call written for 0.18 swaps its labels. Pass them by name: `Math::xarrow('→', over: $over, under: $under)`. Blade templates, TeX and MathML input need no change.
