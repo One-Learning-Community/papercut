@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Quoin\Math\Tests;
 
 use Quoin\Math\Math;
+use Quoin\Math\Node\Identifier;
 use Quoin\Math\Node\Node;
 
 /**
@@ -39,6 +40,8 @@ final class Fixtures
             'e-to-minus-kt' => Math::sup('e', '−kt'),
             'unicode-script-digits' => Math::row('b² + x₂ = c'),
             'nested-radical' => Math::sqrt('1 +', Math::frac('1', Math::row('1 +', Math::frac('1', 'x')))),
+            'isotope' => Math::prescripts(new Identifier('C', false), '6', '14'),
+            'isotope-ion' => Math::prescripts(new Identifier('C', false), '6', '14', null, '4+'),
             'binomial' => Math::row(Math::binom('n', 'k'), '=', Math::frac('n!', Math::row('k!(n − k)!'))),
             'spaced-dx' => Math::row('∫', Math::sup('x', '2'), Math::space(1 / 6), Math::styled('d', 'normal'), 'x'),
             'phantom-align' => Math::row(Math::phantom('−'), '3', '+', '12'),

@@ -233,6 +233,13 @@ final class MathmlWriter
     private static function scripts(Scripts $s): string
     {
         $base = self::bare($s->base);
+        if ($s->preSub !== null || $s->preSup !== null) {
+            $slot = static fn (?Node $n): string => $n === null ? '<none/>' : self::slot($n);
+
+            return '<mmultiscripts>' . $base
+                . ($s->sub === null && $s->sup === null ? '' : $slot($s->sub) . $slot($s->sup))
+                . '<mprescripts/>' . $slot($s->preSub) . $slot($s->preSup) . '</mmultiscripts>';
+        }
         if ($s->sub !== null && $s->sup !== null) {
             return '<msubsup>' . $base . self::slot($s->sub) . self::slot($s->sup) . '</msubsup>';
         }

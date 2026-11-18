@@ -177,6 +177,14 @@ final class Math
         return new Scripts(self::row($base), self::row($sub), self::row($sup));
     }
 
+    /** A base with scripts on its left and, optionally, on its right (mmultiscripts): `^{14}_{6}C`. */
+    public static function prescripts(string|Node $base, string|Node|null $preSub, string|Node|null $preSup, string|Node|null $sub = null, string|Node|null $sup = null): Scripts
+    {
+        $row = static fn (string|Node|null $n): ?Node => $n === null ? null : self::row($n);
+
+        return new Scripts(self::row($base), $row($sub), $row($sup), $row($preSub), $row($preSup));
+    }
+
     /** A part below the base (munder). */
     public static function under(string|Node $base, string|Node $under): UnderOver
     {

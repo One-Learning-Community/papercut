@@ -179,7 +179,7 @@ final class TexEnvironmentTest extends TestCase
             self::assertCount(1, $n, $tex);
             self::assertSame(NoteLevel::Approximated, $n[0]->level);
         }
-        foreach (['\sideset{_a}{_b}\sum', '\prescript{a}{b}{X}', '\tensor{T}{^a_b}', '\mathchoice{a}{b}{c}{d}', '\newenvironment{foo}{a}{b}', '\begin{CD} A @>f>> B \end{CD}'] as $tex) {
+        foreach (['\tensor{T}{^a_b}', '\mathchoice{a}{b}{c}{d}', '\newenvironment{foo}{a}{b}', '\begin{CD} A @>f>> B \end{CD}'] as $tex) {
             $n = self::notes($tex);
             self::assertNotEmpty($n, $tex);
             self::assertSame(NoteLevel::Approximated, $n[0]->level, $tex);

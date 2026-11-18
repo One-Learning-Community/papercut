@@ -7,24 +7,32 @@ namespace Quoin\Math\Node;
 use Quoin\Math\Layout\Box;
 use Quoin\Math\Layout\Context;
 
-/** msub / msup / msubsup in one class: a base with a subscript, a superscript, or both. */
+/**
+ * msub / msup / msubsup / mmultiscripts in one class: a base with a subscript, a superscript, or both, and optionally the same on its
+ * left (prescripts, as in an isotope's mass and number).
+ */
 final class Scripts extends Node
 {
-    public function __construct(public readonly Node $base, public readonly ?Node $sub, public readonly ?Node $sup)
-    {
-        if ($sub === null && $sup === null) {
-            throw new \InvalidArgumentException('Scripts needs a subscript or a superscript');
+    public function __construct(
+        public readonly Node $base,
+        public readonly ?Node $sub,
+        public readonly ?Node $sup,
+        public readonly ?Node $preSub = null,
+        public readonly ?Node $preSup = null,
+    ) {
+        if ($sub === null && $sup === null && $preSub === null && $preSup === null) {
+            throw new \InvalidArgumentException('Scripts needs a script on one side or the other');
         }
     }
 
     /**
-     * @return list<Node>
+     * @return list<Node> in reading order: prescripts, base, scripts
      *
      * @internal Engine detail, not public API.
      */
     public function children(): array
     {
-        return array_values(array_filter([$this->base, $this->sub, $this->sup], static fn (?Node $n): bool => $n !== null));
+        return array_values(array_filter([$this->preSub, $this->preSup, $this->base, $this->sub, $this->sup], static fn (?Node $n): bool => $n !== null));
     }
 
     /** @internal Engine detail, not public API. */
@@ -33,7 +41,56 @@ final class Scripts extends Node
         $b = $this->base->layout($c);
         $sup = $this->sup?->layout($c->script());
         $sub = $this->sub?->layout($c->script(1, true)); // subscripts are cramped
+        $preSup = $this->preSup?->layout($c->script());
+        $preSub = $this->preSub?->layout($c->script(1, true));
+        [$up, $down] = self::shifts($c, $b, $sub, $sup);
+        [$preUp, $preDown] = self::shifts($c, $b, $preSub, $preSup);
 
+        $out = new Box(0.0, $b->ascent, $b->descent);
+        // Prescripts are right-aligned in a block that ends a script space before the base.
+        $x0 = 0.0;
+        if ($preSub !== null || $preSup !== null) {
+            $pw = max($preSub === null ? 0.0 : $preSub->width, $preSup === null ? 0.0 : $preSup->width);
+            $x0 = $pw + $c->k('spaceAfterScript');
+            if ($preSup !== null) {
+                $out->place($preSup, $pw - $preSup->width, -$preUp);
+                $out->ascent = max($out->ascent, $preUp + $preSup->ascent);
+            }
+            if ($preSub !== null) {
+                $out->place($preSub, $pw - $preSub->width, $preDown);
+                $out->descent = max($out->descent, $preDown + $preSub->descent);
+            }
+        }
+        $out->place($b, $x0, 0);
+        $bw = $b->width - $b->trail; // the base's own trailing space goes after the scripts, not between it and them
+        $w = $bw;
+        if ($sup !== null) {
+            $x = $bw + $b->italic; // italics correction pushes the superscript clear of a slanted base
+            $x += $this->kern($c, $b, $sup, true, $up);
+            $out->place($sup, $x0 + $x, -$up);
+            $w = max($w, $x + $sup->width);
+            $out->ascent = max($out->ascent, $up + $sup->ascent);
+        }
+        if ($sub !== null) {
+            $sx = $bw + $this->kern($c, $b, $sub, false, $down);
+            $out->place($sub, $x0 + $sx, $down);
+            $w = max($w, $sx + $sub->width);
+            $out->descent = max($out->descent, $down + $sub->descent);
+        }
+        $out->width = $x0 + $w + ($sub !== null || $sup !== null ? $c->k('spaceAfterScript') : 0.0) + $b->trail;
+        $out->trail = $b->trail;
+
+        return $out;
+    }
+
+    /**
+     * How far the superscript sits above and the subscript below the base baseline, in points (as `[up, down]`). A side without a
+     * script gets zero.
+     *
+     * @return array{float, float}
+     */
+    private static function shifts(Context $c, Box $b, ?Box $sub, ?Box $sup): array
+    {
         $up = $down = 0.0;
         if ($sup !== null) {
             $up = max($c->k($c->cramped ? 'superscriptShiftUpCramped' : 'superscriptShiftUp'), $sup->descent + $c->k('superscriptBottomMin'));
@@ -62,27 +119,7 @@ final class Scripts extends Node
             }
         }
 
-        $out = new Box(0.0, $b->ascent, $b->descent);
-        $out->place($b, 0, 0);
-        $bw = $b->width - $b->trail; // the base's own trailing space goes after the scripts, not between it and them
-        $w = $bw;
-        if ($sup !== null) {
-            $x = $bw + $b->italic; // italics correction pushes the superscript clear of a slanted base
-            $x += $this->kern($c, $b, $sup, true, $up);
-            $out->place($sup, $x, -$up);
-            $w = max($w, $x + $sup->width);
-            $out->ascent = max($out->ascent, $up + $sup->ascent);
-        }
-        if ($sub !== null) {
-            $sx = $bw + $this->kern($c, $b, $sub, false, $down);
-            $out->place($sub, $sx, $down);
-            $w = max($w, $sx + $sub->width);
-            $out->descent = max($out->descent, $down + $sub->descent);
-        }
-        $out->width = $w + $c->k('spaceAfterScript') + $b->trail;
-        $out->trail = $b->trail;
-
-        return $out;
+        return [$up, $down];
     }
 
     /**

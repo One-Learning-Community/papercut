@@ -561,6 +561,13 @@ final class TexWriter
 
     private static function scripts(Scripts $s): string
     {
+        if ($s->preSub !== null || $s->preSup !== null) {
+            // The empty group gives the prescripts something to attach to; the base then takes its own scripts as usual.
+            $pre = '{}' . self::scriptParts($s->preSub, $s->preSup);
+            $post = $s->sub === null && $s->sup === null ? self::base($s->base) : self::scripts(new Scripts($s->base, $s->sub, $s->sup));
+
+            return $pre . $post;
+        }
         $op = UnderOver::operatorOf($s->base);
         $nolimits = UnderOver::isLimitName($s->base) || ($op !== null && $op->isLargeop(OperatorDictionary::FORM_PREFIX) && $op->hasMovableLimits(OperatorDictionary::FORM_PREFIX));
         // `{\displaystyle \lim}\nolimits_i` is no TeX: the group stands for the operator, so its scripts simply follow it.

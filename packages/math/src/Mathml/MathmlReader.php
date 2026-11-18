@@ -309,11 +309,56 @@ final class MathmlReader
             'munder' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], null, false, self::bool($e, 'accentunder') ?? self::marked($e, 1))),
             'mover' => $this->fixed($name, 2, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], null, $a[1], self::bool($e, 'accent') ?? self::isAccent($a[1], $e, 1))),
             'munderover' => $this->fixed($name, 3, $this->slots($e, $where), $where, fn (array $a): Node => new UnderOver($a[0], $a[1], $a[2], self::bool($e, 'accent') ?? self::isAccent($a[2], $e, 2), self::bool($e, 'accentunder') ?? self::marked($e, 1))),
+            'mmultiscripts' => $this->multiscripts($e, $where),
             'mfenced' => $this->fenced($e, $this->slots($e, $where)),
             'mtable' => $this->table($e, $where),
             'maction' => $this->note($name, $this->choice($e, $where), NoteLevel::Approximated, $name, 'drawn as its first choice', $where),
             default => $this->note($name, $this->children($e, $where), NoteLevel::Approximated, $name, 'drawn as its contents', $where),
         };
+    }
+
+    /**
+     * A base with script pairs after it, then (past `mprescripts`) pairs before it. One pair on each side is drawn; `none` is an empty slot.
+     */
+    private function multiscripts(\Dom\Element $e, string $where): Node
+    {
+        $base = null;
+        $post = [];
+        $pre = [];
+        $before = false;
+        $i = 0;
+        foreach ($e->childNodes as $c) {
+            if (! $c instanceof \Dom\Element) {
+                continue;
+            }
+            $name = self::name($c);
+            $at = $this->at($where, $c, $i++);
+            if ($name === 'mprescripts') {
+                $before = true;
+            } elseif ($base === null && ! $before) {
+                $base = $this->map($c, $at) ?? new Row([]);
+            } elseif ($name === 'none') {
+                if ($before) {
+                    $pre[] = null;
+                } else {
+                    $post[] = null;
+                }
+            } elseif ($before) {
+                $pre[] = $this->map($c, $at);
+            } else {
+                $post[] = $this->map($c, $at);
+            }
+        }
+        $base ??= new Row([]);
+        $node = $base;
+        if (array_filter([...$post, ...$pre], static fn (?Node $n): bool => $n !== null) !== []) {
+            $node = new Scripts($base, $post[0] ?? null, $post[1] ?? null, $pre[0] ?? null, $pre[1] ?? null);
+        }
+        if (count($post) > 2 || count($pre) > 2) {
+            return $this->note('mmultiscripts', $node, NoteLevel::Approximated, 'mmultiscripts', 'only one script pair on each side is drawn', $where) ?? $node;
+        }
+
+        return $node;
     }
 
     /** The table as a Grid, wrapped in a Fallback for each distinct attribute that is not drawn. */

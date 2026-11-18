@@ -21,6 +21,7 @@ use Quoin\Math\NoteLevel;
 use Quoin\Math\Render\MathmlWriter;
 use Quoin\Math\Render\OmmlWriter;
 use Quoin\Math\Render\TextWriter;
+use Quoin\Math\Tests\TreeAssert;
 use PHPUnit\Framework\TestCase;
 
 final class MathmlFallbackTest extends TestCase
@@ -70,12 +71,42 @@ final class MathmlFallbackTest extends TestCase
         self::assertSame('x', TextWriter::write($r->node));
     }
 
-    public function test_mmultiscripts_drops_markers(): void
+    public function test_mmultiscripts_reads_prescripts(): void
     {
-        $r = MathmlReader::read('<math><mmultiscripts><mi>x</mi><mi>a</mi><none/><mprescripts/><mi>b</mi><none/></mmultiscripts></math>');
+        $r = MathmlReader::read('<math><mmultiscripts><mi>C</mi><mprescripts/><mn>6</mn><mn>14</mn></mmultiscripts></math>');
+        self::assertSame([], $r->notes());
+        TreeAssert::assertSameTree(Math::prescripts(new Identifier('C'), '6', '14'), $r->node);
+    }
+
+    public function test_mmultiscripts_reads_both_sides(): void
+    {
+        $r = MathmlReader::read('<math><mmultiscripts><mi>R</mi><mi>i</mi><none/><mprescripts/><mn>6</mn><mn>14</mn></mmultiscripts></math>');
+        self::assertSame([], $r->notes());
+        TreeAssert::assertSameTree(Math::prescripts(new Identifier('R'), '6', '14', 'i', null), $r->node);
+    }
+
+    public function test_mmultiscripts_extra_pairs_are_noted(): void
+    {
+        $r = MathmlReader::read('<math><mmultiscripts><mi>R</mi><mi>i</mi><none/><mi>j</mi><none/><mprescripts/><mn>6</mn><mn>14</mn></mmultiscripts></math>');
         self::assertCount(1, $r->notes());
         self::assertSame('mmultiscripts', $r->notes()[0]->element);
-        self::assertSame('xab', preg_replace('/\s+/', '', TextWriter::write($r->node)));
+        self::assertSame(NoteLevel::Approximated, $r->notes()[0]->level);
+        self::assertSame('only one script pair on each side is drawn', $r->notes()[0]->reason);
+        TreeAssert::assertSameTree(Math::prescripts(new Identifier('R'), '6', '14', 'i', null), Fallback::unwrap($r->node));
+    }
+
+    public function test_mmultiscripts_none_on_the_prescript_side(): void
+    {
+        $r = MathmlReader::read('<math><mmultiscripts><mi>C</mi><mprescripts/><none/><mn>14</mn></mmultiscripts></math>');
+        self::assertSame([], $r->notes());
+        TreeAssert::assertSameTree(Math::prescripts(new Identifier('C'), null, '14'), $r->node);
+    }
+
+    public function test_mmultiscripts_without_a_base(): void
+    {
+        $r = MathmlReader::read('<math><mmultiscripts><mprescripts/><mn>6</mn><mn>14</mn></mmultiscripts></math>');
+        self::assertSame([], $r->notes());
+        TreeAssert::assertSameTree(Math::prescripts(new Row([]), '6', '14'), $r->node);
     }
 
     public function test_unknown_element(): void

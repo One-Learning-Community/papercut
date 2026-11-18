@@ -164,7 +164,7 @@ return [
     'limits-explicit' => ['\int\limits_a^b f \quad \sum\limits_i x_i \quad \lim\nolimits_{x\to0} f \quad \prod\nolimits_i a_i', []],
     'big-ops-more' => ['\bigcap_{i} A_i \quad \bigvee_i p_i \quad \bigwedge_i q_i \quad \bigotimes_i V_i \quad \bigsqcup_i X_i \quad \biguplus_i Y_i', []],
     'integrals-more' => ['\iiint_V f\,dV \quad \oiint_S \mathbf{F}\cdot d\mathbf{S} \quad \intop_0^1 \quad \smallint_a^b', []],
-    'prescripts' => ['{}_{a}^{b}X \quad {}^{235}_{92}\mathrm{U} \quad \sideset{_a^b}{_c^d}\sum', [['\sideset', 'Approximated']]],
+    'prescripts' => ['{}_{a}^{b}X \quad {}^{235}_{92}\mathrm{U} \quad \sideset{_a^b}{_c^d}\sum', []],
     'scripts-stack' => ['x^{y^z} \quad x_{y_z} \quad x^{y}_{z} \quad e^{x^{2}}', []],
     'scripts-long' => ['x_{n+1}^{2k} \quad a_{i,j}^{(k)} \quad \mathbf{A}^{-1} \quad A^\top \quad A^\dagger \quad A^*', []],
     'primes-more' => ['f\' \quad f\'\' \quad f\'\'\' \quad f^{\prime\prime} \quad f\'^2', []],

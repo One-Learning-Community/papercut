@@ -174,6 +174,8 @@ final class TextWriter
     private static function scripts(Scripts $s): string
     {
         $base = self::node($s->base);
+        $pre = ($s->preSup !== null ? self::script($s->preSup, ScriptChars::SUP, '^') : '') . ($s->preSub !== null ? self::script($s->preSub, ScriptChars::SUB, '_') : '');
+        $base = $pre . $base;
 
         return $base . ($s->sub !== null ? self::script($s->sub, ScriptChars::SUB, '_') : '') . ($s->sup !== null ? self::script($s->sup, ScriptChars::SUP, '^') : '');
     }

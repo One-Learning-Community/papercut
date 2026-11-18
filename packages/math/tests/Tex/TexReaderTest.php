@@ -116,6 +116,89 @@ final class TexReaderTest extends TestCase
         self::same(Math::sup('x', Math::frac('a', 'b')), 'x^{\frac{a}{b}}');
     }
 
+    public function test_prescripts_from_an_empty_group(): void
+    {
+        $c = new Identifier('C', false);
+        self::same(Math::prescripts($c, '6', '14'), '{}^{14}_{6}\mathrm{C}');
+        self::same(Math::prescripts($c, '6', '14'), '{}_{6}^{14}\mathrm{C}');
+        self::same(Math::prescripts($c, '6', '14', null, '4+'), '{}^{14}_{6}\mathrm{C}^{4+}');
+        self::same(Math::prescripts($c, '6', '14'), '{}^{14}_{6} \mathrm{C}');
+    }
+
+    public function test_an_empty_group_with_scripts_and_nothing_to_carry_them_stays_as_scripts(): void
+    {
+        $n = Math::tex('{}^2');
+        self::assertInstanceOf(Scripts::class, $n);
+        self::assertNull($n->preSup);
+        self::assertSame([], Fallback::unwrap($n->base)->children());
+        $r = Math::tex('{}^2 + x');
+        self::assertInstanceOf(Row::class, $r);
+        self::assertInstanceOf(Scripts::class, $r->children[0]);
+        self::assertNull($r->children[0]->preSup);
+        self::assertSame([], self::notes('{}^2 + x'));
+    }
+
+    public function test_prescript_command(): void
+    {
+        $c = new Identifier('C', false);
+        self::same(Math::prescripts($c, '6', '14'), '\prescript{14}{6}{\mathrm{C}}');
+        self::same(Math::prescripts($c, null, '14'), '\prescript{14}{}{\mathrm{C}}');
+        self::same(Math::prescripts($c, '6', null), '\prescript{}{6}{\mathrm{C}}');
+        self::same(new Row([]), '\prescript{}{}{}');
+        self::same(Math::prescripts($c, '6', '14', null, '4+'), '\prescript{14}{6}{\mathrm{C}}^{4+}');
+        TreeAssert::assertSameTree(Math::tex('{}^{14}_{6}\mathrm{C}^{4+}'), Math::tex('\prescript{14}{6}{\mathrm{C}}^{4+}'));
+    }
+
+    public function test_sideset(): void
+    {
+        self::same(Math::prescripts(Math::tex('\sum'), 'a', 'b', 'c', 'd'), '\sideset{_a^b}{_c^d}\sum');
+        self::same(Math::prescripts(Math::tex('\sum'), null, null, null, '′'), "\\sideset{}{'}\\sum");
+        self::same(Math::prescripts(Math::tex('\sum'), 'a', null, null, null), '\sideset{_a}{}\sum');
+        self::same(Math::tex('\sum'), '\sideset{}{}\sum');
+    }
+
+    public function test_sideset_keeps_the_class_of_its_base(): void
+    {
+        $r = Math::tex('\sideset{}{\prime}\sum_{n<k} a_n');
+        self::assertInstanceOf(Row::class, $r);
+        self::assertInstanceOf(UnderOver::class, $r->children[0]);
+    }
+
+    public function test_sideset_notes_what_it_cannot_draw(): void
+    {
+        $n = self::notes('\sideset{x_a}{}\sum');
+        self::assertCount(1, $n);
+        self::assertSame('\sideset', $n[0]->element);
+        self::assertSame(NoteLevel::Dropped, $n[0]->level);
+        self::assertCount(1, self::notes('\sideset{x}{y}\sum'));
+    }
+
+    public function test_a_space_or_nothing_does_not_carry_prescripts(): void
+    {
+        foreach (['{}^2\quad x', '{}^2\,x', '{}^2{}'] as $tex) {
+            $r = Math::tex($tex);
+            self::assertInstanceOf(Row::class, $r, $tex);
+            self::assertInstanceOf(Scripts::class, $r->children[0], $tex);
+            self::assertNull($r->children[0]->preSup, $tex);
+            self::assertNotInstanceOf(Scripts::class, $r->children[1] ?? null, $tex);
+        }
+    }
+
+    public function test_consecutive_empty_groups_each_take_their_turn(): void
+    {
+        $r = Math::tex('{}^a{}^b C');
+        self::assertInstanceOf(Row::class, $r);
+        self::assertCount(2, $r->children);
+        self::assertInstanceOf(Scripts::class, $r->children[0]);
+        self::assertSame([], Fallback::unwrap($r->children[0]->base)->children());
+        TreeAssert::assertSameTree(Math::prescripts('C', null, 'b'), $r->children[1]);
+    }
+
+    public function test_scripts_on_a_group_stay_as_they_were(): void
+    {
+        self::same(Math::sup(Math::row('a + b'), '2'), '{a + b}^2');
+    }
+
     public function test_a_double_superscript_gives_a_note(): void
     {
         $notes = self::notes('x^1^2');

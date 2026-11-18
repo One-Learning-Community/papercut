@@ -253,17 +253,25 @@ final class OmmlWriter
         if ($nary !== null) {
             return self::naryXml($nary, null, $rPr);
         }
-        $e = '<m:e>' . self::node($s->base, $rPr) . '</m:e>';
-        $sub = $s->sub === null ? '' : '<m:sub>' . self::node($s->sub, $rPr) . '</m:sub>';
-        $sup = $s->sup === null ? '' : '<m:sup>' . self::node($s->sup, $rPr) . '</m:sup>';
-        $tag = match (true) {
-            $s->sub !== null && $s->sup !== null => 'm:sSubSup',
-            $s->sup !== null => 'm:sSup',
-            $s->sub !== null => 'm:sSub',
-            default => throw new \LogicException('Scripts without a script'),
-        };
+        $e = self::node($s->base, $rPr);
+        if ($s->sub !== null || $s->sup !== null) {
+            $tag = match (true) {
+                $s->sub !== null && $s->sup !== null => 'm:sSubSup',
+                $s->sup !== null => 'm:sSup',
+                default => 'm:sSub',
+            };
+            $e = '<' . $tag . '><m:e>' . $e . '</m:e>'
+                . ($s->sub === null ? '' : '<m:sub>' . self::node($s->sub, $rPr) . '</m:sub>')
+                . ($s->sup === null ? '' : '<m:sup>' . self::node($s->sup, $rPr) . '</m:sup>')
+                . '</' . $tag . '>';
+        }
+        if ($s->preSub === null && $s->preSup === null) {
+            return $e;
+        }
 
-        return '<' . $tag . '>' . $e . $sub . $sup . '</' . $tag . '>';
+        // Word's pre-script element needs both slots; a missing one is empty.
+        return '<m:sPre><m:sub>' . ($s->preSub === null ? '' : self::node($s->preSub, $rPr)) . '</m:sub><m:sup>'
+            . ($s->preSup === null ? '' : self::node($s->preSup, $rPr)) . '</m:sup><m:e>' . $e . '</m:e></m:sPre>';
     }
 
     /**
@@ -317,6 +325,9 @@ final class OmmlWriter
     {
         $n = Fallback::unwrap($n);
         if (! ($n instanceof UnderOver || $n instanceof Scripts)) {
+            return null;
+        }
+        if ($n instanceof Scripts && ($n->preSub !== null || $n->preSup !== null)) {
             return null;
         }
         $op = UnderOver::operatorOf($n->base);

@@ -412,18 +412,73 @@ final class TexReader
                 $this->c->p++;
                 $this->font = TexSymbols::FONT_SWITCHES[$t[1]];
             } else {
+                $empty = $t[0] === '{';
                 $atom = $this->parseAtom(false);
                 if ($this->pending !== null) {
                     $nodes[] = $this->pending;
                     $this->pending = null;
                 }
                 if ($atom !== null) {
-                    $nodes[] = $this->withScripts($atom);
+                    $node = $this->withScripts($atom);
+                    if ($empty && $atom[0] instanceof Row && $atom[0]->children === [] && $node instanceof Scripts && $this->carriesPrescripts($stops)) {
+                        array_push($nodes, ...$this->prescripted($node, $stops));
+                    } else {
+                        $nodes[] = $node;
+                    }
                 }
             }
         }
 
         return $nodes;
+    }
+
+    /**
+     * Whether the token after an empty group's scripts begins an atom to carry them (`{}^{14}_{6}C`), not a command that changes how
+     * what follows is read, or the end.
+     *
+     * @param list<string> $stops
+     */
+    private function carriesPrescripts(array $stops): bool
+    {
+        $this->c->skipSp();
+        $t = $this->c->peek();
+        if ($t === null || TexCursor::isStop($t, $stops) || ! in_array($t[0], ['{', 'ch', 'cs'], true)) {
+            return false;
+        }
+        return $t[0] !== 'cs' || ! (in_array($t[1], ['over', 'choose', 'atop', 'brace', 'brack', 'displaystyle', 'textstyle', 'scriptstyle', 'scriptscriptstyle', 'color', 'limits', 'nolimits', 'displaylimits'], true) || isset(TexSymbols::FONT_SWITCHES[$t[1]]));
+    }
+
+    /**
+     * The scripts of an empty group, put on the left of the atom that follows; the atom's own scripts stay on its right. An operator
+     * after the group leaves both as they were.
+     *
+     * @param list<string> $stops
+     *
+     * @return list<Node>
+     */
+    private function prescripted(Scripts $empty, array $stops): array
+    {
+        $emptyGroup = $this->c->peekIs('{');
+        $atom = $this->parseAtom(false);
+        $pending = $this->pending;
+        $this->pending = null;
+        $before = $pending === null ? [$empty] : [$empty, $pending];
+        if ($atom === null) {
+            return $before;
+        }
+        $node = $this->withScripts($atom);
+        if ($pending !== null || self::cannotCarry($atom[0])) {
+            // `{}^a{}^b C`: the second group has its own turn to carry C.
+            if ($pending === null && $emptyGroup && $node instanceof Scripts && $this->carriesPrescripts($stops)) {
+                return [$empty, ...$this->prescripted($node, $stops)];
+            }
+
+            return [...$before, $node];
+        }
+
+        return [$node instanceof Scripts && $node->preSub === null && $node->preSup === null
+            ? new Scripts($node->base, $node->sub, $node->sup, $empty->sub, $empty->sup)
+            : new Scripts($node, null, null, $empty->sub, $empty->sup)];
     }
 
     /** `\\[2pt]`: the optional dimension after a row break. */
@@ -603,6 +658,96 @@ final class TexReader
         return self::row($nodes);
     }
 
+    /**
+     * What cannot carry prescripts: an operator that is not a large one (`+` and `=` take their left side from what came before,
+     * `\\sum` and `\\int` can carry scripts), a space, and nothing at all.
+     */
+    private static function cannotCarry(Node $n): bool
+    {
+        $n = Fallback::unwrap($n);
+
+        return $n instanceof Space
+            || ($n instanceof Row && $n->children === [])
+            || ($n instanceof Operator && ! $n->isLargeop(OperatorDictionary::FORM_PREFIX));
+    }
+
+    /** Scripts around a base, an empty script (`{}`) counting as none. */
+    private static function prescripted3(Node $base, ?Node $sub, ?Node $sup, ?Node $preSub, ?Node $preSup): Node
+    {
+        $none = static fn (?Node $n): ?Node => $n instanceof Row && $n->children === [] ? null : $n;
+        [$sub, $sup, $preSub, $preSup] = [$none($sub), $none($sup), $none($preSub), $none($preSup)];
+
+        return $sub === null && $sup === null && $preSub === null && $preSup === null ? $base : new Scripts($base, $sub, $sup, $preSub, $preSup);
+    }
+
+    /**
+     * A command argument with its atom class (operator, ordinary), so the class carries over to what is built around it.
+     *
+     * @return array{Node, string}
+     */
+    private function argumentAtom(): array
+    {
+        $this->c->skipSp();
+        $t = $this->c->peek();
+        if ($t === null || $t[0] === '{' || $this->endsArguments($t)) {
+            return [$this->parseArgument(), 'ord'];
+        }
+        $a = $this->parseAtom(true);
+
+        return $a === null ? [$this->missingArgument(), 'ord'] : [$a[0], $a[1]];
+    }
+
+    /**
+     * The subscript and superscript of a script-only group (`{_a^b}`, as in the first two arguments of `\sideset`), and the offset of
+     * the first thing in it that is not a script and so is not drawn.
+     *
+     * @return array{?Node, ?Node, ?int}
+     */
+    private function scriptGroup(): array
+    {
+        $this->c->skipSp();
+        if (! $this->c->peekIs('{')) {
+            return [null, null, null];
+        }
+        $this->c->p++;
+        $subs = [];
+        $sups = [];
+        $primes = 0;
+        $dropped = null;
+        while (($t = $this->c->peek()) !== null) {
+            if ($t[0] === '}') {
+                $this->c->p++;
+                break;
+            }
+            if ($t[0] === '^' || $t[0] === '_') {
+                $this->c->p++;
+                $arg = $this->scriptArg($t[1], $t[2]);
+                if ($t[0] === '^') {
+                    $sups[] = $arg;
+                } else {
+                    $subs[] = $arg;
+                }
+            } elseif ($t[0] === 'ch' && $t[1] === "'") {
+                $this->c->p++;
+                $primes++;
+            } elseif ($t[0] === 'sp') {
+                $this->c->p++;
+            } else {
+                $dropped ??= $t[2];
+                $this->c->p++;
+                if ($t[0] === '{') {
+                    $this->c->skipBalanced();
+                }
+            }
+        }
+        if ($primes > 0) {
+            $chars = [1 => '′', 2 => '″', 3 => '‴', 4 => '⁗'];
+            array_unshift($sups, new Identifier($chars[$primes] ?? str_repeat('′', $primes), false));
+        }
+
+        return [$subs === [] ? null : self::row($subs), $sups === [] ? null : self::row($sups), $dropped];
+    }
+
     /** A script argument: a group, or one token. */
     private function scriptArg(string $element, int $at): Node
     {
@@ -680,7 +825,12 @@ final class TexReader
                 'op', 'funclim' => $limits !== 'nolimits',
                 default => $limits === 'limits',
             };
-            $node = $stacked ? new UnderOver($node, $sub, $sup) : new Scripts($node, $sub, $sup);
+            if (! $stacked && $node instanceof Scripts && $node->sub === null && $node->sup === null) {
+                // `\prescript{14}{6}{C}^{4+}`: the scripts join the prescripts already on the base.
+                $node = new Scripts($node->base, $sub, $sup, $node->preSub, $node->preSup);
+            } else {
+                $node = $stacked ? new UnderOver($node, $sub, $sup) : new Scripts($node, $sub, $sup);
+            }
         }
         if ($doubled !== null) {
             $node = $this->note(NoteLevel::Approximated, $doubled[0], $doubled[1], $doubled[2], $node);
@@ -1114,13 +1264,28 @@ final class TexReader
             case 'xcancel':
             case 'sout':
                 return [new TexSource($this->note(NoteLevel::Approximated, '\\' . $name, 'the strike-through is not drawn', $at, fn (): Node => $this->parseArgument()), '\\' . $name . '{', '}'), 'ord', null];
-            case 'sideset':
             case 'prescript':
+                $sup = $this->parseArgument();
+                $sub = $this->parseArgument();
+                [$base, $kind] = $this->argumentAtom();
+
+                return [self::prescripted3($base, null, null, $sub, $sup), $kind, null];
+            case 'sideset':
+                [$preSub, $preSup, $droppedLeft] = $this->scriptGroup();
+                [$sub, $sup, $droppedRight] = $this->scriptGroup();
+                [$base, $kind] = $this->argumentAtom();
+                $node = self::prescripted3($base, $sub, $sup, $preSub, $preSup);
+                $dropped = $droppedLeft ?? $droppedRight;
+                if ($dropped !== null) {
+                    $node = $this->note(NoteLevel::Dropped, '\\sideset', 'only scripts are drawn in its first two arguments', $dropped, $node);
+                }
+
+                return [$node, $kind, null];
             case 'tensor':
             case 'mathchoice':
             case 'newenvironment':
             case 'renewenvironment':
-                $count = ['sideset' => 3, 'prescript' => 3, 'tensor' => 2, 'mathchoice' => 4, 'newenvironment' => 3, 'renewenvironment' => 3][$name];
+                $count = ['tensor' => 2, 'mathchoice' => 4, 'newenvironment' => 3, 'renewenvironment' => 3][$name];
                 $args = [];
                 for ($i = 0; $i < $count; $i++) {
                     $args[] = $this->parseArgument();
