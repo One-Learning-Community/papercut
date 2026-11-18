@@ -77,8 +77,8 @@ Math::row(Math::integral('0', '1'), 'x dx');
 | `Math::stack($top, $bottom)` | Two lines like a fraction, without the rule. |
 | `Math::aligned($rows)` | Equations lined up on their alignment points, as in TeX's `aligned`. |
 | `Math::middle($delimiter)` | A delimiter inside `Math::fenced()` that stretches with it, such as the bar in a set. |
-| `Math::big($delimiter, $size)` | A delimiter at a fixed size, 1 to 4 (`Math::BIG_SIZES`). |
-| `Math::xarrow($arrow, $over, $under)` | An extensible arrow with optional labels above and below. |
+| `Math::big($delimiter, $step)` | A delimiter at a fixed size step, 1 to 4 (`Math::BIG_SIZES`). |
+| `Math::xarrow($arrow, $under, $over)` | An extensible arrow with optional labels below and above. |
 | `Math::space($em)` | Horizontal space of that many ems. A negative value pulls the next item back. |
 | `Math::phantom(...$content)` | Takes the size of its content and draws nothing. |
 | `Math::styled($text, $variant)` | Text in a MathML `mathvariant`, such as `bold` or `double-struck`. |
@@ -94,7 +94,7 @@ Math::row(Math::styled('R', 'double-struck'), '∋', Math::styled('x', 'bold'));
 Math::aligned([['x + 2', '= 5'], ['x', '= 3']]);
 Math::fenced('{', '}', 'x', Math::middle('|'), 'x > 0');
 Math::row(Math::big('(', 2), 'a + b', Math::big(')', 2));
-Math::xarrow('→', Math::text('heat'), Math::text('catalyst'));
+Math::xarrow('→', over: Math::text('heat'), under: Math::text('catalyst'));
 ```
 
 In Word, `aligned()` is written as a native equation array. In `aligned()`, cells alternate right- and left-aligned, so the second cell of each row starts at the alignment point (`= 5`). A pair has no gap inside it, and two em separate pairs. An arrow made with `xarrow()` is at least as long as KaTeX draws it and reaches past its labels.
