@@ -11,19 +11,19 @@ composer require quoin/math
 ```
 
 ```php
-use Quoin\Math\Math;
-use Quoin\Math\Render\SvgRenderer;
+use Quoin\Math\MathRender;
 
-$box = Math::layout(Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}'), size: 16.0);
-echo (new SvgRenderer(Math::stixTwoMath()))->render($box, pad: 1.0);
+echo MathRender::fromTex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}')->display()->svg(pad: 1);
 ```
 
-Every glyph is a path, so the SVG needs no web font.
+Every glyph is a path, so the SVG needs no web font. Inline, it carries the `vertical-align` that sets it on the line's
+baseline, and every SVG has an `aria-label` of the formula as text. The same call ends in `png()`, `mathml()`,
+`omml()`, `tex()` or `text()`.
 
 Chemistry reads the same way. The TeX writer writes `\ce` back as read, so TeX that leaves this package needs mhchem, which KaTeX and MathJax offer.
 
 ```php
-$box = Math::layout(Math::tex('\ce{CH4 + 2O2 -> CO2 + 2H2O}'), size: 16.0);
+echo MathRender::fromTex('\ce{CH4 + 2O2 -> CO2 + 2H2O}')->svg();
 ```
 
 - Reads what KaTeX reads, and MathML from equation editors, Word and the web.
@@ -38,7 +38,7 @@ $box = Math::layout(Math::tex('\ce{CH4 + 2O2 -> CO2 + 2H2O}'), size: 16.0);
 - [Recipes](https://one-learning-community.github.io/quoin/math/recipes.html): web pages, email, Word, conversion,
   alt text, untrusted input
 - [Input](https://one-learning-community.github.io/quoin/math/input.html): the builder, TeX, MathML, notes and limits
-- [Output](https://one-learning-community.github.io/quoin/math/output.html): layout options and every writer
+- [Output](https://one-learning-community.github.io/quoin/math/output.html): one-call output, layout options and every writer
 - [Custom backends](https://one-learning-community.github.io/quoin/math/backends.html): the display list, glyph
   outlines, fonts
 

@@ -1,6 +1,49 @@
 # Output
 
-MathML, TeX, OMML and plain text are written from the formula tree. SVG and PNG are drawn from a layout.
+## Quick output
+
+`MathRender` reads a formula and writes it in one call.
+
+```php
+use Quoin\Math\Math;
+use Quoin\Math\MathRender;
+
+MathRender::fromTex('\pi r^2')->svg();
+MathRender::fromTex($tex)->display()->svg(size: 18);
+MathRender::fromMathml($mml)->png(scale: 3);
+MathRender::of(Math::frac('a', 'b'))->mathml();
+```
+
+| Method | Reads |
+|---|---|
+| `fromTex($tex)` | TeX, as `Math::tex()` reads it |
+| `fromMathml($input)` | MathML, a string or a `math` element of a parsed document |
+| `of($node)` | a formula from the builder |
+
+A formula starts in the style its source asked for: `$$…$$` and `\[…\]` in TeX, `display="block"` in MathML. Anything else, and every `of()`, starts inline. These change it, and each returns a new `MathRender`:
+
+| Method | Effect |
+|---|---|
+| `display()` | Display style, for a formula on its own line |
+| `inline()` | Text style, for a formula inside a line |
+| `font($font)` | The `Font` SVG and PNG are drawn in; STIX Two Math by default |
+
+| Output | Returns |
+|---|---|
+| `svg(size: 16, color: 'currentColor', pad: 0, label: null)` | SVG markup with `role="img"` and an `aria-label` of `text()`, or of `label`. An empty `label` writes `aria-hidden="true"` instead. Inline, it also carries the `vertical-align` that sets its baseline on the line's. |
+| `png(size: 16, scale: 2, color: '#000000', pad: 0)` | A `MathPng` |
+| `mathml()` | MathML, with `display="block"` in display style |
+| `omml(align: 'center', format: null)` | Word's `m:oMath` inline; `m:oMathPara` aligned `left`, `center` or `right` in display style |
+| `tex()` | TeX |
+| `text()` | Plain text |
+| `notes()` | The reader's reports; see [Untrusted input](./recipes.md#untrusted-input) |
+| `node()` | The formula tree, for the classes below |
+
+`size` is in CSS pixels. `MathPng` holds `bytes`, the CSS `width` and `height` (the image has `scale` pixels to each), and `verticalAlign`. `dataUri()` returns the image as a `data:` URL, and `img($src, $alt = null)` writes an `<img>` at that size and baseline with the formula's text as `alt`.
+
+The defaults suit text on the web: inline, 16 pixels, `currentColor`. They differ from the classes below, where `Math::layout()` defaults to display style at 12 points, `SvgRenderer` to black and `MathmlWriter` to display.
+
+The rest of this page covers those classes. MathML, TeX, OMML and plain text are written from the formula tree. SVG and PNG are drawn from a layout.
 
 ## Layout
 

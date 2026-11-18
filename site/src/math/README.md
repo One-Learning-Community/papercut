@@ -9,11 +9,9 @@ composer require quoin/math
 ```
 
 ```php
-use Quoin\Math\Math;
-use Quoin\Math\Render\SvgRenderer;
+use Quoin\Math\MathRender;
 
-$box = Math::layout(Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}'), size: 16.0);
-echo (new SvgRenderer(Math::stixTwoMath()))->render($box, pad: 1.0);
+echo MathRender::fromTex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}')->display()->svg(pad: 1);
 ```
 
 ![The quadratic formula as SVG](/guide/equation-quadratic.png)
@@ -27,6 +25,8 @@ A formula passes through three stages.
 1. **Read.** `Math::tex()` and `Math::mathml()` turn source text into a formula tree. The `Math` builder makes the same tree in PHP.
 2. **Lay out.** `Math::layout()` sets the tree in an OpenType math font, by the rules TeX and MathML Core use.
 3. **Write.** A writer turns the tree or the layout into output.
+
+`MathRender` runs all three in one call. The classes behind it stay public for finer control.
 
 | Output | From | Use it for |
 |---|---|---|
