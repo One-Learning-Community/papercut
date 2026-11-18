@@ -61,14 +61,14 @@ final class PngRenderer
     }
 
     /**
-     * @throws MissingExtension when Imagick is not loaded
+     * Width and height in pixels of the image render() draws for $box: at least one pixel each.
+     *
+     * @return array{int, int}
+     *
      * @throws \InvalidArgumentException when $scale is not above zero and finite, or the image would exceed MAX_PIXELS
      */
-    public function render(Box $box, float $pad = 0.0, float $scale = 2.0): string
+    public static function pixelSize(Box $box, float $pad = 0.0, float $scale = 2.0): array
     {
-        if (! self::available()) {
-            throw MissingExtension::imagick();
-        }
         if (! is_finite($scale) || $scale <= 0.0) {
             throw new \InvalidArgumentException('PNG scale must be above zero and finite');
         }
@@ -79,15 +79,27 @@ final class PngRenderer
         }
         $w = max(1.0, $wf);
         $h = max(1.0, $hf);
+        if ($w * $h > self::MAX_PIXELS) {
+            throw new \InvalidArgumentException(sprintf('PNG of %s by %s pixels is over the limit of %d pixels', number_format($w, 0, '.', ''), number_format($h, 0, '.', ''), self::MAX_PIXELS));
+        }
+
+        return [(int) $w, (int) $h];
+    }
+
+    /**
+     * @throws MissingExtension when Imagick is not loaded
+     * @throws \InvalidArgumentException when $scale is not above zero and finite, or the image would exceed MAX_PIXELS
+     */
+    public function render(Box $box, float $pad = 0.0, float $scale = 2.0): string
+    {
+        if (! self::available()) {
+            throw MissingExtension::imagick();
+        }
+        [$w, $h] = self::pixelSize($box, $pad, $scale);
         $k = self::SUPERSAMPLE;
         while ($k > 1 && $w * $k * $h * $k > self::MAX_PIXELS) {
             $k--;
         }
-        if ($w * $h > self::MAX_PIXELS) {
-            throw new \InvalidArgumentException(sprintf('PNG of %s by %s pixels is over the limit of %d pixels', number_format($w, 0, '.', ''), number_format($h, 0, '.', ''), self::MAX_PIXELS));
-        }
-        $w = (int) $w;
-        $h = (int) $h;
         $f = $scale * $k;
         $ox = $pad * $f;
         $oy = ($pad + $box->ascent) * $f;

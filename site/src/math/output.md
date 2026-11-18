@@ -39,7 +39,7 @@ A formula starts in the style its source asked for: `$$…$$` and `\[…\]` in T
 | `notes()` | The reader's reports; see [Untrusted input](./recipes.md#untrusted-input) |
 | `node()` | The formula tree, for the classes below |
 
-`size` is in CSS pixels. `MathPng` holds `bytes`, the CSS `width` and `height` (the image has `scale` pixels to each), and `verticalAlign`. `dataUri()` returns the image as a `data:` URL, and `img($src, $alt = null)` writes an `<img>` at that size and baseline with the formula's text as `alt`.
+`size` is in CSS pixels. `svg()` and `png()` throw `InvalidArgumentException` for a size that is not above zero or a negative pad. `MathPng` holds `bytes`, the CSS `width` and `height` (the image has `scale` pixels to each), `verticalAlign`, which is `null` for a display formula, and `alt`, the formula as text. `dataUri()` returns the image as a `data:` URL, and `img($src, $alt = null)` writes an `<img>` at that size and baseline with the formula's text as `alt`.
 
 The defaults suit text on the web: inline, 16 pixels, `currentColor`. They differ from the classes below, where `Math::layout()` defaults to display style at 12 points, `SvgRenderer` to black and `MathmlWriter` to display.
 
@@ -82,7 +82,7 @@ if (PngRenderer::available()) {
 }
 ```
 
-`PngRenderer` draws with the Imagick extension. `scale` is pixels per point; the image is `(width + 2 × pad) × scale` pixels wide, with a transparent background. It is drawn at four times that size and scaled down, which keeps strokes as fine as a browser's. `PngRenderer::baselineOffset($box, $pad, $scale)` gives the baseline in pixels. Without Imagick, `render()` throws `Quoin\Math\Exception\MissingExtension`. A large image is drawn at a smaller multiple to stay under `PngRenderer::MAX_PIXELS` (8 million); one over it even at its own size throws `InvalidArgumentException`.
+`PngRenderer` draws with the Imagick extension. `scale` is pixels per point; the image is `(width + 2 × pad) × scale` pixels wide, with a transparent background. It is drawn at four times that size and scaled down, which keeps strokes as fine as a browser's. `PngRenderer::baselineOffset($box, $pad, $scale)` gives the baseline in pixels. `PngRenderer::pixelSize($box, $pad, $scale)` gives the image's width and height in pixels. Without Imagick, `render()` throws `Quoin\Math\Exception\MissingExtension`. A large image is drawn at a smaller multiple to stay under `PngRenderer::MAX_PIXELS` (8 million); one over it even at its own size throws `InvalidArgumentException`.
 
 The color is an ImageMagick color: `#rrggbb`, `rgb(…)` or a name. `currentColor` means nothing outside a browser, so it works only for SVG.
 

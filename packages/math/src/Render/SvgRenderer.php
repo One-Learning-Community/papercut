@@ -34,14 +34,14 @@ final class SvgRenderer
         $oy = $pad + $box->ascent; // baseline in SVG coordinates
         $svg = sprintf(
             '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 0 %s %s">',
-            self::n($w), self::n($h), self::n($w), self::n($h),
+            Xml::number($w), Xml::number($h), Xml::number($w), Xml::number($h),
         );
         $svg .= $this->group();
         $box->each(function (DisplayItem $item, float $dx, float $dy) use (&$svg, $ox, $oy): void {
             if ($item instanceof Glyph) {
                 $svg .= $this->glyphPath($item, $ox + $dx, $oy + $dy);
             } elseif ($item instanceof Rule) {
-                $svg .= sprintf('<rect x="%s" y="%s" width="%s" height="%s"/>', self::n($ox + $dx + $item->x), self::n($oy + $dy + $item->y), self::n($item->w), self::n($item->h));
+                $svg .= sprintf('<rect x="%s" y="%s" width="%s" height="%s"/>', Xml::number($ox + $dx + $item->x), Xml::number($oy + $dy + $item->y), Xml::number($item->w), Xml::number($item->h));
             }
         });
 
@@ -59,11 +59,11 @@ final class SvgRenderer
      */
     public function glyphPaths(array $glyphs, Box $box): string
     {
-        $w = self::n($box->width);
-        $h = self::n($box->ascent + $box->descent);
+        $w = Xml::number($box->width);
+        $h = Xml::number($box->ascent + $box->descent);
         $svg = sprintf(
             '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 %s %s %s" overflow="visible">',
-            $w, $h, self::n(-$box->ascent), $w, $h,
+            $w, $h, Xml::number(-$box->ascent), $w, $h,
         );
         $svg .= $this->group();
         foreach ($glyphs as $g) {
@@ -78,7 +78,7 @@ final class SvgRenderer
         $color = htmlspecialchars($this->color, ENT_QUOTES | ENT_XML1, 'UTF-8');
 
         return $this->opacity < 1.0
-            ? sprintf('<g fill="%s" fill-opacity="%s">', $color, self::n($this->opacity))
+            ? sprintf('<g fill="%s" fill-opacity="%s">', $color, Xml::number($this->opacity))
             : sprintf('<g fill="%s">', $color);
     }
 
@@ -94,7 +94,7 @@ final class SvgRenderer
         }
         $s = $g->size / $this->font->unitsPerEm;
 
-        return '<path transform="matrix(' . self::scale($s * $g->sx) . ' 0 0 ' . self::scale(-$s * $g->sy) . ' ' . self::n($ox + $g->x) . ' ' . self::n($oy + $g->y) . ')" d="' . $d . '"/>';
+        return '<path transform="matrix(' . self::scale($s * $g->sx) . ' 0 0 ' . self::scale(-$s * $g->sy) . ' ' . Xml::number($ox + $g->x) . ' ' . Xml::number($oy + $g->y) . ')" d="' . $d . '"/>';
     }
 
     /** A scale factor, to seven decimals: on a glyph 3,000 units tall that is within 0.001 pt, as the positions are. */
@@ -103,12 +103,5 @@ final class SvgRenderer
         $r = round($v, 7);
 
         return $r == 0.0 ? '0' : (string) $r;
-    }
-
-    private static function n(float $v): string
-    {
-        $s = rtrim(rtrim(number_format($v, 3, '.', ''), '0'), '.');
-
-        return $s === '' || $s === '-0' ? '0' : $s;
     }
 }

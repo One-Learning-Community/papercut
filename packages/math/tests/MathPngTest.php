@@ -38,7 +38,7 @@ final class MathPngTest extends TestCase
 
         self::assertSame((float) $size[0], $png->width * 2);
         self::assertSame((float) $size[1], $png->height * 2);
-        self::assertSame(-round($png->height - PngRenderer::baselineOffset($box, 1.0, 2.0) / 2.0, 1), $png->verticalAlign);
+        self::assertSame(-round($png->height - PngRenderer::baselineOffset($box, 1.0, 2.0) / 2.0, 3), $png->verticalAlign);
         self::assertLessThan(0.0, $png->verticalAlign);
     }
 
@@ -64,11 +64,41 @@ final class MathPngTest extends TestCase
         self::assertStringContainsString(' alt="' . htmlspecialchars($r->text(), ENT_QUOTES | ENT_HTML5) . '"', $r->png()->img('x.png'));
     }
 
+    public function test_display_png_has_no_vertical_align(): void
+    {
+        self::requireImagick();
+        $png = MathRender::fromTex('x')->display()->png();
+
+        self::assertNull($png->verticalAlign);
+        self::assertStringNotContainsString('style=', $png->img('a.png'));
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProviderExternal(MathRenderTest::class, 'badSizes')]
+    public function test_png_refuses_a_bad_size_or_pad(float $size, float $pad): void
+    {
+        self::requireImagick();
+        $this->expectException(\InvalidArgumentException::class);
+        MathRender::fromTex('x')->png(size: $size, pad: $pad);
+    }
+
+    public function test_img_drops_control_characters(): void
+    {
+        $png = new MathPng("\x89PNG", 1.0, 1.0, 0.0, "a\x01b");
+
+        self::assertStringContainsString(' alt="ab"', $png->img('x.png'));
+        self::assertStringContainsString(' alt="cd"', $png->img('x.png', "c\x02d"));
+    }
+
     public function test_data_uri(): void
     {
         $png = new MathPng("\x89PNG", 10.5, 8.0, -2.5, 'a < b');
 
         self::assertSame('data:image/png;base64,' . base64_encode("\x89PNG"), $png->dataUri());
+    }
+
+    public function test_alt_is_readable(): void
+    {
+        self::assertSame('a < b', (new MathPng("\x89PNG", 1.0, 1.0, 0.0, 'a < b'))->alt);
     }
 
     public function test_img_markup(): void

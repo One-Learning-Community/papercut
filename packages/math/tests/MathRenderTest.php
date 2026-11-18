@@ -14,6 +14,7 @@ use Quoin\Math\Render\RunFormat;
 use Quoin\Math\Render\SvgRenderer;
 use Quoin\Math\Render\TexWriter;
 use Quoin\Math\Render\TextWriter;
+use Quoin\Math\Render\Xml;
 
 final class MathRenderTest extends TestCase
 {
@@ -75,6 +76,12 @@ final class MathRenderTest extends TestCase
         self::assertSame(OmmlWriter::oMathPara($node, 'center', $format), $r->display()->omml(format: $format));
     }
 
+    public function test_omml_checks_the_alignment_inline_too(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        MathRender::fromTex('x')->omml('middle');
+    }
+
     public function test_node_is_the_read_tree(): void
     {
         self::assertEquals(Math::tex('x^2'), MathRender::fromTex('x^2')->node());
@@ -113,7 +120,7 @@ final class MathRenderTest extends TestCase
 
         self::assertSame('img', $root->getAttribute('role'));
         self::assertSame($r->text(), $root->getAttribute('aria-label'));
-        self::assertSame('vertical-align:' . rtrim(rtrim(number_format(-($descent + 1.5), 3, '.', ''), '0'), '.') . 'px', $root->getAttribute('style'));
+        self::assertSame('vertical-align:' . Xml::number(-($descent + 1.5)) . 'px', $root->getAttribute('style'));
     }
 
     public function test_display_svg_has_no_vertical_align(): void
@@ -158,6 +165,24 @@ final class MathRenderTest extends TestCase
         self::root(MathRender::fromTex('x')->svg(label: "a\x02b"));
         self::root(MathRender::fromTex(str_repeat('\frac{a}{b}', 1500))->svg());
         $this->addToAssertionCount(1);
+    }
+
+    /** @return iterable<string, array{float, float}> */
+    public static function badSizes(): iterable
+    {
+        yield 'NAN size' => [NAN, 0.0];
+        yield 'INF size' => [INF, 0.0];
+        yield 'zero size' => [0.0, 0.0];
+        yield 'negative size' => [-16.0, 0.0];
+        yield 'negative pad' => [16.0, -5.0];
+        yield 'NAN pad' => [16.0, NAN];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('badSizes')]
+    public function test_svg_refuses_a_bad_size_or_pad(float $size, float $pad): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        MathRender::fromTex('x')->svg(size: $size, pad: $pad);
     }
 
     private static function root(string $svg): \DOMElement

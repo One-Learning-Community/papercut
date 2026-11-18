@@ -66,7 +66,7 @@ echo $png->img('cid:formula-1');
 
 Attach `$png->bytes` to the message as an inline image with the content ID `formula-1`.
 
-`png()` draws two image pixels to each CSS pixel, which stays sharp on high-density screens. `img()` writes the `<img>` at its CSS size, with the formula's text as `alt` and the `vertical-align` that sets it on the baseline. The same values are on the result as `width`, `height` and `verticalAlign`.
+`png()` draws two image pixels to each CSS pixel, which stays sharp on high-density screens. `img()` writes the `<img>` at its CSS size, with the formula's text as `alt` and, inline, the `vertical-align` that sets it on the baseline. The same values are on the result as `width`, `height` and `verticalAlign`.
 
 Many email clients block `data:` images, so attach the PNG and reference it by `cid:`, or host it. `dataUri()` serves pages that accept them.
 

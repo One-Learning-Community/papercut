@@ -101,7 +101,7 @@ color or scale, or an image over `MAX_PIXELS`.
 |---|---|
 | `string $bytes` | the PNG |
 | `float $width`, `float $height` | display size in CSS pixels: the pixel size divided by `scale` |
-| `float $verticalAlign` | the CSS `vertical-align` in pixels (negative: below the baseline), rounded to one place |
+| `?float $verticalAlign` | the CSS `vertical-align` in pixels (negative: below the baseline), rounded to three places; `null` in display style |
 | `dataUri(): string` | `data:image/png;base64,…` |
 | `img(string $src, ?string $alt = null): string` | an `<img>` with `width`, `height`, `alt` (default `text()`) and `style="vertical-align:…"` |
 

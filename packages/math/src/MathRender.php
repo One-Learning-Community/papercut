@@ -93,9 +93,15 @@ final readonly class MathRender
         return MathmlWriter::write($this->node, $this->display);
     }
 
-    /** Word's Office Math: an m:oMath inline, or an m:oMathPara aligned left, center or right in display style. */
+    /**
+     * Word's Office Math: an m:oMath inline, or an m:oMathPara aligned left, center or right in display style.
+     *
+     * @throws \InvalidArgumentException for an alignment other than left, center or right, in either style
+     */
     public function omml(string $align = 'center', ?RunFormat $format = null): string
     {
+        OmmlWriter::checkAlignment($align);
+
         return $this->display ? OmmlWriter::oMathPara($this->node, $align, $format) : OmmlWriter::oMath($this->node, $format);
     }
 
@@ -114,18 +120,24 @@ final readonly class MathRender
      * An SVG of the formula, $size CSS pixels to the em, with role="img" and an aria-label of {@see text()} (or $label).
      * An empty $label hides it from screen readers instead (aria-hidden), for a caller that supplies MathML beside it.
      * Inline, it carries the vertical-align that puts its baseline on the line's.
+     *
+     * @throws \InvalidArgumentException when $size is not above zero and finite, or $pad is negative or not finite
      */
     public function svg(float $size = 16.0, string $color = 'currentColor', float $pad = 0.0, ?string $label = null): string
     {
+        self::checkSize($size, $pad);
         $font = $this->layoutFont();
         $box = Math::layout($this->node, $size, $this->display, $font);
         $svg = (new SvgRenderer($font, $color))->render($box, $pad);
+        if (! str_starts_with($svg, '<svg ')) {
+            throw new \LogicException('The SVG renderer no longer starts its output with the root element');
+        }
         $label ??= $this->text();
         $attrs = $label === ''
             ? ' aria-hidden="true"'
             : ' role="img" aria-label="' . Xml::text($label) . '"';
         if (! $this->display) {
-            $attrs .= ' style="vertical-align:' . self::number(-($box->descent + $pad)) . 'px"';
+            $attrs .= ' style="vertical-align:' . Xml::number(-($box->descent + $pad)) . 'px"';
         }
 
         return '<svg' . $attrs . substr($svg, 4);
@@ -136,33 +148,34 @@ final readonly class MathRender
      * $color is an ImageMagick color (#rrggbb, rgb(...) or a name).
      *
      * @throws Exception\MissingExtension when Imagick is not loaded
-     * @throws \InvalidArgumentException for a color ImageMagick does not know, a $scale not above zero, or an image over PngRenderer::MAX_PIXELS
+     * @throws \InvalidArgumentException for a color ImageMagick does not know, a $size or $scale not above zero and finite,
+     *                                   a $pad negative or not finite, or an image over PngRenderer::MAX_PIXELS
      */
     public function png(float $size = 16.0, float $scale = 2.0, string $color = '#000000', float $pad = 0.0): MathPng
     {
+        self::checkSize($size, $pad);
         $font = $this->layoutFont();
         $box = Math::layout($this->node, $size, $this->display, $font);
         $bytes = (new PngRenderer($font, $color))->render($box, $pad, $scale);
-        $pixels = getimagesizefromstring($bytes);
-        if ($pixels === false) {
-            throw new \LogicException('The PNG renderer wrote an image its size cannot be read from');
-        }
-        $height = $pixels[1] / $scale;
-        $drop = round($height - PngRenderer::baselineOffset($box, $pad, $scale) / $scale, 1);
+        [$w, $h] = PngRenderer::pixelSize($box, $pad, $scale);
+        $height = $h / $scale;
+        $drop = round($height - PngRenderer::baselineOffset($box, $pad, $scale) / $scale, 3);
 
-        return new MathPng($bytes, $pixels[0] / $scale, $height, $drop == 0.0 ? 0.0 : -$drop, $this->text());
+        return new MathPng($bytes, $w / $scale, $height, $this->display ? null : ($drop == 0.0 ? 0.0 : -$drop), $this->text());
+    }
+
+    private static function checkSize(float $size, float $pad): void
+    {
+        if (! is_finite($size) || $size <= 0.0) {
+            throw new \InvalidArgumentException('Math size must be above zero and finite, got ' . var_export($size, true));
+        }
+        if (! is_finite($pad) || $pad < 0.0) {
+            throw new \InvalidArgumentException('Math pad must be zero or more and finite, got ' . var_export($pad, true));
+        }
     }
 
     private function layoutFont(): Font
     {
         return $this->font ?? Math::stixTwoMath();
-    }
-
-    /** $v to three places without trailing zeros, as the SVG writer writes numbers. */
-    private static function number(float $v): string
-    {
-        $s = rtrim(rtrim(number_format($v, 3, '.', ''), '0'), '.');
-
-        return $s === '' || $s === '-0' ? '0' : $s;
     }
 }

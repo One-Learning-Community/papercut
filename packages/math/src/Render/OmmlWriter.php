@@ -36,11 +36,19 @@ final class OmmlWriter
         return '<m:oMath>' . self::node($root, self::rPr($format)) . '</m:oMath>';
     }
 
-    public static function oMathPara(Node $root, string $jc = 'left', ?RunFormat $format = null): string
+    /**
+     * @throws \InvalidArgumentException for an equation alignment other than left, center or right
+     */
+    public static function checkAlignment(string $jc): void
     {
         if (! in_array($jc, ['left', 'center', 'right'], true)) {
             throw new \InvalidArgumentException('Unsupported equation alignment "' . $jc . '"');
         }
+    }
+
+    public static function oMathPara(Node $root, string $jc = 'left', ?RunFormat $format = null): string
+    {
+        self::checkAlignment($jc);
 
         return '<m:oMathPara><m:oMathParaPr><m:jc m:val="' . Xml::text($jc) . '"/></m:oMathParaPr>'
             . self::oMath($root, $format) . '</m:oMathPara>';
