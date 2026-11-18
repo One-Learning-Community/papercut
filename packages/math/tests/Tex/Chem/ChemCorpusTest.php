@@ -39,10 +39,16 @@ final class ChemCorpusTest extends TestCase
     #[DataProvider('corpus')]
     public function test_reads_to_the_expected_tree(string $ce, string $expected, array $notes): void
     {
-        $tex = '\ce{' . $ce . '}';
+        $tex = self::wrap($ce);
         TreeAssert::assertSameTree(self::expectedTree($expected), Math::tex($tex), ignoreSource: true);
         $found = array_map(static fn ($n): array => [$n->element, $n->level->name], TexReader::read($tex)->notes());
         self::assertSame($notes, $found);
+    }
+
+    /** An entry written as `\pu{…}` is read as it stands; any other is the argument of `\ce`. */
+    private static function wrap(string $source): string
+    {
+        return str_starts_with($source, '\pu{') ? $source : '\ce{' . $source . '}';
     }
 
     /**
@@ -71,7 +77,7 @@ final class ChemCorpusTest extends TestCase
     #[DataProvider('formulas')]
     public function test_writes_back_exactly_and_round_trips(string $ce): void
     {
-        $tex = '\ce{' . $ce . '}';
+        $tex = self::wrap($ce);
         $tree = Math::tex($tex);
         self::assertSame($tex, TexWriter::write($tree));
         TreeAssert::assertSameTree($tree, Math::tex(TexWriter::write($tree)));

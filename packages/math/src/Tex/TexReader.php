@@ -28,6 +28,7 @@ use Quoin\Math\NoteLevel;
 use Quoin\Math\OperatorDictionary;
 use Quoin\Math\Styles;
 use Quoin\Math\Tex\Chem\ChemReader;
+use Quoin\Math\Tex\Chem\UnitReader;
 use Quoin\Math\Tokenizer;
 use Quoin\Math\Utf8;
 
@@ -1020,11 +1021,12 @@ final class TexReader
     }
 
     /**
-     * `\ce{…}`: the group read as chemistry, with its source kept for the TeX writer. Null when no group follows.
+     * `\ce{…}` or `\pu{…}`: the group read as chemistry or units, with its source kept for the TeX writer. Null when no
+     * group follows.
      *
      * @return ?array{Node, string, mixed}
      */
-    private function chem(int $at): ?array
+    private function chem(string $name, int $at): ?array
     {
         $this->c->skipSp();
         if (! $this->c->peekIs('{')) {
@@ -1051,26 +1053,24 @@ final class TexReader
         $starts[$pos] = $to;
         $tokens = $this->c->t;
         $notes = [];
-        $node = ChemReader::read(
-            $src,
-            function (string $tex, ?array $span) use ($starts, $ends, $tokens, $to): Node {
-                if ($span === null) {
-                    return self::readWithin($tex, max(1, $this->maxDepth - $this->depth - 1))->node;
-                }
-                $a = $starts[$span[0]] ?? $to;
-                $b = $ends[$span[1]] ?? $starts[$span[1]] ?? $to;
+        $reading = function (string $tex, ?array $span) use ($starts, $ends, $tokens, $to): Node {
+            if ($span === null) {
+                return self::readWithin($tex, max(1, $this->maxDepth - $this->depth - 1))->node;
+            }
+            $a = $starts[$span[0]] ?? $to;
+            $b = $ends[$span[1]] ?? $starts[$span[1]] ?? $to;
 
-                return $this->readTokens(array_slice($tokens, $a, max(0, $b - $a)));
-            },
-            static function (NoteLevel $level, string $element, string $reason) use (&$notes): void {
-                $notes[] = [$level, $element, $reason];
-            },
-        );
+            return $this->readTokens(array_slice($tokens, $a, max(0, $b - $a)));
+        };
+        $noting = static function (NoteLevel $level, string $element, string $reason) use (&$notes): void {
+            $notes[] = [$level, $element, $reason];
+        };
+        $node = $name === 'pu' ? UnitReader::read($src, $reading, $noting) : ChemReader::read($src, $reading, $noting);
         foreach (array_reverse($notes) as [$level, $element, $reason]) {
             $node = $this->note($level, $element, $reason, $at, $node);
         }
 
-        return [new TexSource($node, '\\ce{' . $src . '}'), 'ord', null];
+        return [new TexSource($node, '\\' . $name . '{' . $src . '}'), 'ord', null];
     }
 
     /**
@@ -1115,7 +1115,7 @@ final class TexReader
 
             return [new Identifier($chars[$primes] ?? str_repeat('′', $primes), false), 'ord', null];
         }
-        if ($name === 'ce' && ($chem = $this->chem($at)) !== null) {
+        if (($name === 'ce' || $name === 'pu') && ($chem = $this->chem($name, $at)) !== null) {
             return $chem;
         }
         if (in_array($name, ['text', 'mbox', 'hbox', 'textnormal', 'textrm', 'textup', 'textmd', 'textbf', 'textit', 'textsf', 'texttt', 'emph'], true)) {

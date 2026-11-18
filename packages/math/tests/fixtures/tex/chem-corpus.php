@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Ordinary school and first-year chemistry for the `\ce` reader. name => [`\ce` argument, the same formula in plain
  * KaTeX TeX, expected notes as [element, level] pairs; [] for none]. The expected TeX spells the tree the reader builds
  * (one upright identifier per element), not the TeX mhchem expands to. A label-less arrow has no spelling in plain TeX
- * (`\\xrightarrow{}` reads as a plain arrow), so `⟦→⟧` stands for the stretchy arrow node the reader builds. Used by tests/Tex/Chem/ChemCorpusTest.php.
+ * (`\\xrightarrow{}` reads as a plain arrow), so `⟦→⟧` stands for the stretchy arrow node the reader builds. An entry whose source is written `\\pu{…}` is a unit formula and is read as it stands. Used by tests/Tex/Chem/ChemCorpusTest.php.
  *
  * @return array<string, array{string, string, list<array{string, string}>}>
  */
@@ -67,4 +67,22 @@ return [
     'unequal-forward' => ['A <=>> B', '\mathrm{A} ⟦⇌⟧ \mathrm{B}', [['\ce', 'Approximated']]],
     'unequal-backward' => ['A <<=> B', '\mathrm{A} ⟦⇌⟧ \mathrm{B}', [['\ce', 'Approximated']]],
     'equals-between-species' => ['A = B', '\mathrm{A} = \mathrm{B}', []],
+    'unit-ratio' => ['\pu{25 kJ/mol}', '25~\mathrm{kJ}/\mathrm{mol}', []],
+    'unit-power-of-ten' => ['\pu{1.2e3 kJ}', '1.2\cdot {10}^{3}~\mathrm{kJ}', []],
+    'unit-celsius' => ['\pu{-273.15 °C}', '-273.15~\mathrm{°}\mathrm{C}', []],
+    'unit-negative-exponent' => ['\pu{kJ mol-1}', '\mathrm{kJ}\,\mathrm{mol}^{-1}', []],
+    'unit-caret-exponent' => ['\pu{m/s^2}', '\mathrm{m}/\mathrm{s}^{2}', []],
+    'unit-product' => ['\pu{kg*m/s2}', '\mathrm{kg}\mkern1mu{\cdot}\mkern1mu\mathrm{m}\,/\,\mathrm{s}^{2}', []],
+    'unit-dot-product' => ['\pu{m.s-1}', '\mathrm{m}\mkern1mu{\cdot}\mkern1mu\mathrm{s}^{-1}', []],
+    'unit-braced-exponent' => ['\pu{mol^{-1}}', '\mathrm{mol}^{-1}', []],
+    'unit-micro' => ['\pu{5 µm}', '5~\mathrm{µm}', []],
+    'unit-ohm' => ['\pu{5 Ω}', '5~\mathrm{Ω}', []],
+    'unit-plus-sign' => ['\pu{+5 m}', '+5~\mathrm{m}', []],
+    'unit-true-minus' => ['\pu{−5 m}', '-5~\mathrm{m}', []],
+    'unit-power-signed' => ['\pu{10^-3 m}', '{10}^{-3}~\mathrm{m}', []],
+    'unit-power-braced' => ['\pu{10^{-3} m}', '{10}^{-3}~\mathrm{m}', []],
+    'unit-degree-exponent' => ['\pu{°C2}', '\mathrm{°}\mathrm{C}^{2}', []],
+    'unit-degree-caret' => ['\pu{°C^2}', '\mathrm{°}\mathrm{C}^{2}', []],
+    'unit-degree-space' => ['\pu{° C}', '\mathrm{°}\,\mathrm{C}', []],
+    'unit-dangling-dot' => ['\pu{25.}', '\text{25.}', [['\pu', 'Approximated']]],
 ];
