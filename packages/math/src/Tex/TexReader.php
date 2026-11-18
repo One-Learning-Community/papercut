@@ -27,6 +27,7 @@ use Quoin\Math\Node\UnderOver;
 use Quoin\Math\NoteLevel;
 use Quoin\Math\OperatorDictionary;
 use Quoin\Math\Styles;
+use Quoin\Math\Tex\Chem\ChemReader;
 use Quoin\Math\Tokenizer;
 use Quoin\Math\Utf8;
 
@@ -1019,6 +1020,78 @@ final class TexReader
     }
 
     /**
+     * `\ce{…}`: the group read as chemistry, with its source kept for the TeX writer. Null when no group follows.
+     *
+     * @return ?array{Node, string, mixed}
+     */
+    private function chem(int $at): ?array
+    {
+        $this->c->skipSp();
+        if (! $this->c->peekIs('{')) {
+            return null;
+        }
+        $this->c->p++;
+        $from = $this->c->p;
+        $this->c->skipBalanced();
+        $closed = $this->c->p > $from && $this->c->t[$this->c->p - 1][0] === '}';
+        $to = $closed ? $this->c->p - 1 : $this->c->p;
+        $src = $this->c->source($from, $to);
+        // Where each token starts in $src, so a span of $src is read from the tokens it came from: real offsets, and this reader's notes, depth and limits.
+        $starts = [];
+        $ends = [];
+        $pos = 0;
+        for ($i = $from; $i < $to; $i++) {
+            $starts[$pos] = $i;
+            $next = $this->c->t[$i + 1] ?? null;
+            $space = $i + 1 < $to && $this->c->t[$i][0] === 'cs' && ctype_alpha($this->c->t[$i][1]) && $next !== null && $next[0] === 'ch' && ctype_alpha($next[1]);
+            $pos += mb_strlen($this->c->source($i, $i + 1));
+            $ends[$pos] = $i + 1;
+            $pos += $space ? 1 : 0;
+        }
+        $starts[$pos] = $to;
+        $tokens = $this->c->t;
+        $notes = [];
+        $node = ChemReader::read(
+            $src,
+            function (string $tex, ?array $span) use ($starts, $ends, $tokens, $to): Node {
+                if ($span === null) {
+                    return self::readWithin($tex, max(1, $this->maxDepth - $this->depth - 1))->node;
+                }
+                $a = $starts[$span[0]] ?? $to;
+                $b = $ends[$span[1]] ?? $starts[$span[1]] ?? $to;
+
+                return $this->readTokens(array_slice($tokens, $a, max(0, $b - $a)));
+            },
+            static function (NoteLevel $level, string $element, string $reason) use (&$notes): void {
+                $notes[] = [$level, $element, $reason];
+            },
+        );
+        foreach (array_reverse($notes) as [$level, $element, $reason]) {
+            $node = $this->note($level, $element, $reason, $at, $node);
+        }
+
+        return [new TexSource($node, '\\ce{' . $src . '}'), 'ord', null];
+    }
+
+    /**
+     * Tokens read as a formula by this reader, so notes, depth and counts are shared and offsets are the input's.
+     *
+     * @param list<array{string, string, int}> $tokens
+     */
+    private function readTokens(array $tokens): Node
+    {
+        $saved = [$this->c, $this->outerStops, $this->envDepth, $this->inOptional];
+        $this->c = new TexCursor($tokens, $saved[0]->offset());
+        $this->outerStops = [];
+        $this->envDepth = 0;
+        $this->inOptional = false;
+        $node = self::row($this->parseUntil());
+        [$this->c, $this->outerStops, $this->envDepth, $this->inOptional] = $saved;
+
+        return $node;
+    }
+
+    /**
      * @return ?array{Node, string, mixed}
      */
     private function commandBody(string $name, int $at, bool $single): ?array
@@ -1041,6 +1114,9 @@ final class TexReader
             $chars = [1 => '′', 2 => '″', 3 => '‴', 4 => '⁗'];
 
             return [new Identifier($chars[$primes] ?? str_repeat('′', $primes), false), 'ord', null];
+        }
+        if ($name === 'ce' && ($chem = $this->chem($at)) !== null) {
+            return $chem;
         }
         if (in_array($name, ['text', 'mbox', 'hbox', 'textnormal', 'textrm', 'textup', 'textmd', 'textbf', 'textit', 'textsf', 'texttt', 'emph'], true)) {
             $node = $this->textInGroup();
