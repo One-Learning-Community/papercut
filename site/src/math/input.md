@@ -23,6 +23,7 @@ A string is split into symbols: letters become italic variables, digit runs beco
 | `frac($top, $bottom)`, `binom($top, $bottom)`, `stack($top, $bottom)` | A fraction, a binomial, two lines without a rule |
 | `sqrt(...$content)`, `root($radicand, $index)` | Roots |
 | `sup`, `sub`, `subSup($base, $sub, $sup)` | Scripts |
+| `prescripts($base, $preSub, $preSup, $sub = null, $sup = null)` | Scripts before the base, with optional scripts after it |
 | `fenced($open, $close, ...$content)`, `middle($delimiter)`, `big($delimiter, $size)` | Stretching and fixed-size delimiters |
 | `sum`, `product`, `integral`, `bigOp($op, $under, $over)` | Large operators with optional limits |
 | `under`, `over`, `underOver`, `overbrace`, `underbrace`, `overline`, `underline` | Things above and below a base |
@@ -44,7 +45,47 @@ Write TeX in single-quoted strings or a nowdoc (`<<<'TEX'`). In double quotes PH
 
 The input is math mode. A `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper is optional. The reader covers what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts and primes, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and style commands, `\text`, spacing, and the environments `matrix` and its variants, `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, each scoped to its group.
 
-These are read but not drawn, and each one is reported: color (`\color`, `\textcolor`), boxes (`\boxed`, `\fbox`, `\cancel`), `\hline` and column rules, `\tag`, commutative diagrams, `\newenvironment`, `\sideset`, `\tensor`, `\prescript` and `\mathchoice`. `\scriptstyle` and `\scriptscriptstyle` are drawn in text style, and `smallmatrix` at normal size. An unknown command is drawn as its own name, as KaTeX shows it.
+These are read but not drawn, and each one is reported: color (`\color`, `\textcolor`), boxes (`\boxed`, `\fbox`, `\cancel`), `\hline` and column rules, `\tag`, commutative diagrams, `\newenvironment`, `\tensor` and `\mathchoice`. `\scriptstyle` and `\scriptscriptstyle` are drawn in text style, and `smallmatrix` at normal size. An unknown command is drawn as its own name, as KaTeX shows it.
+
+The TeX writer keeps what the reader does not draw. `\boxed`, `\fbox`, `\color`, `\textcolor`, `\cancel`, `\bcancel`, `\xcancel` and `\sout` are written back with their content normalized, and `\tag` is written back at the top level of a formula. TeX in, TeX out loses none of them, though the other writers still draw only the content.
+
+Scripts before a base are read from `{}^{a}_{b}X`, `\prescript{a}{b}{X}` and `\sideset`, and drawn right-aligned against the base. `\sideset` draws the scripts in its first two arguments; anything else in them is dropped and noted.
+
+### Chemistry
+
+`\ce` and `\pu` read [mhchem](https://mhchem.github.io/MathJax-mhchem/), the notation KaTeX and MathJax offer as an extension.
+
+```php
+$reaction = Math::tex('\ce{2H2 + O2 -> 2H2O}');
+$ion = Math::tex('\ce{SO4^2-}');
+$quantity = Math::tex('\pu{25 kJ/mol}');
+```
+
+The result is ordinary nodes: upright element symbols, subscript counts, superscript charges and stretchy arrows. There are no chemistry node types, so PDF, SVG, PNG, MathML and Word equations all draw it, and Word gets real element symbols and arrows instead of letter runs. The reader covers the common core of mhchem:
+
+| Input | Drawn as |
+|---|---|
+| `H2O`, `Fe2O3`, `Fe(OH)3`, `[Cu(NH3)4]^2+` | Upright symbols, counts as subscripts, groups with a count after the bracket |
+| `2H2O`, `1/2O2`, `$n$ H2O` | A coefficient, with a thin gap after a number, a fraction or a `$…$` amount |
+| `SO4^2-`, `Ca^{2+}`, `NH4+`, `Cl-`, `e-` | Charges as superscripts; `-` is drawn as a true minus |
+| `(aq)`, `(s)`, `(l)`, `(g)` | State symbols, upright, set off by a small gap |
+| `CuSO4*5H2O`, `CuSO4.5H2O` | A hydrate dot |
+| `CH3-CH3`, `C=C`, `C#C` | Single, double and triple bonds |
+| `CO2 ^`, `AgCl v` | Gas and precipitate arrows |
+| `^{14}_{6}C`, `^{14}C` | Isotopes, as prescripts |
+| `$x$`, `\alpha` | Math, read by the TeX reader |
+
+Between two atoms `-` is a bond; after a symbol, count or group and before a space or the end it is a charge. So `\ce{CH3-CH3}` has a bond and `\ce{Cl-}` a charge.
+
+Arrows are `->`, `<-`, `<->`, `<-->` and `<=>`, with labels in `[above][below]`, as in `\ce{A ->[\Delta][H2O] B}`. They stretch to fit their labels. A label is read as chemistry, `$…$` is math, and a braced label such as `[{a b}]` is literal text. `<=>>` and `<<=>`, the unequal equilibrium arrows, are drawn as `⇌` with an approximated note.
+
+`\pu` reads a number and units: `\pu{25 kJ/mol}`, `\pu{kJ mol-1}`, `\pu{1.2e3 kJ}` (drawn 1.2 ⋅ 10³), `\pu{10^-3 mol}` and `\pu{25 °C}`. Spacing follows mhchem, and `°C` is a plain degree sign followed by C.
+
+A piece the subset does not cover, `\bond{…}` or a `\\` line break, is drawn as its source text, upright, with an approximated note, and the rest of the argument is still read. An unknown command inside `\ce`, such as `\cf` or `\cee`, is drawn as its name with a dropped note, and its argument is read as math. Nuclear notation such as `^{0}_{-1}e` reads as prescripts, and orbital notation such as `1s^2 2s^2` reads as an ordinary run. siunitx (`\SI`, `\si`, `\qty`, `\num`) is not supported. Input limits, including nesting, cover the argument and any math inside it.
+
+The TeX writer writes `\ce{…}` and `\pu{…}` back as read, not expanded. The TeX it makes needs mhchem wherever it goes next; KaTeX and MathJax both offer it.
+
+Equilibrium arrows such as `\xrightleftharpoons` stretch to their labels everywhere, not only in chemistry. An arrow without labels that Word cannot stretch is written there as a plain long arrow.
 
 The reader also returns the display style and the notes:
 
@@ -85,7 +126,7 @@ Entity declarations in a DOCTYPE are ignored.
 
 `MathmlReader::read()` returns a result with the same three fields as the TeX reader's; `display` is true for `display="block"`.
 
-What is not drawn as written: `<menclose>` and `<mmultiscripts>` are drawn as their contents, `<maction>` as its first choice, and table lines, spacing and spans are ignored. Images and other media inside a formula are dropped, and so is content that an HTML tag pushed out of a `<math>` element in markup that isn't well-formed. `mathcolor`, `mathsize` and `mathbackground` are ignored.
+`<mmultiscripts>` is read as prescripts and scripts, one pair on each side; more pairs are noted. What is not drawn as written: `<menclose>` is drawn as its content, `<maction>` as its first choice, and table lines, spacing and spans are ignored. Images and other media inside a formula are dropped, and so is content that an HTML tag pushed out of a `<math>` element in markup that isn't well-formed. `mathcolor`, `mathsize` and `mathbackground` are ignored.
 
 | Limit | Value | Past it |
 |---|---|---|

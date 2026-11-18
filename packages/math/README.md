@@ -20,7 +20,14 @@ echo (new SvgRenderer(Math::stixTwoMath()))->render($box, pad: 1.0);
 
 Every glyph is a path, so the SVG needs no web font.
 
+Chemistry reads the same way. The TeX writer writes `\ce` back as read, so TeX that leaves this package needs mhchem, which KaTeX and MathJax offer.
+
+```php
+$box = Math::layout(Math::tex('\ce{CH4 + 2O2 -> CO2 + 2H2O}'), size: 16.0);
+```
+
 - Reads what KaTeX reads, and MathML from equation editors, Word and the web.
+- Reads chemistry (`\ce`, `\pu` from mhchem) as ordinary nodes, so it reaches Word and MathML as real equations.
 - Converts TeX to MathML, MathML to TeX, either to Word.
 - Never throws on input. Fixed limits keep hostile formulas cheap, and anything not drawn as written is reported.
 - About 0.1 ms per formula once the font is loaded.

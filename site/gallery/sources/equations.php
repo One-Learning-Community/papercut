@@ -12,6 +12,9 @@ return Document::make(Page::size(in(6), in(8))->margin(in(0.25))->body(
         Equation::of('x', '=', Math::frac(Math::row('−b', '±', Math::sqrt(Math::sup('b', '2'), '−', '4ac')), '2a'))->center(),
         Equation::of('A', '=', 'P', Math::sup(Math::fenced('(', ')', '1', '+', Math::frac('r', 'n')), 'nt'))->center(),
         Equation::of('A', '=', Math::matrix([['a', 'b'], ['c', 'd']], 'bracket'))->center(),
+        Equation::of(Math::tex('\ce{CH4 + 2O2 -> CO2 + 2H2O}'))->center(),
+        Equation::of(Math::tex('\ce{N2 + 3H2 <=>[Fe][450 °C] 2NH3}'))->center(),
+        Equation::of(Math::tex('\ce{^{14}_{6}C -> ^{14}_{7}N + e-}'))->center(),
         Text::spans(
             Span::text('In running text, a circle of radius '),
             Span::math('r'),

@@ -199,7 +199,7 @@ A formula read from MathML takes its color, size, background and link from the t
 
 Not all of MathML has a counterpart yet. The reader draws what it can and records a note, once per element name and reason in a formula, so three `<menclose>` give one note.
 
-- **Approximated.** The content is drawn, but not as the source meant. A table (`<mtable>`) is drawn as a grid and is not reported, unless it uses an attribute that isn't drawn (see [Matrices and cases](#matrices-and-cases)). `<menclose>`, `<mmultiscripts>` and elements the reader doesn't know are drawn as their contents, and `<maction>` is drawn as its first choice.
+- **Approximated.** The content is drawn, but not as the source meant. A table (`<mtable>`) is drawn as a grid and is not reported, unless it uses an attribute that isn't drawn (see [Matrices and cases](#matrices-and-cases)). `<menclose>` and elements the reader doesn't know are drawn as their contents, `<mmultiscripts>` with more than one script pair on a side keeps only the first pair, and `<maction>` is drawn as its first choice.
 - **Dropped.** The content is not drawn. This covers images and other media inside a formula, and content an HTML tag pushed out of a `<math>` element when the markup isn't well-formed XML.
 
 `Math::mathml()` never expands entities. MathML that carries a DOCTYPE, in any encoding, is read as HTML would read it, so an entity declaration in it does nothing.
@@ -247,6 +247,8 @@ A static Blade attribute is read with HTML rules, so `&lt;` and `&amp;` are deco
 
 **What it reads.** The input is math mode, with or without a `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper. `$$…$$`, `\[…\]`, a top-level `\displaystyle` and display environments such as `align`, `gather` and `equation` ask for display style (not `aligned`, which is used inside a formula), and a block equation is always display style. The set is what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and text commands, spacing, and the environments `matrix` (and its bracketed variants), `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, scoped to the group they are in.
 
+**Chemistry.** `\ce{…}` and `\pu{…}` read mhchem chemistry and units, for example `\ce{2H2 + O2 -> 2H2O}` and `\pu{25 kJ/mol}`. The [math package's input page](/math/input.md#chemistry) lists the subset. The TeX writer writes them back as read, so the TeX needs mhchem wherever it goes next.
+
 **Limits.** A formula is cut off at 16 KB. Nesting deeper than 256 levels is cut off, macro expansion may not grow a formula past what 16 KB of raw TeX could, and a formula's environments have at most 10,000 cells between them. Past the nesting limit the rest is drawn as its TeX source text. Macro expansion is also capped at 10,000 expansions. A formula that hits a limit is drawn as far as it got and reports it. A stretched delimiter or arrow is never longer than 100 em. Under Xdebug's develop mode (its default) the call stack is limited too (`xdebug.max_nesting_level`, 512), so the nesting limit is lowered to fit, and deep nesting gets the nesting note sooner; raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full 256 levels.
 
 **Reading the notes.** `TexReader::read($tex)` returns the formula, whether it asked for display style, and the notes, in the same form as for MathML. See [What is approximated or dropped](#what-is-approximated-or-dropped) for how they reach `onWarning`.
@@ -258,7 +260,7 @@ $result = TexReader::read('\boxed{x}');
 $result->notes();   // approximated: \boxed (the box is not drawn)
 ```
 
-**TeX out.** `TexWriter::write($node)` writes any formula as standard TeX that KaTeX accepts, so a formula read from MathML can go back out as TeX. Reading the TeX gives the same formula again. Details that MathML carries and TeX has no word for are dropped and the nearest TeX is written.
+**TeX out.** `TexWriter::write($node)` writes any formula as standard TeX that KaTeX accepts, so a formula read from MathML can go back out as TeX. Reading the TeX gives the same formula again. Details that MathML carries and TeX has no word for are dropped and the nearest TeX is written. Boxes, colors, strike-throughs and `\tag` that were read from TeX are written back, though they are not drawn.
 
 ## The math font
 
@@ -293,4 +295,4 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 - Boxes around parts of a formula (`\boxed`, `\fbox`, `\cancel`, `<menclose>`), and equation numbers (`\tag`).
 - TeX found inside HTML or text. A TeX string you hand it is read; rich text is not scanned for `$…$`. Convert the formula first with `Math::tex()`.
 - Commutative diagrams (`CD`) and TeX commands that define environments, such as `\newenvironment`.
-- A few more TeX constructs, each of which is noted: `\sideset`, `\tensor`, `\prescript`, `\mathchoice`, `\scriptstyle` and `\scriptscriptstyle` (drawn in text style), `p{…}` and `@{…}` columns in `array`, and `smallmatrix` (drawn at normal size).
+- A few more TeX constructs, each of which is noted: `\tensor`, `\mathchoice`, `\scriptstyle` and `\scriptscriptstyle` (drawn in text style), `p{…}` and `@{…}` columns in `array`, and `smallmatrix` (drawn at normal size).
