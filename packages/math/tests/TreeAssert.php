@@ -7,20 +7,22 @@ namespace Quoin\Math\Tests;
 use Quoin\Math\Node\Fallback;
 use Quoin\Math\Node\Node;
 use Quoin\Math\Node\Row;
+use Quoin\Math\Node\TexSource;
 use PHPUnit\Framework\Assert;
 
 /**
  * Structural comparison of two node trees, for round-trip tests. Both trees are normalized first: a Fallback with
  * content is its content, a Fallback without content is nothing, a Row of one child is that child. Then the class and
- * every public property are compared recursively (floats within 1e-6); notes are not compared.
+ * every public property are compared recursively (floats within 1e-6); notes are not compared. A TexSource is its own node, so its `tex` and
+ * `close` are compared too; with $ignoreSource it is normalized away to its content.
  */
 final class TreeAssert
 {
     private const float EPSILON = 1e-6;
 
-    public static function assertSameTree(Node $expected, Node $actual): void
+    public static function assertSameTree(Node $expected, Node $actual, bool $ignoreSource = false): void
     {
-        $diff = self::diff(self::describe($expected) ?? self::emptyRow(), self::describe($actual) ?? self::emptyRow(), 'root');
+        $diff = self::diff(self::describe($expected, $ignoreSource) ?? self::emptyRow(), self::describe($actual, $ignoreSource) ?? self::emptyRow(), 'root');
         if ($diff !== null) {
             Assert::fail('Trees differ at ' . $diff);
         }
@@ -33,15 +35,18 @@ final class TreeAssert
     }
 
     /** @return array{class: class-string, props: array<string, mixed>}|null null for a Fallback with no content */
-    private static function describe(Node $n): ?array
+    private static function describe(Node $n, bool $ignoreSource): ?array
     {
         if ($n instanceof Fallback) {
-            return $n->content === null ? null : self::describe($n->content);
+            return $n->content === null ? null : self::describe($n->content, $ignoreSource);
+        }
+        if ($n instanceof TexSource && $ignoreSource) {
+            return self::describe($n->content, $ignoreSource);
         }
         if ($n instanceof Row) {
             $kids = [];
             foreach ($n->children as $child) {
-                $d = self::describe($child);
+                $d = self::describe($child, $ignoreSource);
                 if ($d !== null) {
                     $kids[] = $d;
                 }
@@ -51,19 +56,19 @@ final class TreeAssert
         }
         $props = [];
         foreach ((new \ReflectionObject($n))->getProperties(\ReflectionProperty::IS_PUBLIC) as $p) {
-            $props[$p->getName()] = self::value($p->getValue($n));
+            $props[$p->getName()] = self::value($p->getValue($n), $ignoreSource);
         }
 
         return ['class' => $n::class, 'props' => $props];
     }
 
-    private static function value(mixed $v): mixed
+    private static function value(mixed $v, bool $ignoreSource): mixed
     {
         if ($v instanceof Node) {
-            return self::describe($v) ?? self::emptyRow();
+            return self::describe($v, $ignoreSource) ?? self::emptyRow();
         }
         if (is_array($v)) {
-            return array_map(self::value(...), $v);
+            return array_map(static fn (mixed $x): mixed => self::value($x, $ignoreSource), $v);
         }
 
         return $v;

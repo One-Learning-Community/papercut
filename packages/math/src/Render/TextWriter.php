@@ -19,6 +19,7 @@ use Quoin\Math\Node\Root;
 use Quoin\Math\Node\Row;
 use Quoin\Math\Node\Scripts;
 use Quoin\Math\Node\Space;
+use Quoin\Math\Node\TexSource;
 use Quoin\Math\Node\Text;
 use Quoin\Math\Node\UnderOver;
 use Quoin\Math\OperatorDictionary;
@@ -56,7 +57,7 @@ final class TextWriter
             $n instanceof Space => $n->em >= 0.15 ? ' ' : '',
             $n instanceof Phantom => '',
             $n instanceof Row => self::row($n),
-            $n instanceof DisplayStyle => self::node($n->content),
+            $n instanceof DisplayStyle, $n instanceof TexSource => self::node($n->content),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
@@ -128,6 +129,7 @@ final class TextWriter
             $n instanceof Fraction => ! $n->bar,
             $n instanceof Text => preg_match('/\s/u', $n->text) !== 1,
             $n instanceof Fallback => $n->content !== null && self::atom($n->content),
+            $n instanceof TexSource => self::atom($n->content),
             $n instanceof Row => count($n->children) === 1 && self::atom($n->children[0]),
             default => false,
         };

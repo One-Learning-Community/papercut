@@ -111,6 +111,7 @@ final class Fenced extends Node
             $n instanceof Row => new Row(array_map(static fn (Node $child): Node => self::stretchMiddle($child, $req), $n->children)),
             $n instanceof Fallback && $n->content !== null => new Fallback(self::stretchMiddles($n->content, $req), $n->note),
             $n instanceof DisplayStyle => new DisplayStyle(self::stretchMiddles($n->content, $req), $n->display),
+            $n instanceof TexSource => new TexSource(self::stretchMiddles($n->content, $req), $n->tex, $n->close),
             default => $n,
         };
     }
@@ -121,6 +122,7 @@ final class Fenced extends Node
             $n instanceof Middle => new Middle($n->char, $req),
             $n instanceof Fallback && $n->content !== null => new Fallback(self::stretchMiddle($n->content, $req), $n->note),
             $n instanceof DisplayStyle => new DisplayStyle(self::stretchMiddle($n->content, $req), $n->display),
+            $n instanceof TexSource => new TexSource(self::stretchMiddle($n->content, $req), $n->tex, $n->close),
             default => $n,
         };
     }

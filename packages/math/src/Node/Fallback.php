@@ -16,7 +16,7 @@ final class Fallback extends Node
     }
 
     /**
-     * Sees through what only annotates a node (a Fallback with content, a DisplayStyle), so checks for an Operator or
+     * Sees through what only annotates a node (a Fallback with content, a DisplayStyle, a TexSource), so checks for an Operator or
      * a Fraction find it.
      *
      * @internal Engine detail, not public API.
@@ -26,7 +26,7 @@ final class Fallback extends Node
         while (true) {
             if ($n instanceof self && $n->content !== null) {
                 $n = $n->content;
-            } elseif ($n instanceof DisplayStyle) {
+            } elseif ($n instanceof DisplayStyle || $n instanceof TexSource) {
                 $n = $n->content;
             } else {
                 return $n;
@@ -46,6 +46,8 @@ final class Fallback extends Node
         $out = [];
         while (true) {
             if ($n instanceof self && $n->content !== null) {
+                $n = $n->content;
+            } elseif ($n instanceof TexSource) {
                 $n = $n->content;
             } elseif ($n instanceof DisplayStyle) {
                 $out[] = $n->display;

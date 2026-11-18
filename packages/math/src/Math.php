@@ -22,6 +22,7 @@ use Quoin\Math\Node\Root;
 use Quoin\Math\Node\Row;
 use Quoin\Math\Node\Scripts;
 use Quoin\Math\Node\Space;
+use Quoin\Math\Node\TexSource;
 use Quoin\Math\Node\Text;
 use Quoin\Math\Node\UnderOver;
 use Quoin\Math\Tex\TexReader;
@@ -394,6 +395,9 @@ final class Math
         }
         if ($cell instanceof DisplayStyle) {
             return new DisplayStyle(self::infixLead($cell->content), $cell->display);
+        }
+        if ($cell instanceof TexSource) {
+            return new TexSource(self::infixLead($cell->content), $cell->tex, $cell->close);
         }
         if ($cell instanceof Operator) {
             return new Operator(

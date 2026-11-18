@@ -50,6 +50,38 @@ final class TexCursor
         return $this->t[$this->p][2] ?? $this->end;
     }
 
+    /**
+     * The tokens from $from up to (not including) $to written back as TeX. Built from tokens, so a macro the reader
+     * expanded is written expanded.
+     */
+    public function source(int $from, int $to): string
+    {
+        $s = '';
+        $to = min($to, count($this->t));
+        for ($i = max(0, $from); $i < $to; $i++) {
+            [$type, $val] = $this->t[$i];
+            switch ($type) {
+                case 'cs':
+                    $s .= '\\' . $val;
+                    $next = $this->t[$i + 1] ?? null;
+                    if ($i + 1 < $to && ctype_alpha($val) && $next !== null && $next[0] === 'ch' && ctype_alpha($next[1])) {
+                        $s .= ' ';
+                    }
+                    break;
+                case 'nl':
+                    $s .= '\\\\';
+                    break;
+                case 'param':
+                    $s .= '#' . $val;
+                    break;
+                default: // ch, sp, { } ^ _ &
+                    $s .= $val;
+            }
+        }
+
+        return $s;
+    }
+
     /** Past the `}` that closes a group whose `{` is already read. */
     public function skipBalanced(): void
     {

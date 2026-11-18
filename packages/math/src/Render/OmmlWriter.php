@@ -19,6 +19,7 @@ use Quoin\Math\Node\Root;
 use Quoin\Math\Node\Row;
 use Quoin\Math\Node\Scripts;
 use Quoin\Math\Node\Space;
+use Quoin\Math\Node\TexSource;
 use Quoin\Math\Node\Text;
 use Quoin\Math\Node\UnderOver;
 use Quoin\Math\OperatorDictionary;
@@ -92,7 +93,7 @@ final class OmmlWriter
             $n instanceof Fenced => self::fenced($n, $rPr),
             $n instanceof Grid => self::grid($n, $rPr),
             $n instanceof Row => self::sequence($n->children, $rPr),
-            $n instanceof DisplayStyle => self::node($n->content, $rPr),
+            $n instanceof DisplayStyle, $n instanceof TexSource => self::node($n->content, $rPr),
             $n instanceof Fallback => $n->content === null ? '' : self::node($n->content, $rPr),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };

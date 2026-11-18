@@ -19,6 +19,7 @@ use Quoin\Math\Node\Root;
 use Quoin\Math\Node\Row;
 use Quoin\Math\Node\Scripts;
 use Quoin\Math\Node\Space;
+use Quoin\Math\Node\TexSource;
 use Quoin\Math\Node\Text;
 use Quoin\Math\Node\UnderOver;
 use Quoin\Math\OperatorDictionary;
@@ -39,7 +40,7 @@ final class MathmlWriter
     /** A function name, alone or as the base of scripts or limits: what MathML's invisible function application follows. */
     private static function isFunction(Node $n): bool
     {
-        while ($n instanceof Fallback && $n->content !== null) {
+        while (($n instanceof Fallback && $n->content !== null) || $n instanceof TexSource) {
             $n = $n->content;
         }
         if ($n instanceof Scripts || $n instanceof UnderOver) {
@@ -75,7 +76,7 @@ final class MathmlWriter
 
     private static function isStandardName(Node $n): bool
     {
-        while ($n instanceof Fallback && $n->content !== null) {
+        while (($n instanceof Fallback && $n->content !== null) || $n instanceof TexSource) {
             $n = $n->content;
         }
         if ($n instanceof Scripts || $n instanceof UnderOver) {
@@ -108,6 +109,7 @@ final class MathmlWriter
             $n instanceof Row => self::row($n),
             $n instanceof DisplayStyle => '<mstyle displaystyle="' . ($n->display ? 'true' : 'false') . '">' . self::node($n->content) . '</mstyle>',
             $n instanceof Fallback => $n->content === null ? '' : self::plain0($n->content),
+            $n instanceof TexSource => self::plain0($n->content),
             default => throw new \InvalidArgumentException('Unknown node ' . $n::class),
         };
     }

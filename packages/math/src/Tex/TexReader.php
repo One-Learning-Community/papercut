@@ -21,6 +21,7 @@ use Quoin\Math\Node\Root;
 use Quoin\Math\Node\Row;
 use Quoin\Math\Node\Scripts;
 use Quoin\Math\Node\Space;
+use Quoin\Math\Node\TexSource;
 use Quoin\Math\Node\Text;
 use Quoin\Math\Node\UnderOver;
 use Quoin\Math\NoteLevel;
@@ -402,8 +403,9 @@ final class TexReader
                 return $nodes;
             } elseif ($ty === 'cs' && $t[1] === 'color') {
                 $this->c->p++;
-                $this->c->rawGroup();
-                $nodes[] = $this->note(NoteLevel::Approximated, '\\color', 'color is not drawn', $t[2], fn (): Node => self::row($this->parseUntil(...$stops)));
+                $color = self::colorName($this->c->rawGroup());
+                $node = $this->note(NoteLevel::Approximated, '\\color', 'color is not drawn', $t[2], fn (): Node => self::row($this->parseUntil(...$stops)));
+                $nodes[] = new TexSource($node, '{\\color{' . $color . '} ', '}');
 
                 return $nodes;
             } elseif ($ty === 'cs' && isset(TexSymbols::FONT_SWITCHES[$t[1]])) {
@@ -1080,12 +1082,14 @@ final class TexReader
             case 'hdashline':
                 return [$this->note(NoteLevel::Dropped, '\\hline', 'row rules are not drawn', $at), 'ord', null];
             case 'tag':
+                $star = '';
                 if ($this->c->peekIs('ch', '*')) {
                     $this->c->p++;
+                    $star = '*';
                 }
-                $this->c->rawGroup();
+                $label = preg_replace('/[{}\\\\#%$^_&~]/', '', $this->c->rawGroup()) ?? '';
 
-                return [$this->note(NoteLevel::Dropped, '\\tag', 'equation numbers are not drawn', $at), 'ord', null];
+                return [new TexSource($this->note(NoteLevel::Dropped, '\\tag', 'equation numbers are not drawn', $at), '\\tag' . $star . '{' . trim($label) . '}', ''), 'ord', null];
             case 'label':
                 $this->c->rawGroup();
 
@@ -1094,22 +1098,22 @@ final class TexReader
             case 'notag':
                 return null; // equation numbers are not drawn, so there is nothing to switch off
             case 'color':
-                $this->c->rawGroup();
+                $color = self::colorName($this->c->rawGroup());
 
-                return [$this->note(NoteLevel::Approximated, '\\color', 'color is not drawn', $at), 'ord', null];
+                return [new TexSource($this->note(NoteLevel::Approximated, '\\color', 'color is not drawn', $at), '\\color{' . $color . '}', ''), 'ord', null];
             case 'textcolor':
-                $this->c->rawGroup();
+                $color = self::colorName($this->c->rawGroup());
 
-                return [$this->note(NoteLevel::Approximated, '\\textcolor', 'color is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
+                return [new TexSource($this->note(NoteLevel::Approximated, '\\textcolor', 'color is not drawn', $at, fn (): Node => $this->parseArgument()), '\\textcolor{' . $color . '}{', '}'), 'ord', null];
             case 'boxed':
-                return [$this->note(NoteLevel::Approximated, '\\boxed', 'the box is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
+                return [new TexSource($this->note(NoteLevel::Approximated, '\\boxed', 'the box is not drawn', $at, fn (): Node => $this->parseArgument()), '\\boxed{', '}'), 'ord', null];
             case 'fbox':
-                return [$this->note(NoteLevel::Approximated, '\\fbox', 'the box is not drawn', $at, fn (): Node => $this->textInGroup()), 'ord', null];
+                return [new TexSource($this->note(NoteLevel::Approximated, '\\fbox', 'the box is not drawn', $at, fn (): Node => $this->textInGroup()), '\\fbox{', '}'), 'ord', null];
             case 'cancel':
             case 'bcancel':
             case 'xcancel':
             case 'sout':
-                return [$this->note(NoteLevel::Approximated, '\\' . $name, 'the strike-through is not drawn', $at, fn (): Node => $this->parseArgument()), 'ord', null];
+                return [new TexSource($this->note(NoteLevel::Approximated, '\\' . $name, 'the strike-through is not drawn', $at, fn (): Node => $this->parseArgument()), '\\' . $name . '{', '}'), 'ord', null];
             case 'sideset':
             case 'prescript':
             case 'tensor':
@@ -1684,6 +1688,12 @@ final class TexReader
             '^', '_', '&' => $t[1],
             default => '',
         };
+    }
+
+    /** A color argument reduced to the characters a color name or hex code has, so it can be written back as TeX. */
+    private static function colorName(string $raw): string
+    {
+        return preg_replace('/[^A-Za-z0-9#.,!:-]/', '', $raw) ?? '';
     }
 
     private function textInGroup(): Node
