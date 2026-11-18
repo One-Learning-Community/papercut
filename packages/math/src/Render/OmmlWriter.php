@@ -406,7 +406,9 @@ final class OmmlWriter
         $over = $overNode === null ? null : self::node($overNode, $rPr);
         $under = $underNode === null ? null : self::node($underNode, $rPr);
         $wide = $under === null || ($over !== null && self::textLength($over) >= self::textLength($under)) ? $over : $under;
-        $out = self::groupChr('<m:phant><m:phantPr><m:show m:val="0"/><m:zeroAsc m:val="1"/><m:zeroDesc m:val="1"/></m:phantPr><m:e>' . $wide . '</m:e></m:phant>', $char, 'top', 'bot', $rPr);
+        // An en space on each side of the hidden label: the arrow reaches past its label, and a short label still gets a long arrow.
+        $pad = self::run("\u{2002}", $rPr);
+        $out = self::groupChr('<m:phant><m:phantPr><m:show m:val="0"/><m:zeroAsc m:val="1"/><m:zeroDesc m:val="1"/></m:phantPr><m:e>' . $pad . $wide . $pad . '</m:e></m:phant>', $char, 'top', 'bot', $rPr);
         if ($over !== null) {
             $out = '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . $over . '</m:lim></m:limUpp>';
         }
