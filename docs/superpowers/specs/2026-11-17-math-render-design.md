@@ -1,4 +1,4 @@
-# One-call math output (`PendingMath`)
+# One-call math output (`MathRender`)
 
 ## Why
 
@@ -16,36 +16,36 @@ Success: the common cases in the recipes page become one chain, and the hand-wri
 
 ## Decisions taken with the user
 
-- A wrapper class, `Quoin\Math\PendingMath`, named after the Laravel package's `PendingDocument`: a formula that has
-  been read and is waiting for a format method.
+- A wrapper class, `Quoin\Math\MathRender`. Its constructors are `fromTex()` and `fromMathml()`, so the outputs
+  keep their plain names (`tex()`, `mathml()`): PHP allows one method per name, static or not.
 - `Math::tex()` and `Math::mathml()` keep returning `Node`, so they still compose with the builder.
 - Display is a modifier (`display()`, `inline()`), not a second set of method names. `inlineSvg()` is out: core's HTML
   options already use `inlineSvgs` for SVG markup written into a page.
 - Inline `svg()` returns one bare `<svg>` that carries its own `vertical-align` and accessible label.
-- The existing writers and renderers stay public and unchanged. `PendingMath` only calls them.
+- The existing writers and renderers stay public and unchanged. `MathRender` only calls them.
 
 ## API
 
 ```php
-use Quoin\Math\PendingMath;
+use Quoin\Math\MathRender;
 
-PendingMath::tex('\pi r^2')->svg();                      // inline, 16 px, currentColor
-PendingMath::tex($tex)->display()->svg(size: 18);
-PendingMath::mathml($mml)->png(scale: 2);
-PendingMath::of(Math::frac('a', 'b'))->mathml();
-PendingMath::tex($tex)->display()->omml();               // oMathPara
-PendingMath::tex($tex)->tex();
-PendingMath::tex($tex)->text();
-PendingMath::tex($userInput)->notes();
+MathRender::fromTex('\pi r^2')->svg();                      // inline, 16 px, currentColor
+MathRender::fromTex($tex)->display()->svg(size: 18);
+MathRender::fromMathml($mml)->png(scale: 2);
+MathRender::of(Math::frac('a', 'b'))->mathml();
+MathRender::fromTex($tex)->display()->omml();               // oMathPara
+MathRender::fromTex($tex)->tex();
+MathRender::fromTex($tex)->text();
+MathRender::fromTex($userInput)->notes();
 ```
 
 ### Construction
 
 | Method | Source |
 |---|---|
-| `PendingMath::tex(string $tex)` | `TexReader::read()`; display mode from the result |
-| `PendingMath::mathml(string\|\Dom\Element $input)` | `MathmlReader::read()`; display mode from the result |
-| `PendingMath::of(Node $node)` | a tree from the builder or elsewhere; starts inline |
+| `MathRender::fromTex(string $tex)` | `TexReader::read()`; display mode from the result |
+| `MathRender::fromMathml(string\|\Dom\Element $input)` | `MathmlReader::read()`; display mode from the result |
+| `MathRender::of(Node $node)` | a tree from the builder or elsewhere; starts inline |
 
 The constructor is private. Like the readers, the TeX and MathML constructors never throw on bad input.
 
@@ -111,20 +111,20 @@ holds the alt text from the formula it was drawn from.
 ## Defaults differ from the low-level classes
 
 `Math::layout()` defaults to display style at 12 pt, `SvgRenderer` to `#000000`, and `MathmlWriter` to display.
-`PendingMath` defaults to inline at 16 px in `currentColor`, because most formulas sit in running text on the web.
+`MathRender` defaults to inline at 16 px in `currentColor`, because most formulas sit in running text on the web.
 The docs state this beside the first example. The low-level defaults do not change.
 
 ## Where it goes
 
-- `packages/math/src/PendingMath.php` and `packages/math/src/MathPng.php`, beside `Math`.
-- The architecture test keeps `Node` and the layout free of `Render` dependencies. `PendingMath` may depend on
+- `packages/math/src/MathRender.php` and `packages/math/src/MathPng.php`, beside `Math`.
+- The architecture test keeps `Node` and the layout free of `Render` dependencies. `MathRender` may depend on
   everything.
 
 ## Docs
 
-- `site/src/math/README.md`: open with `PendingMath`.
+- `site/src/math/README.md`: open with `MathRender`.
 - `site/src/math/output.md`: a "Quick output" section first; the low-level classes follow as now.
-- `site/src/math/recipes.md`: rewrite web, email, accessible and converting recipes on `PendingMath`. The
+- `site/src/math/recipes.md`: rewrite web, email, accessible and converting recipes on `MathRender`. The
   `inlineMath()` helper and the email baseline arithmetic go. The LaTeX-look recipe uses `font()`. The untrusted-input
   recipe uses `notes()`.
 - CHANGELOG entry.
@@ -144,6 +144,6 @@ The docs state this beside the first example. The low-level defaults do not chan
 
 ## Out of scope
 
-- A Laravel Blade component or helper over `PendingMath`. The existing equation component covers documents.
+- A Laravel Blade component or helper over `MathRender`. The existing equation component covers documents.
 - Caching rendered output.
 - HTML-with-MathML-fallback markup (SVG plus hidden MathML in one call). The empty label supports building it by hand.
