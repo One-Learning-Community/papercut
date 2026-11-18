@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Quoin\Math\Tests\Tex\Chem;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Quoin\Math\Math;
 use Quoin\Math\Tex\TexReader;
@@ -51,6 +52,8 @@ final class ChemHardeningTest extends TestCase
         }
     }
 
+    /** Thousands of random inputs: run on demand with `--group fuzz`, not in the default suite. */
+    #[Group('fuzz')]
     public function test_fuzz(): void
     {
         mt_srand(1117);
@@ -62,8 +65,13 @@ final class ChemHardeningTest extends TestCase
             }
             foreach (['\ce{' . $body . '}', '\pu{' . $body . '}', '\ce{' . $body] as $tex) {
                 try {
+                    $t = microtime(true);
                     $box = Math::layout(TexReader::read($tex)->node);
+                    // Reaching this line is the real assertion: nothing threw. The width only proves a box came back.
                     self::assertGreaterThanOrEqual(0.0, $box->width, 'input #' . $n . ': ' . $tex);
+                    if (! (function_exists('xdebug_info') && xdebug_info('mode') !== [])) {
+                        self::assertLessThan(1.0, microtime(true) - $t, 'input #' . $n . ' took too long: ' . $tex);
+                    }
                 } catch (\Throwable $e) {
                     self::fail('input #' . $n . ' threw ' . $e::class . ': ' . $e->getMessage() . ' for ' . $tex);
                 }

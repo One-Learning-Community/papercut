@@ -59,31 +59,63 @@ final class TexCursor
         $s = '';
         $to = min($to, count($this->t));
         for ($i = max(0, $from); $i < $to; $i++) {
-            [$type, $val] = $this->t[$i];
-            switch ($type) {
-                case 'cs':
-                    $s .= '\\' . $val;
-                    $next = $this->t[$i + 1] ?? null;
-                    if ($i + 1 < $to && ctype_alpha($val) && $next !== null && $next[0] === 'ch' && ctype_alpha($next[1])) {
-                        $s .= ' ';
-                    }
-                    break;
-                case 'nl':
-                    $s .= '\\\\';
-                    break;
-                case 'param':
-                    $s .= '#' . $val;
-                    break;
-                default: // ch, sp, { } ^ _ &
-                    $s .= $val;
-            }
+            [$text, $spaced] = $this->piece($i, $to);
+            $s .= $text . ($spaced ? ' ' : '');
         }
 
         return $s;
     }
 
+    /**
+     * The source of the tokens from $from up to $to, with where each token starts and ends in it, in characters. A span of the
+     * source can then be read from the tokens it came from.
+     *
+     * @return array{string, array<int, int>, array<int, int>} the source, the token index that starts at each character position (the
+     *         end position maps to $to), and the token index after the one that ends at each position
+     */
+    public function mapped(int $from, int $to): array
+    {
+        $s = '';
+        $starts = [];
+        $ends = [];
+        $pos = 0;
+        $to = min($to, count($this->t));
+        for ($i = max(0, $from); $i < $to; $i++) {
+            [$text, $spaced] = $this->piece($i, $to);
+            $starts[$pos] = $i;
+            $s .= $text;
+            $pos += mb_strlen($text);
+            $ends[$pos] = $i + 1;
+            if ($spaced) {
+                $s .= ' ';
+                $pos++;
+            }
+        }
+        $starts[$pos] = $to;
+
+        return [$s, $starts, $ends];
+    }
+
+    /**
+     * One token as TeX, and whether a space must follow it: a control word before a letter would run into it. This is the
+     * one place that spells tokens.
+     *
+     * @return array{string, bool}
+     */
+    private function piece(int $i, int $to): array
+    {
+        [$type, $val] = $this->t[$i];
+
+        return match ($type) {
+            'cs' => ['\\' . $val, $i + 1 < $to && ctype_alpha($val) && ($this->t[$i + 1][0] ?? '') === 'ch' && ctype_alpha($this->t[$i + 1][1])],
+            'nl' => ['\\\\', false],
+            'param' => ['#' . $val, false],
+            default => [$val, false], // ch, sp, { } ^ _ &
+        };
+    }
+
     /** Past the `}` that closes a group whose `{` is already read. */
-    public function skipBalanced(): void
+    public function skipBalanced(): bool
     {
         $depth = 1;
         while (($t = $this->peek()) !== null) {
@@ -91,9 +123,11 @@ final class TexCursor
             if ($t[0] === '{') {
                 $depth++;
             } elseif ($t[0] === '}' && --$depth === 0) {
-                return;
+                return true;
             }
         }
+
+        return false;
     }
 
     /** The characters of a group, as plain text (or the one character that follows). */

@@ -76,4 +76,30 @@ final class TextWriterTest extends TestCase
         self::assertSame(TextWriter::write($base), TextWriter::write($flagged));
         self::assertStringNotContainsString('⏟', TextWriter::write($flagged));
     }
+
+    public function test_a_label_less_chemistry_arrow_reads_as_a_relation(): void
+    {
+        self::assertSame('CH₄ + 2 O₂ → CO₂ + 2 H₂O', TextWriter::write(Math::tex('\\ce{CH4 + 2 O2 -> CO2 + 2 H2O}')));
+        self::assertSame('A → B', TextWriter::write(Math::tex('\\ce{A -> B}')));
+    }
+
+    public function test_a_labeled_arrow_keeps_its_label_and_is_set_off(): void
+    {
+        self::assertSame('A →^Δ B', TextWriter::write(Math::tex('\\ce{A ->[\\Delta] B}')));
+    }
+
+    public function test_blank_limits_are_no_limits(): void
+    {
+        foreach (['\\overset{}{x}', '\\underset{}{x}', '\\overbrace{x}^{}', '\\underbrace{x}_{}'] as $tex) {
+            self::assertSame('x', TextWriter::write(Math::tex($tex)), $tex);
+        }
+    }
+
+    public function test_a_prescript_in_the_marked_form_is_set_off_from_the_atom_before(): void
+    {
+        self::assertSame('y ^(ab)x', TextWriter::write(Math::tex('y{}^{ab}x')));
+        self::assertSame('y _(a + b)x', TextWriter::write(Math::tex('y{}_{a+b}x')));
+        // The compact form reads as itself and needs no separator.
+        self::assertSame('y¹⁴C', TextWriter::write(Math::tex('y{}^{14}C')));
+    }
 }

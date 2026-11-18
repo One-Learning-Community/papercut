@@ -57,7 +57,19 @@ final class TexWriter
         $saved = self::$topLevel;
         self::$topLevel = [];
         $top = self::strip($root);
+        while ($top instanceof DisplayStyle) {
+            // `\displaystyle x \tag{1}` reads as a switch around the whole formula: its tag is still at the top.
+            $top = self::strip($top->content);
+        }
+        $tagged = false;
         foreach ($top instanceof Row ? $top->children : [$top] as $child) {
+            if ($child instanceof TexSource && str_starts_with($child->tex, '\\tag')) {
+                // KaTeX rejects a second equation number.
+                if ($tagged) {
+                    continue;
+                }
+                $tagged = true;
+            }
             self::$topLevel[spl_object_id($child)] = true;
         }
         try {
@@ -113,6 +125,7 @@ final class TexWriter
         }
         $pieces = [];
         $afterNumber = false;
+        $previous = null;
         foreach ($row->children as $kid) {
             $bare = self::strip($kid);
             if ($bare instanceof Row) {
@@ -123,6 +136,11 @@ final class TexWriter
             if ($piece === '') {
                 continue;
             }
+            if ($bare instanceof Scripts && ($bare->preSub !== null || $bare->preSup !== null) && $previous instanceof Scripts) {
+                // After scripts, a bare `{}_a X` would read as more scripts of the node before; a group of its own keeps them prescripts.
+                $piece = '{' . $piece . '}';
+            }
+            $previous = $bare;
             // Numbers side by side would read as one number, so each after the first is braced.
             $isNumber = $bare instanceof Number;
             $pieces[] = $isNumber && $afterNumber ? '{' . $piece . '}' : $piece;
@@ -566,7 +584,8 @@ final class TexWriter
             $pre = '{}' . self::scriptParts($s->preSub, $s->preSup);
             $post = $s->sub === null && $s->sup === null ? self::base($s->base) : self::scripts(new Scripts($s->base, $s->sub, $s->sup));
 
-            return $pre . $post;
+            // A control word ends at a space, not at the letter of the base after it.
+            return $pre . (preg_match('/\\\\[a-zA-Z]+$/', $pre) === 1 ? ' ' : '') . $post;
         }
         $op = UnderOver::operatorOf($s->base);
         $nolimits = UnderOver::isLimitName($s->base) || ($op !== null && $op->isLargeop(OperatorDictionary::FORM_PREFIX) && $op->hasMovableLimits(OperatorDictionary::FORM_PREFIX));

@@ -29,10 +29,9 @@ final class UnitReader
     private const int QUOTE = 40;
 
     /**
-     * @param \Closure(string, ?array{int, int}): Node $math reads TeX with the calling reader's limits and depth
      * @param \Closure(NoteLevel, string, string): void $note records a note on the `\pu` command
      */
-    public static function read(string $src, \Closure $math, \Closure $note): Node
+    public static function read(string $src, \Closure $note): Node
     {
         $s = trim($src);
         $out = self::parse($s);

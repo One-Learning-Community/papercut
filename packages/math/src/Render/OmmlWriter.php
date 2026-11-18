@@ -361,32 +361,35 @@ final class OmmlWriter
         $arrow = UnderOver::operatorOf($u->base);
         if ($arrow !== null && $u->base === $arrow && UnderOver::isStretchy($arrow) && UnderOver::isArrow($arrow->char) && ($u->over !== null || $u->under !== null) && self::single($arrow->char)) {
             // A label that draws nothing (the empty one a label-less chemistry arrow carries) is no label.
-            $over = $u->over === null || strpos(self::node($u->over, $rPr), '<m:t') === false ? null : $u->over;
-            $under = $u->under === null || strpos(self::node($u->under, $rPr), '<m:t') === false ? null : $u->under;
+            $over = UnderOver::blank($u->over) ? null : $u->over;
+            $under = UnderOver::blank($u->under) ? null : $u->under;
             if ($over === null && $under === null) {
                 // KaTeX draws the long arrows for these.
-                return self::node(new Operator(['→' => '⟶', '←' => '⟵', '↔' => '⟷'][$arrow->char] ?? $arrow->char), $rPr);
+                return self::node(new Operator(UnderOver::LONG_ARROWS[$arrow->char] ?? $arrow->char), $rPr);
             }
 
             return self::labeledArrow($over, $under, $arrow->char, $rPr);
         }
         $out = self::node($u->base, $rPr);
-        if ($u->under !== null) {
-            $op = UnderOver::operatorOf($u->under);
+        // A part that draws nothing is no limit: it would write an empty <m:lim>.
+        $underPart = UnderOver::blank($u->under) ? null : $u->under;
+        $overPart = UnderOver::blank($u->over) ? null : $u->over;
+        if ($underPart !== null) {
+            $op = UnderOver::operatorOf($underPart);
             $out = match (true) {
                 $op !== null && in_array($op->char, UnderOver::BARS, true) => self::bar($out, 'bot'),
                 $op !== null && UnderOver::isBrace($op, false) => self::groupChr($out, $op->char, 'bot', 'top', $rPr),
                 $op !== null && $u->accentUnder => self::groupChr($out, Styles::accentMark($op->char) ?? $op->char, 'bot', 'top', $rPr),
-                default => '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . self::node($u->under, $rPr) . '</m:lim></m:limLow>',
+                default => '<m:limLow><m:e>' . $out . '</m:e><m:lim>' . self::node($underPart, $rPr) . '</m:lim></m:limLow>',
             };
         }
-        if ($u->over !== null) {
-            $op = UnderOver::operatorOf($u->over);
+        if ($overPart !== null) {
+            $op = UnderOver::operatorOf($overPart);
             $out = match (true) {
                 $op !== null && in_array($op->char, UnderOver::BARS, true) => self::bar($out, 'top'),
-                $op !== null && $u->accent => self::accent($out, Styles::accentMark($op->char) ?? $op->char, $rPr, $u->over),
+                $op !== null && $u->accent => self::accent($out, Styles::accentMark($op->char) ?? $op->char, $rPr, $overPart),
                 $op !== null && UnderOver::isBrace($op, true) => self::groupChr($out, $op->char, 'top', 'bot', $rPr),
-                default => '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . self::node($u->over, $rPr) . '</m:lim></m:limUpp>',
+                default => '<m:limUpp><m:e>' . $out . '</m:e><m:lim>' . self::node($overPart, $rPr) . '</m:lim></m:limUpp>',
             };
         }
 

@@ -230,4 +230,13 @@ final class MathmlWriterTest extends TestCase
         self::assertStringNotContainsString('<mover>', $xml);
         self::assertStringNotContainsString('<mrow></mrow>', $xml);
     }
+
+    public function test_blank_limits_are_left_out(): void
+    {
+        foreach (['\\overset{}{x}', '\\underset{}{x}'] as $tex) {
+            $xml = MathmlWriter::write(Math::tex($tex));
+            self::assertStringNotContainsString('<mover', $xml, $tex);
+            self::assertStringNotContainsString('<munder', $xml, $tex);
+        }
+    }
 }

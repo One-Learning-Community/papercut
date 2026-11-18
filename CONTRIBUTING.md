@@ -49,6 +49,9 @@ vendor/bin/phpstan analyse --memory-limit=1G
 If Xdebug is loaded, prefix with `php -d xdebug.mode=off` for speed. CI runs the same commands on PHP 8.4 and 8.5
 (`.github/workflows`).
 
+The math package's fuzz tests (thousands of random TeX and chemistry inputs) are left out of the default run. Run
+them after changing the TeX or chemistry readers: `cd packages/math && vendor/bin/phpunit --group fuzz`.
+
 Snapshot updates: visual-regression snapshots (`packages/core/tests/Visual/snapshots`, rasterized with `pdftoppm -r 72`)
 are refreshed with `cd packages/core && UPDATE_SNAPSHOTS=1 php -d xdebug.mode=off vendor/bin/phpunit tests/Visual`.
 Open every changed PNG and review it before committing. Failures write the actual and diff images to

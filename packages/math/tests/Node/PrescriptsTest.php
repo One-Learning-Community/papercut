@@ -6,9 +6,11 @@ namespace Quoin\Math\Tests\Node;
 
 use PHPUnit\Framework\TestCase;
 use Quoin\Math\Layout\Box;
+use Quoin\Math\Layout\Context;
 use Quoin\Math\Layout\Glyph;
 use Quoin\Math\Math;
 use Quoin\Math\Node\Identifier;
+use Quoin\Math\Node\Number;
 use Quoin\Math\Node\Scripts;
 use Quoin\Math\Render\MathmlWriter;
 use Quoin\Math\Render\OmmlWriter;
@@ -47,6 +49,17 @@ final class PrescriptsTest extends TestCase
         self::assertEqualsWithDelta(max($toBase6, $toBase14), self::at($full, 'C')[0], 1e-6);
     }
 
+    public function test_the_gap_before_the_base_is_the_fonts_script_space(): void
+    {
+        $size = 22.0;
+        $c = new Context(Math::stixTwoMath(), $size, 0, true, false, false, true, null);
+        $six = (new Number('6'))->layout($c->script(1, true));
+        $box = Math::layout(Math::prescripts(new Identifier('C', false), '6', null), $size);
+
+        // The prescript block ends one spaceAfterScript before the base, and nothing else sits between them.
+        self::assertEqualsWithDelta($six->width + $c->k('spaceAfterScript'), self::at($box, 'C')[0], 1e-6);
+    }
+
     public function test_shifts_match_postscripts(): void
     {
         $pre = Math::layout(Math::prescripts(new Identifier('C', false), '6', '14'));
@@ -63,7 +76,9 @@ final class PrescriptsTest extends TestCase
         self::assertSame('<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mmultiscripts><mi mathvariant="normal">C</mi><mprescripts/><mn>6</mn><mn>14</mn></mmultiscripts></math>', MathmlWriter::write($n));
         $omml = OmmlWriter::oMath($n);
         self::assertStringContainsString('<m:sPre><m:sub>', $omml);
-        self::assertMatchesRegularExpression('#<m:sPre><m:sub>.*6.*</m:sub><m:sup>.*14.*</m:sup><m:e>.*C.*</m:e></m:sPre>#s', $omml);
+        $run = static fn (string $text): string => '<m:r><w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math" w:cs="Cambria Math"/></w:rPr><m:t xml:space="preserve">' . $text . '</m:t></m:r>';
+        $base = '<m:r><m:rPr><m:sty m:val="p"/></m:rPr><w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math" w:cs="Cambria Math"/></w:rPr><m:t xml:space="preserve">C</m:t></m:r>';
+        self::assertStringContainsString('<m:sPre><m:sub>' . $run('6') . '</m:sub><m:sup>' . $run('14') . '</m:sup><m:e>' . $base . '</m:e></m:sPre>', $omml);
         self::assertSame('{}_6^{14}\mathrm{C}', TexWriter::write($n));
         self::assertSame('¹⁴₆C', TextWriter::write($n));
     }
@@ -73,7 +88,9 @@ final class PrescriptsTest extends TestCase
         $n = Math::prescripts(new Identifier('C', false), '6', '14', null, '4+');
 
         $omml = OmmlWriter::oMath($n);
-        self::assertMatchesRegularExpression('#<m:sPre>.*<m:e><m:sSup><m:e>.*C.*</m:e><m:sup>.*4.*\+.*</m:sup></m:sSup></m:e></m:sPre>#s', $omml);
+        $run = static fn (string $text): string => '<m:r><w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math" w:cs="Cambria Math"/></w:rPr><m:t xml:space="preserve">' . $text . '</m:t></m:r>';
+        $base = '<m:r><m:rPr><m:sty m:val="p"/></m:rPr><w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math" w:cs="Cambria Math"/></w:rPr><m:t xml:space="preserve">C</m:t></m:r>';
+        self::assertStringContainsString('<m:e><m:sSup><m:e>' . $base . '</m:e><m:sup>' . $run('4') . $run('+') . '</m:sup></m:sSup></m:e></m:sPre>', $omml);
         self::assertStringContainsString('<mmultiscripts><mi mathvariant="normal">C</mi><none/><mrow><mn>4</mn><mo>+</mo></mrow><mprescripts/><mn>6</mn><mn>14</mn></mmultiscripts>', MathmlWriter::write($n));
         self::assertSame('{}_6^{14}\mathrm{C}^{4 +}', TexWriter::write($n));
     }
@@ -82,7 +99,7 @@ final class PrescriptsTest extends TestCase
     {
         $n = Math::prescripts('C', '6', '14', null, '4');
         self::assertInstanceOf(Scripts::class, $n);
-        self::assertCount(4, $n->children());
+        self::assertSame([$n->preSub, $n->preSup, $n->base, $n->sup], $n->children());
         $this->expectException(\InvalidArgumentException::class);
         new Scripts(Math::row('C'), null, null);
     }

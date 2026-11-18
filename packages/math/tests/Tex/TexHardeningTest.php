@@ -10,6 +10,7 @@ use Quoin\Math\NoteLevel;
 use Quoin\Math\Tex\TexReader;
 use Quoin\Math\Tex\TexSymbols;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 final class TexHardeningTest extends TestCase
@@ -226,6 +227,8 @@ final class TexHardeningTest extends TestCase
         self::assertCount(1, TexReader::read('\def\a{\a}\a')->notes());
     }
 
+    /** Thousands of random inputs: run on demand with `--group fuzz`, not in the default suite. */
+    #[Group('fuzz')]
     public function test_fuzz(): void
     {
         mt_srand(1612);

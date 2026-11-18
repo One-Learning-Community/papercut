@@ -422,7 +422,7 @@ final class TexReader
                 }
                 if ($atom !== null) {
                     $node = $this->withScripts($atom);
-                    if ($empty && $atom[0] instanceof Row && $atom[0]->children === [] && $node instanceof Scripts && $this->carriesPrescripts($stops)) {
+                    if ($empty && $atom[0] instanceof Row && $atom[0]->children === [] && $node instanceof Scripts && ! self::scriptedBase($nodes) && $this->carriesPrescripts($stops)) {
                         array_push($nodes, ...$this->prescripted($node, $stops));
                     } else {
                         $nodes[] = $node;
@@ -432,6 +432,18 @@ final class TexReader
         }
 
         return $nodes;
+    }
+
+    /**
+     * Whether the last node read carries scripts on a base of its own: `R^a{}_b x` sets b after R's a, not before x.
+     *
+     * @param list<Node> $nodes
+     */
+    private static function scriptedBase(array $nodes): bool
+    {
+        $last = $nodes === [] ? null : Fallback::unwrap($nodes[count($nodes) - 1]);
+
+        return $last instanceof Scripts;
     }
 
     /**
@@ -669,6 +681,7 @@ final class TexReader
         $n = Fallback::unwrap($n);
 
         return $n instanceof Space
+            || ($n instanceof Fallback && $n->content === null)
             || ($n instanceof Row && $n->children === [])
             || ($n instanceof Operator && ! $n->isLargeop(OperatorDictionary::FORM_PREFIX));
     }
@@ -729,7 +742,7 @@ final class TexReader
                 } else {
                     $subs[] = $arg;
                 }
-            } elseif ($t[0] === 'ch' && $t[1] === "'") {
+            } elseif (($t[0] === 'ch' && $t[1] === "'") || ($t[0] === 'cs' && $t[1] === 'prime')) {
                 $this->c->p++;
                 $primes++;
             } elseif ($t[0] === 'sp') {
@@ -1034,43 +1047,51 @@ final class TexReader
         }
         $this->c->p++;
         $from = $this->c->p;
-        $this->c->skipBalanced();
-        $closed = $this->c->p > $from && $this->c->t[$this->c->p - 1][0] === '}';
+        $closed = $this->c->skipBalanced();
         $to = $closed ? $this->c->p - 1 : $this->c->p;
-        $src = $this->c->source($from, $to);
         // Where each token starts in $src, so a span of $src is read from the tokens it came from: real offsets, and this reader's notes, depth and limits.
-        $starts = [];
-        $ends = [];
-        $pos = 0;
-        for ($i = $from; $i < $to; $i++) {
-            $starts[$pos] = $i;
-            $next = $this->c->t[$i + 1] ?? null;
-            $space = $i + 1 < $to && $this->c->t[$i][0] === 'cs' && ctype_alpha($this->c->t[$i][1]) && $next !== null && $next[0] === 'ch' && ctype_alpha($next[1]);
-            $pos += mb_strlen($this->c->source($i, $i + 1));
-            $ends[$pos] = $i + 1;
-            $pos += $space ? 1 : 0;
-        }
-        $starts[$pos] = $to;
+        [$src, $starts, $ends] = $this->c->mapped($from, $to);
         $tokens = $this->c->t;
         $notes = $closed ? [] : [[NoteLevel::Approximated, '\\' . $name, 'group without a closing brace']];
         $reading = function (string $tex, ?array $span) use ($starts, $ends, $tokens, $to): Node {
             if ($span === null) {
                 return self::readWithin($tex, max(1, $this->maxDepth - $this->depth - 1))->node;
             }
-            $a = $starts[$span[0]] ?? $to;
-            $b = $ends[$span[1]] ?? $starts[$span[1]] ?? $to;
+            // A span that begins or ends inside a token reads that whole token, never on to the end of the group.
+            $a = self::boundary($starts, $span[0], false) ?? $to;
+            $b = self::boundary($ends, $span[1], true) ?? $to;
 
             return $this->readTokens(array_slice($tokens, $a, max(0, $b - $a)));
         };
         $noting = static function (NoteLevel $level, string $element, string $reason) use (&$notes): void {
             $notes[] = [$level, $element, $reason];
         };
-        $node = $name === 'pu' ? UnitReader::read($src, $reading, $noting) : ChemReader::read($src, $reading, $noting);
+        $node = $name === 'pu' ? UnitReader::read($src, $noting) : ChemReader::read($src, $reading, $noting);
         foreach (array_reverse($notes) as [$level, $element, $reason]) {
             $node = $this->note($level, $element, $reason, $at, $node);
         }
 
         return [new TexSource($node, '\\' . $name . '{' . $src . '}'), 'ord', null];
+    }
+
+    /**
+     * The token index at the nearest boundary of a span: the last start at or before $pos, or the first end at or after it.
+     *
+     * @param array<int, int> $marks token index by position in the spelled source
+     */
+    private static function boundary(array $marks, int $pos, bool $up): ?int
+    {
+        if (isset($marks[$pos])) {
+            return $marks[$pos];
+        }
+        $best = null;
+        foreach ($marks as $at => $index) {
+            if ($up ? $at > $pos && ($best === null || $at < $best) : $at < $pos && ($best === null || $at > $best)) {
+                $best = $at;
+            }
+        }
+
+        return $best === null ? null : $marks[$best];
     }
 
     /**
@@ -1080,15 +1101,16 @@ final class TexReader
      */
     private function readTokens(array $tokens): Node
     {
-        $saved = [$this->c, $this->outerStops, $this->envDepth, $this->inOptional];
+        $saved = [$this->c, $this->outerStops, $this->envDepth, $this->inOptional, $this->font];
         $this->c = new TexCursor($tokens, $saved[0]->offset());
         $this->outerStops = [];
         $this->envDepth = 0;
         $this->inOptional = false;
-        $node = self::row($this->parseUntil());
-        [$this->c, $this->outerStops, $this->envDepth, $this->inOptional] = $saved;
-
-        return $node;
+        try {
+            return self::row($this->parseUntil());
+        } finally {
+            [$this->c, $this->outerStops, $this->envDepth, $this->inOptional, $this->font] = $saved;
+        }
     }
 
     /**
@@ -1467,6 +1489,9 @@ final class TexReader
     /** @return list<MathNote> the notes in a cell that has nothing else in it */
     private static function lostNotes(Node $n): array
     {
+        if ($n instanceof TexSource) {
+            return self::lostNotes($n->content);
+        }
         if ($n instanceof Fallback) {
             return [$n->note];
         }
@@ -1491,6 +1516,10 @@ final class TexReader
     /** A cell with nothing in it (rule commands that draw nothing do not count). */
     private static function blank(Node $n): bool
     {
+        if ($n instanceof TexSource) {
+            // An equation number or a color around nothing: the row it stood in is dropped, and the source with it.
+            return self::blank($n->content);
+        }
         if ($n instanceof Row) {
             foreach ($n->children as $c) {
                 if (! self::blank($c)) {

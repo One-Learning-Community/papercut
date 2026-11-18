@@ -442,4 +442,15 @@ final class OmmlWriterTest extends TestCase
         $xml = OmmlWriter::oMath(Math::xarrow('→', '<<', 'abc'));
         self::assertMatchesRegularExpression('#<m:limUpp><m:e><m:groupChr>.*<m:phant>.*>a<.*>b<.*>c<.*</m:phant>#s', $xml);
     }
+
+    public function test_blank_limits_are_left_out(): void
+    {
+        foreach (['\\overset{}{x}', '\\underset{}{x}', '\\overbrace{x}^{}', '\\underbrace{x}_{}', '\\overset{}{\\underset{}{x}}'] as $tex) {
+            $xml = OmmlWriter::oMath(Math::tex($tex));
+            self::assertStringNotContainsString('<m:lim>', $xml, $tex);
+            self::assertStringNotContainsString('<m:limUpp>', $xml, $tex);
+            self::assertStringNotContainsString('<m:limLow>', $xml, $tex);
+            self::assertStringContainsString('>x<', $xml, $tex);
+        }
+    }
 }

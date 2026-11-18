@@ -101,23 +101,43 @@ final class TextWriter
         $prev = null;
         foreach ($r->children as $i => $child) {
             $op = Fallback::unwrap($child);
+            if ($prev !== null && self::isArrowStack(Fallback::unwrap($prev)) && $op instanceof Space && $op->em >= 0.15) {
+                // The arrow has set off its right side already.
+                $prev = $child;
+
+                continue;
+            }
             if ($op instanceof Operator) {
                 $out .= match (true) {
                     $forms[$i] === OperatorDictionary::FORM_INFIX && ($op->char === ',' || $op->char === ';') => $op->char . ' ',
                     $forms[$i] === OperatorDictionary::FORM_INFIX => ' ' . $op->char . ' ',
                     default => $op->char,
                 };
+            } elseif (self::isArrowStack($op)) {
+                // A reaction arrow with its labels is a relation: set off by spaces, as the operator form is.
+                $out .= (str_ends_with($out, ' ') ? '' : ' ') . self::node($child) . ' ';
             } else {
                 // A function name set apart from its operand: "sin x", not "sinx"; so is a body after limits.
-                if (($prev instanceof Identifier && mb_strlen($prev->name) > 1) || ($prev !== null && self::endsInLimits($prev))) {
+                if (($prev instanceof Identifier && mb_strlen($prev->name) > 1) || ($prev !== null && ! self::isArrowStack(Fallback::unwrap($prev)) && self::endsInLimits($prev))) {
                     $out .= ' ';
                 }
-                $out .= self::node($child);
+                $piece = self::node($child);
+                // Prescripts after a script would read as more scripts of it, so a space sets them off.
+                if ($op instanceof Scripts && ($op->preSub !== null || $op->preSup !== null) && $prev !== null && Fallback::unwrap($prev) instanceof Scripts && $out !== '' && ! str_ends_with($out, ' ') && ! str_starts_with($piece, ' ')) {
+                    $out .= ' ';
+                }
+                $out .= $piece;
             }
             $prev = $child;
         }
 
         return $out;
+    }
+
+    /** True for an arrow stretched over or under a label: a relation between its neighbors. */
+    private static function isArrowStack(Node $n): bool
+    {
+        return $n instanceof UnderOver && $n->base instanceof Operator && UnderOver::isArrow($n->base->char);
     }
 
     /** True for a node that reads as one token: no operator or space of its own to bind it into the text around it. */
@@ -175,7 +195,8 @@ final class TextWriter
     {
         $base = self::node($s->base);
         $pre = ($s->preSup !== null ? self::script($s->preSup, ScriptChars::SUP, '^') : '') . ($s->preSub !== null ? self::script($s->preSub, ScriptChars::SUB, '_') : '');
-        $base = $pre . $base;
+        // The marked form would read as a script of the atom before, so a space sets it off.
+        $base = ($pre !== '' && ($pre[0] === '^' || $pre[0] === '_') ? ' ' : '') . $pre . $base;
 
         return $base . ($s->sub !== null ? self::script($s->sub, ScriptChars::SUB, '_') : '') . ($s->sup !== null ? self::script($s->sup, ScriptChars::SUP, '^') : '');
     }
@@ -186,12 +207,14 @@ final class TextWriter
      */
     private static function underOver(UnderOver $u): string
     {
-        $over = UnderOver::operatorOf($u->over);
-        $under = UnderOver::operatorOf($u->under);
+        $overPart = UnderOver::blank($u->over) ? null : $u->over;
+        $underPart = UnderOver::blank($u->under) ? null : $u->under;
+        $over = UnderOver::operatorOf($overPart);
+        $under = UnderOver::operatorOf($underPart);
         $marks = '';
         $braced = false;
-        $overPlain = $u->over;
-        $underPlain = $u->under;
+        $overPlain = $overPart;
+        $underPlain = $underPart;
         if ($over !== null) {
             $isBar = in_array($over->char, UnderOver::BARS, true);
             if ($isBar || ($u->accent && ! UnderOver::isBrace($over, true))) {
@@ -261,7 +284,7 @@ final class TextWriter
             return $part !== null && ! ($op !== null && ($accent || in_array($op->char, UnderOver::BARS, true) || UnderOver::isBrace($op, true) || UnderOver::isBrace($op, false)));
         };
 
-        return $limit($n->under, $n->accentUnder) || $limit($n->over, $n->accent);
+        return $limit(UnderOver::blank($n->under) ? null : $n->under, $n->accentUnder) || $limit(UnderOver::blank($n->over) ? null : $n->over, $n->accent);
     }
 
     /** @param array<int|string, string> $map */

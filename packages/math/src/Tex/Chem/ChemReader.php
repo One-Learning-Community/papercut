@@ -81,6 +81,7 @@ final class ChemReader
             $this->step();
         }
         $this->flush();
+        $this->dangling();
 
         return count($this->out) === 1 ? $this->out[0] : new Row($this->out);
     }
@@ -163,13 +164,20 @@ final class ChemReader
         $this->kind = '';
     }
 
+    /** Prescripts read with no atom after them stand on an empty base, as TeX's `{}^{2}` draws them. */
+    private function dangling(): void
+    {
+        if ($this->base === null && ($this->preSub !== null || $this->preSup !== null)) {
+            $this->out[] = new Scripts(new Row([]), null, null, $this->preSub, $this->preSup);
+            $this->preSub = $this->preSup = null;
+        }
+    }
+
     /** Start a new atom: counts and charges that follow attach to it, and scripts read before it become its prescripts. */
     private function atom(Node $base, string $kind): void
     {
-        $pre = [$this->preSub, $this->preSup];
-        $this->preSub = $this->preSup = null;
+        // Prescripts read before this atom are its own only when no atom is being built; otherwise they belong to that one.
         $this->flush();
-        [$this->preSub, $this->preSup] = $pre;
         $this->base = $base;
         $this->kind = $kind;
         $this->fresh = false;
@@ -178,6 +186,7 @@ final class ChemReader
     private function emit(Node $n): void
     {
         $this->flush();
+        $this->dangling();
         $this->out[] = $n;
         $this->fresh = false;
     }
@@ -430,7 +439,7 @@ final class ChemReader
             $start = $this->i + 1;
             $this->i = $close + 1;
         } else {
-            $arg = self::first('/^(?:[0-9]+[+\-]*|[+\-]+|.)/u', $this->slice($this->i, min($this->n, $this->i + 64)));
+            $arg = self::first('/^(?:\\\\(?:[a-zA-Z]+|.)|[0-9]+[+\-]*|[+\-]+|.)/u', $this->slice($this->i, min($this->n, $this->i + 64)));
             $start = $this->i;
             $this->i += mb_strlen($arg);
         }
@@ -440,7 +449,14 @@ final class ChemReader
             return;
         }
         $node = $this->scriptContent($arg, $this->origin + $start);
+        if ($this->kind === 'open') {
+            // Straight after an opening bracket, a script belongs to the atom that follows, as it does at the start of a species.
+            $this->flush();
+        }
         if ($this->base === null) {
+            if (($mark === '^' && $this->preSup !== null) || ($mark === '_' && $this->preSub !== null)) {
+                $this->dangling();
+            }
             if ($mark === '^') {
                 $this->preSup = $node;
             } else {

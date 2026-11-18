@@ -29,6 +29,8 @@ final class UnderOver extends Node
 
     /** @internal Shortest an extensible arrow is drawn, in em (KaTeX's value). */
     public const ARROW_MIN_WIDTH = 1.469;
+    /** @internal The long arrows a label-less stretchy arrow is written as in markup that cannot stretch it (KaTeX draws these). */
+    public const LONG_ARROWS = ['→' => '⟶', '←' => '⟵', '↔' => '⟷'];
     /** @internal Room an extensible arrow keeps past each end of its widest label, in em (KaTeX's value). */
     public const ARROW_LABEL_PAD = 0.5;
     /**
@@ -58,6 +60,25 @@ final class UnderOver extends Node
     public function children(): array
     {
         return array_values(array_filter([$this->base, $this->under, $this->over], static fn (?Node $n): bool => $n !== null));
+    }
+
+    /**
+     * Whether a part below or above draws nothing: absent, an empty row, or a row of such parts. Writers treat it as
+     * no part, so a label-less chemistry arrow or `\overset{}{x}` is written as its base alone.
+     *
+     * @internal Engine detail, not public API.
+     */
+    public static function blank(?Node $part): bool
+    {
+        if ($part === null) {
+            return true;
+        }
+        $part = Fallback::unwrap($part);
+        if ($part instanceof Fallback) {
+            return true;
+        }
+
+        return $part instanceof Row && array_all($part->children, self::blank(...));
     }
 
     /** @internal Engine detail, not public API. */
@@ -197,6 +218,8 @@ final class UnderOver extends Node
         $drawnPair = $baseOp !== null && self::drawsPair($c, $baseOp);
         $baseStretch = $drawnEquals || $drawnPair || $baseOp !== null && self::horizontalGid($c, $baseOp) !== null;
         $baseAnchor = null;
+        // How much lower a drawn pair reaches than a single arrow, ink to ink: its under label keeps the gap a single arrow's has.
+        $pairDrop = 0.0;
         [$overKind, $overOp] = $this->classify($c, $this->over, $this->accent);
         [$underKind, $underOp] = $this->classify($c, $this->under, $this->accentUnder);
 
@@ -227,6 +250,9 @@ final class UnderOver extends Node
             // The target is an advance width; the minimum and the pad are guarantees about ink, so make up a side-bearing shortfall.
             if ($target > $widest && $baseBox->width < $target) {
                 [$baseBox, $baseAnchor] = $make($c, $baseOp->char, $target + ($target - $baseBox->width));
+            }
+            if ($drawnPair) {
+                $pairDrop = max(0.0, $baseBox->descent - self::stretched($c, '→', $target)[0]->descent);
             }
         }
         if ($baseBox === null) {
@@ -282,7 +308,7 @@ final class UnderOver extends Node
         } elseif ($underBox !== null) {
             $down = match (true) {
                 $underKind === 'accent' => $baseBox->descent + $c->k('underbarVerticalGap') + $underBox->ascent,
-                $baseStretch => max($c->k('stretchStackBottomShiftDown'), $baseBox->descent + $c->k('stretchStackGapBelowMin') + $underBox->ascent),
+                $baseStretch => max($c->k('stretchStackBottomShiftDown') + $pairDrop, $baseBox->descent + $c->k('stretchStackGapBelowMin') + $underBox->ascent),
                 default => $baseBox->descent + $c->k('underbarVerticalGap') + $underBox->ascent,
             };
             $parts[] = [$underBox, 0.0, $down];
@@ -486,7 +512,9 @@ final class UnderOver extends Node
         $upBox = $f->bbox($f->gid(mb_ord($upper)));
         $lowBox = $f->bbox($f->gid(mb_ord($lower)));
         $bars = [];
-        foreach ($f->contours($f->gid(mb_ord($char))) as $contour) {
+        // A font without the composite glyph has only its .notdef box to read: take the fallback gap instead.
+        $composite = $f->gid(mb_ord($char));
+        foreach ($composite === 0 ? [] : $f->contours($composite) as $contour) {
             $ys = array_map(static fn (array $p): float => $p[1], $contour);
             if ($ys !== []) {
                 $bars[] = [min($ys), max($ys)];

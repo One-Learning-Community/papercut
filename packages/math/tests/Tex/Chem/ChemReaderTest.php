@@ -16,6 +16,7 @@ use Quoin\Math\Node\Text;
 use Quoin\Math\Node\UnderOver;
 use Quoin\Math\NoteLevel;
 use Quoin\Math\Render\TexWriter;
+use Quoin\Math\Render\TextWriter;
 use Quoin\Math\Tests\TreeAssert;
 use Quoin\Math\Tex\Chem\ChemArrows;
 use Quoin\Math\Tex\TexReader;
@@ -336,5 +337,80 @@ final class ChemReaderTest extends TestCase
         $short = Math::layout(Math::tex('\\ce{A ' . $arrow . '[x] B}'), 22.0, false)->width;
         $long = Math::layout(Math::tex('\\ce{A ' . $arrow . '[a long label here] B}'), 22.0, false)->width;
         self::assertGreaterThan($short, $long);
+    }
+
+    /** @return iterable<string, array{string, list<array{?string, ?string}>}> source, then the empty-base scripts as [preSub, preSup] texts in reading order */
+    public static function danglingPrescripts(): iterable
+    {
+        yield 'after a space' => ['x ^2', [[null, '2']]];
+        yield 'subscript after a space' => ['A _2', [['2', null]]];
+        yield 'after a formula' => ['H2O ^{18}', [[null, '18']]];
+        yield 'two superscripts' => ['^2^3', [[null, '2'], [null, '3']]];
+        yield 'before a plus' => ['^{14} + C', [[null, '14']]];
+        yield 'before an arrow' => ['^{14} -> C', [[null, '14']]];
+    }
+
+    /** @param list<array{?string, ?string}> $expected */
+    #[DataProvider('danglingPrescripts')]
+    public function test_a_prescript_without_a_base_is_drawn_on_an_empty_base(string $ce, array $expected): void
+    {
+        $found = [];
+        $walk = static function (Node $n) use (&$walk, &$found): void {
+            if ($n instanceof \Quoin\Math\Node\Scripts && $n->base instanceof Row && $n->base->children === []) {
+                $found[] = [$n->preSub === null ? null : TextWriter::write($n->preSub), $n->preSup === null ? null : TextWriter::write($n->preSup)];
+            }
+            foreach ($n->children() as $child) {
+                $walk($child);
+            }
+        };
+        $walk(Math::tex('\\ce{' . $ce . '}'));
+        self::assertSame($expected, $found);
+    }
+
+    public function test_a_prescript_before_an_atom_still_attaches_to_it(): void
+    {
+        $tree = \Quoin\Math\Node\Fallback::unwrap(Math::tex('\\ce{^{14}C}'));
+        self::assertInstanceOf(\Quoin\Math\Node\Scripts::class, $tree);
+        self::assertInstanceOf(\Quoin\Math\Node\Identifier::class, $tree->base);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function pairsWithLabels(): iterable
+    {
+        yield 'equilibrium' => ['<=>'];
+        yield 'to and fro' => ['<-->'];
+    }
+
+    #[DataProvider('pairsWithLabels')]
+    public function test_the_under_label_of_a_drawn_pair_clears_its_lower_half_as_far_as_a_single_arrows(string $arrow): void
+    {
+        $font = Math::stixTwoMath();
+        // The space between the lowest ink of the arrow glyphs (no text) and the highest ink of the label glyphs, below the baseline.
+        $gap = static function (string $ce) use ($font): float {
+            [$node] = self::arrows($ce);
+            $arrowBottom = -INF;
+            $labelTop = INF;
+            Math::layout($node, 40.0, false)->each(static function (DisplayItem $i, float $dx, float $dy) use ($font, &$arrowBottom, &$labelTop): void {
+                if (! $i instanceof Glyph) {
+                    return;
+                }
+                $bb = $font->bbox($i->gid);
+                $scale = $i->sy * $i->size / $font->unitsPerEm;
+                $y = $i->y + $dy;
+                if ($i->text === null) {
+                    // Arrow pieces below the middle line only.
+                    if ($y > -0.1 * 40.0) {
+                        $arrowBottom = max($arrowBottom, $y - $bb[1] * $scale);
+                    }
+                } elseif ($y > 0.0) {
+                    $labelTop = min($labelTop, $y - $bb[3] * $scale);
+                }
+            });
+
+            return $labelTop - $arrowBottom;
+        };
+        $single = $gap('A ->[x][450 °C] B');
+        self::assertGreaterThan(0.0, $single);
+        self::assertEqualsWithDelta($single, $gap('A ' . $arrow . '[x][450 °C] B'), 0.05 * 40.0);
     }
 }

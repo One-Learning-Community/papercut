@@ -269,19 +269,32 @@ final class MathmlWriter
         } else {
             $base = self::bare($u->base);
         }
-        $blank = static fn (?Node $n): bool => $n === null || ($n instanceof Row && $n->children() === []);
-        if ($baseOp !== null && $blank($u->over) && $blank($u->under)) {
-            // A label-less stretchy arrow: the operator alone stretches by itself.
+        $under = UnderOver::blank($u->under) ? null : $u->under;
+        $over = UnderOver::blank($u->over) ? null : $u->over;
+        if ($under === null && $over === null) {
+            // No part draws anything (the empty one a label-less chemistry arrow carries): the arrow alone, at least as long as the PDF
+            // draws it, since a browser leaves a bare arrow at its natural width.
+            if ($baseOp !== null && $u->base === $baseOp && UnderOver::isStretchy($baseOp) && UnderOver::isArrow($baseOp->char) && mb_strlen($baseOp->char) === 1) {
+                $long = UnderOver::LONG_ARROWS[$baseOp->char] ?? null;
+                $arrow = self::operator(new Operator($long ?? $baseOp->char, $baseOp->stretchy, null, null, $baseOp->form, $baseOp->lspace, $baseOp->rspace, $baseOp->minSize, $baseOp->maxSize), OperatorDictionary::FORM_INFIX, OperatorDictionary::FORM_INFIX, false, true);
+                if ($long !== null) {
+                    return $arrow;
+                }
+
+                // A browser stretches an operator only over the other part of an <mover>, so a space as wide as the minimum gives it one.
+                return '<mover>' . $arrow . '<mspace width="' . self::em(UnderOver::ARROW_MIN_WIDTH, 4) . 'em"/></mover>';
+            }
+
             return $base;
         }
-        if ($u->under !== null && $u->over !== null) {
-            return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under) . $part($u->over) . '</munderover>';
+        if ($under !== null && $over !== null) {
+            return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($under) . $part($over) . '</munderover>';
         }
-        if ($u->over !== null) {
-            return '<mover' . ($u->accent ? ' accent="true"' : '') . '>' . $base . $part($u->over) . '</mover>';
+        if ($over !== null) {
+            return '<mover' . ($u->accent ? ' accent="true"' : '') . '>' . $base . $part($over) . '</mover>';
         }
 
-        return '<munder' . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under ?? throw new \LogicException('UnderOver without a part')) . '</munder>';
+        return '<munder' . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($under) . '</munder>';
     }
 
     private static function grid(Grid $g): string
