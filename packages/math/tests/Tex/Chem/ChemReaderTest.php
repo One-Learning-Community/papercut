@@ -6,12 +6,18 @@ namespace Quoin\Math\Tests\Tex\Chem;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Quoin\Math\Layout\DisplayItem;
+use Quoin\Math\Layout\Glyph;
 use Quoin\Math\Math;
+use Quoin\Math\Node\Node;
+use Quoin\Math\Node\Operator;
 use Quoin\Math\Node\Row;
 use Quoin\Math\Node\Text;
+use Quoin\Math\Node\UnderOver;
 use Quoin\Math\NoteLevel;
 use Quoin\Math\Render\TexWriter;
 use Quoin\Math\Tests\TreeAssert;
+use Quoin\Math\Tex\Chem\ChemArrows;
 use Quoin\Math\Tex\TexReader;
 
 final class ChemReaderTest extends TestCase
@@ -127,5 +133,202 @@ final class ChemReaderTest extends TestCase
             $tree = Math::tex('\ce{' . $ce . '}');
             self::assertNotSame('', TexWriter::write($tree));
         }
+    }
+
+    /** @return iterable<string, array{string, ?array{string, int}}> text, then the arrow and how many characters spell it */
+    public static function spellings(): iterable
+    {
+        yield 'arrow' => ['-> B', ['→', 2]];
+        yield 'left' => ['<- B', ['←', 2]];
+        yield 'both' => ['<-> B', ['↔', 3]];
+        yield 'to and fro' => ['<--> B', ['⇄', 4]];
+        yield 'equilibrium' => ['<=> B', ['⇌', 3]];
+        yield 'forward' => ['<=>> B', ['forward', 4]];
+        yield 'backward' => ['<<=> B', ['backward', 4]];
+        yield 'equals is not an arrow' => ['= B', null];
+        yield 'lone angle' => ['< B', null];
+    }
+
+    /** @param ?array{string, int} $want */
+    #[DataProvider('spellings')]
+    public function test_arrow_spellings_match_longest_first(string $src, ?array $want): void
+    {
+        $got = ChemArrows::match($src, 0);
+        self::assertSame($want, $got === null ? null : [$got['arrow'], $got['length']]);
+        self::assertNull(ChemArrows::match('->', 5));
+    }
+
+    /** @return list<UnderOver> */
+    private static function arrows(string $ce): array
+    {
+        $found = [];
+        $walk = static function (Node $n) use (&$walk, &$found): void {
+            if ($n instanceof UnderOver && $n->base instanceof Operator && UnderOver::isArrow($n->base->char)) {
+                $found[] = $n;
+            }
+            foreach ($n->children() as $c) {
+                $walk($c);
+            }
+        };
+        $walk(Math::tex('\\ce{' . $ce . '}'));
+
+        return $found;
+    }
+
+    public function test_a_labelless_arrow_is_stretchy_with_the_minimum_width(): void
+    {
+        [$arrow] = self::arrows('A -> B');
+        self::assertInstanceOf(Operator::class, $arrow->base);
+        self::assertTrue(UnderOver::isStretchy($arrow->base));
+        $width = Math::layout(Math::tex('\\ce{A -> B}'), 22.0, false)->width - Math::layout(Math::tex('\\ce{A B}'), 22.0, false)->width;
+        self::assertGreaterThan(UnderOver::ARROW_MIN_WIDTH * 22.0, $width);
+    }
+
+    public function test_labels_go_above_then_below_and_are_read_as_chemistry(): void
+    {
+        [$arrow] = self::arrows('N2 <=>[Fe][450 °C] 2NH3');
+        self::assertInstanceOf(Operator::class, $arrow->base);
+        self::assertSame('⇌', $arrow->base->char);
+        self::assertNotNull($arrow->over);
+        self::assertNotNull($arrow->under);
+        self::assertSame('\\mathrm{Fe}', TexWriter::write($arrow->over));
+        self::assertSame('450 \\  \\degree \\mathrm{C}', TexWriter::write($arrow->under));
+    }
+
+    public function test_labels_take_nested_brackets_math_and_commands(): void
+    {
+        foreach (['A ->[[Cu(NH3)4]^2+] B', 'A ->[$x_1$] B', 'A ->[\\Delta][{H2O}] B'] as $ce) {
+            self::assertCount(1, self::arrows($ce), $ce);
+            self::assertSame([], TexReader::read('\\ce{' . $ce . '}')->notes(), $ce);
+        }
+        [$arrow] = self::arrows('A ->[\\Delta] B');
+        self::assertSame('\\Delta', TexWriter::write($arrow->over ?? new Row([])));
+    }
+
+    public function test_a_third_bracket_group_is_not_a_label(): void
+    {
+        [$arrow] = self::arrows('A ->[x][y][z]');
+        self::assertNotNull($arrow->under);
+        self::assertSame('\\ce{A ->[x][y][z]}', TexWriter::write(Math::tex('\\ce{A ->[x][y][z]}')));
+    }
+
+    public function test_an_unclosed_label_leaves_the_bracket_to_the_species(): void
+    {
+        self::assertCount(1, self::arrows('A ->[x B'));
+        self::assertCount(1, self::arrows('A ->['));
+    }
+
+    public function test_an_empty_label_is_no_label(): void
+    {
+        TreeAssert::assertSameTree(Math::tex('\\ce{A -> B}'), Math::tex('\\ce{A ->[] B}'), ignoreSource: true);
+        TreeAssert::assertSameTree(Math::tex('\\ce{A ->[ ][] B}'), Math::tex('\\ce{A -> B}'), ignoreSource: true);
+        $this->addToAssertionCount(2);
+    }
+
+    public function test_a_bracket_inside_math_does_not_close_a_label(): void
+    {
+        [$arrow] = self::arrows('A ->[$[a,b]$] B');
+        self::assertNotNull($arrow->over);
+        self::assertSame([], TexReader::read('\\ce{A ->[$[a,b]$] B}')->notes());
+        self::assertNull($arrow->under);
+    }
+
+    public function test_many_unclosed_labels_take_linear_time(): void
+    {
+        $ce = str_repeat('->[', intdiv(TexReader::MAX_INPUT - 5, 3));
+        $start = microtime(true);
+        Math::tex('\\ce{' . $ce . '}');
+        self::assertLessThan(0.5, microtime(true) - $start);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function stretching(): iterable
+    {
+        yield 'equilibrium' => ['<=>'];
+        yield 'to and fro' => ['<-->'];
+        yield 'forward' => ['->'];
+    }
+
+    #[DataProvider('stretching')]
+    public function test_every_arrow_is_at_least_as_wide_as_its_label_and_the_minimum(string $arrow): void
+    {
+        $size = 22.0;
+        foreach (['A %s[Fe][450 °C] B', 'A %s[x] B', 'A %s B'] as $pattern) {
+            $ce = sprintf($pattern, $arrow);
+            [$node] = self::arrows($ce);
+            $stack = Math::layout($node, $size, false);
+            $label = static fn (?Node $n): float => $n === null ? 0.0 : Math::layout($n, $size * 0.7, false)->width;
+            $widest = max($label($node->over), $label($node->under));
+            self::assertGreaterThanOrEqual(UnderOver::ARROW_MIN_WIDTH * $size - 0.5, $stack->width, $ce);
+            if ($widest > 0.0) {
+                self::assertGreaterThanOrEqual($widest + 2 * UnderOver::ARROW_LABEL_PAD * $size - 0.5, $stack->width, $ce);
+            }
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function pairs(): iterable
+    {
+        yield 'equilibrium' => ['<=>'];
+        yield 'to and fro' => ['<-->'];
+    }
+
+    #[DataProvider('pairs')]
+    public function test_a_drawn_pair_has_its_halves_one_above_the_other(string $arrow): void
+    {
+        $font = Math::stixTwoMath();
+        [$node] = self::arrows('A ' . $arrow . ' B');
+        // Lowest and highest ink of each half, as heights above the baseline.
+        $ink = ['up' => [INF, -INF], 'down' => [INF, -INF]];
+        Math::layout($node, 40.0, false)->each(static function (DisplayItem $i, float $dx, float $dy) use ($font, &$ink): void {
+            if (! $i instanceof Glyph) {
+                return;
+            }
+            $bb = $font->bbox($i->gid);
+            $scale = $i->sy * $i->size / $font->unitsPerEm;
+            $y = $i->y + $dy;
+            $half = $y < 0 ? 'up' : ($y > 0 ? 'down' : null);
+            if ($half !== null) {
+                $ink[$half] = [min($ink[$half][0], -$y + $bb[1] * $scale), max($ink[$half][1], -$y + $bb[3] * $scale)];
+            }
+        });
+        self::assertTrue(is_finite($ink['up'][0]) && is_finite($ink['down'][0]), 'both halves are drawn');
+        // The halves are clearly apart; the harpoons' ink does not overlap (the font's plain arrows overlap in height, as its own do).
+        self::assertGreaterThan(0.1 * 40.0, array_sum($ink['up']) / 2 - array_sum($ink['down']) / 2);
+        if ($arrow === '<=>') {
+            self::assertGreaterThan($ink['down'][1], $ink['up'][0]);
+        }
+    }
+
+    public function test_an_arrow_has_relation_spacing_on_both_sides(): void
+    {
+        $size = 22.0;
+        $gap = Math::layout(Math::tex('\\ce{A -> B}'), $size, false)->width - Math::layout(Math::tex('\\ce{A B}'), $size, false)->width;
+        // The arrow at its minimum length plus the dictionary's spacing (5mu, 0.2778em) on each side.
+        self::assertGreaterThan((UnderOver::ARROW_MIN_WIDTH + 2 * 5 / 18) * $size, $gap);
+    }
+
+    public function test_unequal_arrows_are_drawn_as_equilibrium_with_one_note(): void
+    {
+        foreach (['A <=>> B', 'A <<=> B', 'A <=>>[x][y] B <<=> C'] as $ce) {
+            $res = TexReader::read('\\ce{' . $ce . '}');
+            $notes = $res->notes();
+            self::assertCount(1, $notes, $ce);
+            self::assertSame(NoteLevel::Approximated, $notes[0]->level);
+            self::assertSame('unequal equilibrium arrow drawn as ⇌', $notes[0]->reason);
+            foreach (self::arrows($ce) as $arrow) {
+                self::assertInstanceOf(Operator::class, $arrow->base);
+                self::assertSame('⇌', $arrow->base->char);
+            }
+        }
+        self::assertCount(2, self::arrows('A <=>>[x][y] B <<=> C'));
+    }
+
+    #[DataProvider('stretching')]
+    public function test_arrows_stretch_with_a_long_label(string $arrow): void
+    {
+        $short = Math::layout(Math::tex('\\ce{A ' . $arrow . '[x] B}'), 22.0, false)->width;
+        $long = Math::layout(Math::tex('\\ce{A ' . $arrow . '[a long label here] B}'), 22.0, false)->width;
+        self::assertGreaterThan($short, $long);
     }
 }

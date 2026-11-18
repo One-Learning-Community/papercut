@@ -194,7 +194,8 @@ final class UnderOver extends Node
         $m = $f->math();
         $u = $c->unit();
         $drawnEquals = $baseOp !== null && self::drawsEqualsAsRules($c, $baseOp);
-        $baseStretch = $drawnEquals || $baseOp !== null && self::horizontalGid($c, $baseOp) !== null;
+        $drawnPair = $baseOp !== null && self::drawsPair($c, $baseOp);
+        $baseStretch = $drawnEquals || $drawnPair || $baseOp !== null && self::horizontalGid($c, $baseOp) !== null;
         $baseAnchor = null;
         [$overKind, $overOp] = $this->classify($c, $this->over, $this->accent);
         [$underKind, $underOp] = $this->classify($c, $this->under, $this->accentUnder);
@@ -217,7 +218,11 @@ final class UnderOver extends Node
             $target = self::isArrow($baseOp->char) && ($overBox !== null || $underBox !== null)
                 ? max($widest + 2 * self::ARROW_LABEL_PAD * $c->size(), self::ARROW_MIN_WIDTH * $c->size())
                 : $widest;
-            $make = $drawnEquals ? self::drawnEquals(...) : self::stretched(...);
+            $make = match (true) {
+                $drawnEquals => self::drawnEquals(...),
+                $drawnPair => self::drawnPair(...),
+                default => self::stretched(...),
+            };
             [$baseBox, $baseAnchor] = $make($c, $baseOp->char, $target);
             // The target is an advance width; the minimum and the pad are guarantees about ink, so make up a side-bearing shortfall.
             if ($target > $widest && $baseBox->width < $target) {
@@ -439,6 +444,71 @@ final class UnderOver extends Node
     public static function drawsEqualsAsRules(Context $c, Operator $op): bool
     {
         return $op->char === '=' && $op->stretchy === true && $c->font->gid(mb_ord('=')) !== 0 && self::horizontalGid($c, $op) === null;
+    }
+
+    /** The two harpoons or arrows each stacked arrow is drawn from, upper first. */
+    private const PAIRS = ['⇌' => ['⇀', '↽'], '⇋' => ['↼', '⇁'], '⇄' => ['→', '←'], '⇆' => ['←', '→']];
+
+    /**
+     * Whether a stretchy ⇌ ⇋ ⇄ ⇆ is drawn as two stretched harpoons or arrows: only when the font has the glyph but no
+     * variant or assembly for it (STIX has none), while both of its halves can stretch.
+     *
+     * @internal Engine detail, not public API.
+     */
+    public static function drawsPair(Context $c, Operator $op): bool
+    {
+        if (! isset(self::PAIRS[$op->char]) || ! self::isStretchy($op) || self::horizontalGid($c, $op) !== null) {
+            return false;
+        }
+        foreach (self::PAIRS[$op->char] as $half) {
+            if (self::horizontalGid($c, new Operator($half, stretchy: true)) === null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * A pair of opposed arrows of the given width: the two halves, each stretched to it, one above the other. Each half
+     * moves from its natural place by as much as it moves in the font's own composite glyph (measured at the edge that
+     * carries its shaft, or at its middle for plain arrows), so a short pair keeps that glyph's gap between the shafts.
+     *
+     * @return array{Box, float}
+     */
+    private static function drawnPair(Context $c, string $char, float $required): array
+    {
+        [$upper, $lower] = self::PAIRS[$char];
+        $u = $c->unit();
+        $f = $c->font;
+        [$top] = self::stretched($c, $upper, $required);
+        [$bottom] = self::stretched($c, $lower, $required);
+        $upBox = $f->bbox($f->gid(mb_ord($upper)));
+        $lowBox = $f->bbox($f->gid(mb_ord($lower)));
+        $bars = [];
+        foreach ($f->contours($f->gid(mb_ord($char))) as $contour) {
+            $ys = array_map(static fn (array $p): float => $p[1], $contour);
+            if ($ys !== []) {
+                $bars[] = [min($ys), max($ys)];
+            }
+        }
+        usort($bars, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
+        $harpoons = $char === '⇌' || $char === '⇋';
+        if (count($bars) === 2) {
+            // Barbs point away from the gap, so a harpoon's shaft is at its edge nearest the other half.
+            $up = $harpoons ? $bars[0][0] - $upBox[1] : ($bars[0][0] + $bars[0][1] - $upBox[1] - $upBox[3]) / 2;
+            $down = $harpoons ? $lowBox[3] - $bars[1][1] : ($lowBox[1] + $lowBox[3] - $bars[1][0] - $bars[1][1]) / 2;
+        } else {
+            $up = $down = 0.12 * $f->unitsPerEm;
+        }
+        $up = max(0.0, $up) * $u;
+        $down = max(0.0, $down) * $u;
+        $width = max($top->width, $bottom->width);
+        $b = new Box($width, $top->ascent + $up, $bottom->descent + $down);
+        $b->place($top, ($width - $top->width) / 2, -$up);
+        $b->place($bottom, ($width - $bottom->width) / 2, $down);
+
+        return [$b, $width / 2];
     }
 
     /**

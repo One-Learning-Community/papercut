@@ -5,7 +5,8 @@ declare(strict_types=1);
 /**
  * Ordinary school and first-year chemistry for the `\ce` reader. name => [`\ce` argument, the same formula in plain
  * KaTeX TeX, expected notes as [element, level] pairs; [] for none]. The expected TeX spells the tree the reader builds
- * (one upright identifier per element), not the TeX mhchem expands to. Used by tests/Tex/Chem/ChemCorpusTest.php.
+ * (one upright identifier per element), not the TeX mhchem expands to. A label-less arrow has no spelling in plain TeX
+ * (`\\xrightarrow{}` reads as a plain arrow), so `⟦→⟧` stands for the stretchy arrow node the reader builds. Used by tests/Tex/Chem/ChemCorpusTest.php.
  *
  * @return array<string, array{string, string, list<array{string, string}>}>
  */
@@ -49,4 +50,21 @@ return [
     'precipitate' => ['AgCl v', '\mathrm{Ag}\mathrm{Cl}\downarrow', []],
     'unsupported-bar' => ['A|B', '\mathrm{A}\text{|}\mathrm{B}', [['\ce', 'Approximated']]],
     'isotope-with-charge' => ['^{14}_{6}C^{4+}', '{}^{14}_{6}\mathrm{C}^{4+}', []],
+    'combustion' => ['CH4 + 2O2 -> CO2 + 2H2O', '\mathrm{C}\mathrm{H}_{4} + 2\mathrm{O}_{2} ⟦→⟧ \mathrm{C}\mathrm{O}_{2} + 2\mathrm{H}_{2}\mathrm{O}', []],
+    'acid-on-limestone' => ['CaCO3 + 2HCl -> CaCl2 + CO2 + H2O', '\mathrm{Ca}\mathrm{C}\mathrm{O}_{3} + 2\mathrm{H}\mathrm{Cl} ⟦→⟧ \mathrm{Ca}\mathrm{Cl}_{2} + \mathrm{C}\mathrm{O}_{2} + \mathrm{H}_{2}\mathrm{O}', []],
+    'rusting' => ['4Fe + 3O2 -> 2Fe2O3', '4\mathrm{Fe} + 3\mathrm{O}_{2} ⟦→⟧ 2\mathrm{Fe}_{2}\mathrm{O}_{3}', []],
+    'haber-process' => ['N2 + 3H2 <=> 2NH3', '\mathrm{N}_{2} + 3\mathrm{H}_{2} ⟦⇌⟧ 2\mathrm{N}\mathrm{H}_{3}', []],
+    'precipitation' => ['Ag+ + Cl- -> AgCl v', '\mathrm{Ag}^{+} + \mathrm{Cl}^{-} ⟦→⟧ \mathrm{Ag}\mathrm{Cl}\downarrow', []],
+    'decomposition-heat' => ['CaCO3 ->[\Delta] CaO + CO2 ^', '\mathrm{Ca}\mathrm{C}\mathrm{O}_{3}\xrightarrow{\Delta}\mathrm{Ca}\mathrm{O} + \mathrm{C}\mathrm{O}_{2}\uparrow', []],
+    'haber-conditions' => ['N2 + 3H2 <=>[Fe][450 °C] 2NH3', '\mathrm{N}_{2} + 3\mathrm{H}_{2}\xrightleftharpoons[450\ °\mathrm{C}]{\mathrm{Fe}}2\mathrm{N}\mathrm{H}_{3}', []],
+    'label-words' => ['A ->[long label] B', '\mathrm{A}\xrightarrow{\mathrm{long}\ \mathrm{label}}\mathrm{B}', []],
+    'unequal-with-labels' => ['A <=>>[x][y] B', '\mathrm{A}\xrightleftharpoons[\mathrm{y}]{\mathrm{x}}\mathrm{B}', [['\ce', 'Approximated']]],
+    'braced-label' => ['A ->[{H2O}] B', '\mathrm{A}\xrightarrow{\mathrm{H}_{2}\mathrm{O}}\mathrm{B}', []],
+    'arrow-left' => ['A <- B', '\mathrm{A} ⟦←⟧ \mathrm{B}', []],
+    'arrow-both' => ['A <-> B', '\mathrm{A} ⟦↔⟧ \mathrm{B}', []],
+    'arrow-to-and-fro' => ['A <--> B', '\mathrm{A} ⟦⇄⟧ \mathrm{B}', []],
+    'electron-transfer' => ['Fe^3+ + e- -> Fe^2+', '\mathrm{Fe}^{3+} + \mathrm{e}^{-} ⟦→⟧ \mathrm{Fe}^{2+}', []],
+    'unequal-forward' => ['A <=>> B', '\mathrm{A} ⟦⇌⟧ \mathrm{B}', [['\ce', 'Approximated']]],
+    'unequal-backward' => ['A <<=> B', '\mathrm{A} ⟦⇌⟧ \mathrm{B}', [['\ce', 'Approximated']]],
+    'equals-between-species' => ['A = B', '\mathrm{A} = \mathrm{B}', []],
 ];

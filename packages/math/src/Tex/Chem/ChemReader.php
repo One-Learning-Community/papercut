@@ -12,6 +12,7 @@ use Quoin\Math\Node\Number;
 use Quoin\Math\Node\Operator;
 use Quoin\Math\Node\Row;
 use Quoin\Math\Node\Scripts;
+use Quoin\Math\Node\Space;
 use Quoin\Math\Node\Text;
 use Quoin\Math\Tex\TexSymbols;
 
@@ -51,12 +52,15 @@ final class ChemReader
     private bool $fresh = true;
     private bool $space = true;
 
+    /** @var array<int, int>|null the index of each `[` to the `]` that closes it, found once per reader */
+    private ?array $pairs = null;
+
     /**
      * @param \Closure(string, ?array{int, int}): Node $math reads TeX with the calling reader's limits and depth; the span is where the
      *        TeX stands in the source given to read(), when it does, so the caller can read the tokens it came from
      * @param \Closure(NoteLevel, string, string): void $note records a note on the `\ce` command
      */
-    private function __construct(private readonly \Closure $math, private readonly \Closure $note, private readonly int $depth, private readonly int $origin = 0)
+    private function __construct(private readonly \Closure $math, private readonly \Closure $note, private readonly int $depth, private readonly int $origin = 0, private readonly bool $label = false)
     {
     }
 
@@ -92,6 +96,9 @@ final class ChemReader
         $spaceBefore = $this->space;
         if (ctype_space($ch)) {
             $this->flush();
+            if ($this->label && $this->wordSpace()) {
+                $this->emit(new Space(1 / 3));
+            }
             $this->i++;
             $this->space = true;
             $this->fresh = true;
@@ -126,7 +133,7 @@ final class ChemReader
             $this->script($ch, $spaceBefore);
         } elseif ($ch === '<' || $ch === '>') {
             $this->arrow();
-        } elseif ($ch === ',' || $ch === ';' || $ch === '/' || $ch === "'" || $ch === '!' || $ch === '?' || $ch === ':') {
+        } elseif ($ch === ',' || $ch === ';' || $ch === '/' || $ch === "'" || $ch === '!' || $ch === '?' || $ch === ':' || $ch === '°') {
             $this->emit(($this->math)($ch, null));
             $this->i++;
             $this->fresh = true;
@@ -471,23 +478,104 @@ final class ChemReader
         return count($parts) === 1 ? $parts[0] : new Row($parts);
     }
 
-    /** Arrows are not read yet: the arrow and its labels are drawn as text. */
+    /** A reaction arrow with up to two labels in `[…]` straight after it: the first goes above, the second below. */
     private function arrow(): void
     {
+        $found = ChemArrows::match($this->slice($this->i, min($this->n, $this->i + 4)), 0);
+        if ($found === null) {
+            // A lone `<` or `>`: not an arrow.
+            $this->unsupported($this->at());
+            $this->i++;
+
+            return;
+        }
+        $this->i += $found['length'];
+        $labels = [];
+        while (count($labels) < 2 && $this->at() === '[' && ($close = $this->closingBracket($this->i)) !== null) {
+            $inner = $this->slice($this->i + 1, $close);
+            $origin = $this->origin + $this->i + 1;
+            $this->i = $close + 1;
+            $labels[] = trim($inner) === '' ? null : $this->label($inner, $origin);
+        }
+        if (ChemArrows::isUnequal($found['arrow'])) {
+            ($this->note)(NoteLevel::Approximated, '\\ce', 'unequal equilibrium arrow drawn as ⇌');
+        }
+        $this->emit(ChemArrows::node($found['arrow'], $labels[0] ?? null, $labels[1] ?? null));
+        $this->fresh = true;
+    }
+
+    /** A label is read as `\ce` text of its own. */
+    private function label(string $inner, int $origin): Node
+    {
+        if ($this->depth >= self::MAX_DEPTH) {
+            $this->unsupported($inner);
+
+            return new Text($inner);
+        }
+
+        return (new self($this->math, $this->note, $this->depth + 1, $origin, true))->run($inner);
+    }
+
+    /** Whether the space at the cursor stands between two words or a number and its unit, which a label keeps. */
+    private function wordSpace(): bool
+    {
+        $last = $this->out[count($this->out) - 1] ?? null;
+        if ($last === null || $last instanceof Operator || $last instanceof Space) {
+            return false;
+        }
         $k = $this->i;
-        while ($k < $this->n && str_contains('<>=-', $this->c[$k])) {
+        while ($k < $this->n && ctype_space($this->c[$k])) {
             $k++;
         }
-        for ($labels = 0; $labels < 2 && ($this->c[$k] ?? '') === '['; $labels++) {
-            $close = $k;
-            while ($close < $this->n && $this->c[$close] !== ']') {
-                $close++;
-            }
-            $k = min($this->n, $close + 1);
+        $next = $this->c[$k] ?? '';
+
+        return $next !== '' && ($next === '°' || str_contains('([{$\\', $next) || preg_match('/^[\p{L}\p{N}]$/u', $next) === 1);
+    }
+
+    /** The index of the `]` that closes the `[` at $open, skipping nested brackets, braces and `$…$`, or null. */
+    private function closingBracket(int $open): ?int
+    {
+        if ($this->pairs === null) {
+            $this->pairs = $this->bracketPairs();
         }
-        $k = max($k, $this->i + 1);
-        $this->unsupported($this->slice($this->i, $k));
-        $this->i = $k;
+
+        return $this->pairs[$open] ?? null;
+    }
+
+    /**
+     * Every `[` that has a `]`, found in one pass so that many unclosed ones do not each rescan the rest.
+     *
+     * @return array<int, int>
+     */
+    private function bracketPairs(): array
+    {
+        $pairs = [];
+        $stack = [];
+        $braces = 0;
+        for ($k = 0; $k < $this->n; $k++) {
+            $ch = $this->c[$k];
+            if ($ch === '{') {
+                $braces++;
+            } elseif ($ch === '}') {
+                $braces = max(0, $braces - 1);
+                while ($stack !== [] && $stack[count($stack) - 1][1] > $braces) {
+                    array_pop($stack);
+                }
+            } elseif ($ch === '$') {
+                for ($j = $k + 1; $j < $this->n && $this->c[$j] !== '$'; $j++) {
+                }
+                if ($j < $this->n) {
+                    $k = $j;
+                }
+            } elseif ($ch === '[') {
+                $stack[] = [$k, $braces];
+            } elseif ($ch === ']' && $stack !== [] && $stack[count($stack) - 1][1] === $braces) {
+                [$open] = array_pop($stack);
+                $pairs[$open] = $k;
+            }
+        }
+
+        return $pairs;
     }
 
     private function letters(bool $spaceBefore): void
