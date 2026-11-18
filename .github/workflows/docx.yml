@@ -41,8 +41,13 @@ jobs:
           extensions: mbstring, zlib, dom, gd, zip, imagick
           coverage: none
           tools: composer:v2
-      - name: Install poppler, LibreOffice Writer and rsvg-convert
-        run: sudo apt-get update && sudo apt-get install -y poppler-utils libreoffice-writer librsvg2-bin
+      # LibreOffice is the slow download, and the PHP version does not change what it renders, so only the leg that
+      # uploads the page images installs it. Its recommended packages are not needed headless; the fonts are named.
+      - name: Install poppler, rsvg-convert and, on PHP 8.4, LibreOffice Writer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils librsvg2-bin \
+            ${{ matrix.php == '8.4' && 'libreoffice-writer fonts-liberation2 fonts-dejavu-core' || '' }}
       - name: Cache Composer downloads
         uses: actions/cache@v6
         with:
@@ -59,6 +64,7 @@ jobs:
         working-directory: examples/docx
         run: for f in *.docx; do echo "$f"; npx --yes @xarsh/ooxml-validator@0.4.0 "$f"; done
       - name: Convert with LibreOffice and render pages
+        if: matrix.php == '8.4'
         working-directory: examples/docx
         run: |
           soffice --headless --convert-to pdf --outdir lo *.docx
