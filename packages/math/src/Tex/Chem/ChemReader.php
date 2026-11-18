@@ -113,6 +113,10 @@ final class ChemReader
         } elseif ($ch === '{') {
             $this->group();
         } elseif ($ch === '(' || $ch === '[') {
+            if ($ch === '(' && ($this->base !== null || $this->out !== []) && preg_match('/^\([a-z]{1,3}\)(?:[\s,;)\]}]|$)/', $this->slice($this->i, min($this->n, $this->i + 6))) === 1) {
+                // A state of aggregation: mhchem sets `\mskip2mu` before it.
+                $this->emit(new Space(1 / 9));
+            }
             $this->atom(new Operator($ch), 'open');
             $this->i++;
             $this->fresh = true;
@@ -225,7 +229,11 @@ final class ChemReader
                 $inner = $this->slice($this->i + 1, $k);
                 $span = [$this->origin + $this->i + 1, $this->origin + $k];
                 $this->i = $k + 1;
+                $fresh = $this->fresh;
                 $this->atom(($this->math)($inner, $span), 'math');
+                if ($fresh) {
+                    $this->amountGap(true);
+                }
 
                 return;
             }
@@ -288,12 +296,14 @@ final class ChemReader
             if (preg_match('~^([0-9]+)/([0-9]+)~', $s, $m) === 1) {
                 $this->i += strlen($m[0]);
                 $this->emit(new Fraction(new Number($m[1]), new Number($m[2])));
+                $this->amountGap();
 
                 return;
             }
             $num = self::first('/^(?:[0-9]+(?:[.,][0-9]+)?|\.[0-9]+)/', $s);
             $this->i += strlen($num);
             $this->emit(new Number($num));
+            $this->amountGap();
 
             return;
         }
@@ -305,6 +315,22 @@ final class ChemReader
             return;
         }
         $this->emit(new Number($num));
+    }
+
+    /** A thin space after an amount when a formula follows it, as mhchem writes `2\,\mathrm{O}`. */
+    private function amountGap(bool $needSpace = false): void
+    {
+        $j = $this->i;
+        while ($j < $this->n && ctype_space($this->c[$j])) {
+            $j++;
+        }
+        if ($needSpace && $j === $this->i) {
+            return;
+        }
+        $next = $this->c[$j] ?? '';
+        if ($next !== '' && (str_contains('([$\\', $next) || preg_match('/^\p{L}$/u', $next) === 1)) {
+            $this->emit(new Space(1 / 6));
+        }
     }
 
     /** The text the pattern matches at the start of $s, or ''. */
@@ -516,7 +542,29 @@ final class ChemReader
             return new Text($inner);
         }
 
+        $trimmed = trim($inner);
+        if (str_starts_with($trimmed, '{') && $this->bracesWrap($trimmed)) {
+            // Braces in a label are literal text, as in mhchem.
+            return ($this->math)('\\text{' . substr($trimmed, 1, -1) . '}', null);
+        }
+
         return (new self($this->math, $this->note, $this->depth + 1, $origin, true))->run($inner);
+    }
+
+    /** Whether the first brace of $inner closes at its last one. */
+    private function bracesWrap(string $inner): bool
+    {
+        $depth = 0;
+        $s = $inner;
+        $last = strlen($s) - 1;
+        for ($k = 0; $k <= $last; $k++) {
+            $depth += $s[$k] === '{' ? 1 : ($s[$k] === '}' ? -1 : 0);
+            if ($depth === 0 && $k < $last) {
+                return false;
+            }
+        }
+
+        return $depth === 0;
     }
 
     /** Whether the space at the cursor stands between two words or a number and its unit, which a label keeps. */
@@ -623,6 +671,7 @@ final class ChemReader
             if ($j > $k && $j < $this->n && ctype_upper($this->c[$j])) {
                 $this->i = $k;
                 $this->emit(($this->math)($run, null));
+                $this->amountGap();
 
                 return;
             }

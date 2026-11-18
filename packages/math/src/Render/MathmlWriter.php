@@ -269,6 +269,11 @@ final class MathmlWriter
         } else {
             $base = self::bare($u->base);
         }
+        $blank = static fn (?Node $n): bool => $n === null || ($n instanceof Row && $n->children() === []);
+        if ($baseOp !== null && $blank($u->over) && $blank($u->under)) {
+            // A label-less stretchy arrow: the operator alone stretches by itself.
+            return $base;
+        }
         if ($u->under !== null && $u->over !== null) {
             return '<munderover' . ($u->accent ? ' accent="true"' : '') . ($u->accentUnder ? ' accentunder="true"' : '') . '>' . $base . $part($u->under) . $part($u->over) . '</munderover>';
         }

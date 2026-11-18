@@ -223,4 +223,11 @@ final class MathmlWriterTest extends TestCase
         self::assertStringNotContainsString('stretchy="false"', $out);
         self::assertStringContainsString('minsize="1.8em"', $out);
     }
+
+    public function test_label_less_arrow_is_a_bare_operator(): void
+    {
+        $xml = MathmlWriter::write(Math::tex('\\ce{A -> B}'));
+        self::assertStringNotContainsString('<mover>', $xml);
+        self::assertStringNotContainsString('<mrow></mrow>', $xml);
+    }
 }

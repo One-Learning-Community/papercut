@@ -86,6 +86,12 @@ final class ChemReaderTest extends TestCase
         TreeAssert::assertSameTree(Math::tex('\mathrm{H}_{2}\mathrm{O}'), Math::tex('\ce{H2O^}'), ignoreSource: true);
     }
 
+    public function test_state_at_the_start_has_no_leading_gap(): void
+    {
+        TreeAssert::assertSameTree(Math::tex('(\mathrm{aq})'), Math::tex('\ce{(aq)}'), ignoreSource: true);
+        self::assertSame('\ce{(aq)}', TexWriter::write(Math::tex('\ce{(aq)}')));
+    }
+
     public function test_math_inside_reaches_the_tex_reader(): void
     {
         $tree = Math::tex('\ce{\alpha H2O}');

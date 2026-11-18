@@ -52,6 +52,22 @@ final class OmmlWriterTest extends TestCase
         self::assertSame('oMathPara', $doc->documentElement?->firstElementChild?->localName);
     }
 
+    public function test_label_less_arrow_is_a_plain_long_arrow(): void
+    {
+        $xml = OmmlWriter::oMath(Math::tex('\\ce{A -> B}'));
+        self::assertStringNotContainsString('<m:lim></m:lim>', $xml);
+        self::assertStringNotContainsString('<m:phant>', $xml);
+        self::assertStringContainsString('⟶', $xml);
+        self::assertStringContainsString('⇌', OmmlWriter::oMath(Math::tex('\\ce{A <=> B}')));
+    }
+
+    public function test_one_label_has_no_empty_limit(): void
+    {
+        $xml = OmmlWriter::oMath(Math::tex('\\ce{A ->[x] B}'));
+        self::assertStringNotContainsString('<m:limLow>', $xml);
+        self::assertStringNotContainsString('<m:lim></m:lim>', $xml);
+    }
+
     public function test_square_root_hides_degree(): void
     {
         $xml = OmmlWriter::oMath(Math::sqrt('x'));

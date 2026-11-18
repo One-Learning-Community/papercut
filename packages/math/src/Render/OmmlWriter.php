@@ -360,7 +360,15 @@ final class OmmlWriter
         }
         $arrow = UnderOver::operatorOf($u->base);
         if ($arrow !== null && $u->base === $arrow && UnderOver::isStretchy($arrow) && UnderOver::isArrow($arrow->char) && ($u->over !== null || $u->under !== null) && self::single($arrow->char)) {
-            return self::labeledArrow($u, $arrow->char, $rPr);
+            // A label that draws nothing (the empty one a label-less chemistry arrow carries) is no label.
+            $over = $u->over === null || strpos(self::node($u->over, $rPr), '<m:t') === false ? null : $u->over;
+            $under = $u->under === null || strpos(self::node($u->under, $rPr), '<m:t') === false ? null : $u->under;
+            if ($over === null && $under === null) {
+                // KaTeX draws the long arrows for these.
+                return self::node(new Operator(['→' => '⟶', '←' => '⟵', '↔' => '⟷'][$arrow->char] ?? $arrow->char), $rPr);
+            }
+
+            return self::labeledArrow($over, $under, $arrow->char, $rPr);
         }
         $out = self::node($u->base, $rPr);
         if ($u->under !== null) {
@@ -390,10 +398,10 @@ final class OmmlWriter
      * content on the baseline at full size, so the arrow is grouped over an invisible copy of the wider label
      * (zero height, width kept) and the real labels, at script size, are limits around it.
      */
-    private static function labeledArrow(UnderOver $u, string $char, string $rPr): string
+    private static function labeledArrow(?Node $overNode, ?Node $underNode, string $char, string $rPr): string
     {
-        $over = $u->over === null ? null : self::node($u->over, $rPr);
-        $under = $u->under === null ? null : self::node($u->under, $rPr);
+        $over = $overNode === null ? null : self::node($overNode, $rPr);
+        $under = $underNode === null ? null : self::node($underNode, $rPr);
         $wide = $under === null || ($over !== null && self::textLength($over) >= self::textLength($under)) ? $over : $under;
         $out = self::groupChr('<m:phant><m:phantPr><m:show m:val="0"/><m:zeroAsc m:val="1"/><m:zeroDesc m:val="1"/></m:phantPr><m:e>' . $wide . '</m:e></m:phant>', $char, 'top', 'bot', $rPr);
         if ($over !== null) {
