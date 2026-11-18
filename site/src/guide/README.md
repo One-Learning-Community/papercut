@@ -33,7 +33,7 @@ This package does the layout; [php-pdf](https://github.com/dskripchenko/php-pdf)
 
 ## Current limitations
 
-This is version 0.17, before 1.0, and a few things aren't supported yet:
+This is version 0.18, before 1.0, and a few things aren't supported yet:
 
 - complex text shaping (HarfBuzz), right-to-left paragraphs (a right-to-left name in a left-to-right document works) and hyphenation
 - fillable form fields (AcroForms) and PDF/A

@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-18
+
 ### Changed
 
 - Equations come from [Phactorial](https://one-learning-community.github.io/phactorial/), the math library that was `quoin/math`. To move:
