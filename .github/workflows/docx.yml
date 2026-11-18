@@ -6,7 +6,6 @@ on:
     paths: &paths
       - 'packages/docx/**'
       - 'packages/core/**'
-      - 'packages/math/**'
       - 'examples/docx/**'
       - 'examples/core/documents/**'
       - '.github/workflows/docx.yml'

@@ -21,8 +21,6 @@ jobs:
     uses: ./.github/workflows/laravel.yml
   docx:
     uses: ./.github/workflows/docx.yml
-  math:
-    uses: ./.github/workflows/math.yml
 
   notes:
     runs-on: ubuntu-latest
@@ -52,7 +50,7 @@ jobs:
           path: release-notes.md
 
   split:
-    needs: [core, laravel, docx, math, notes]
+    needs: [core, laravel, docx, notes]
     uses: ./.github/workflows/split-packages.yml
     with:
       branch: main

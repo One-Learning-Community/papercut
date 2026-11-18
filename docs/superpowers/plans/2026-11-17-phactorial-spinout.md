@@ -108,7 +108,7 @@ git filter-repo --force \
     - **Changed:** "The math library left Quoin and is now Phactorial: the package `quoin/math` is `phactorial/phactorial`, and the namespace `Quoin\Math` is `Phactorial`. The deprecated `TrueTypeFont` alias is removed."
     - **Added:** Quoin's two `[Unreleased]` MathRender bullets, moved verbatim, with links repointed to the Phactorial site.
     - **Added:** the CommonMark extension (Task 4 adds this line).
-  - Footer: "Releases through 0.17.0 were published as quoin/math; their notes are in [Quoin's changelog](https://gh.ali360.cloudns.ch/One-Learning-Community/quoin/blob/main/CHANGELOG.md)."
+  - Footer: "Releases through 0.17.0 were published as quoin/math; their notes are in [Quoin's changelog](https://github.com/One-Learning-Community/quoin/blob/main/CHANGELOG.md)."
 - [ ] **Step 2: Write the README, CONTRIBUTING and NOTICE.**
   - README: what Phactorial is, the two packages, and the site link.
   - CONTRIBUTING: running tests, the fuzz group, and releasing (split token, Packagist, tag), adapted from Quoin's sections.
@@ -345,9 +345,9 @@ Every step marked **(user)** is done by the user or on their explicit yes in tha
   - Quoin `phactorial-switch`: all suites on both versions.
   - Run a whole-branch review on each repo (Opus) and fix every finding, minors included.
 - [ ] **Step 2 (user): GitHub setup.**
-  - Create `One-Learning-Community/phactorial`, `phactorial-core` and `phactorial-commonmark`.
+  - Create `One-Learning-Community/phactorial`, `phactorial-core` and `phactorial-commonmark`, and initialize each split repo with a README on default branch `main`.
   - Create a fine-grained `SPLIT_TOKEN` (contents read/write on the two split repos) as a secret on `phactorial`.
-  - Enable Pages (GitHub Actions source).
+  - Enable Pages with the source set to GitHub Actions.
 - [ ] **Step 3 (user yes): Push Phactorial `main`.**
   - Push to `origin`. Worklog branches stay local.
   - Wait for green CI and the split. Confirm the split repos have content and the site deployed.

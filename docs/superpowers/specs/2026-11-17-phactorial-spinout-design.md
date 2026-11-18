@@ -149,25 +149,31 @@ through `MathRender`.
 | Source | Result |
 |---|---|
 | `$…$` | inline math |
-| `` $`…`$ `` | inline math, for content with dollar signs or awkward characters |
-| `$$…$$` within a paragraph | display math |
-| a block opened by a line of just `$$` and closed by a line ending in `$$`, or a line of only `$$…$$` | display block |
+| `` $`…`$ `` | inline math, for content with dollar signs or awkward characters; may span lines |
+| `$$…$$` mid-line | inline math, on one line |
+| a paragraph that starts and ends with `$$` | every `$$…$$` in it is display math; a paragraph of only one `$$…$$` is a display block |
 | a fence with info string `math` | display block |
 
-Dollar rules: a single `$` opens only before a non-space character and closes only after a non-space character that is
-not followed by a digit, so "costs $5 and $10" stays text. Single-dollar math never spans a backtick, which leaves code
-spans to the code parser. `\$` stays a literal dollar sign. Fences with other info strings, and code spans, are
-untouched.
+There is no block-level math syntax. A `$$` block inside a block quote or list item is the same paragraph rule applied
+to that container's paragraph.
+
+Dollar rules: a single `$` opens only before a non-space character and not after a letter, digit or underscore, and
+closes only when not preceded by a backslash and not followed by a letter, digit or underscore, so "costs $5 and $10"
+stays text. A backslash-escaped dollar never closes a formula, and a code span inside a formula ends it, because code
+spans are read first. `\$` stays a literal dollar sign. Math in link text stays text, as on GitHub. Fences with other
+info strings, and code spans, are untouched.
 
 GitHub's rendered output is the reference, not its docs, which are thin. The edge cases are sent once to GitHub's
 Markdown API (`POST /markdown` with `mode: gfm`) and the results pinned as fixtures. Where GitHub's output disagrees
-with the rules above, GitHub wins and the rules change to match.
+with the rules above, GitHub wins and the rules change to match. That happened: the fixtures overrode the original
+rules, which dropped block-level `$$` opening and closing lines in favor of the paragraph rule, as this section allowed.
+The extension's README lists the cases that still differ (`$$a$$b$$`, and a `<div>` where GitHub uses a `<p>`).
 
 **Output.**
 - An inline formula is a `<span class="math math-inline">`.
 - A display formula inside a paragraph is a `<span class="math math-display">`, because a `<p>` cannot contain a
   `<div>`. The docs give the one CSS rule that makes it a block.
-- A display block is a `<div class="math math-display">`.
+- A paragraph of only a display formula, and a `math` fence, is a `<div class="math math-display">`.
 - Inside the wrapper is either SVG from `MathRender::svg()` (default: the same look in every browser, mail client and
   feed reader, about 4 KB per formula) or MathML from `MathRender::mathml()` (small, selectable text, drawn in the
   browser's math font; Chrome draws matrices and accents less well).
@@ -200,8 +206,9 @@ hostile-input stopping rule applies: only exponential or unbounded cost, crashes
   The page without the extension takes 0.24 ms.
 
 **Tests.** A table of edge cases for the dollar rules (prices, adjacent dollars, escapes, code spans, emphasis and
-links around math, math in lists and block quotes, unterminated delimiters, `$$` blocks interrupting paragraphs and
-inside list items), GitHub-matching cases, configuration, the error fallback, and an XSS case.
+links around math, math in lists and block quotes, CRLF, multibyte text, unterminated delimiters, `$$` paragraphs and
+display blocks inside containers), GitHub parity fixtures with a `known-divergence` group, GFM tables, configuration,
+the error fallback, linear-time checks on unclosed openers, and escaping and XSS cases.
 
 ### Docs site
 

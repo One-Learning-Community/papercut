@@ -8,7 +8,7 @@
 - `ext-zip`, but only for Word export (`quoin/docx`)
 - Laravel 12 or 13, if you're using the Blade package
 
-The core package has two Composer dependencies: [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf), which writes the PDF files, and `quoin/math`, which builds [equations](./equations.md) and is released alongside it.
+The core package has two Composer dependencies: [`dskripchenko/php-pdf`](https://github.com/dskripchenko/php-pdf), which writes the PDF files, and [`phactorial/phactorial`](https://one-learning-community.github.io/phactorial/), which builds [equations](./equations.md).
 
 ## Installing
 

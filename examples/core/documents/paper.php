@@ -6,7 +6,7 @@ declare(strict_types=1);
 // closing note. examples/core/paper.php saves it as PDF, examples/html/render.php as HTML and examples/docx/render.php as Word.
 use Quoin\{Column, ColumnFlow, Document, Equation, Page, PageNumber, Row, Span, Spacer, Svg, Table, TableCell, TableRow, Text};
 use Quoin\Markup\Markup;
-use Quoin\Math\Math;
+use Phactorial\Math;
 use Quoin\Value\Edges;
 
 use function Quoin\{mm, pt};

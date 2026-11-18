@@ -3,7 +3,7 @@
 This is a monorepo with these Composer packages:
 
 - `packages/core` (`quoin/core`): the layout engine and plain-PHP API.
-- `packages/math` (`quoin/math`): the equation builder, layout and renderers. It depends on nothing else; core requires it.
+- `packages/docx` (`quoin/docx`): Word export. It requires core through a path repository (`../core`, symlinked).
 - `packages/laravel` (`quoin/laravel`): Blade components on top of core. It requires core through a path
   repository (`../core`, symlinked), so a change in core is visible in the Laravel package immediately.
 
@@ -21,11 +21,12 @@ brew install qpdf poppler
 sudo apt-get update && sudo apt-get install -y qpdf poppler-utils
 ```
 
-Install both packages:
+Install the packages:
 
 ```
 composer --working-dir=packages/core install
 composer --working-dir=packages/laravel install
+composer --working-dir=packages/docx install
 ```
 
 The Laravel and DOCX packages' path repositories pin core (and DOCX) to the current minor's `x-dev` version (`options.versions` in its `composer.json`), so it
@@ -49,8 +50,8 @@ vendor/bin/phpstan analyse --memory-limit=1G
 If Xdebug is loaded, prefix with `php -d xdebug.mode=off` for speed. CI runs the same commands on PHP 8.4 and 8.5
 (`.github/workflows`).
 
-The math package's fuzz tests (thousands of random TeX and chemistry inputs) are left out of the default run. Run
-them after changing the TeX or chemistry readers: `cd packages/math && vendor/bin/phpunit --group fuzz`.
+The fuzz tests for the TeX and chemistry readers live in the Phactorial repository (`One-Learning-Community/phactorial`).
+Run them there after changing those readers.
 
 Snapshot updates: visual-regression snapshots (`packages/core/tests/Visual/snapshots`, rasterized with `pdftoppm -r 72`)
 are refreshed with `cd packages/core && UPDATE_SNAPSHOTS=1 php -d xdebug.mode=off vendor/bin/phpunit tests/Visual`.
@@ -94,39 +95,58 @@ The docs gallery's images come from the small documents in `site/gallery/sources
 - No new runtime dependencies without discussion.
 - Error messages say what is wrong, where, and what to do about it.
 
+## Working on Phactorial alongside Quoin
+
+Quoin installs `phactorial/phactorial` from Packagist. To test a Phactorial change without releasing it, point a
+package at the sibling checkout. From `packages/core` (and likewise `packages/laravel` or `packages/docx`):
+
+```bash
+composer config repositories.phactorial '{"type":"path","url":"../../../phactorial/packages/core","options":{"symlink":true,"versions":{"phactorial/phactorial":"0.18.x-dev"}}}'
+composer update phactorial/phactorial
+```
+
+Remove it when you are done:
+
+```bash
+composer config --unset repositories.phactorial
+composer update phactorial/phactorial
+```
+
+Never commit this entry.
+
 ## Releasing
 
 Releases are tag-driven. Packagist reads one `composer.json` per repository, so each package is mirrored into its own
-read-only split repository: `One-Learning-Community/quoin-math`, `One-Learning-Community/quoin-core`,
-`One-Learning-Community/quoin-laravel` and `One-Learning-Community/quoin-docx`.
+read-only split repository: `One-Learning-Community/quoin-core`, `One-Learning-Community/quoin-laravel` and `One-Learning-Community/quoin-docx`.
 Never commit to the split repos directly; they are overwritten on every split.
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `math.yml`, `core.yml`, `laravel.yml`, `docx.yml` | push to `main`, pull requests | tests, PHPStan, benchmark gate (core), OOXML schema check and LibreOffice renders (docx) |
+| `core.yml`, `laravel.yml`, `docx.yml` | push to `main`, pull requests | tests, PHPStan, benchmark gate (core), OOXML schema check and LibreOffice renders (docx) |
 | `split.yml` | push to `main` | mirrors `packages/*` to the split repos (their `dev-main`) |
 | `release.yml` | tag `vX.Y.Z` | every suite, CHANGELOG check, split + tag every package, GitHub release |
 
 ### One-time setup
 
 1. Create a fine-grained personal access token (resource owner `One-Learning-Community`) with
-   **Contents: read and write** on `quoin-math`, `quoin-core`, `quoin-laravel` and `quoin-docx` only, and save it as the
+   **Contents: read and write** on `quoin-core`, `quoin-laravel` and `quoin-docx` only, and save it as the
    `SPLIT_TOKEN` Actions secret on `One-Learning-Community/quoin`. Without it `split.yml` skips with a notice
    and `release.yml` fails at the split step.
 2. Each split repo must exist with at least one commit (a README is enough) before the first split: the split
    action can't push to an empty repository.
-3. Once the split repos have content, submit them at https://packagist.org/packages/submit (`quoin-math`
-   first, since core requires it, then `quoin-core`, `quoin-laravel` and `quoin-docx`). Packagist's GitHub integration keeps them updated on new pushes and tags.
+3. Once the split repos have content, submit them at https://packagist.org/packages/submit (`quoin-core`
+   first, since the others require it, then `quoin-laravel` and `quoin-docx`). Packagist's GitHub integration keeps them updated on new pushes and tags.
 
 ### Each release
 
 1. Make sure `main` is green.
 2. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (`release.yml` refuses a missing or
    still-unreleased section), and add a fresh `## [Unreleased]` above it.
-3. If the minor version changed, bump the `extra.branch-alias` of `packages/math` and of core, the `versions` pin in
-   the path repos (core's, Laravel's and DOCX's for `quoin/math`, Laravel's and DOCX's for core, and Laravel's
-   for `quoin/docx`), and the requirements: core's, Laravel's and DOCX's `quoin/math`, the Laravel and DOCX
-   packages' `quoin/core`, and Laravel's `quoin/docx` (`^X.Y`). Only math and core carry a branch-alias.
+3. If the minor version changed, bump the `extra.branch-alias` of core, the `versions` pin in the path repos
+   (Laravel's and DOCX's for core, and Laravel's for `quoin/docx`), and the requirements: the Laravel and DOCX
+   packages' `quoin/core`, and Laravel's `quoin/docx` (`^X.Y`). Only core carries a branch-alias. All three packages
+   require `phactorial/phactorial` with a caret on Phactorial's current minor. That requirement changes only when
+   Quoin adopts a new Phactorial minor, never because Quoin's own minor changed.
 4. Commit, then tag from `main`: `git tag -s vX.Y.Z -m "Quoin X.Y.Z" && git push origin main vX.Y.Z`.
 5. Verify in a scratch project: `composer require quoin/core quoin/laravel quoin/docx`, then render one
    document with each.

@@ -20,12 +20,20 @@ generated PDFs that use it.
 - Full text: `packages/core/resources/fonts/Cousine/OFL.txt`
 - Project: https://github.com/googlefonts/cousine
 
-## STIX Two Math typeface
+## Fira Math typeface
 
-Bundled in `packages/math/resources/fonts/` (Regular), and embedded (subset) in generated PDFs, and in HTML when fonts are embedded, that use it.
+Used only as a test fixture in `packages/core/tests/fixtures/` (not shipped in the package archive).
 
 - License: SIL Open Font License 1.1
-- Full text: `packages/math/resources/fonts/OFL.txt`
+- Full text: `packages/core/tests/fixtures/FiraMath-OFL.txt`
+- Project: https://github.com/firamath/firamath
+
+## STIX Two Math typeface
+
+Bundled in `phactorial/phactorial` (`vendor/phactorial/phactorial/resources/fonts/`, Regular), and embedded (subset) in generated PDFs, and in HTML when fonts are embedded, that use it.
+
+- License: SIL Open Font License 1.1
+- Full text: `vendor/phactorial/phactorial/resources/fonts/OFL.txt`
 - Project: https://github.com/stipub/stixfonts
 
 ## Tailwind CSS color palette

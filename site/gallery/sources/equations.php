@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Quoin\{Column, Document, Equation, Page, Span, Text};
-use Quoin\Math\Math;
+use Phactorial\Math;
 
 use function Quoin\{in, pt};
 

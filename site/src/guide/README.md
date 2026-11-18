@@ -2,10 +2,9 @@
 
 Quoin is a document library for PHP 8.4. You describe a document as a tree of components (pages, rows, columns, text, tables). It lays it out, splits it into pages and writes it as a PDF, a Word file or HTML.
 
-It comes as four packages:
+It comes as three packages, and uses [Phactorial](https://one-learning-community.github.io/phactorial/) for equations (see [Equations](./equations.md)):
 
 - **`quoin/core`** is the layout engine and a fluent PHP API. It doesn't need a framework.
-- **`quoin/math`** lays out equations from an OpenType math font. Core uses it for `Equation` and `Span::math()`; it also works on its own. See [Equations](./equations.md).
 - **`quoin/laravel`** adds Blade components on top. Every `<x-doc::*>` tag builds a core component, so a Blade view and the PHP API describe exactly the same document.
 - **`quoin/docx`** writes Word (`.docx`) files. It needs `ext-zip`. See [Word export](./word-export.md).
 

@@ -226,9 +226,9 @@ $paperSections = [
     ]],
 ];
 // Nodes for the formulas the paper's view places with <x-doc::equation> and <x-doc::math>.
-$paperLogit = \Quoin\Math\Math::row('ln', \Quoin\Math\Math::fenced('(', ')', \Quoin\Math\Math::frac('p', '1 - p')), '=', \Quoin\Math\Math::sub('β', '0'), '+', \Quoin\Math\Math::sub('β', '1'), 'd');
-$paperSlope = \Quoin\Math\Math::row(\Quoin\Math\Math::sub('β', '1'), '=', '−0.04');
-$paperMean = \Quoin\Math\Math::row(\Quoin\Math\Math::overline('d'), '=', \Quoin\Math\Math::sum('i = 1', '4'), \Quoin\Math\Math::sub('w', 'i'), \Quoin\Math\Math::sub('d', 'i'));
+$paperLogit = \Phactorial\Math::row('ln', \Phactorial\Math::fenced('(', ')', \Phactorial\Math::frac('p', '1 - p')), '=', \Phactorial\Math::sub('β', '0'), '+', \Phactorial\Math::sub('β', '1'), 'd');
+$paperSlope = \Phactorial\Math::row(\Phactorial\Math::sub('β', '1'), '=', '−0.04');
+$paperMean = \Phactorial\Math::row(\Phactorial\Math::overline('d'), '=', \Phactorial\Math::sum('i = 1', '4'), \Phactorial\Math::sub('w', 'i'), \Phactorial\Math::sub('d', 'i'));
 // A sentence with a formula in MathML, as an equation editor saves it; <x-doc::markup> reads it.
 $paperOdds = '<p style="text-align: justify">Each further 10 cm multiplied the odds of survival by <math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mi>e</mi><mrow><mn>10</mn><msub><mi>β</mi><mn>1</mn></msub></mrow></msup></math>, so the effect compounds with distance. The odds at spacing <i>d</i> are therefore</p><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mfrac><mi>p</mi><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow></mfrac><mo>=</mo><msup><mi>e</mi><mrow><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><mi>d</mi></mrow></msup></mrow></math><p style="text-align: justify">and solving for the probability of survival gives</p><img class="Wirisformula" alt="survival probability" data-mathml="«math xmlns=¨http://www.w3.org/1998/Math/MathML¨ display=¨block¨»«mrow»«mi»p«/mi»«mo»=«/mo»«mfrac»«mn»1«/mn»«mrow»«mn»1«/mn»«mo»+«/mo»«msup»«mi»e«/mi»«mrow»«mo»−«/mo»«mo»(«/mo»«msub»«mi»β«/mi»«mn»0«/mn»«/msub»«mo»+«/mo»«msub»«mi»β«/mi»«mn»1«/mn»«/msub»«mi»d«/mi»«mo»)«/mo»«/mrow»«/msup»«/mrow»«/mfrac»«/mrow»«/math»">';
 $paperSurvival = [['10 cm', '24', '75%'], ['20 cm', '24', '88%'], ['30 cm', '24', '96%'], ['40 cm', '24', '100%']];

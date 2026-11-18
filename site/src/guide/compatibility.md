@@ -10,9 +10,9 @@ The current version is 0.17. Until 1.0, a minor version (0.17 to 0.18) may chang
 
 A breaking change to the public API waits for the next major version (2.0). Minor versions add features, and patch versions fix bugs.
 
-## The four packages move together
+## The three packages move together
 
-`quoin/math`, `quoin/core`, `quoin/laravel` and `quoin/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: core requires the matching quoin/math, and the other packages require the matching core (`^0.15`).
+`quoin/core`, `quoin/laravel` and `quoin/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: the other packages require the matching core minor, such as `^0.18` for 0.18. Equations come from `phactorial/phactorial`, which is a separate version line with its own releases; core requires a compatible Phactorial minor.
 
 ## What the promise covers
 

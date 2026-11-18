@@ -8,7 +8,7 @@ The formula above is one display equation:
 
 ```php
 use Quoin\Equation;
-use Quoin\Math\Math;
+use Phactorial\Math;
 
 Equation::of('x', '=', Math::frac(
     Math::row('-b', '±', Math::sqrt(Math::sup('b', '2'), '-', '4ac')),
@@ -16,11 +16,11 @@ Equation::of('x', '=', Math::frac(
 ))->center();
 ```
 
-The builder lives in the `quoin/math` package, which `quoin/core` installs. It also works on its own, for formulas in web pages, email or Word files: see [Math](/math/).
+The builder lives in the [Phactorial](https://one-learning-community.github.io/phactorial/) package (`phactorial/phactorial`), which `quoin/core` installs. It also works on its own, for formulas in web pages, email or Word files.
 
 ## Building a formula
 
-`Quoin\Math\Math` has one method for each shape. Wherever a method takes a node, a plain string works too; the [rules below](#how-text-becomes-math) turn it into nodes.
+`Phactorial\Math` has one method for each shape. Wherever a method takes a node, a plain string works too; the [rules below](#how-text-becomes-math) turn it into nodes.
 
 | Method | Builds |
 |---|---|
@@ -123,7 +123,7 @@ In Word, `aligned()` is written as a native equation array. In `aligned()`, cell
 
 ```php
 use Quoin\{Span, Text};
-use Quoin\Math\Math;
+use Phactorial\Math;
 
 Text::spans(
     Span::text('The fitted slope was '),
@@ -177,7 +177,7 @@ The formulas in the editors' output were tested against MathType and Wiris (mark
 
 ```php
 use Quoin\Equation;
-use Quoin\Math\Math;
+use Phactorial\Math;
 
 Equation::of(Math::mathml('<math><msqrt><mi>x</mi></msqrt></math>'))->center();
 ```
@@ -215,7 +215,7 @@ $document->toPdf(new PdfOptions(onWarning: fn (string $message) => error_log($me
 // pdf: approximated math <menclose> (drawn as its contents) at …
 ```
 
-To read the notes yourself, `Math::notes($node)` returns them as a list of `MathNote`, each with a `level`, the `element` name, a `reason` and where it was found. [Input](/math/input.md#notes) describes the readers in full.
+To read the notes yourself, `Math::notes($node)` returns them as a list of `MathNote`, each with a `level`, the `element` name, a `reason` and where it was found. [Input](https://one-learning-community.github.io/phactorial/input.html#notes) describes the readers in full.
 
 ## TeX input
 
@@ -225,7 +225,7 @@ Math-mode LaTeX is read into the same formula the builder makes. Anything it can
 
 ```php
 use Quoin\Equation;
-use Quoin\Math\Math;
+use Phactorial\Math;
 use Quoin\Span;
 
 Equation::of(Math::tex('x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}'))->center();
@@ -247,14 +247,14 @@ A static Blade attribute is read with HTML rules, so `&lt;` and `&amp;` are deco
 
 **What it reads.** The input is math mode, with or without a `$…$`, `$$…$$`, `\(…\)` or `\[…\]` wrapper. `$$…$$`, `\[…\]`, a top-level `\displaystyle` and display environments such as `align`, `gather` and `equation` ask for display style (not `aligned`, which is used inside a formula), and a block equation is always display style. The set is what [KaTeX supports](https://katex.org/docs/supported.html) for math: fractions, roots, scripts, `\left`, `\right` and `\middle`, `\big` sizes, accents, braces, extensible arrows, large operators with limits, font and text commands, spacing, and the environments `matrix` (and its bracketed variants), `array`, `cases`, `aligned`, `align`, `gathered` and `gather`. Macros work: `\newcommand`, `\renewcommand`, `\providecommand`, `\def` and `\DeclareMathOperator`, scoped to the group they are in.
 
-**Chemistry.** `\ce{…}` and `\pu{…}` read mhchem chemistry and units, for example `\ce{2H2 + O2 -> 2H2O}` and `\pu{25 kJ/mol}`. The [math package's input page](/math/input.md#chemistry) lists the subset. The TeX writer writes them back as read, so the TeX needs mhchem wherever it goes next.
+**Chemistry.** `\ce{…}` and `\pu{…}` read mhchem chemistry and units, for example `\ce{2H2 + O2 -> 2H2O}` and `\pu{25 kJ/mol}`. [Phactorial's input page](https://one-learning-community.github.io/phactorial/input.html#chemistry) lists the subset. The TeX writer writes them back as read, so the TeX needs mhchem wherever it goes next.
 
 **Limits.** A formula is cut off at 16 KB. Nesting deeper than 256 levels is cut off, macro expansion may not grow a formula past what 16 KB of raw TeX could, and a formula's environments have at most 10,000 cells between them. Past the nesting limit the rest is drawn as its TeX source text. Macro expansion is also capped at 10,000 expansions. A formula that hits a limit is drawn as far as it got and reports it. A stretched delimiter or arrow is never longer than 100 em. Under Xdebug's develop mode (its default) the call stack is limited too (`xdebug.max_nesting_level`, 512), so the nesting limit is lowered to fit, and deep nesting gets the nesting note sooner; raise `xdebug.max_nesting_level` to 4096, or turn develop mode off, for the full 256 levels.
 
 **Reading the notes.** `TexReader::read($tex)` returns the formula, whether it asked for display style, and the notes, in the same form as for MathML. See [What is approximated or dropped](#what-is-approximated-or-dropped) for how they reach `onWarning`.
 
 ```php
-use Quoin\Math\Tex\TexReader;
+use Phactorial\Tex\TexReader;
 
 $result = TexReader::read('\boxed{x}');
 $result->notes();   // approximated: \boxed (the box is not drawn)
@@ -264,7 +264,7 @@ $result->notes();   // approximated: \boxed (the box is not drawn)
 
 ## The math font
 
-Equations are set in a math font. STIX Two Math is bundled and used by default. To use another, such as Latin Modern Math for the LaTeX look (see the [recipe](/math/recipes.md#the-latex-look)), point the font set at the file:
+Equations are set in a math font. STIX Two Math is bundled and used by default. To use another, such as Latin Modern Math for the LaTeX look (see the [recipe](https://one-learning-community.github.io/phactorial/recipes.html#the-latex-look)), point the font set at the file:
 
 ```php
 use Quoin\Export\PdfOptions;
@@ -276,7 +276,7 @@ $document->toPdf(new PdfOptions(fonts: $fonts));
 
 In Laravel, set `math_font` in `config/quoin.php` to the file's path, or leave it `null` for the bundled font.
 
-The font must be an OpenType math font with a `MATH` table. Its outlines may be TrueType (`.ttf`) or CFF (`.otf`), so Latin Modern Math works. A CFF2 (variable) font, a CID-keyed CFF font, a CFF font whose `FontMatrix` disagrees with its units per em, a font collection or a font without a `MATH` table is rejected with `Quoin\Math\Exception\UnsupportedFont`, which names the file and the reason. A PDF embeds a CFF font whole, which adds a few hundred KB for a large font; see [Fonts](./fonts.md#the-math-font). The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
+The font must be an OpenType math font with a `MATH` table. Its outlines may be TrueType (`.ttf`) or CFF (`.otf`), so Latin Modern Math works. A CFF2 (variable) font, a CID-keyed CFF font, a CFF font whose `FontMatrix` disagrees with its units per em, a font collection or a font without a `MATH` table is rejected with `Phactorial\Exception\UnsupportedFont`, which names the file and the reason. A PDF embeds a CFF font whole, which adds a few hundred KB for a large font; see [Fonts](./fonts.md#the-math-font). The chosen font applies to the PDF and HTML exports. Word equations always use Cambria Math.
 
 A character the math font has no glyph for, such as a CJK ideograph or an emoji, is drawn with the document's [fallback fonts](./fonts.md#fallback-fonts).
 
