@@ -1052,7 +1052,7 @@ final class TexReader
         }
         $starts[$pos] = $to;
         $tokens = $this->c->t;
-        $notes = [];
+        $notes = $closed ? [] : [[NoteLevel::Approximated, '\\' . $name, 'group without a closing brace']];
         $reading = function (string $tex, ?array $span) use ($starts, $ends, $tokens, $to): Node {
             if ($span === null) {
                 return self::readWithin($tex, max(1, $this->maxDepth - $this->depth - 1))->node;

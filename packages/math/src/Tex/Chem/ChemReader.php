@@ -497,6 +497,9 @@ final class ChemReader
             $this->i = $close + 1;
             $labels[] = trim($inner) === '' ? null : $this->label($inner, $origin);
         }
+        if (count($labels) < 2 && $this->at() === '[') {
+            ($this->note)(NoteLevel::Approximated, '\\ce', 'arrow label without a closing bracket drawn as text');
+        }
         if (ChemArrows::isUnequal($found['arrow'])) {
             ($this->note)(NoteLevel::Approximated, '\\ce', 'unequal equilibrium arrow drawn as ⇌');
         }
