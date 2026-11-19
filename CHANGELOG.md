@@ -5,6 +5,15 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Color inside a formula. `\color`, `\textcolor` and MathML `mathcolor` are drawn in the PDF, carried into Word equations and written to HTML as `mathcolor`. A colored part keeps the text color's opacity.
+
+### Changed
+
+- Requires `phactorial/phactorial` `^0.21`. See [Phactorial's 0.20.0 and 0.21.0 notes](https://github.com/One-Learning-Community/phactorial/blob/main/CHANGELOG.md#0210---2026-11-19). Matrices and other table rows have TeX's array strut, so a two-row matrix is taller than before, and `\\[len]` after a row adds that space.
+- Word equations write `m:ctrlPr` on fractions, radicals, scripts and other structures, so they take the run's color. The Word goldens `fixtures-equations` and `examples-paper` changed by those elements only.
+
 ## [0.19.0] - 2026-11-18
 
 ### Changed

@@ -30,7 +30,7 @@
         "ext-mbstring": "*",
         "ext-zlib": "*",
         "dskripchenko/php-pdf": "^1.26",
-        "phactorial/phactorial": "^0.19"
+        "phactorial/phactorial": "^0.21"
     },
     "require-dev": {
         "bacon/bacon-qr-code": "^3.1",

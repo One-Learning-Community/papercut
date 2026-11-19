@@ -193,7 +193,7 @@ A literal `math` attribute that holds MathML (it starts with `<math`, `<mml:math
 
 ### What a formula takes from its text
 
-A formula read from MathML takes its color, size, background and link from the text around it. It is never underlined, struck through, bold or italic because the text is: letters are math italic and digits upright, as in any other equation. The color, size and background attributes in the MathML itself (`mathcolor`, `mathsize`, `mathbackground`) are ignored.
+A formula read from MathML takes its color, size, background and link from the text around it. It is never underlined, struck through, bold or italic because the text is: letters are math italic and digits upright, as in any other equation. A `mathcolor` in the MathML colors its part of the formula in place of the text color; see [Color inside a formula](#color-inside-a-formula). The size and background attributes (`mathsize`, `mathbackground`) are ignored.
 
 ### What is approximated or dropped
 
@@ -260,7 +260,17 @@ $result = TexReader::read('\boxed{x}');
 $result->notes();   // approximated: \boxed (the box is not drawn)
 ```
 
-**TeX out.** `TexWriter::write($node)` writes any formula as standard TeX that KaTeX accepts, so a formula read from MathML can go back out as TeX. Reading the TeX gives the same formula again. Details that MathML carries and TeX has no word for are dropped and the nearest TeX is written. Boxes, colors, strike-throughs and `\tag` that were read from TeX are written back, though they are not drawn.
+**TeX out.** `TexWriter::write($node)` writes any formula as standard TeX that KaTeX accepts, so a formula read from MathML can go back out as TeX. Reading the TeX gives the same formula again. Details that MathML carries and TeX has no word for are dropped and the nearest TeX is written. Colors are drawn and written back. Boxes, strike-throughs and `\tag` that were read from TeX are written back, though they are not drawn.
+
+## Color inside a formula
+
+`\color`, `\textcolor` and MathML `mathcolor` color part of a formula. The rest takes the text color, and the colored part keeps the text color's opacity.
+
+```php
+Equation::of(Math::tex('a + \\textcolor{blue}{\\frac{b}{c}}'))->color(Color::hex('#334155'));
+```
+
+The PDF draws the letters, rules and stretched delimiters in that color. Word equations carry it on their runs and on fraction bars, radicals and brackets. The HTML export writes it as `mathcolor`.
 
 ## The math font
 
@@ -290,8 +300,7 @@ A character the math font has no glyph for, such as a CJK ideograph or an emoji,
 
 ## Not yet
 
-- Table lines, row spacing and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like), and `\hline` and column rules in TeX `array`.
-- Color inside a formula (`\color`, `mathcolor`). A formula takes its color from the text around it.
+- Table lines and spanning cells in matrices (`rowlines`, `columnlines`, `rowspan` and the like), and `\hline` and column rules in TeX `array`.
 - Boxes around parts of a formula (`\boxed`, `\fbox`, `\cancel`, `<menclose>`), and equation numbers (`\tag`).
 - TeX found inside HTML or text. A TeX string you hand it is read; rich text is not scanned for `$…$`. Convert the formula first with `Math::tex()`.
 - Commutative diagrams (`CD`) and TeX commands that define environments, such as `\newenvironment`.
