@@ -4,7 +4,7 @@ The packages follow [Semantic Versioning](https://semver.org/).
 
 ## Before 1.0
 
-The current version is 0.19. Until 1.0, a minor version (0.19 to 0.20) may change the API, and the [changelog](https://github.com/One-Learning-Community/quoin/blob/main/CHANGELOG.md) lists every change. A patch version (0.19.0 to 0.19.1) only fixes bugs. Require a minor version with a caret, such as `^0.19`, and Composer won't move you past it.
+The current version is 0.20. Until 1.0, a minor version (0.20 to 0.21) may change the API, and the [changelog](https://github.com/One-Learning-Community/quoin/blob/main/CHANGELOG.md) lists every change. A patch version (0.20.0 to 0.20.1) only fixes bugs. Require a minor version with a caret, such as `^0.20`, and Composer won't move you past it.
 
 ## From 1.0
 
@@ -12,7 +12,7 @@ A breaking change to the public API waits for the next major version (2.0). Mino
 
 ## The three packages move together
 
-`quoin/core`, `quoin/laravel` and `quoin/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: the other packages require the matching core minor, such as `^0.19` for 0.19. Equations come from `phactorial/phactorial`, which is a separate version line with its own releases; core requires a compatible Phactorial minor.
+`quoin/core`, `quoin/laravel` and `quoin/docx` share one version number and are released together. Word export and the Blade package use parts of the core that aren't public, so install the same minor version of each. Before 1.0, Composer enforces this: the other packages require the matching core minor, such as `^0.20` for 0.20. Equations come from `phactorial/phactorial`, which is a separate version line with its own releases; core requires a compatible Phactorial minor.
 
 ## What the promise covers
 

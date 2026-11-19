@@ -5,6 +5,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-19
+
 ### Added
 
 - Color inside a formula. `\color`, `\textcolor` and MathML `mathcolor` are drawn in the PDF, carried into Word equations and written to HTML as `mathcolor`. A colored part keeps the text color's opacity.
